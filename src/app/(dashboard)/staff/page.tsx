@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import styles from './page.module.css'
+import TimeClock from '@/components/modules/TimeClock'
+import ServiceModal from '@/components/modules/ServiceModal'
+import CreditAlerts from '@/components/modules/CreditAlerts'
+
+type ServiceArea = 'all' | 'banho_tosa' | 'creche' | 'hotel'
 
 // Tipos temporários para mock
 interface Pet {
@@ -17,6 +22,7 @@ interface Appointment {
     id: string
     pet: Pet
     service_name: string
+    service_area: ServiceArea
     scheduled_at: string
     status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'canceled'
     notes: string | null
@@ -37,6 +43,7 @@ const mockAppointments: Appointment[] = [
             customer_name: 'Maria Silva'
         },
         service_name: 'Banho + Tosa',
+        service_area: 'banho_tosa',
         scheduled_at: new Date().toISOString(),
         status: 'confirmed',
         notes: 'Cuidado com as orelhas, sensíveis',
@@ -54,6 +61,7 @@ const mockAppointments: Appointment[] = [
             customer_name: 'João Santos'
         },
         service_name: 'Banho',
+        service_area: 'banho_tosa',
         scheduled_at: new Date().toISOString(),
         status: 'in_progress',
         notes: null,
@@ -71,6 +79,7 @@ const mockAppointments: Appointment[] = [
             customer_name: 'Ana Costa'
         },
         service_name: 'Tosa Higiênica',
+        service_area: 'banho_tosa',
         scheduled_at: new Date().toISOString(),
         status: 'pending',
         notes: 'Primeira vez no pet shop',
@@ -87,7 +96,44 @@ const mockAppointments: Appointment[] = [
             photo_url: null,
             customer_name: 'Pedro Lima'
         },
-        service_name: 'Creche',
+        service_name: 'Creche Diária',
+        service_area: 'creche',
+        scheduled_at: new Date().toISOString(),
+        status: 'in_progress',
+        notes: null,
+        perfume_allowed: true,
+        accessories_allowed: true
+    },
+    {
+        id: '5',
+        pet: {
+            id: 'p5',
+            name: 'Rex',
+            species: 'dog',
+            breed: 'Labrador',
+            photo_url: null,
+            customer_name: 'Carlos Souza'
+        },
+        service_name: 'Hospedagem 3 dias',
+        service_area: 'hotel',
+        scheduled_at: new Date().toISOString(),
+        status: 'in_progress',
+        notes: 'Medicação às 18h',
+        perfume_allowed: true,
+        accessories_allowed: true
+    },
+    {
+        id: '6',
+        pet: {
+            id: 'p6',
+            name: 'Mel',
+            species: 'dog',
+            breed: 'Shih Tzu',
+            photo_url: null,
+            customer_name: 'Julia Ferreira'
+        },
+        service_name: 'Creche Diária',
+        service_area: 'creche',
         scheduled_at: new Date().toISOString(),
         status: 'in_progress',
         notes: null,
@@ -112,10 +158,47 @@ const statusColors: Record<string, string> = {
     canceled: 'canceled'
 }
 
+const areaLabels: Record<ServiceArea, string> = {
+    all: 'Todas',
+    banho_tosa: '🛁 Banho + Tosa',
+    creche: '🐕 Creche',
+    hotel: '🏨 Hotel'
+}
+
 export default function StaffPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [filter, setFilter] = useState<string>('all')
+    const [areaFilter, setAreaFilter] = useState<ServiceArea>('all')
     const [loading, setLoading] = useState(true)
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+
+    const handleConfirm = (appointmentId: string) => {
+        setAppointments(prev =>
+            prev.map(a => a.id === appointmentId ? { ...a, status: 'confirmed' as const } : a)
+        )
+    }
+
+    const handleStart = (appointmentId: string) => {
+        setAppointments(prev =>
+            prev.map(a => a.id === appointmentId ? { ...a, status: 'in_progress' as const } : a)
+        )
+    }
+
+    const handleOpenModal = (appointment: Appointment) => {
+        setSelectedAppointment(appointment)
+        setIsModalOpen(true)
+    }
+
+    const handleComplete = () => {
+        if (selectedAppointment) {
+            setAppointments(prev =>
+                prev.map(a => a.id === selectedAppointment.id ? { ...a, status: 'done' as const } : a)
+            )
+        }
+        setSelectedAppointment(null)
+        setIsModalOpen(false)
+    }
 
     useEffect(() => {
         // Simular carregamento
@@ -125,15 +208,19 @@ export default function StaffPage() {
         }, 500)
     }, [])
 
-    const filteredAppointments = filter === 'all'
+    const filteredAppointments = appointments
+        .filter(a => areaFilter === 'all' || a.service_area === areaFilter)
+        .filter(a => filter === 'all' || a.status === filter)
+
+    const areaBasedAppointments = areaFilter === 'all'
         ? appointments
-        : appointments.filter(a => a.status === filter)
+        : appointments.filter(a => a.service_area === areaFilter)
 
     const stats = {
-        total: appointments.length,
-        pending: appointments.filter(a => a.status === 'pending').length,
-        inProgress: appointments.filter(a => a.status === 'in_progress').length,
-        done: appointments.filter(a => a.status === 'done').length,
+        total: areaBasedAppointments.length,
+        pending: areaBasedAppointments.filter(a => a.status === 'pending').length,
+        inProgress: areaBasedAppointments.filter(a => a.status === 'in_progress').length,
+        done: areaBasedAppointments.filter(a => a.status === 'done').length,
     }
 
     if (loading) {
@@ -147,6 +234,12 @@ export default function StaffPage() {
 
     return (
         <div className={styles.container}>
+            {/* Time Clock */}
+            <TimeClock />
+
+            {/* Credit Alerts */}
+            <CreditAlerts />
+
             {/* Stats Cards */}
             <div className={styles.statsGrid}>
                 <div className={styles.statCard}>
@@ -177,6 +270,24 @@ export default function StaffPage() {
                         <span className={styles.statLabel}>Finalizados</span>
                     </div>
                 </div>
+            </div>
+
+            {/* Area Filter Tabs */}
+            <div className={styles.areaTabs}>
+                {(['all', 'banho_tosa', 'creche', 'hotel'] as ServiceArea[]).map(area => (
+                    <button
+                        key={area}
+                        className={`${styles.areaTab} ${areaFilter === area ? styles.active : ''}`}
+                        onClick={() => setAreaFilter(area)}
+                    >
+                        {areaLabels[area]}
+                        <span className={styles.areaCount}>
+                            {area === 'all'
+                                ? appointments.length
+                                : appointments.filter(a => a.service_area === area).length}
+                        </span>
+                    </button>
+                ))}
             </div>
 
             {/* Filter Tabs */}
@@ -257,22 +368,34 @@ export default function StaffPage() {
 
                             <div className={styles.petActions}>
                                 {appointment.status === 'confirmed' && (
-                                    <button className={`${styles.actionBtn} ${styles.primary}`}>
+                                    <button
+                                        className={`${styles.actionBtn} ${styles.primary}`}
+                                        onClick={() => handleStart(appointment.id)}
+                                    >
                                         ▶️ Iniciar
                                     </button>
                                 )}
                                 {appointment.status === 'in_progress' && (
                                     <>
-                                        <button className={`${styles.actionBtn} ${styles.secondary}`}>
+                                        <button
+                                            className={`${styles.actionBtn} ${styles.secondary}`}
+                                            onClick={() => handleOpenModal(appointment)}
+                                        >
                                             📸 Foto
                                         </button>
-                                        <button className={`${styles.actionBtn} ${styles.success}`}>
+                                        <button
+                                            className={`${styles.actionBtn} ${styles.success}`}
+                                            onClick={() => handleOpenModal(appointment)}
+                                        >
                                             ✅ Finalizar
                                         </button>
                                     </>
                                 )}
                                 {appointment.status === 'pending' && (
-                                    <button className={`${styles.actionBtn} ${styles.outline}`}>
+                                    <button
+                                        className={`${styles.actionBtn} ${styles.outline}`}
+                                        onClick={() => handleConfirm(appointment.id)}
+                                    >
                                         ✓ Confirmar
                                     </button>
                                 )}
@@ -281,6 +404,21 @@ export default function StaffPage() {
                     ))
                 )}
             </div>
+
+            {/* Service Modal */}
+            <ServiceModal
+                appointment={selectedAppointment ? {
+                    id: selectedAppointment.id,
+                    pet_id: selectedAppointment.pet.id,
+                    pet_name: selectedAppointment.pet.name,
+                    service_name: selectedAppointment.service_name,
+                    customer_name: selectedAppointment.pet.customer_name,
+                    notes: selectedAppointment.notes
+                } : null}
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onComplete={handleComplete}
+            />
         </div>
     )
 }

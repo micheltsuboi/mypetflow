@@ -86,7 +86,58 @@
     color: var(--text-muted);
 }
 
-/* Filter Tabs */
+/* Area Tabs (New) */
+.areaTabs {
+    display: flex;
+    gap: 0.75rem;
+    padding-bottom: 0.5rem;
+    overflow-x: auto;
+    width: 100%;
+    margin-bottom: -1rem;
+}
+
+.areaTab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: rgba(43, 75, 111, 0.2);
+    border: 1px solid rgba(140, 180, 201, 0.1);
+    border-radius: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.areaTab:hover {
+    background: rgba(43, 75, 111, 0.4);
+    color: var(--text-primary);
+}
+
+.areaTab.active {
+    background: linear-gradient(135deg, rgba(43, 75, 111, 0.8), rgba(61, 96, 137, 0.8));
+    border-color: var(--color-sky);
+    color: white;
+    box-shadow: 0 4px 12px rgba(43, 75, 111, 0.3);
+}
+
+.areaCount {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.15rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.areaTab.active .areaCount {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+}
+
+/* Filter Tabs (Status) */
 .filterTabs {
     display: flex;
     gap: 0.5rem;

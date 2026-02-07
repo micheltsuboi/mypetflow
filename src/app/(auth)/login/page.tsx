@@ -112,8 +112,11 @@ export default function LoginPage() {
                             <Link href="/staff" className={styles.quickBtn}>
                                 📋 Staff
                             </Link>
-                            <Link href="/admin" className={styles.quickBtn}>
-                                ⚙️ Admin
+                            <Link href="/owner" className={styles.quickBtn}>
+                                💼 Owner
+                            </Link>
+                            <Link href="/master-admin" className={styles.quickBtn}>
+                                ⚙️ Master
                             </Link>
                         </div>
                     </div>

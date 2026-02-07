@@ -1,0 +1,185 @@
+.container {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 152, 0, 0.1) 100%);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.icon {
+    font-size: 1.5rem;
+}
+
+.headerText {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffc107;
+}
+
+.count {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.arrow {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.arrow.expanded {
+    transform: rotate(180deg);
+}
+
+.alertsList {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
+}
+
+.alertCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+    transition: background 0.2s ease;
+}
+
+.alertCard:last-child {
+    margin-bottom: 0;
+}
+
+.alertCard:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.alertInfo {
+    flex: 1;
+}
+
+.petRow {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.petName {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.badge.warning {
+    background: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.badge.critical {
+    background: rgba(var(--coral-rgb), 0.2);
+    color: var(--coral);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+.serviceType {
+    font-size: 0.85rem;
+    color: var(--primary);
+    margin: 0 0 0.25rem 0;
+}
+
+.customer {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.whatsappBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+
+.whatsappBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.4);
+}
+
+.whatsappBtn span:first-child {
+    font-size: 1.25rem;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .alertCard {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .whatsappBtn {
+        width: 100%;
+        flex-direction: row;
+        justify-content: center;
+    }
+}
