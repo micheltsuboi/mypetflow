@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useActionState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createPet, updatePet, deletePet } from '@/app/actions/pet'
@@ -141,6 +141,24 @@ export default function PetsPage() {
             alert(createState.message)
         }
     }, [createState, fetchData])
+
+    // Handle return from Agenda (Re-open modal)
+    const searchParams = useSearchParams()
+    useEffect(() => {
+        const openPetId = searchParams.get('openPetId')
+        if (openPetId && pets.length > 0 && !selectedPet && !showModal) {
+            const pet = pets.find(p => p.id === openPetId)
+            if (pet) {
+                setSelectedPet(pet)
+                setActiveTab('packages')
+                setShowModal(true)
+                // Clean URL
+                const url = new URL(window.location.href)
+                url.searchParams.delete('openPetId')
+                window.history.replaceState({}, '', url)
+            }
+        }
+    }, [searchParams, pets, selectedPet, showModal])
 
     useEffect(() => {
         if (updateState.success) {
@@ -586,7 +604,8 @@ export default function PetsPage() {
                                                                             className={styles.scheduleBtnSmall}
                                                                             onClick={() => {
                                                                                 if (selectedPet) {
-                                                                                    router.push(`/owner/agenda?petId=${selectedPet.id}&serviceId=${pkg.service_id}&package=true`)
+                                                                                    const returnUrl = encodeURIComponent(`/owner/pets?openPetId=${selectedPet.id}`)
+                                                                                    router.push(`/owner/agenda?petId=${selectedPet.id}&serviceId=${pkg.service_id}&package=true&returnUrl=${returnUrl}`)
                                                                                 }
                                                                             }}
                                                                         >

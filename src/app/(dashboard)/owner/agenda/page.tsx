@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useActionState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -58,6 +59,7 @@ const DEFAULT_CHECKLIST_ITEMS = [
 ]
 
 export default function AgendaPage() {
+    const router = useRouter()
     const supabase = createClient()
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
@@ -76,6 +78,7 @@ export default function AgendaPage() {
     // Pre-selection from URL
     const [preSelectedPetId, setPreSelectedPetId] = useState('')
     const [preSelectedServiceId, setPreSelectedServiceId] = useState('')
+    const [returnUrl, setReturnUrl] = useState<string | null>(null)
 
     // Checklist State
     const [currentChecklist, setCurrentChecklist] = useState<{ label: string, checked: boolean }[]>([])
@@ -95,6 +98,9 @@ export default function AgendaPage() {
             const params = new URLSearchParams(window.location.search)
             const petId = params.get('petId')
             const serviceId = params.get('serviceId')
+            const retUrl = params.get('returnUrl')
+
+            if (retUrl) setReturnUrl(retUrl)
 
             if (petId || serviceId) {
                 if (petId) setPreSelectedPetId(petId)
@@ -195,10 +201,11 @@ export default function AgendaPage() {
             setShowNewModal(false)
             fetchData()
             alert(createState.message)
+            if (returnUrl) router.push(returnUrl)
         } else if (createState.message) {
             alert(createState.message)
         }
-    }, [createState, fetchData])
+    }, [createState, fetchData, returnUrl, router])
 
     useEffect(() => {
         if (updateState.success) {
@@ -567,7 +574,12 @@ export default function AgendaPage() {
             {/* Header */}
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
-                    <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
+                    <button
+                        onClick={() => router.push(returnUrl || '/owner')}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+                    >
+                        ← Voltar
+                    </button>
                     <h1 className={styles.title}>🛁 Banho e Tosa</h1>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
