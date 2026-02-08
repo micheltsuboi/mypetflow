@@ -1,0 +1,146 @@
+.form {
+    width: 100%;
+}
+
+.successMessage {
+    padding: 1rem;
+    background-color: rgba(16, 185, 129, 0.1);
+    border-left: 4px solid #10B981;
+    color: #10B981;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.errorMessage {
+    padding: 1rem;
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left: 4px solid #EF4444;
+    color: #EF4444;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.section {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sectionHeader {
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+
+.sectionHeader:hover {
+    background: var(--bg-tertiary);
+}
+
+.sectionContent {
+    padding: 1.5rem;
+    background: var(--bg-primary);
+}
+
+.fieldGroup {
+    margin-bottom: 1.25rem;
+}
+
+.fieldGroup label {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.fieldGroup input[type="checkbox"] {
+    margin-right: 0.5rem;
+    cursor: pointer;
+}
+
+.fieldGroup input[type="text"],
+.fieldGroup select,
+.fieldGroup textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+}
+
+.fieldGroup input[type="text"]:focus,
+.fieldGroup select:focus,
+.fieldGroup textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.fieldGroup textarea {
+    resize: vertical;
+    font-family: inherit;
+}
+
+.declaration {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin: 2rem 0 1.5rem;
+}
+
+.declarationText {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    cursor: pointer;
+}
+
+.declarationText input[type="checkbox"] {
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.declarationText span {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding-top: 1rem;
+}
+
+.submitBtn {
+    padding: 0.75rem 2rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.submitBtn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.submitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

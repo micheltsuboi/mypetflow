@@ -7,6 +7,8 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createPet, updatePet, deletePet } from '@/app/actions/pet'
 import { sellPackageToPet, getPetPackagesWithUsage } from '@/app/actions/package'
+import { getPetAssessment } from '@/app/actions/petAssessment'
+import PetAssessmentForm from '@/components/PetAssessmentForm'
 
 // Interfaces
 interface Pet {
@@ -49,6 +51,9 @@ function PetsContent() {
     const [availablePackages, setAvailablePackages] = useState<any[]>([])
     const [selectedPackageId, setSelectedPackageId] = useState('')
     const [isSelling, setIsSelling] = useState(false)
+
+    // Assessment State
+    const [petAssessment, setPetAssessment] = useState<any>(null)
 
     // Server Action State
     const [createState, createAction, isCreatePending] = useActionState(createPet, initialState)
@@ -141,6 +146,18 @@ function PetsContent() {
         }
     }, [selectedPet, accordions.packages])
 
+    // Buscar assessment do pet quando o accordion daycare/hotel abre
+    const fetchPetAssessment = useCallback(async () => {
+        if (!selectedPet || (!accordions.daycare && !accordions.hotel)) return
+
+        try {
+            const data = await getPetAssessment(selectedPet.id)
+            setPetAssessment(data)
+        } catch (error) {
+            console.error('Erro ao buscar assessment:', error)
+        }
+    }, [selectedPet, accordions.daycare, accordions.hotel])
+
     useEffect(() => {
         fetchData()
     }, [fetchData])
@@ -148,6 +165,10 @@ function PetsContent() {
     useEffect(() => {
         fetchPetPackageSummary()
     }, [fetchPetPackageSummary])
+
+    useEffect(() => {
+        fetchPetAssessment()
+    }, [fetchPetAssessment])
 
     // Feedback handling
     useEffect(() => {
@@ -512,39 +533,65 @@ function PetsContent() {
                                 )}
                             </div>
 
-                            {/* 3. Creche */}
+                            {/* 3. Creche / Hospedagem - Assessment Form */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
                                 <button type="button" onClick={() => toggleAccordion('daycare')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🎾 Creche</span>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🎾 Avaliação para Creche / Hospedagem</span>
                                     <span>{accordions.daycare ? '−' : '+'}</span>
                                 </button>
                                 {accordions.daycare && (
-                                    <div style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                                        <p>Em breve: Acompanhamento de Creche, Check-in/Check-out e Diário.</p>
+                                    <div style={{ padding: '1rem' }}>
+                                        {selectedPet ? (
+                                            <>
+                                                {petAssessment ? (
+                                                    <div style={{ padding: '1rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', marginBottom: '1rem' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10B981', fontWeight: '600', marginBottom: '0.5rem' }}>
+                                                            ✓ Avaliação preenchida
+                                                        </div>
+                                                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+                                                            Pet avaliado em {new Date(petAssessment.created_at).toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPetAssessment(null)}
+                                                            style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                                        >
+                                                            Editar Avaliação
+                                                        </button>
+                                                    </div>
+                                                ) : null}
+
+                                                {!petAssessment && (
+                                                    <>
+                                                        <div style={{ padding: '1rem', background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.2)', borderRadius: '8px', marginBottom: '1rem' }}>
+                                                            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+                                                                ℹ️ Para poder agendar serviços de <strong>Creche</strong> ou <strong>Hospedagem</strong>, é necessário preencher a avaliação comportamental e de saúde do pet.
+                                                            </p>
+                                                        </div>
+                                                        <PetAssessmentForm
+                                                            petId={selectedPet.id}
+                                                            existingData={petAssessment}
+                                                            onSuccess={fetchPetAssessment}
+                                                        />
+                                                    </>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+                                                Salve o pet primeiro para preencher a avaliação.
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-
-                            {/* 4. Hospedagem */}
-                            <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                <button type="button" onClick={() => toggleAccordion('hotel')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🏨 Hospedagem</span>
-                                    <span>{accordions.hotel ? '−' : '+'}</span>
-                                </button>
-                                {accordions.hotel && (
-                                    <div style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                                        <p>Em breve: Gestão de Reservas de Hotelzinho.</p>
-                                    </div>
-                                )}
-                            </div>
-
                         </div>
 
-                        <div className={styles.modalActions} style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-                            <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
-                                Fechar
-                            </button>
-                        </div>
+                    </div>
+
+                    <div className={styles.modalActions} style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                        <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
+                            Fechar
+                        </button>
                     </div>
                 </div>
             )}
