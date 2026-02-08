@@ -572,7 +572,9 @@ export default function AgendaPage() {
                     const isToday = dateStr === selectedDate
                     const dayAppts = appointments.filter(a => {
                         const ad = new Date(new Date(a.scheduled_at).getTime() - 3 * 3600 * 1000)
-                        return ad.toISOString().split('T')[0] === dateStr
+                        const matchesDate = ad.toISOString().split('T')[0] === dateStr
+                        const matchesCategory = !categoryFilter || a.services?.service_categories?.name === categoryFilter
+                        return matchesDate && matchesCategory
                     })
 
                     return (
