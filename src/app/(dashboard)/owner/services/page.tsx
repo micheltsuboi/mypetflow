@@ -114,8 +114,12 @@ export default function ServicesPage() {
 
     const handleDeleteService = async () => {
         if (!selectedService) return
-        if (confirm('Tem certeza que deseja excluir este serviço?')) {
-            const res = await deleteService(selectedService.id)
+        handleDeleteServiceDirect(selectedService)
+    }
+
+    const handleDeleteServiceDirect = async (service: Service) => {
+        if (confirm(`Tem certeza que deseja excluir o serviço "${service.name}"?`)) {
+            const res = await deleteService(service.id)
             if (res.success) {
                 setShowModal(false)
                 fetchData()
@@ -171,7 +175,19 @@ export default function ServicesPage() {
                     <div key={service.id} className={styles.card} onClick={() => handleEdit(service)}>
                         <div className={styles.cardHeader}>
                             <span className={styles.cardTitle}>{service.name}</span>
-                            <span className={styles.cardPrice}>R$ {service.base_price.toFixed(2)}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span className={styles.cardPrice}>R$ {service.base_price.toFixed(2)}</span>
+                                <button
+                                    className={styles.deleteBtnSmall}
+                                    style={{ fontSize: '1rem', padding: '0.2rem 0.4rem' }}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteServiceDirect(service)
+                                    }}
+                                >
+                                    🗑️
+                                </button>
+                            </div>
                         </div>
                         <div className={styles.cardMeta}>
                             {service.category.toUpperCase()} • {service.duration_minutes} min
