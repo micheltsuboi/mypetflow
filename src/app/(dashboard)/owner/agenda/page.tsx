@@ -10,7 +10,8 @@ import {
     updateAppointmentStatus,
     seedServices,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
+    updatePetPreferences
 } from '@/app/actions/appointment'
 
 interface Appointment {
@@ -216,6 +217,25 @@ export default function AgendaPage() {
         }
     }
 
+    const handlePrefToggle = async (type: 'perfume' | 'accessories', value: boolean) => {
+        if (!selectedAppointment) return
+        const field = type === 'perfume' ? 'perfume_allowed' : 'accessories_allowed'
+
+        // Optimistic Update
+        const updatedAppt = {
+            ...selectedAppointment,
+            pets: { ...selectedAppointment.pets, [field]: value }
+        }
+        setSelectedAppointment(updatedAppt)
+
+        // Update all cards for this pet
+        setAppointments(prev => prev.map(a =>
+            a.pet_id === selectedAppointment.pet_id ? { ...a, pets: { ...a.pets, [field]: value } } : a
+        ))
+
+        await updatePetPreferences(selectedAppointment.pet_id, { [field]: value })
+    }
+
     const formatTime = (isoString: string) => {
         // Adjust display to BRT if needed, but browser locale usually handles it if system is BRT.
         // If system is UTC, we want to force BRT display.
@@ -242,7 +262,7 @@ export default function AgendaPage() {
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
-                    <h1 className={styles.title}>📅 Agenda & Banho</h1>
+                    <h1 className={styles.title}>🛁 Banho e Tosa</h1>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     {!loading && services.length === 0 && (
@@ -449,7 +469,29 @@ export default function AgendaPage() {
                                     </div>
                                 </div>
 
-                                <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+                                <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: '#cbd5e1' }}>Preferências do Pet</h3>
+                                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedAppointment.pets.perfume_allowed || false}
+                                                onChange={(e) => handlePrefToggle('perfume', e.target.checked)}
+                                            />
+                                            🌸 Permitir Perfume
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'white', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedAppointment.pets.accessories_allowed || false}
+                                                onChange={(e) => handlePrefToggle('accessories', e.target.checked)}
+                                            />
+                                            🎀 Acessórios
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
                                     <label className={styles.label}>Status:</label>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                                         {['pending', 'in_progress', 'done'].map(st => (

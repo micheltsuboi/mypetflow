@@ -188,7 +188,7 @@ export default function OwnerDashboard() {
                 </div>
                 <div className={styles.headerActions}>
                     <Link href="/owner/agenda" className={styles.headerBtn}>
-                        📅 Agenda
+                        🛁 Banho e Tosa
                     </Link>
                     <Link href="/owner/tutors" className={styles.headerBtn}>
                         👤 Tutores
