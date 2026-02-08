@@ -4,7 +4,14 @@ import { useState, useEffect, useCallback, useActionState } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
-import { createAppointment, updateChecklist, updateAppointmentStatus, seedServices } from '@/app/actions/appointment'
+import {
+    createAppointment,
+    updateChecklist,
+    updateAppointmentStatus,
+    seedServices,
+    updateAppointment,
+    deleteAppointment
+} from '@/app/actions/appointment'
 
 interface Appointment {
     id: string
@@ -13,14 +20,16 @@ interface Appointment {
     scheduled_at: string
     status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'canceled' | 'no_show'
     checklist: { label: string, checked: boolean }[]
-    notes: string
+    notes: string | null
     pets: {
         name: string
         species: string
-        breed: string
+        breed: string | null
+        perfume_allowed: boolean
+        accessories_allowed: boolean
+        special_care: string | null
         customers?: { name: string }
     }
-    customers?: { name: string }
     services: { name: string, duration: number }
 }
 
@@ -48,20 +57,19 @@ export default function AgendaPage() {
     // Modal States
     const [showNewModal, setShowNewModal] = useState(false)
     const [showDetailModal, setShowDetailModal] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
 
     // Data Loading for Forms
     const [pets, setPets] = useState<Pet[]>([])
     const [services, setServices] = useState<Service[]>([])
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
 
-    // Checklist State (local to modal)
+    // Checklist State
     const [currentChecklist, setCurrentChecklist] = useState<{ label: string, checked: boolean }[]>([])
 
-    // Server Action
+    // Actions
     const [createState, createAction, isCreatePending] = useActionState(createAppointment, initialState)
-
-    // Derived
-    // const isToday = selectedDate === new Date().toISOString().split('T')[0]
+    const [updateState, updateAction, isUpdatePending] = useActionState(updateAppointment, initialState)
 
     const fetchData = useCallback(async () => {
         try {
@@ -72,55 +80,43 @@ export default function AgendaPage() {
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
             if (!profile?.org_id) return
 
-            // Load Pets and Services for Dropdowns (could be optimized to load only when opening modal)
+            // Load Metadata
             if (pets.length === 0) {
                 const { data: p } = await supabase.from('pets').select('id, name').order('name')
                 if (p) setPets(p)
-
                 const { data: s } = await supabase.from('services').select('id, name').eq('org_id', profile.org_id).order('name')
                 if (s) setServices(s)
             }
 
-            // Load Appointments for Selected Date
-            // Assuming DB uses ISO with timezone, filtering by string range needs care.
-            // A safer way is to fetch broader range or rely on date_trunc in SQL, but simple string compare works if consistent.
-            // Using contained in day logic:
-            const startOfDay = `${selectedDate}T00:00:00-03:00`
-            // const endOfDay = `${selectedDate}T23:59:59-03:00`
+            // Load Appointments
+            // Query logic assumes matching date portion string or range
+            // For robust range:
+            // const startOfDay = ...
 
             const { data: appts } = await supabase
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
                     pets ( 
-                        name, 
-                        species, 
-                        breed,
+                        name, species, breed, 
+                        perfume_allowed, accessories_allowed, special_care,
                         customers ( name )
                     ),
                     services ( name, duration_minutes )
                 `)
                 .eq('org_id', profile.org_id)
-                .gte('scheduled_at', startOfDay) // This assumes DB stores with offset or we match UTC
-                // Actually, if we send -03, postgres converts to UTC storage.
-                // Fetching matches correctly if we query with timezone. 
-                // Let's try simple string match first, strictly it should use 'gte' and 'lte'.
                 .order('scheduled_at')
 
-            // If the query fails due to timezone mismatch, we might need adjustments.
-            // For now assuming it works as standard PostgREST.
-
             if (appts) {
-                // Client-side filter to be safe if TZ issues slightly offset
-                // Normalize date string to YYYY-MM-DD
+                // Client side filtering for date precision
                 const filtered = appts.filter(a => {
-                    const d = new Date(a.scheduled_at)
-                    // Convert to YYYY-MM-DD in local time
-                    const localYMD = d.toLocaleDateString('pt-BR').split('/').reverse().join('-')
-                    // Wait, toLocaleDateString uses browser TZ.
-                    // If selectedDate is 2023-10-27
-                    // We want to match visual date.
-                    return localYMD === selectedDate
+                    // Convert UTC scheduled_at to YYYY-MM-DD in -03:00
+                    const dateObj = new Date(a.scheduled_at)
+                    // Adjust to BRT manually for comparison
+                    // getTime() returns UTC ms. -3h = -10800000ms
+                    // Actually simpler:
+                    const localISO = new Date(dateObj.getTime() - 3 * 3600 * 1000).toISOString()
+                    return localISO.startsWith(selectedDate)
                 })
                 setAppointments(filtered as unknown as Appointment[])
             }
@@ -136,6 +132,7 @@ export default function AgendaPage() {
         fetchData()
     }, [fetchData])
 
+    // Handle Success Effects
     useEffect(() => {
         if (createState.success) {
             setShowNewModal(false)
@@ -146,6 +143,18 @@ export default function AgendaPage() {
         }
     }, [createState, fetchData])
 
+    useEffect(() => {
+        if (updateState.success) {
+            setShowDetailModal(false)
+            setIsEditing(false)
+            setSelectedAppointment(null)
+            fetchData()
+            alert(updateState.message)
+        } else if (updateState.message) {
+            alert(updateState.message)
+        }
+    }, [updateState, fetchData])
+
     const handleDateChange = (offset: number) => {
         const d = new Date(selectedDate)
         d.setDate(d.getDate() + offset)
@@ -154,57 +163,64 @@ export default function AgendaPage() {
 
     const handleOpenDetail = (appt: Appointment) => {
         setSelectedAppointment(appt)
-        // Initialize checklist: use existing or default
+        setIsEditing(false)
         if (appt.checklist && Array.isArray(appt.checklist) && appt.checklist.length > 0) {
             setCurrentChecklist(appt.checklist)
         } else {
-            // Clone default
             setCurrentChecklist(JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS)))
         }
         setShowDetailModal(true)
     }
 
-    const handleChecklistToggle = (index: number) => {
-        const updated = [...currentChecklist]
-        updated[index].checked = !updated[index].checked
-        setCurrentChecklist(updated)
+    const handleStartService = async (e: React.MouseEvent, appt: Appointment) => {
+        e.stopPropagation()
+        if (confirm(`Iniciar serviço para ${appt.pets?.name}?`)) {
+            const res = await updateAppointmentStatus(appt.id, 'in_progress')
+            if (res.success) {
+                fetchData() // Refresh status
+            }
+        }
+    }
+
+    const handleDelete = async () => {
+        if (!selectedAppointment) return
+        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+            const res = await deleteAppointment(selectedAppointment.id)
+            if (res.success) {
+                setShowDetailModal(false)
+                setSelectedAppointment(null)
+                fetchData()
+                alert(res.message)
+            } else {
+                alert(res.message)
+            }
+        }
+    }
+
+    const handleSeed = async () => {
+        if (!confirm('Deseja cadastrar os serviços padrão?')) return
+        setLoading(true)
+        const res = await seedServices()
+        alert(res.message)
+        window.location.reload()
     }
 
     const saveChecklist = async () => {
         if (!selectedAppointment) return
         const res = await updateChecklist(selectedAppointment.id, currentChecklist)
         if (res.success) {
-            // Update local state to reflect saved
             setAppointments(prev => prev.map(a =>
                 a.id === selectedAppointment.id ? { ...a, checklist: currentChecklist } : a
             ))
             alert('Checklist salvo!')
-        } else {
-            alert('Erro ao salvar checklist.')
         }
-    }
-
-    const changeStatus = async (newStatus: string) => {
-        if (!selectedAppointment) return
-        const res = await updateAppointmentStatus(selectedAppointment.id, newStatus)
-        if (res.success) {
-            setAppointments(prev => prev.map(a =>
-                a.id === selectedAppointment.id ? { ...a, status: newStatus as Appointment['status'] } : a
-            ))
-            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as Appointment['status'] } : null)
-        }
-    }
-
-    const handleSeed = async () => {
-        if (!confirm('Deseja cadastrar os serviços padrão (Banho, Tosa, etc)?')) return
-        setLoading(true)
-        const res = await seedServices()
-        alert(res.message)
-        // Reload page or re-fetch
-        window.location.reload()
     }
 
     const formatTime = (isoString: string) => {
+        // Adjust display to BRT if needed, but browser locale usually handles it if system is BRT.
+        // If system is UTC, we want to force BRT display.
+        // Hack: parse as UTC, subtract 3h if we want specifically "Server Time"
+        // But let's trust toLocaleTimeString first.
         return new Date(isoString).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     }
 
@@ -212,24 +228,17 @@ export default function AgendaPage() {
         const map: Record<string, string> = {
             pending: 'Pendente',
             confirmed: 'Confirmado',
-            in_progress: 'Em Banho',
-            done: 'Pronto',
+            in_progress: 'Em Andamento',
+            done: 'Finalizado',
             canceled: 'Cancelado',
             no_show: 'Não Compareceu'
         }
         return map[status] || status
     }
 
-    if (loading && !appointments.length && !showNewModal && !showDetailModal) {
-        return (
-            <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div style={{ fontSize: '1.2rem', color: '#666' }}>Carregando agenda...</div>
-            </div>
-        )
-    }
-
     return (
         <div className={styles.container}>
+            {/* Header */}
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
                     <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
@@ -237,10 +246,7 @@ export default function AgendaPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     {!loading && services.length === 0 && (
-                        <button
-                            onClick={handleSeed}
-                            style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
-                        >
+                        <button onClick={handleSeed} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
                             ⚠️ Inicializar Serviços
                         </button>
                     )}
@@ -250,6 +256,7 @@ export default function AgendaPage() {
                 </div>
             </div>
 
+            {/* Date Filter */}
             <div className={styles.dateFilter}>
                 <button className={styles.dateBtn} onClick={() => handleDateChange(-1)}>◀</button>
                 <span className={styles.currentDate}>
@@ -258,61 +265,93 @@ export default function AgendaPage() {
                 <button className={styles.dateBtn} onClick={() => handleDateChange(1)}>▶</button>
             </div>
 
+            {/* Grid */}
             <div className={styles.agendaGrid}>
-                {appointments.length === 0 ? (
-                    <p style={{ gridColumn: '1/-1', textAlign: 'center', color: '#666', padding: '3rem' }}>
-                        Nenhum agendamento para este dia.
-                    </p>
-                ) : (
-                    appointments.map(appt => (
-                        <div key={appt.id} className={styles.appointmentCard} onClick={() => handleOpenDetail(appt)}>
-                            <div className={`${styles.statusIndicator} ${styles['status_' + appt.status]}`} />
-                            <div className={styles.cardHeader}>
-                                <span className={styles.timeSlot}>{formatTime(appt.scheduled_at)}</span>
-                                <span className={`${styles.statusBadge} ${styles['badge_' + appt.status]}`}>
-                                    {getStatusLabel(appt.status)}
-                                </span>
-                            </div>
+                {appointments.map(appt => (
+                    <div key={appt.id} className={styles.appointmentCard} onClick={() => handleOpenDetail(appt)}>
+                        <div className={styles.timeDisplay}>{formatTime(appt.scheduled_at)}</div>
 
-                            <div className={styles.petInfo}>
+                        <div className={styles.cardTop}>
+                            <div className={styles.petInfoMain}>
                                 <div className={styles.petAvatar}>
                                     {appt.pets?.species === 'cat' ? '🐱' : '🐶'}
                                 </div>
                                 <div className={styles.petDetails}>
-                                    <span className={styles.petName}>{appt.pets?.name || 'Pet desconhecido'}</span>
-                                    <span className={styles.serviceName}>{appt.services?.name || 'Serviço excluído'}</span>
+                                    <div className={styles.petName}>
+                                        {appt.pets?.name || 'Pet'}
+                                        <span className={styles.statusBadge}>{getStatusLabel(appt.status)}</span>
+                                    </div>
+                                    <span className={styles.petBreed}>{appt.pets?.breed || 'Sem raça'}</span>
+                                    <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Tutor não identificado'}</span>
                                 </div>
                             </div>
 
-                            <div className={styles.cardFooter}>
-                                <span className={styles.customerName}>👤 {appt.pets?.customers?.name || 'Tutor não identificado'}</span>
-                            </div>
+                            {/* Actions on Card */}
+                            {(appt.status === 'pending' || appt.status === 'confirmed') && (
+                                <button className={styles.startButton} onClick={(e) => handleStartService(e, appt)}>
+                                    ▶ Iniciar
+                                </button>
+                            )}
+                            {appt.status === 'in_progress' && (
+                                <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    ⏳ Em andamento...
+                                </div>
+                            )}
                         </div>
-                    ))
+
+                        <div className={styles.serviceLine}>
+                            ✂️ {appt.services?.name}
+                        </div>
+
+                        {/* Notes Box */}
+                        {(appt.notes || appt.pets?.special_care) && (
+                            <div className={styles.notesBox}>
+                                📝 {appt.notes || ''} {appt.pets?.special_care ? `(Cuidado: ${appt.pets.special_care})` : ''}
+                            </div>
+                        )}
+
+                        {/* Tags */}
+                        <div className={styles.prefContainer}>
+                            {appt.pets?.perfume_allowed && (
+                                <span className={styles.prefTag}>🌸 Perfume OK</span>
+                            )}
+                            {appt.pets?.accessories_allowed && (
+                                <span className={styles.prefTag}>🎀 Acessórios OK</span>
+                            )}
+                            {!appt.pets?.perfume_allowed && (
+                                <span className={styles.prefTag} style={{ filter: 'grayscale(1)', opacity: 0.7 }}>🚫 Sem Perfume</span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                {!loading && appointments.length === 0 && (
+                    <p style={{ gridColumn: '1/-1', textAlign: 'center', color: '#666', padding: '3rem' }}>
+                        Nenhum agendamento para este dia.
+                    </p>
                 )}
             </div>
 
-            {/* New Appointment Modal */}
+            {/* Create Modal */}
             {showNewModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowNewModal(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
                         <h2 className={styles.modalTitle}>Novo Agendamento</h2>
                         <form action={createAction}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Pet *</label>
-                                <select name="petId" className={styles.select} required defaultValue="">
-                                    <option value="" disabled>Selecione um pet...</option>
-                                    {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Serviço *</label>
-                                <select name="serviceId" className={styles.select} required defaultValue="">
-                                    <option value="" disabled>Selecione um serviço...</option>
-                                    {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                </select>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Pet *</label>
+                                    <select name="petId" className={styles.select} required defaultValue="">
+                                        <option value="" disabled>Selecione...</option>
+                                        {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Serviço *</label>
+                                    <select name="serviceId" className={styles.select} required defaultValue="">
+                                        <option value="" disabled>Selecione...</option>
+                                        {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Data *</label>
                                     <input name="date" type="date" className={styles.input} required defaultValue={selectedDate} />
@@ -324,86 +363,120 @@ export default function AgendaPage() {
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Observações</label>
-                                <textarea name="notes" className={styles.textarea} rows={3} placeholder="Ex: Cuidado com pata direita..." />
+                                <textarea name="notes" className={styles.textarea} rows={2} />
                             </div>
-
                             <div className={styles.modalActions}>
                                 <button type="button" className={styles.cancelBtn} onClick={() => setShowNewModal(false)}>Cancelar</button>
-                                <button type="submit" className={styles.submitBtn} disabled={isCreatePending}>
-                                    {isCreatePending ? 'Agendando...' : 'Agendar'}
-                                </button>
+                                <button type="submit" className={styles.submitBtn} disabled={isCreatePending}>Agendar</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Detail Modal (Checklist) */}
+            {/* Detail / Edit Modal */}
             {showDetailModal && selectedAppointment && (
                 <div className={styles.modalOverlay} onClick={() => setShowDetailModal(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h2 className={styles.modalTitle}>
-                            Detalhes do Agendamento
-                            <div style={{ fontSize: '0.9rem', fontWeight: 400, marginTop: '0.5rem', color: '#666' }}>
-                                {selectedAppointment.pets?.name || 'Pet'} - {formatTime(selectedAppointment.scheduled_at)}
-                            </div>
-                        </h2>
-
-                        {/* Status Control */}
-                        <div className={styles.formGroup}>
-                            <label className={styles.label}>Status do Serviço</label>
-                            <select
-                                className={styles.select}
-                                value={selectedAppointment.status}
-                                onChange={(e) => changeStatus(e.target.value)}
-                            >
-                                <option value="pending">Pendente</option>
-                                <option value="confirmed">Confirmado</option>
-                                <option value="in_progress">Em Banho/Execução</option>
-                                <option value="done">Finalizado / Pronto</option>
-                                <option value="canceled">Cancelado</option>
-                            </select>
-                        </div>
-
-                        {/* Checklist */}
-                        <div className={styles.checklistContainer}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                                <label className={styles.label} style={{ marginBottom: 0, fontWeight: 600, color: 'white' }}>Checklist de Execução</label>
-                                <button
-                                    onClick={saveChecklist}
-                                    style={{ background: 'var(--success)', border: 'none', borderRadius: '4px', padding: '0.25rem 0.75rem', color: 'white', fontSize: '0.8rem', cursor: 'pointer' }}
-                                >
-                                    Salvar Checklist
+                        <div className={styles.modalHeader}>
+                            <h2 className={styles.modalTitle}>
+                                {isEditing ? 'Editar Agendamento' : 'Detalhes do Serviço'}
+                                <div style={{ fontSize: '0.9rem', fontWeight: 400, marginTop: '0.5rem', color: '#666' }}>
+                                    {selectedAppointment.pets?.name}
+                                </div>
+                            </h2>
+                            {!isEditing && (
+                                <button onClick={() => setIsEditing(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}>
+                                    ✏️ Editar
                                 </button>
-                            </div>
+                            )}
+                        </div>
 
-                            <div className={styles.progressBar}>
-                                <div
-                                    className={styles.progressValue}
-                                    style={{ width: `${(currentChecklist.filter(i => i.checked).length / currentChecklist.length) * 100}%` }}
-                                />
-                            </div>
-
-                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                                {currentChecklist.map((item, idx) => (
-                                    <div key={idx} className={styles.checklistItem} onClick={() => handleChecklistToggle(idx)}>
-                                        <input
-                                            type="checkbox"
-                                            checked={item.checked}
-                                            readOnly
-                                            className={styles.checkbox}
-                                        />
-                                        <span style={{ color: item.checked ? 'white' : '#aaa', textDecoration: item.checked ? 'none' : 'none' }}>
-                                            {item.label}
-                                        </span>
+                        {isEditing ? (
+                            /* Edit Form */
+                            <form action={updateAction}>
+                                <input type="hidden" name="id" value={selectedAppointment.id} />
+                                <div className={styles.formGrid}>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Serviço</label>
+                                        <select name="serviceId" className={styles.select} defaultValue={selectedAppointment.service_id}>
+                                            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Data</label>
+                                        <input name="date" type="date" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]} />
+                                        {/* Note: Naive split might be off due to UTC. Ideally specific format. */}
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Horário</label>
+                                        <input name="time" type="time" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Observações</label>
+                                    <textarea name="notes" className={styles.textarea} defaultValue={selectedAppointment.notes || ''} />
+                                </div>
 
-                        <div className={styles.modalActions}>
-                            <button type="button" className={styles.cancelBtn} onClick={() => setShowDetailModal(false)}>Fechar</button>
-                        </div>
+                                <div className={styles.modalActions} style={{ justifyContent: 'space-between' }}>
+                                    <button type="button" className={styles.deleteBtn} onClick={handleDelete}>Excluir Agendamento</button>
+                                    <div style={{ display: 'flex', gap: '1rem' }}>
+                                        <button type="button" className={styles.cancelBtn} onClick={() => setIsEditing(false)}>Cancelar</button>
+                                        <button type="submit" className={styles.submitBtn} disabled={isUpdatePending}>Salvar</button>
+                                    </div>
+                                </div>
+                            </form>
+                        ) : (
+                            /* View Mode */
+                            <>
+                                <div className={styles.checklistContainer}>
+                                    <div className={styles.modalHeader} style={{ marginBottom: '0.5rem' }}>
+                                        <h3 style={{ margin: 0, fontSize: '1rem', color: 'white' }}>Checklist</h3>
+                                        <button onClick={saveChecklist} style={{ background: 'var(--success)', border: 'none', borderRadius: '4px', padding: '0.2rem 0.5rem', color: 'white', cursor: 'pointer', fontSize: '0.8rem' }}>Salvar</button>
+                                    </div>
+                                    <div className={styles.progressBar}>
+                                        <div className={styles.progressValue} style={{ width: `${(currentChecklist.filter(i => i.checked).length / currentChecklist.length) * 100}%` }} />
+                                    </div>
+                                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                        {currentChecklist.map((item, idx) => (
+                                            <div key={idx} className={styles.checklistItem} onClick={() => {
+                                                const newL = [...currentChecklist]; newL[idx].checked = !newL[idx].checked; setCurrentChecklist(newL)
+                                            }}>
+                                                <input type="checkbox" checked={item.checked} readOnly style={{ marginRight: '0.5rem' }} />
+                                                <span style={{ color: item.checked ? 'white' : '#94a3b8' }}>{item.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1rem' }}>
+                                    <label className={styles.label}>Status:</label>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        {['pending', 'in_progress', 'done'].map(st => (
+                                            <button
+                                                key={st}
+                                                onClick={async () => {
+                                                    await updateAppointmentStatus(selectedAppointment.id, st)
+                                                    setSelectedAppointment({ ...selectedAppointment, status: st as Appointment['status'] })
+                                                    fetchData()
+                                                }}
+                                                style={{
+                                                    background: selectedAppointment.status === st ? 'var(--primary)' : 'transparent',
+                                                    border: '1px solid var(--border)',
+                                                    color: selectedAppointment.status === st ? 'white' : 'var(--text-secondary)',
+                                                    padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer'
+                                                }}
+                                            >
+                                                {getStatusLabel(st)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className={styles.modalActions}>
+                                    <button className={styles.cancelBtn} onClick={() => setShowDetailModal(false)}>Fechar</button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

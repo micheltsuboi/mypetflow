@@ -145,3 +145,68 @@ export async function seedServices() {
     revalidatePath('/owner/agenda')
     return { message: 'Serviços cadastrados!', success: true }
 }
+
+export async function deleteAppointment(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase.from('appointments').delete().eq('id', id)
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/agenda')
+    return { message: 'Agendamento excluído.', success: true }
+}
+
+export async function updateAppointment(prevState: CreateAppointmentState, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const id = formData.get('id') as string
+    const date = formData.get('date') as string
+    const time = formData.get('time') as string
+    const serviceId = formData.get('serviceId') as string
+    const notes = formData.get('notes') as string
+
+    if (!id || !date || !time || !serviceId) {
+        return { message: 'Dados incompletos.', success: false }
+    }
+
+    let scheduledAt: string
+    try {
+        scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
+    } catch (_) {
+        return { message: 'Data inválida.', success: false }
+    }
+
+    const { error } = await supabase
+        .from('appointments')
+        .update({
+            service_id: serviceId,
+            scheduled_at: scheduledAt,
+            notes: notes || null
+        })
+        .eq('id', id)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/agenda')
+    return { message: 'Agendamento atualizado!', success: true }
+}
+
+export async function updatePetPreferences(petId: string, prefs: { perfume_allowed?: boolean, accessories_allowed?: boolean }) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase
+        .from('pets')
+        .update(prefs)
+        .eq('id', petId)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/agenda')
+    return { message: 'Preferências atualizadas.', success: true }
+}
