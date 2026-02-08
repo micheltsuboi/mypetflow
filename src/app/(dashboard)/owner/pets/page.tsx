@@ -504,11 +504,15 @@ export default function PetsPage() {
                                                 let status = 'available'
                                                 let appointment = null
 
-                                                if (i < used) {
-                                                    status = 'used'
-                                                    if (i < appointments.length) {
-                                                        appointment = appointments[i]
+                                                if (i < appointments.length) {
+                                                    appointment = appointments[i]
+                                                    if (appointment.status === 'done') {
+                                                        status = 'used'
+                                                    } else {
+                                                        status = 'scheduled'
                                                     }
+                                                } else if (i < used) {
+                                                    status = 'used'
                                                 }
                                                 slots.push({ index: i + 1, status, appointment })
                                             }
@@ -547,7 +551,9 @@ export default function PetsPage() {
 
                                                     <div className={styles.slotsContainer}>
                                                         {slots.map(slot => (
-                                                            <div key={slot.index} className={`${styles.slotItem} ${slot.status === 'used' ? styles.used : styles.available}`}>
+                                                            <div key={slot.index} className={`${styles.slotItem} ${slot.status === 'used' ? styles.used : slot.status === 'scheduled' ? styles.scheduled : styles.available}`}
+                                                                style={slot.status === 'scheduled' ? { borderColor: 'var(--primary)', backgroundColor: 'rgba(59, 130, 246, 0.05)' } : {}}
+                                                            >
                                                                 <span className={styles.slotNumber}>#{slot.index}</span>
 
                                                                 {slot.status === 'used' ? (
@@ -557,6 +563,18 @@ export default function PetsPage() {
                                                                         {slot.appointment && (
                                                                             <span className={styles.usedDate}>
                                                                                 {new Date(slot.appointment.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                                                            </span>
+                                                                        )}
+                                                                    </>
+                                                                ) : slot.status === 'scheduled' ? (
+                                                                    <>
+                                                                        <div style={{ color: 'var(--primary)', fontSize: '1.2rem', marginBottom: '0.25rem' }}>🕒</div>
+                                                                        <span className={styles.slotStatus} style={{ color: 'var(--primary)', fontSize: '0.8rem' }}>Agendado</span>
+                                                                        {slot.appointment && (
+                                                                            <span className={styles.usedDate} style={{ color: 'var(--text-primary)' }}>
+                                                                                {new Date(slot.appointment.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                                                                <br />
+                                                                                {new Date(slot.appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                                             </span>
                                                                         )}
                                                                     </>
