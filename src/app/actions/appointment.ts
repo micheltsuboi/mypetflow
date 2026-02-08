@@ -58,6 +58,17 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         return { message: 'Pet não encontrado ou erro ao buscar dados do tutor.', success: false }
     }
 
+    // **NOVO**: Verificar se há créditos de pacote disponíveis para este serviço
+    let packageCreditId: string | null = null
+    const { data: creditData } = await supabase.rpc('use_package_credit_for_pet', {
+        p_pet_id: petId,
+        p_service_id: serviceId
+    })
+
+    if (creditData) {
+        packageCreditId = creditData
+    }
+
     // 3. Create Appointment
     const { error } = await supabase
         .from('appointments')
@@ -70,6 +81,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             scheduled_at: scheduledAt,
             notes: notes || null,
             status: 'pending',
+            package_credit_id: packageCreditId, // Vincula ao crédito do pacote se usado
             checklist: [] // Initialize empty
         })
 
@@ -78,6 +90,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     }
 
     revalidatePath('/owner/agenda')
+    revalidatePath('/owner/pets')
     return { message: 'Agendamento criado com sucesso!', success: true }
 }
 
@@ -151,10 +164,25 @@ export async function deleteAppointment(id: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
 
+    // **NOVO**: Buscar se o agendamento usou crédito de pacote
+    const { data: appointment } = await supabase
+        .from('appointments')
+        .select('package_credit_id')
+        .eq('id', id)
+        .single()
+
+    // Se usou crédito, devolver antes de deletar
+    if (appointment?.package_credit_id) {
+        await supabase.rpc('return_package_credit', {
+            p_credit_id: appointment.package_credit_id
+        })
+    }
+
     const { error } = await supabase.from('appointments').delete().eq('id', id)
     if (error) return { message: error.message, success: false }
 
     revalidatePath('/owner/agenda')
+    revalidatePath('/owner/pets')
     return { message: 'Agendamento excluído.', success: true }
 }
 

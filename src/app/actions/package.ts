@@ -160,6 +160,7 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
 
     const customer_id = formData.get('customer_id') as string
     const package_id = formData.get('package_id') as string
+    const pet_id = formData.get('pet_id') as string || null // NOVO: suporte a pet específico
     const total_paid = parseFloat(formData.get('total_paid') as string)
     const payment_method = formData.get('payment_method') as string
     const notes = formData.get('notes') as string || null
@@ -188,6 +189,7 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         .from('customer_packages')
         .insert({
             customer_id,
+            pet_id, // NOVO: vincular a pet específico (opcional)
             package_id,
             org_id: profile.org_id,
             total_paid,
@@ -222,8 +224,93 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
     }
 
     revalidatePath('/owner/packages')
+    revalidatePath('/owner/pets')
     revalidatePath('/staff')
     return { message: 'Pacote vendido com sucesso!', success: true }
+}
+
+// Nova função para vender pacote direto para um pet (atalho)
+export async function sellPackageToPet(petId: string, packageId: string, totalPaid: number, paymentMethod: string): Promise<ActionState> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
+
+    // Buscar customer_id do pet
+    const { data: petData, error: petError } = await supabase
+        .from('pets')
+        .select('customer_id, name')
+        .eq('id', petId)
+        .single()
+
+    if (petError || !petData) {
+        return { message: 'Pet não encontrado.', success: false }
+    }
+
+    // Buscar informações do pacote
+    const { data: packageData, error: packageError } = await supabase
+        .from('service_packages')
+        .select('*, package_items(service_id, quantity)')
+        .eq('id', packageId)
+        .single()
+
+    if (packageError || !packageData) {
+        return { message: 'Pacote não encontrado.', success: false }
+    }
+
+    // Calcular data de expiração
+    let expires_at = null
+    if (packageData.validity_days) {
+        const expiry = new Date()
+        expiry.setDate(expiry.getDate() + packageData.validity_days)
+        expires_at = expiry.toISOString()
+    }
+
+    // Criar registro de compra do pacote
+    const { data: customerPackage, error: cpError } = await supabase
+        .from('customer_packages')
+        .insert({
+            customer_id: petData.customer_id,
+            pet_id: petId,
+            package_id: packageId,
+            org_id: profile.org_id,
+            total_paid: totalPaid,
+            payment_method: paymentMethod,
+            notes: `Pacote para ${petData.name}`,
+            expires_at
+        })
+        .select()
+        .single()
+
+    if (cpError || !customerPackage) {
+        return { message: cpError?.message || 'Erro ao criar pacote.', success: false }
+    }
+
+    // Criar créditos para cada serviço do pacote
+    const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => ({
+        customer_package_id: customerPackage.id,
+        service_id: item.service_id,
+        total_quantity: item.quantity,
+        used_quantity: 0,
+        remaining_quantity: item.quantity
+    }))
+
+    const { error: creditsError } = await supabase
+        .from('package_credits')
+        .insert(credits)
+
+    if (creditsError) {
+        // Rollback: deletar o customer_package
+        await supabase.from('customer_packages').delete().eq('id', customerPackage.id)
+        return { message: creditsError.message, success: false }
+    }
+
+    revalidatePath('/owner/packages')
+    revalidatePath('/owner/pets')
+    revalidatePath('/staff')
+    return { message: `Pacote "${packageData.name}" ativado para ${petData.name}!`, success: true }
 }
 
 export async function renewCustomerPackage(customerPackageId: string): Promise<ActionState> {
