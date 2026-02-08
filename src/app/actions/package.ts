@@ -231,12 +231,19 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
 
 // Nova função para vender pacote direto para um pet (atalho)
 export async function sellPackageToPet(petId: string, packageId: string, totalPaid: number, paymentMethod: string): Promise<ActionState> {
+    console.log('sellPackageToPet iniciado', { petId, packageId, totalPaid, paymentMethod })
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { message: 'Não autorizado.', success: false }
+    if (!user) {
+        console.log('Usuário não autenticado')
+        return { message: 'Não autorizado.', success: false }
+    }
 
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-    if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
+    if (!profile?.org_id) {
+        console.log('Perfil ou org_id não encontrado', profile)
+        return { message: 'Erro de organização.', success: false }
+    }
 
     // Buscar customer_id do pet
     const { data: petData, error: petError } = await supabase
@@ -246,6 +253,7 @@ export async function sellPackageToPet(petId: string, packageId: string, totalPa
         .single()
 
     if (petError || !petData) {
+        console.log('Erro ao buscar pet', petError)
         return { message: 'Pet não encontrado.', success: false }
     }
 
@@ -285,6 +293,7 @@ export async function sellPackageToPet(petId: string, packageId: string, totalPa
         .single()
 
     if (cpError || !customerPackage) {
+        console.error('Erro ao criar customer_package:', cpError)
         return { message: cpError?.message || 'Erro ao criar pacote.', success: false }
     }
 

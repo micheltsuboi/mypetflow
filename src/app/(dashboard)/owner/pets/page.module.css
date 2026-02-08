@@ -151,7 +151,7 @@
 }
 
 .modal h2 {
-    margin: 0 0 1.5rem 0;
+    margin: 0;
     font-size: 1.25rem;
     color: var(--text-primary);
 }
@@ -240,7 +240,139 @@
     transform: none;
 }
 
-/* Responsive */
+/* Packages Tab Styles - NEW */
+
+.tabsContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.tabButtons {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-tertiary);
+    padding: 0.25rem;
+    border-radius: 10px;
+    width: 100%;
+}
+
+.tabButton {
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 500;
+    flex: 1;
+}
+
+.activeTab {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.packagesContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.addPackageSection {
+    background: var(--bg-secondary);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 1px dashed var(--border);
+}
+
+.sectionTitle {
+    font-size: 1rem;
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.packageSelection {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.packageCard {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.packageCard:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+.packageInfo h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.packageName {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.packageDate {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.creditsInfo {
+    text-align: right;
+}
+
+.creditCount {
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--coral) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.25rem;
+}
+
+.creditLabel {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: block;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    font-style: italic;
+}
+
+/* Responsividade da aba de pacotes */
 @media (max-width: 768px) {
     .tableContainer {
         overflow-x: auto;
@@ -256,5 +388,19 @@
 
     .fullWidth {
         grid-column: span 1;
+    }
+
+    .packageSelection {
+        flex-direction: column;
+    }
+
+    .packageCard {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .creditsInfo {
+        text-align: left;
     }
 }

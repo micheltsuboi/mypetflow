@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createPet, updatePet, deletePet } from '@/app/actions/pet'
+import { sellPackageToPet } from '@/app/actions/package'
 
 // Interfaces
 interface Pet {
@@ -193,10 +194,6 @@ export default function PetsPage() {
 
         setIsSelling(true)
         try {
-            // Importar dinamicamente para evitar erro de 'use server' em client component se não configurado corretamente
-            // Mas Actions podem ser importadas. Vamos assumir que 'sellPackageToPet' está disponível.
-            const { sellPackageToPet } = await import('@/app/actions/package')
-
             const res = await sellPackageToPet(selectedPet.id, selectedPackageId, pkg.total_price, 'other')
 
             if (res.success) {
@@ -299,34 +296,18 @@ export default function PetsPage() {
                                 }
                             </h2>
                             {selectedPet && (
-                                <div style={{ display: 'flex', gap: '0.5rem', background: '#f0f0f0', padding: '0.25rem', borderRadius: '8px' }}>
+                                <div className={styles.tabButtons}>
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('details')}
-                                        style={{
-                                            border: 'none',
-                                            padding: '0.5rem 1rem',
-                                            borderRadius: '6px',
-                                            background: activeTab === 'details' ? 'white' : 'transparent',
-                                            boxShadow: activeTab === 'details' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-                                            fontWeight: activeTab === 'details' ? '600' : '400',
-                                            cursor: 'pointer'
-                                        }}
+                                        className={`${styles.tabButton} ${activeTab === 'details' ? styles.activeTab : ''}`}
                                     >
                                         Dados
                                     </button>
                                     <button
                                         type="button"
                                         onClick={() => setActiveTab('packages')}
-                                        style={{
-                                            border: 'none',
-                                            padding: '0.5rem 1rem',
-                                            borderRadius: '6px',
-                                            background: activeTab === 'packages' ? 'white' : 'transparent',
-                                            boxShadow: activeTab === 'packages' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none',
-                                            fontWeight: activeTab === 'packages' ? '600' : '400',
-                                            cursor: 'pointer'
-                                        }}
+                                        className={`${styles.tabButton} ${activeTab === 'packages' ? styles.activeTab : ''}`}
                                     >
                                         Pacotes
                                     </button>
@@ -481,9 +462,9 @@ export default function PetsPage() {
                         ) : (
                             // PACKAGES TAB
                             <div className={styles.packagesContainer}>
-                                <div className={styles.addPackageSection} style={{ marginBottom: '2rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px' }}>
-                                    <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Contratar Novo Pacote</h3>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <div className={styles.addPackageSection}>
+                                    <h3 className={styles.sectionTitle}>Contratar Novo Pacote</h3>
+                                    <div className={styles.packageSelection}>
                                         <select
                                             className={styles.select}
                                             value={selectedPackageId}
@@ -507,56 +488,46 @@ export default function PetsPage() {
                                     </div>
                                 </div>
 
-                                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>
+                                <h3 className={styles.sectionTitle} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                                     Pacotes Ativos & Créditos
                                 </h3>
 
                                 {petPackages.length === 0 ? (
-                                    <div style={{ textAlign: 'center', padding: '2rem', color: '#888', background: '#f5f5f5', borderRadius: '8px' }}>
+                                    <div className={styles.emptyState}>
                                         Nenhum pacote ativo para este pet.
                                     </div>
                                 ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                    <div className={styles.packagesContainer} style={{ marginTop: '0' }}>
                                         {petPackages.map((pkg, index) => (
                                             <div key={`${pkg.customer_package_id}-${pkg.service_id}-${index}`} className={styles.packageCard}
                                                 style={{
-                                                    border: '1px solid #ddd',
-                                                    borderRadius: '8px',
-                                                    padding: '1rem',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    backgroundColor: pkg.is_expired ? '#fff0f0' : 'white'
-                                                }}>
-                                                <div>
-                                                    <div style={{ fontWeight: 'bold', fontSize: '1rem', marginBottom: '0.25rem' }}>
-                                                        {pkg.service_name}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                                                        Pacote: {pkg.package_name}
-                                                    </div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+                                                    backgroundColor: pkg.is_expired ? 'rgba(255,0,0,0.05)' : 'var(--bg-secondary)',
+                                                    opacity: pkg.is_expired ? 0.7 : 1
+                                                }}
+                                            >
+                                                <div className={styles.packageInfo}>
+                                                    <h4>{pkg.service_name}</h4>
+                                                    <span className={styles.packageName}>Pacote: {pkg.package_name}</span>
+                                                    <div className={styles.packageDate}>
                                                         Validade: {pkg.expires_at ? new Date(pkg.expires_at).toLocaleDateString('pt-BR') : 'Indeterminada'}
                                                     </div>
                                                 </div>
-                                                <div style={{ textAlign: 'right' }}>
-                                                    <div style={{
-                                                        fontSize: '1.5rem',
-                                                        fontWeight: '800',
-                                                        color: pkg.remaining_qty > 0 ? 'var(--primary)' : '#ccc'
+                                                <div className={styles.creditsInfo}>
+                                                    <div className={styles.creditCount} style={{
+                                                        color: pkg.remaining_qty > 0 ? 'var(--primary)' : 'var(--text-secondary)'
                                                     }}>
-                                                        {pkg.remaining_qty} <span style={{ fontSize: '0.9rem', fontWeight: '400' }}>restantes</span>
+                                                        {pkg.remaining_qty} <span style={{ fontSize: '0.5em', fontWeight: '400', verticalAlign: 'middle' }}>restantes</span>
                                                     </div>
-                                                    <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                                    <span className={styles.creditLabel}>
                                                         Total contratado: {pkg.total_qty}
-                                                    </div>
+                                                    </span>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
 
-                                <div className={styles.modalActions} style={{ marginTop: '2rem', justifyContent: 'flex-end' }}>
+                                <div className={styles.modalActions} style={{ marginTop: 'auto' }}>
                                     <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
                                         Fechar
                                     </button>
