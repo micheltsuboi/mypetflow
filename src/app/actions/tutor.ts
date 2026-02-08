@@ -110,3 +110,88 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
     revalidatePath('/owner/tutors')
     return { message: 'Tutor cadastrado com sucesso!', success: true }
 }
+
+export async function updateTutor(prevState: CreateTutorState, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const supabaseAdmin = createAdminClient()
+
+    // Extract ID (hidden input)
+    const id = formData.get('id') as string
+    if (!id) return { message: 'ID do tutor não fornecido.', success: false }
+
+    const name = formData.get('name') as string
+    const email = formData.get('email') as string
+    const phone = formData.get('phone') as string
+    const birthDate = formData.get('birthDate') as string
+    const address = formData.get('address') as string
+    const neighborhood = formData.get('neighborhood') as string
+    const city = formData.get('city') as string
+    const instagram = formData.get('instagram') as string
+
+    // Update Customer Record
+    const customerData: Record<string, string | null> = {
+        name,
+        email,
+        phone_1: phone,
+        address: address || null,
+        neighborhood: neighborhood || null,
+        city: city || 'São Paulo',
+        instagram: instagram || null,
+    }
+
+    if (birthDate) customerData.birth_date = birthDate
+
+    const { error } = await supabaseAdmin
+        .from('customers')
+        .update(customerData)
+        .eq('id', id)
+
+    if (error) {
+        return { message: `Erro ao atualizar tutor: ${error.message}`, success: false }
+    }
+
+    // Note: We are not updating auth.users password or email here for simplicity, nor profiles. 
+    // Ideally we should sync name changes to 'profiles' too if linked.
+
+    // Attempt to sync name/phone to profile if user_id exists
+    try {
+        const { data: customer } = await supabaseAdmin.from('customers').select('user_id').eq('id', id).single()
+        if (customer?.user_id) {
+            await supabaseAdmin.from('profiles').update({ full_name: name, phone: phone }).eq('id', customer.user_id)
+        }
+    } catch (e) {
+        // Ignore error if profile sync fails, main task is Customer update
+    }
+
+    revalidatePath('/owner/tutors')
+    return { message: 'Tutor atualizado com sucesso!', success: true }
+}
+
+export async function deleteTutor(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const supabaseAdmin = createAdminClient()
+
+    // Get user_id before deleting to clean up Auth user if desired
+    // For now, we only delete the Customer card. Deleting Auth User is risky if they have other access.
+    // But since "Tutor" is usually a role, maybe we should? 
+    // Let's stick to deleting the business record 'customers'. RLS rules will handle visibility.
+
+    const { error } = await supabaseAdmin
+        .from('customers')
+        .delete()
+        .eq('id', id)
+
+    if (error) {
+        console.error('Erro ao excluir tutor:', error)
+        return { message: `Erro ao excluir: ${error.message}`, success: false }
+    }
+
+    revalidatePath('/owner/tutors')
+    return { message: 'Tutor excluído com sucesso!', success: true }
+}

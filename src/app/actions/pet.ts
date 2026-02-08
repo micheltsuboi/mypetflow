@@ -80,3 +80,67 @@ export async function createPet(prevState: CreatePetState, formData: FormData) {
     revalidatePath('/owner/pets')
     return { message: 'Pet cadastrado com sucesso!', success: true }
 }
+
+export async function updatePet(prevState: CreatePetState, formData: FormData) {
+    const supabase = await createClient()
+
+    // Auth Check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    // We could check role here again
+
+    const id = formData.get('id') as string
+    if (!id) return { message: 'ID não fornecido.', success: false }
+
+    const name = formData.get('name') as string
+    const species = formData.get('species') as string
+    const breed = formData.get('breed') as string
+    const gender = formData.get('gender') as string
+    const size = formData.get('size') as string
+    const weight = formData.get('weight') ? parseFloat(formData.get('weight') as string) : null
+    const birthDate = formData.get('birthDate') as string
+    const isNeutered = formData.get('isNeutered') === 'on'
+    const customerId = formData.get('customerId') as string
+
+    const supabaseAdmin = createAdminClient()
+
+    // Update
+    const { error } = await supabaseAdmin
+        .from('pets')
+        .update({
+            name,
+            species: species as 'dog' | 'cat' | 'other',
+            breed: breed || null,
+            gender: gender as 'male' | 'female',
+            size: size as 'small' | 'medium' | 'large' | 'giant',
+            weight_kg: weight,
+            birth_date: birthDate || null,
+            is_neutered: isNeutered,
+            customer_id: customerId // Allow changing owner
+        })
+        .eq('id', id)
+
+    if (error) {
+        return { message: `Erro ao atualizar pet: ${error.message}`, success: false }
+    }
+
+    revalidatePath('/owner/pets')
+    return { message: 'Pet atualizado com sucesso!', success: true }
+}
+
+export async function deletePet(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const supabaseAdmin = createAdminClient()
+    const { error } = await supabaseAdmin.from('pets').delete().eq('id', id)
+
+    if (error) {
+        return { message: `Erro ao excluir: ${error.message}`, success: false }
+    }
+
+    revalidatePath('/owner/pets')
+    return { message: 'Pet excluído com sucesso!', success: true }
+}

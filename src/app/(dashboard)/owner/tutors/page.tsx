@@ -4,9 +4,8 @@ import { useState, useEffect, useCallback, useActionState } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
-import { createTutor } from '@/app/actions/tutor'
+import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 
-// Interface for Customer
 interface Customer {
     id: string
     name: string
@@ -30,9 +29,14 @@ export default function TutorsPage() {
     const [tutors, setTutors] = useState<Customer[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [selectedTutor, setSelectedTutor] = useState<Customer | null>(null)
 
-    // Server Action State
-    const [state, formAction, isPending] = useActionState(createTutor, initialState)
+    // Server Action States
+    const [createState, createAction, isCreatePending] = useActionState(createTutor, initialState)
+    const [updateState, updateAction, isUpdatePending] = useActionState(updateTutor, initialState)
+
+    // Derived state for feedback handling
+    const isPending = isCreatePending || isUpdatePending
 
     const fetchTutors = useCallback(async () => {
         try {
@@ -67,15 +71,53 @@ export default function TutorsPage() {
         fetchTutors()
     }, [fetchTutors])
 
+    // Success/Error Handling
     useEffect(() => {
-        if (state.success) {
+        if (createState.success) {
             setShowModal(false)
             fetchTutors()
-            alert(state.message)
-        } else if (state.message) {
-            alert(state.message) // Simple error feedback
+            alert(createState.message)
+            // Reset state logically by unmounting/remounting logic or just ignoring old state
+        } else if (createState.message) {
+            alert(createState.message)
         }
-    }, [state, fetchTutors])
+    }, [createState, fetchTutors])
+
+    useEffect(() => {
+        if (updateState.success) {
+            setShowModal(false)
+            setSelectedTutor(null)
+            fetchTutors()
+            alert(updateState.message)
+        } else if (updateState.message) {
+            alert(updateState.message)
+        }
+    }, [updateState, fetchTutors])
+
+    const handleRowClick = (tutor: Customer) => {
+        setSelectedTutor(tutor)
+        setShowModal(true)
+    }
+
+    const handleNewTutor = () => {
+        setSelectedTutor(null)
+        setShowModal(true)
+    }
+
+    const handleDelete = async () => {
+        if (!selectedTutor) return
+        if (!confirm('Tem certeza que deseja excluir este tutor? Esta ação não pode ser desfeita.')) return
+
+        const res = await deleteTutor(selectedTutor.id)
+        if (res.success) {
+            alert(res.message)
+            setShowModal(false)
+            setSelectedTutor(null)
+            fetchTutors()
+        } else {
+            alert(res.message)
+        }
+    }
 
     if (loading) {
         return (
@@ -93,7 +135,7 @@ export default function TutorsPage() {
                     <h1 className={styles.title}>👤 Gestão de Tutores</h1>
                     <p className={styles.subtitle}>Cadastre e gerencie os clientes do pet shop</p>
                 </div>
-                <button className={styles.addButton} onClick={() => setShowModal(true)}>
+                <button className={styles.addButton} onClick={handleNewTutor}>
                     + Novo Tutor
                 </button>
             </div>
@@ -110,7 +152,7 @@ export default function TutorsPage() {
                     </thead>
                     <tbody>
                         {tutors.map(tutor => (
-                            <tr key={tutor.id}>
+                            <tr key={tutor.id} onClick={() => handleRowClick(tutor)} style={{ cursor: 'pointer' }}>
                                 <td>
                                     <div className={styles.userInfo}>
                                         <div className={styles.avatar}>
@@ -157,64 +199,112 @@ export default function TutorsPage() {
             {showModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h2 style={{ marginBottom: '1.5rem' }}>Cadastrar Novo Tutor</h2>
+                        <h2 style={{ marginBottom: '1.5rem' }}>
+                            {selectedTutor ? 'Editar Tutor' : 'Cadastrar Novo Tutor'}
+                        </h2>
 
-                        <form action={formAction}>
+                        <form action={selectedTutor ? updateAction : createAction}>
+                            {selectedTutor && <input type="hidden" name="id" value={selectedTutor.id} />}
+
                             <div className={styles.formGrid}>
                                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                                     <label htmlFor="name" className={styles.label}>Nome Completo *</label>
-                                    <input id="name" name="name" type="text" className={styles.input} required placeholder="Ex: Maria Souza" />
+                                    <input
+                                        id="name" name="name" type="text" className={styles.input} required
+                                        placeholder="Ex: Maria Souza"
+                                        defaultValue={selectedTutor?.name || ''}
+                                    />
                                 </div>
 
                                 <div className={styles.formGroup}>
                                     <label htmlFor="email" className={styles.label}>Email *</label>
-                                    <input id="email" name="email" type="email" className={styles.input} required placeholder="maria@email.com" />
+                                    <input
+                                        id="email" name="email" type="email" className={styles.input} required
+                                        placeholder="maria@email.com"
+                                        defaultValue={selectedTutor?.email || ''}
+                                    />
                                 </div>
-                                <div className={styles.formGroup}>
-                                    <label htmlFor="password" className={styles.label}>Senha de Acesso *</label>
-                                    <input id="password" name="password" type="password" className={styles.input} required placeholder="******" minLength={6} />
-                                </div>
+
+                                {!selectedTutor && (
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="password" className={styles.label}>Senha de Acesso *</label>
+                                        <input
+                                            id="password" name="password" type="password" className={styles.input} required
+                                            placeholder="******" minLength={6}
+                                        />
+                                    </div>
+                                )}
 
                                 <div className={styles.formGroup}>
                                     <label htmlFor="phone" className={styles.label}>Telefone/WhatsApp *</label>
-                                    <input id="phone" name="phone" type="tel" className={styles.input} required placeholder="(11) 99999-9999" />
+                                    <input
+                                        id="phone" name="phone" type="tel" className={styles.input} required
+                                        placeholder="(11) 99999-9999"
+                                        defaultValue={selectedTutor?.phone_1 || ''}
+                                    />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label htmlFor="birthDate" className={styles.label}>Data de Nascimento</label>
-                                    <input id="birthDate" name="birthDate" type="date" className={styles.input} />
+                                    <input
+                                        id="birthDate" name="birthDate" type="date" className={styles.input}
+                                        defaultValue={selectedTutor?.birth_date || ''}
+                                    />
                                 </div>
 
                                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                                     <label htmlFor="address" className={styles.label}>Endereço</label>
-                                    <input id="address" name="address" type="text" className={styles.input} placeholder="Rua das Flores, 123" />
+                                    <input
+                                        id="address" name="address" type="text" className={styles.input}
+                                        placeholder="Rua das Flores, 123"
+                                        defaultValue={selectedTutor?.address || ''}
+                                    />
                                 </div>
 
                                 <div className={styles.formGroup}>
                                     <label htmlFor="neighborhood" className={styles.label}>Bairro</label>
-                                    <input id="neighborhood" name="neighborhood" type="text" className={styles.input} />
+                                    <input
+                                        id="neighborhood" name="neighborhood" type="text" className={styles.input}
+                                        defaultValue={selectedTutor?.neighborhood || ''}
+                                    />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label htmlFor="city" className={styles.label}>Cidade</label>
-                                    <input id="city" name="city" type="text" className={styles.input} defaultValue="São Paulo" />
+                                    <input
+                                        id="city" name="city" type="text" className={styles.input} defaultValue={selectedTutor?.city || 'São Paulo'}
+                                    />
                                 </div>
 
                                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                                     <label htmlFor="instagram" className={styles.label}>Instagram</label>
-                                    <input id="instagram" name="instagram" type="text" className={styles.input} placeholder="@usuario" />
+                                    <input
+                                        id="instagram" name="instagram" type="text" className={styles.input}
+                                        placeholder="@usuario"
+                                        defaultValue={selectedTutor?.instagram || ''}
+                                    />
                                 </div>
                             </div>
 
-                            {state.message && !state.success && (
-                                <p style={{ color: 'red', marginTop: '1rem' }}>{state.message}</p>
-                            )}
-
-                            <div className={styles.modalActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)} disabled={isPending}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className={styles.submitButton} disabled={isPending}>
-                                    {isPending ? 'Cadastrando...' : 'Cadastrar Tutor'}
-                                </button>
+                            <div className={styles.modalActions} style={{ justifyContent: 'space-between' }}>
+                                <div>
+                                    {selectedTutor && (
+                                        <button
+                                            type="button"
+                                            className={styles.cancelBtn}
+                                            style={{ color: 'red', borderColor: 'red', background: 'rgba(255,0,0,0.05)' }}
+                                            onClick={handleDelete}
+                                        >
+                                            Excluir
+                                        </button>
+                                    )}
+                                </div>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)} disabled={isPending}>
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" className={styles.submitButton} disabled={isPending}>
+                                        {isPending ? 'Salvando...' : (selectedTutor ? 'Salvar Alterações' : 'Cadastrar Tutor')}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
