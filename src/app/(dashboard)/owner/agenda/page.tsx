@@ -362,7 +362,7 @@ export default function AgendaPage() {
     }
 
     const renderAppointmentCard = (appt: Appointment) => {
-        const categoryColor = appt.services?.service_categories?.color || '#3B82F6'
+        const categoryColor = appt.services?.service_categories?.color || '#2563EB'
         const categoryIcon = appt.services?.service_categories?.icon || '📋'
 
         return (
