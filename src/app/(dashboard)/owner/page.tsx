@@ -193,6 +193,9 @@ export default function OwnerDashboard() {
                     <Link href="/owner/services" className={styles.headerBtn}>
                         ✂️ Serviços
                     </Link>
+                    <Link href="/owner/packages" className={styles.headerBtn}>
+                        📦 Pacotes
+                    </Link>
                     <Link href="/owner/tutors" className={styles.headerBtn}>
                         👤 Tutores
                     </Link>
