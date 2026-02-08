@@ -33,7 +33,12 @@ interface Appointment {
         special_care: string | null
         customers?: { name: string }
     }
-    services: { name: string, duration: number }
+    services: {
+        name: string,
+        duration: number,
+        category_id?: string,
+        service_categories?: { name: string, color: string, icon: string }
+    }
 }
 
 interface ScheduleBlock {
@@ -64,6 +69,7 @@ export default function AgendaPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
     const [loading, setLoading] = useState(true)
+    const [categoryFilter, setCategoryFilter] = useState<string>('')
 
     // Modal States
     const [showNewModal, setShowNewModal] = useState(false)
@@ -173,7 +179,10 @@ export default function AgendaPage() {
                         perfume_allowed, accessories_allowed, special_care,
                         customers ( name )
                     ),
-                    services ( name, duration_minutes )
+                    services ( 
+                        name, duration_minutes, category_id,
+                        service_categories ( name, color, icon )
+                    )
                 `)
                 .eq('org_id', profile.org_id)
                 .gte('scheduled_at', startDateStr)
@@ -352,31 +361,49 @@ export default function AgendaPage() {
         else alert(res.message)
     }
 
-    const renderAppointmentCard = (appt: Appointment) => (
-        <div key={appt.id} className={styles.appointmentCard} onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }} style={{ minWidth: '300px' }}>
-            <div className={styles.timeDisplay}>{formatTime(appt.scheduled_at)}</div>
-            <div className={styles.cardTop}>
-                <div className={styles.petInfoMain}>
-                    <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
-                    <div className={styles.petDetails}>
-                        <div className={styles.petName}>
-                            {appt.pets?.name}
-                            <span className={styles.statusBadge}>{getStatusLabel(appt.status)}</span>
+    const renderAppointmentCard = (appt: Appointment) => {
+        const categoryColor = appt.services?.service_categories?.color || '#6B7280'
+        const categoryIcon = appt.services?.service_categories?.icon || '📋'
+
+        return (
+            <div
+                key={appt.id}
+                className={styles.appointmentCard}
+                onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}
+                style={{
+                    minWidth: '300px',
+                    borderLeft: `4px solid ${categoryColor}`,
+                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                    opacity: appt.status === 'done' ? 0.7 : 1
+                }}
+            >
+                <div className={styles.timeDisplay}>{formatTime(appt.scheduled_at)}</div>
+                <div className={styles.cardTop}>
+                    <div className={styles.petInfoMain}>
+                        <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
+                        <div className={styles.petDetails}>
+                            <div className={styles.petName}>
+                                {appt.pets?.name}
+                                <span className={styles.statusBadge}>{getStatusLabel(appt.status)}</span>
+                            </div>
+                            <span className={styles.petBreed}>{appt.pets?.breed}</span>
+                            <span className={styles.tutorName}>👤 {appt.pets?.customers?.name}</span>
                         </div>
-                        <span className={styles.petBreed}>{appt.pets?.breed}</span>
-                        <span className={styles.tutorName}>👤 {appt.pets?.customers?.name}</span>
                     </div>
+                    {(appt.status === 'pending' || appt.status === 'confirmed') && (
+                        <button className={styles.startButton} onClick={(e) => handleStartService(e, appt)}>▶ Iniciar</button>
+                    )}
+                    {appt.status === 'in_progress' && (
+                        <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⏳ Em andamento...</div>
+                    )}
                 </div>
-                {(appt.status === 'pending' || appt.status === 'confirmed') && (
-                    <button className={styles.startButton} onClick={(e) => handleStartService(e, appt)}>▶ Iniciar</button>
-                )}
-                {appt.status === 'in_progress' && (
-                    <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⏳ Em andamento...</div>
-                )}
+                <div className={styles.serviceLine}>
+                    <span style={{ marginRight: '0.5rem' }}>{categoryIcon}</span>
+                    {appt.services?.name}
+                </div>
             </div>
-            <div className={styles.serviceLine}>{appt.services?.name}</div>
-        </div>
-    )
+        )
+    }
 
     const renderDayView = () => {
         const hours = Array.from({ length: 10 }, (_, i) => i + 8)
@@ -388,7 +415,9 @@ export default function AgendaPage() {
                         const d = new Date(a.scheduled_at)
                         // Consistent local hour check
                         const localH = new Date(d.getTime() - 3 * 3600 * 1000).getUTCHours()
-                        return localH === h
+                        const matchesHour = localH === h
+                        const matchesCategory = !categoryFilter || a.services?.service_categories?.name === categoryFilter
+                        return matchesHour && matchesCategory
                     })
                     const slotBlocks = blocks.filter(b => {
                         const start = new Date(new Date(b.start_at).getTime() - 3 * 3600 * 1000)
@@ -486,7 +515,9 @@ export default function AgendaPage() {
                                 const ad = new Date(a.scheduled_at)
                                 const localH = new Date(ad.getTime() - 3 * 3600 * 1000).getUTCHours()
                                 const localD = new Date(ad.getTime() - 3 * 3600 * 1000).toISOString().split('T')[0]
-                                return localH === h && localD === dateStr
+                                const matchesTime = localH === h && localD === dateStr
+                                const matchesCategory = !categoryFilter || a.services?.service_categories?.name === categoryFilter
+                                return matchesTime && matchesCategory
                             })
                             const isBlocked = blocks.some(b => {
                                 const start = new Date(new Date(b.start_at).getTime() - 3 * 3600 * 1000)
@@ -580,14 +611,34 @@ export default function AgendaPage() {
                     >
                         ← Voltar
                     </button>
-                    <h1 className={styles.title}>🛁 Banho e Tosa</h1>
+                    <h1 className={styles.title}>📅 Agenda</h1>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div className={styles.viewSelector} style={{ margin: 0 }}>
                         <button className={`${styles.viewBtn} ${viewMode === 'day' ? styles.active : ''}`} onClick={() => setViewMode('day')}>Dia</button>
                         <button className={`${styles.viewBtn} ${viewMode === 'week' ? styles.active : ''}`} onClick={() => setViewMode('week')}>Semana</button>
                         <button className={`${styles.viewBtn} ${viewMode === 'month' ? styles.active : ''}`} onClick={() => setViewMode('month')}>Mês</button>
                     </div>
+
+                    <select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem'
+                        }}
+                    >
+                        <option value="">Todos Serviços</option>
+                        <option value="Banho e Tosa">🚿 Banho e Tosa</option>
+                        <option value="Creche">🎾 Creche</option>
+                        <option value="Hospedagem">🏨 Hospedagem</option>
+                    </select>
+
                     {!loading && services.length === 0 && (
                         <button onClick={handleSeed} style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
                             ⚠️ Inicializar Serviços
