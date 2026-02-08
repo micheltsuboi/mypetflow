@@ -379,12 +379,14 @@ export default function AgendaPage() {
                     const timeStr = `${h.toString().padStart(2, '0')}:00`
                     const slotAppts = appointments.filter(a => {
                         const d = new Date(a.scheduled_at)
-                        return d.getHours() === h
+                        // Consistent local hour check
+                        const localH = new Date(d.getTime() - 3 * 3600 * 1000).getUTCHours()
+                        return localH === h
                     })
                     const slotBlocks = blocks.filter(b => {
-                        const start = new Date(b.start_at)
-                        const end = new Date(b.end_at)
-                        return h >= start.getHours() && h < end.getHours()
+                        const start = new Date(new Date(b.start_at).getTime() - 3 * 3600 * 1000)
+                        const end = new Date(new Date(b.end_at).getTime() - 3 * 3600 * 1000)
+                        return h >= start.getUTCHours() && h < end.getUTCHours()
                     })
 
                     return (
@@ -392,19 +394,37 @@ export default function AgendaPage() {
                             <div className={styles.hourLabel}>{timeStr}</div>
                             <div className={styles.hourContent}>
                                 {slotBlocks.map(b => (
-                                    <div key={b.id} className={styles.blockedCard}>
-                                        <span>🚫 {b.reason || 'Bloqueado'}</span>
-                                        <button onClick={(e) => handleBlockDelete(b.id, e)}>×</button>
+                                    <div key={b.id} className={styles.blockedCard} title={b.reason}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden' }}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style={{ flexShrink: 0 }}>
+                                                <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clipRule="evenodd" />
+                                            </svg>
+                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.reason || 'Bloqueado'}</span>
+                                        </div>
+                                        <button onClick={(e) => handleBlockDelete(b.id, e)} style={{ marginLeft: 'auto' }}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 ))}
                                 {slotAppts.map(renderAppointmentCard)}
                                 {slotBlocks.length === 0 && slotAppts.length === 0 && (
                                     <>
                                         <div className={styles.addSlotBtn} onClick={() => setShowNewModal(true)}>+</div>
-                                        <button className={styles.addSlotBtn} style={{ maxWidth: '50px', borderLeft: '1px dashed #334155' }} onClick={() => {
-                                            setSelectedHourSlot(h.toString().padStart(2, '0'))
-                                            setShowBlockModal(true)
-                                        }}>🔒</button>
+                                        <button
+                                            className={`${styles.addSlotBtn} ${styles.blockBtn}`}
+                                            style={{ maxWidth: '50px', borderLeft: '1px dashed #334155' }}
+                                            title="Bloquear Horário"
+                                            onClick={() => {
+                                                setSelectedHourSlot(h.toString().padStart(2, '0'))
+                                                setShowBlockModal(true)
+                                            }}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" className={styles.lockIcon}>
+                                                <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 10-7.5 0v3h7.5z" clipRule="evenodd" />
+                                            </svg>
+                                        </button>
                                     </>
                                 )}
                             </div>
@@ -415,17 +435,129 @@ export default function AgendaPage() {
         )
     }
 
-    const renderWeekView = () => (
-        <div style={{ padding: '2rem', color: '#cbd5e1', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-            Visualização semanal em desenvolvimento.
-        </div>
-    )
+    const renderWeekView = () => {
+        const d = new Date(selectedDate + 'T12:00:00')
+        const dayOfWeek = d.getDay()
+        const startOfWeek = new Date(d)
+        startOfWeek.setDate(d.getDate() - dayOfWeek)
 
-    const renderMonthView = () => (
-        <div style={{ padding: '2rem', color: '#cbd5e1', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '12px' }}>
-            Visualização mensal em desenvolvimento.
-        </div>
-    )
+        const weekDays = Array.from({ length: 7 }, (_, i) => {
+            const date = new Date(startOfWeek)
+            date.setDate(startOfWeek.getDate() + i)
+            return date
+        })
+
+        const hours = Array.from({ length: 10 }, (_, i) => i + 8)
+
+        return (
+            <div className={styles.weekGrid}>
+                <div className={styles.weekHeaderCell}></div>
+                {weekDays.map(day => {
+                    const dateStr = day.toISOString().split('T')[0]
+                    const isSelected = dateStr === selectedDate
+                    return (
+                        <div
+                            key={dateStr}
+                            className={`${styles.weekHeaderCell} ${isSelected ? styles.activeDay : ''}`}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => { setSelectedDate(dateStr); setViewMode('day'); }}
+                        >
+                            {day.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' })}
+                        </div>
+                    )
+                })}
+
+                {hours.map(h => (
+                    <div key={h} style={{ display: 'contents' }}>
+                        <div className={styles.weekTimeCell}>{h}:00</div>
+                        {weekDays.map(day => {
+                            const dateStr = day.toISOString().split('T')[0]
+                            const cellAppts = appointments.filter(a => {
+                                const ad = new Date(a.scheduled_at)
+                                const localH = new Date(ad.getTime() - 3 * 3600 * 1000).getUTCHours()
+                                const localD = new Date(ad.getTime() - 3 * 3600 * 1000).toISOString().split('T')[0]
+                                return localH === h && localD === dateStr
+                            })
+                            const isBlocked = blocks.some(b => {
+                                const start = new Date(new Date(b.start_at).getTime() - 3 * 3600 * 1000)
+                                const end = new Date(new Date(b.end_at).getTime() - 3 * 3600 * 1000)
+                                const localD = start.toISOString().split('T')[0]
+                                return localD === dateStr && h >= start.getUTCHours() && h < end.getUTCHours()
+                            })
+
+                            return (
+                                <div key={`${dateStr}-${h}`} className={styles.weekCell} onClick={() => {
+                                    setSelectedDate(dateStr)
+                                    setViewMode('day')
+                                }}>
+                                    {isBlocked && <div className={styles.blockedOverlay} title="Bloqueado" />}
+                                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        {cellAppts.map(a => (
+                                            <div key={a.id} className={styles.weekEventPill} title={`${a.pets?.name} - ${a.services.name}`}>
+                                                {a.pets?.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    const renderMonthView = () => {
+        const d = new Date(selectedDate + 'T12:00:00')
+        const year = d.getFullYear()
+        const month = d.getMonth()
+        const firstDay = new Date(year, month, 1).getDay()
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+        const days = []
+        for (let i = 0; i < firstDay; i++) days.push(null)
+        for (let i = 1; i <= daysInMonth; i++) days.push(i)
+
+        return (
+            <div className={styles.monthGrid}>
+                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
+                    <div key={day} className={styles.monthHeader}>{day}</div>
+                ))}
+
+                {days.map((day, idx) => {
+                    if (!day) return <div key={`empty-${idx}`} className={styles.monthCell} style={{ background: 'var(--bg-tertiary)' }} />
+
+                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+                    const isToday = dateStr === selectedDate
+                    const dayAppts = appointments.filter(a => {
+                        const ad = new Date(new Date(a.scheduled_at).getTime() - 3 * 3600 * 1000)
+                        return ad.toISOString().split('T')[0] === dateStr
+                    })
+
+                    return (
+                        <div key={day} className={`${styles.monthCell} ${isToday ? styles.today : ''}`} onClick={() => {
+                            setSelectedDate(dateStr)
+                            setViewMode('day')
+                        }}>
+                            <span className={styles.monthDate}>{day}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                                {dayAppts.slice(0, 3).map(a => (
+                                    <div key={a.id} className={styles.monthEventDot} title={a.services.name}>
+                                        {a.pets?.name}
+                                    </div>
+                                ))}
+                                {dayAppts.length > 3 && (
+                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', paddingLeft: '4px' }}>
+                                        +{dayAppts.length - 3} mais
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+        )
+    }
 
     return (
         <div className={styles.container}>

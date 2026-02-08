@@ -653,3 +653,53 @@
     color: #fca5a5;
     z-index: 10;
 }
+
+.weekHeaderCell.activeDay {
+    background: var(--primary);
+    color: white;
+}
+
+.weekEventPill {
+    background: var(--primary);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 1;
+    position: relative;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.blockedOverlay {
+    position: absolute;
+    inset: 1px;
+    background: repeating-linear-gradient(45deg,
+            rgba(239, 68, 68, 0.05),
+            rgba(239, 68, 68, 0.05) 10px,
+            rgba(239, 68, 68, 0.1) 10px,
+            rgba(239, 68, 68, 0.1) 20px);
+    border: 1px dashed rgba(239, 68, 68, 0.3);
+    z-index: 0;
+    border-radius: 4px;
+}
+
+.blockBtn {
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.blockBtn:hover {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border-color: #ef4444 !important;
+}
+
+.lockIcon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
