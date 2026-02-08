@@ -17,10 +17,10 @@ interface Pet {
     birth_date: string | null
     weight_kg: number | null
     is_neutered: boolean
+    existing_conditions: string | null
+    vaccination_up_to_date: boolean
     customer_id: string
-    customers: {
-        name: string
-    } | null
+    customers: { id: string, name: string } | null
 }
 
 interface Customer {
@@ -64,7 +64,11 @@ export default function PetsPage() {
             // Fetch Pets
             const { data: petsData, error: petsError } = await supabase
                 .from('pets')
-                .select('*, customers(name)')
+                .select(`
+                    id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
+                    existing_conditions, vaccination_up_to_date, customer_id,
+                    customers ( id, name )
+                `)
                 .order('name')
 
             if (petsError) throw petsError
@@ -315,6 +319,28 @@ export default function PetsPage() {
                                         />
                                         É castrado?
                                     </label>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>
+                                        <input
+                                            type="checkbox"
+                                            name="vaccination_up_to_date"
+                                            defaultChecked={selectedPet?.vaccination_up_to_date}
+                                            style={{ marginRight: '0.5rem' }}
+                                        />
+                                        Vacinação em dia
+                                    </label>
+                                </div>
+
+                                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+                                    <label className={styles.label}>Doença Pré-existente</label>
+                                    <input
+                                        name="existing_conditions"
+                                        className={styles.input}
+                                        defaultValue={selectedPet?.existing_conditions || ''}
+                                        placeholder="Ex: Diabetes, Alergia..."
+                                    />
                                 </div>
                             </div>
 

@@ -36,8 +36,10 @@ export async function createPet(prevState: CreatePetState, formData: FormData) {
     const gender = formData.get('gender') as string
     const size = formData.get('size') as string
     const weight = formData.get('weight') ? parseFloat(formData.get('weight') as string) : null
-    const birthDate = formData.get('birthDate') as string
+    const birthDateStr = formData.get('birthDate') as string
     const isNeutered = formData.get('isNeutered') === 'on'
+    const existing_conditions = formData.get('existing_conditions') as string
+    const vaccination_up_to_date = formData.get('vaccination_up_to_date') === 'on'
 
     if (!customerId || !name || !species || !gender || !size) {
         return { message: 'Campos obrigatórios faltando (Tutor, Nome, Espécie, Sexo, Porte).', success: false }
@@ -68,9 +70,10 @@ export async function createPet(prevState: CreatePetState, formData: FormData) {
             gender: gender as 'male' | 'female',
             size: size as 'small' | 'medium' | 'large' | 'giant',
             weight_kg: weight,
-            birth_date: birthDate || null,
+            birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
             is_neutered: isNeutered,
-            // active is true by default
+            existing_conditions: existing_conditions || null,
+            vaccination_up_to_date: vaccination_up_to_date
         })
 
     if (error) {
@@ -88,8 +91,6 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
 
-    // We could check role here again
-
     const id = formData.get('id') as string
     if (!id) return { message: 'ID não fornecido.', success: false }
 
@@ -99,9 +100,11 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
     const gender = formData.get('gender') as string
     const size = formData.get('size') as string
     const weight = formData.get('weight') ? parseFloat(formData.get('weight') as string) : null
-    const birthDate = formData.get('birthDate') as string
+    const birthDateStr = formData.get('birthDate') as string
     const isNeutered = formData.get('isNeutered') === 'on'
     const customerId = formData.get('customerId') as string
+    const existing_conditions = formData.get('existing_conditions') as string
+    const vaccination_up_to_date = formData.get('vaccination_up_to_date') === 'on'
 
     const supabaseAdmin = createAdminClient()
 
@@ -115,9 +118,11 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
             gender: gender as 'male' | 'female',
             size: size as 'small' | 'medium' | 'large' | 'giant',
             weight_kg: weight,
-            birth_date: birthDate || null,
+            birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
             is_neutered: isNeutered,
-            customer_id: customerId // Allow changing owner
+            customer_id: customerId,
+            existing_conditions: existing_conditions || null,
+            vaccination_up_to_date: vaccination_up_to_date
         })
         .eq('id', id)
 
