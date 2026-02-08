@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useActionState } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
-import { createAppointment, updateChecklist, updateAppointmentStatus } from '@/app/actions/appointment'
+import { createAppointment, updateChecklist, updateAppointmentStatus, seedServices } from '@/app/actions/appointment'
 
 interface Appointment {
     id: string
@@ -56,7 +56,7 @@ export default function AgendaPage() {
     const [createState, createAction, isCreatePending] = useActionState(createAppointment, initialState)
 
     // Derived
-    const isToday = selectedDate === new Date().toISOString().split('T')[0]
+    // const isToday = selectedDate === new Date().toISOString().split('T')[0]
 
     const fetchData = useCallback(async () => {
         try {
@@ -81,9 +81,9 @@ export default function AgendaPage() {
             // A safer way is to fetch broader range or rely on date_trunc in SQL, but simple string compare works if consistent.
             // Using contained in day logic:
             const startOfDay = `${selectedDate}T00:00:00-03:00`
-            const endOfDay = `${selectedDate}T23:59:59-03:00`
+            // const endOfDay = `${selectedDate}T23:59:59-03:00`
 
-            const { data: appts, error } = await supabase
+            const { data: appts } = await supabase
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
@@ -180,10 +180,19 @@ export default function AgendaPage() {
         const res = await updateAppointmentStatus(selectedAppointment.id, newStatus)
         if (res.success) {
             setAppointments(prev => prev.map(a =>
-                a.id === selectedAppointment.id ? { ...a, status: newStatus as any } : a
+                a.id === selectedAppointment.id ? { ...a, status: newStatus as Appointment['status'] } : a
             ))
-            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as any } : null)
+            setSelectedAppointment(prev => prev ? { ...prev, status: newStatus as Appointment['status'] } : null)
         }
+    }
+
+    const handleSeed = async () => {
+        if (!confirm('Deseja cadastrar os serviços padrão (Banho, Tosa, etc)?')) return
+        setLoading(true)
+        const res = await seedServices()
+        alert(res.message)
+        // Reload page or re-fetch
+        window.location.reload()
     }
 
     const formatTime = (isoString: string) => {
@@ -217,9 +226,19 @@ export default function AgendaPage() {
                     <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
                     <h1 className={styles.title}>📅 Agenda & Banho</h1>
                 </div>
-                <button className={styles.actionButton} onClick={() => setShowNewModal(true)}>
-                    + Novo Agendamento
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {!loading && services.length === 0 && (
+                        <button
+                            onClick={handleSeed}
+                            style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '0.75rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                            ⚠️ Inicializar Serviços
+                        </button>
+                    )}
+                    <button className={styles.actionButton} onClick={() => setShowNewModal(true)}>
+                        + Novo Agendamento
+                    </button>
+                </div>
             </div>
 
             <div className={styles.dateFilter}>
@@ -248,16 +267,16 @@ export default function AgendaPage() {
 
                             <div className={styles.petInfo}>
                                 <div className={styles.petAvatar}>
-                                    {appt.pets.species === 'cat' ? '🐱' : '🐶'}
+                                    {appt.pets?.species === 'cat' ? '🐱' : '🐶'}
                                 </div>
                                 <div className={styles.petDetails}>
-                                    <span className={styles.petName}>{appt.pets.name}</span>
-                                    <span className={styles.serviceName}>{appt.services.name}</span>
+                                    <span className={styles.petName}>{appt.pets?.name || 'Pet desconhecido'}</span>
+                                    <span className={styles.serviceName}>{appt.services?.name || 'Serviço excluído'}</span>
                                 </div>
                             </div>
 
                             <div className={styles.cardFooter}>
-                                <span className={styles.customerName}>👤 {appt.customers.name}</span>
+                                <span className={styles.customerName}>👤 {appt.customers?.name || 'Tutor não identificado'}</span>
                             </div>
                         </div>
                     ))
@@ -317,7 +336,7 @@ export default function AgendaPage() {
                         <h2 className={styles.modalTitle}>
                             Detalhes do Agendamento
                             <div style={{ fontSize: '0.9rem', fontWeight: 400, marginTop: '0.5rem', color: '#666' }}>
-                                {selectedAppointment.pets.name} - {formatTime(selectedAppointment.scheduled_at)}
+                                {selectedAppointment.pets?.name || 'Pet'} - {formatTime(selectedAppointment.scheduled_at)}
                             </div>
                         </h2>
 

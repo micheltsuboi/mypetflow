@@ -39,7 +39,24 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     // For now, default is empty array []
 
     // Hardcoded Brazil Offset for MVP efficiency
-    const scheduledAt = `${date}T${time}:00-03:00`
+    // Converting to UTC ISO string to ensure Postgres compatibility
+    let scheduledAt: string
+    try {
+        scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
+    } catch (_) { // unused e
+        return { message: 'Data ou hora inválida.', success: false }
+    }
+
+    // Get customer_id from the Pet
+    const { data: petData, error: petError } = await supabase
+        .from('pets')
+        .select('customer_id')
+        .eq('id', petId)
+        .single()
+
+    if (petError || !petData) {
+        return { message: 'Pet não encontrado ou erro ao buscar dados do tutor.', success: false }
+    }
 
     // 3. Create Appointment
     const { error } = await supabase
@@ -48,6 +65,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             org_id: profile.org_id,
             pet_id: petId,
             service_id: serviceId,
+            customer_id: petData.customer_id, // Important relation!
             staff_id: staffId || null,
             scheduled_at: scheduledAt,
             notes: notes || null,
@@ -79,7 +97,7 @@ export async function updateAppointmentStatus(id: string, status: string) {
     return { message: 'Status atualizado.', success: true }
 }
 
-export async function updateChecklist(id: string, checklist: any[]) {
+export async function updateChecklist(id: string, checklist: { label: string, checked: boolean }[]) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
@@ -95,4 +113,35 @@ export async function updateChecklist(id: string, checklist: any[]) {
 
     revalidatePath('/owner/agenda')
     return { message: 'Checklist salvo.', success: true }
+}
+
+export async function seedServices() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return { message: 'Erro na organização.', success: false }
+
+    const services = [
+        { name: 'Banho', base_price: 45.00, category: 'banho', duration_minutes: 60 },
+        { name: 'Tosa Higiênica', base_price: 30.00, category: 'tosa', duration_minutes: 30 },
+        { name: 'Banho e Tosa', base_price: 80.00, category: 'banho_tosa', duration_minutes: 90 },
+        { name: 'Hidratação', base_price: 25.00, category: 'outro', duration_minutes: 30 }
+    ]
+
+    for (const service of services) {
+        const { count } = await supabase
+            .from('services')
+            .select('*', { count: 'exact', head: true })
+            .eq('org_id', profile.org_id)
+            .eq('name', service.name)
+
+        if (count === 0) {
+            await supabase.from('services').insert({ ...service, org_id: profile.org_id })
+        }
+    }
+
+    revalidatePath('/owner/agenda')
+    return { message: 'Serviços cadastrados!', success: true }
 }
