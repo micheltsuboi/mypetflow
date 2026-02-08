@@ -190,6 +190,9 @@ export default function OwnerDashboard() {
                     <Link href="/owner/agenda" className={styles.headerBtn}>
                         🛁 Banho e Tosa
                     </Link>
+                    <Link href="/owner/services" className={styles.headerBtn}>
+                        ✂️ Serviços
+                    </Link>
                     <Link href="/owner/tutors" className={styles.headerBtn}>
                         👤 Tutores
                     </Link>

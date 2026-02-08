@@ -1,0 +1,108 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+interface CreateServiceState {
+    message: string
+    success: boolean
+}
+
+export async function createService(prevState: CreateServiceState, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
+
+    const name = formData.get('name') as string
+    const description = formData.get('description') as string
+    const base_price = parseFloat(formData.get('base_price') as string)
+    const category = formData.get('category') as string
+    const duration_minutes = parseInt(formData.get('duration_minutes') as string)
+
+    const { error } = await supabase.from('services').insert({
+        org_id: profile.org_id,
+        name,
+        description,
+        base_price,
+        category,
+        duration_minutes
+    })
+
+    if (error) return { message: error.message, success: false }
+    revalidatePath('/owner/services')
+    return { message: 'Serviço criado!', success: true }
+}
+
+export async function updateService(prevState: CreateServiceState, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const id = formData.get('id') as string
+    const name = formData.get('name') as string
+    const description = formData.get('description') as string
+    const base_price = parseFloat(formData.get('base_price') as string)
+    const category = formData.get('category') as string
+    const duration_minutes = parseInt(formData.get('duration_minutes') as string)
+
+    const { error } = await supabase.from('services').update({
+        name, description, base_price, category, duration_minutes
+    }).eq('id', id)
+
+    if (error) return { message: error.message, success: false }
+    revalidatePath('/owner/services')
+    return { message: 'Serviço atualizado!', success: true }
+}
+
+export async function deleteService(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase.from('services').delete().eq('id', id)
+    if (error) return { message: error.message, success: false }
+    revalidatePath('/owner/services')
+    return { message: 'Serviço excluído.', success: true }
+}
+
+// Pricing Rules Actions
+export async function createPricingRule(prevState: CreateServiceState | null, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const service_id = formData.get('service_id') as string
+    const price = parseFloat(formData.get('price') as string)
+    // Optional filters
+    const weight_min = formData.get('weight_min') ? parseFloat(formData.get('weight_min') as string) : null
+    const weight_max = formData.get('weight_max') ? parseFloat(formData.get('weight_max') as string) : null
+    const size = formData.get('size') as string || null
+    const day_of_week = formData.get('day_of_week') ? parseInt(formData.get('day_of_week') as string) : null
+
+    const { error } = await supabase.from('pricing_matrix').insert({
+        service_id,
+        fixed_price: price, // Mapping 'price' input to 'fixed_price' column
+        weight_min,
+        weight_max,
+        size,
+        day_of_week
+    })
+
+    if (error) return { message: error.message, success: false }
+    revalidatePath('/owner/services')
+    return { message: 'Regra de preço adicionada!', success: true }
+}
+
+export async function deletePricingRule(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase.from('pricing_matrix').delete().eq('id', id)
+    if (error) return { message: error.message, success: false }
+    revalidatePath('/owner/services')
+    return { message: 'Regra removida.', success: true }
+}
