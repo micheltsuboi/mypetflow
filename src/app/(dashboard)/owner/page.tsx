@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
+import { createClient } from '@/lib/supabase/client'
+import { FinancialTransaction } from '@/types/database'
 
 type ServiceArea = 'all' | 'banho_tosa' | 'creche' | 'hotel'
 
@@ -32,32 +34,6 @@ interface PetToday {
     ownerName: string
 }
 
-// Mock data
-const mockFinancials: FinancialMetrics = {
-    revenue: 28750.00,
-    expenses: 8420.00,
-    profit: 20330.00,
-    pendingPayments: 3200.00,
-    monthlyGrowth: 12.5
-}
-
-const mockServiceStats: ServiceStats[] = [
-    { area: 'banho_tosa', todayCount: 8, monthCount: 156, revenue: 14200 },
-    { area: 'creche', todayCount: 12, monthCount: 280, revenue: 9800 },
-    { area: 'hotel', todayCount: 4, monthCount: 45, revenue: 4750 }
-]
-
-const mockPetsToday: PetToday[] = [
-    { id: '1', name: 'Thor', breed: 'Golden Retriever', area: 'banho_tosa', service: 'Banho + Tosa', status: 'in_progress', checkedInAt: '09:30', ownerName: 'João Silva' },
-    { id: '2', name: 'Luna', breed: 'Poodle', area: 'banho_tosa', service: 'Banho', status: 'waiting', checkedInAt: null, ownerName: 'Maria Santos' },
-    { id: '3', name: 'Bob', breed: 'Bulldog', area: 'creche', service: 'Creche Diária', status: 'in_progress', checkedInAt: '08:00', ownerName: 'Carlos Lima' },
-    { id: '4', name: 'Mel', breed: 'Shih Tzu', area: 'creche', service: 'Creche Diária', status: 'in_progress', checkedInAt: '07:45', ownerName: 'Ana Oliveira' },
-    { id: '5', name: 'Rex', breed: 'Labrador', area: 'hotel', service: 'Hospedagem 3 dias', status: 'in_progress', checkedInAt: '05/02', ownerName: 'Pedro Costa' },
-    { id: '6', name: 'Mia', breed: 'Yorkshire', area: 'banho_tosa', service: 'Tosa Higiênica', status: 'done', checkedInAt: '08:15', ownerName: 'Julia Ferreira' },
-    { id: '7', name: 'Max', breed: 'Beagle', area: 'creche', service: 'Creche Diária', status: 'in_progress', checkedInAt: '08:30', ownerName: 'Fernanda Souza' },
-    { id: '8', name: 'Nina', breed: 'Maltês', area: 'hotel', service: 'Hospedagem 5 dias', status: 'in_progress', checkedInAt: '03/02', ownerName: 'Ricardo Alves' },
-]
-
 const areaLabels: Record<ServiceArea, string> = {
     all: 'Todas as Áreas',
     banho_tosa: '🛁 Banho + Tosa',
@@ -79,14 +55,84 @@ const statusLabels: Record<string, string> = {
 }
 
 export default function OwnerDashboard() {
+    const supabase = createClient()
     const [selectedArea, setSelectedArea] = useState<ServiceArea>('all')
-    const [financials] = useState<FinancialMetrics>(mockFinancials)
-    const [serviceStats] = useState<ServiceStats[]>(mockServiceStats)
-    const [petsToday] = useState<PetToday[]>(mockPetsToday)
+    const [financials, setFinancials] = useState<FinancialMetrics>({
+        revenue: 0,
+        expenses: 0,
+        profit: 0,
+        pendingPayments: 0,
+        monthlyGrowth: 0
+    })
+    const [serviceStats] = useState<ServiceStats[]>([]) // Placeholder until Appointments are integrated
+    const [petsToday] = useState<PetToday[]>([]) // Placeholder until Appointments are integrated
     const [loading, setLoading] = useState(true)
 
+    const fetchDashboardData = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            // Get user's organization
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('org_id')
+                .eq('id', user.id)
+                .single()
+
+            if (!profile?.org_id) return
+
+            // Calculate dates
+            const now = new Date()
+            const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+            const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
+            const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString()
+
+            // Fetch transactions for current and previous month
+            const { data: transactions, error } = await supabase
+                .from('financial_transactions')
+                .select('*')
+                .eq('org_id', profile.org_id)
+                .gte('date', startOfPreviousMonth)
+
+            if (error) throw error
+
+            if (transactions) {
+                // Current Month Metrics
+                const currentMonthTx = transactions.filter(t => t.date >= startOfCurrentMonth)
+                const revenue = currentMonthTx
+                    .filter(t => t.type === 'income')
+                    .reduce((acc, curr) => acc + curr.amount, 0)
+                const expenses = currentMonthTx
+                    .filter(t => t.type === 'expense')
+                    .reduce((acc, curr) => acc + curr.amount, 0)
+
+                // Previous Month Metrics for Growth
+                const prevMonthTx = transactions.filter(t => t.date >= startOfPreviousMonth && t.date <= endOfPreviousMonth)
+                const prevRevenue = prevMonthTx
+                    .filter(t => t.type === 'income')
+                    .reduce((acc, curr) => acc + curr.amount, 0)
+
+                const growth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0
+
+                setFinancials({
+                    revenue,
+                    expenses,
+                    profit: revenue - expenses,
+                    pendingPayments: 0, // Not tracked yet
+                    monthlyGrowth: parseFloat(growth.toFixed(1))
+                })
+            }
+
+        } catch (error) {
+            console.error('Erro ao carregar dashboard:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     useEffect(() => {
-        setTimeout(() => setLoading(false), 500)
+        fetchDashboardData()
     }, [])
 
     const filteredPets = selectedArea === 'all'
@@ -101,14 +147,8 @@ export default function OwnerDashboard() {
     }
 
     const getAreaStats = (area: ServiceArea) => {
-        if (area === 'all') {
-            return {
-                todayCount: serviceStats.reduce((a, b) => a + b.todayCount, 0),
-                monthCount: serviceStats.reduce((a, b) => a + b.monthCount, 0),
-                revenue: serviceStats.reduce((a, b) => a + b.revenue, 0)
-            }
-        }
-        return serviceStats.find(s => s.area === area) || { todayCount: 0, monthCount: 0, revenue: 0 }
+        // Placeholder implementation
+        return { todayCount: 0, monthCount: 0, revenue: 0 }
     }
 
     if (loading) {
@@ -151,7 +191,9 @@ export default function OwnerDashboard() {
                         <span className={styles.cardValue}>{formatCurrency(financials.revenue)}</span>
                         <span className={styles.cardLabel}>Faturamento do Mês</span>
                     </div>
-                    <span className={`${styles.growth} ${styles.positive}`}>+{financials.monthlyGrowth}%</span>
+                    <span className={`${styles.growth} ${financials.monthlyGrowth >= 0 ? styles.positive : styles.negative}`}>
+                        {financials.monthlyGrowth >= 0 ? '+' : ''}{financials.monthlyGrowth}%
+                    </span>
                 </div>
                 <div className={styles.financialCard}>
                     <div className={styles.cardIcon}>📉</div>
@@ -248,7 +290,7 @@ export default function OwnerDashboard() {
                 {filteredPets.length === 0 && (
                     <div className={styles.emptyState}>
                         <span>🐾</span>
-                        <p>Nenhum pet nesta área hoje</p>
+                        <p>Nenhum pet nesta área hoje (Agendamentos em breve)</p>
                     </div>
                 )}
             </div>
