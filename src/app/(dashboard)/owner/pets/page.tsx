@@ -568,7 +568,7 @@ export default function PetsPage() {
                                                                             className={styles.scheduleBtnSmall}
                                                                             onClick={() => {
                                                                                 if (selectedPet) {
-                                                                                    router.push(`/owner/calendar?petId=${selectedPet.id}&serviceId=${pkg.service_id}&package=true`)
+                                                                                    router.push(`/owner/agenda?petId=${selectedPet.id}&serviceId=${pkg.service_id}&package=true`)
                                                                                 }
                                                                             }}
                                                                         >
