@@ -40,6 +40,8 @@ export default function BanhoTosaPage() {
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
+    const [viewMode, setViewMode] = useState<'active' | 'history'>('active')
+
     const fetchBanhoTosaData = useCallback(async () => {
         try {
             setLoading(true)
@@ -53,6 +55,11 @@ export default function BanhoTosaPage() {
             const { start, end } = getDateRange(dateRange)
             const startISO = start.toISOString()
             const endISO = end.toISOString()
+
+            // Determine status filter based on viewMode
+            const statusFilter = viewMode === 'active'
+                ? ['pending', 'confirmed', 'in_progress']
+                : ['done', 'completed']
 
             // Fetch Appointments
             const { data: appts, error } = await supabase
@@ -70,8 +77,8 @@ export default function BanhoTosaPage() {
                 .eq('services.service_categories.name', 'Banho e Tosa')
                 .gte('scheduled_at', startISO)
                 .lte('scheduled_at', endISO)
-                .in('status', ['pending', 'confirmed', 'in_progress'])
-                .order('scheduled_at')
+                .in('status', statusFilter)
+                .order('scheduled_at', { ascending: viewMode === 'active' }) // Ascending for active, potentially Descending for history? kept simple for now
 
             if (error) {
                 console.error('Error fetching banho e tosa:', error)
@@ -84,7 +91,7 @@ export default function BanhoTosaPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, dateRange])
+    }, [supabase, dateRange, viewMode])
 
     useEffect(() => {
         fetchBanhoTosaData()
@@ -131,6 +138,34 @@ export default function BanhoTosaPage() {
                     </Link>
                     <button className={styles.actionButton} onClick={fetchBanhoTosaData}>↻ Atualizar</button>
                 </div>
+            </div>
+
+            {/* View Mode Tabs */}
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '0.5rem' }}>
+                <button
+                    onClick={() => setViewMode('active')}
+                    style={{
+                        background: 'none', border: 'none', padding: '0.5rem 1rem',
+                        color: viewMode === 'active' ? '#3B82F6' : '#94a3b8',
+                        fontWeight: viewMode === 'active' ? 700 : 500,
+                        borderBottom: viewMode === 'active' ? '2px solid #3B82F6' : '2px solid transparent',
+                        cursor: 'pointer', fontSize: '1rem'
+                    }}
+                >
+                    Em Aberto / Execução
+                </button>
+                <button
+                    onClick={() => setViewMode('history')}
+                    style={{
+                        background: 'none', border: 'none', padding: '0.5rem 1rem',
+                        color: viewMode === 'history' ? '#3B82F6' : '#94a3b8',
+                        fontWeight: viewMode === 'history' ? 700 : 500,
+                        borderBottom: viewMode === 'history' ? '2px solid #3B82F6' : '2px solid transparent',
+                        cursor: 'pointer', fontSize: '1rem'
+                    }}
+                >
+                    📜 Histórico de Atendimentos
+                </button>
             </div>
 
             {/* Date Range Filter */}
@@ -183,72 +218,83 @@ export default function BanhoTosaPage() {
                                         )}
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, marginLeft: '0.5rem' }}>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            setEditingAppointment(appt)
-                                        }}
-                                        title="Editar Agendamento"
-                                        style={{
-                                            background: 'rgba(255,255,255,0.1)',
-                                            border: 'none',
-                                            borderRadius: '50%',
-                                            width: '32px',
-                                            height: '32px',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1rem'
-                                        }}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDelete(appt.id)
-                                        }}
-                                        title="Excluir Agendamento"
-                                        style={{
-                                            background: 'rgba(239, 68, 68, 0.1)',
-                                            border: 'none',
-                                            borderRadius: '50%',
-                                            width: '32px',
-                                            height: '32px',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '1rem'
-                                        }}
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
+                                {viewMode === 'active' && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setEditingAppointment(appt)
+                                            }}
+                                            title="Editar Agendamento"
+                                            style={{
+                                                background: 'rgba(255,255,255,0.1)',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleDelete(appt.id)
+                                            }}
+                                            title="Excluir Agendamento"
+                                            style={{
+                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                {!appt.actual_check_in ? (
+                                {viewMode === 'active' ? (
+                                    <>
+                                        {!appt.actual_check_in ? (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleCheckIn(appt.id)
+                                                }}
+                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                🟢 Iniciar Atendimento
+                                            </button>
+                                        ) : !appt.actual_check_out ? (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleCheckOut(appt.id)
+                                                }}
+                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                ✅ Finalizar Atendimento
+                                            </button>
+                                        ) : null}
+                                    </>
+                                ) : (
                                     <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleCheckIn(appt.id)
-                                        }}
-                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                        🟢 Iniciar Atendimento
+                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
+                                        📜 Ver Detalhes do Histórico
                                     </button>
-                                ) : !appt.actual_check_out ? (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleCheckOut(appt.id)
-                                        }}
-                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                        ✅ Finalizar Atendimento
-                                    </button>
-                                ) : null}
+                                )}
                             </div>
                         </div>
                     ))}
