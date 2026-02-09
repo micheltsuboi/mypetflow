@@ -2,6 +2,12 @@
     padding: 1.5rem;
 }
 
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+}
+
 .header {
     display: flex;
     justify-content: space-between;
@@ -63,9 +69,15 @@
 
 .agendaGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     /* Wider cards */
-    gap: 1.5rem;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .agendaGrid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Updated Card Style based on Request */
