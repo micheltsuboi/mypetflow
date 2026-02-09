@@ -78,8 +78,37 @@ function PetsContent() {
     }
 
     // Accordion State
+    // Accordion State
     const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false })
-    const toggleAccordion = (key: keyof typeof accordions) => setAccordions(prev => ({ ...prev, [key]: !prev[key] }))
+
+    const toggleAccordion = async (key: keyof typeof accordions) => {
+        setAccordions(prev => {
+            const newState = { ...prev, [key]: !prev[key] }
+
+            // Fetch Assessment manually if opening relevant sections
+            // We use setTimeout to allow state update or just call async here referencing !prev[key]
+            return newState
+        })
+
+        // Manual fetch logic separated to avoid async issues in setState
+        // But setState callback doesn't support async.
+        // Better:
+        const isOpen = !accordions[key]
+
+        if (isOpen && (key === 'assessment' || key === 'creche' || key === 'hotel')) {
+            // Only fetch if we have a pet and no assessment yet
+            // Wait, selectedPet might be changing? No, accordion toggling happens when pet is selected.
+            if (selectedPet && !petAssessment) {
+                try {
+                    console.log('[DEBUG] Fetching assessment for accordion:', key)
+                    const data = await getPetAssessment(selectedPet.id)
+                    setPetAssessment(data)
+                } catch (error) {
+                    console.error('Error fetching assessment:', error)
+                }
+            }
+        }
+    }
 
     // History State
     const [crecheHistory, setCrecheHistory] = useState<any[]>([])
@@ -108,6 +137,7 @@ function PetsContent() {
                     customers ( id, name )
                 `)
                 .order('name')
+                .limit(50)
 
             if (petsError) throw petsError
 
@@ -151,22 +181,6 @@ function PetsContent() {
         }
     }, [selectedPet, accordions.packages])
 
-    // Buscar assessment do pet quando o accordion assessment abre
-    // Buscar assessment do pet quando o accordion assessment, creche ou hotel abre
-    const fetchPetAssessment = useCallback(async () => {
-        // If NO accordion that needs assessment is open, don't fetch
-        if (!selectedPet || (!accordions.assessment && !accordions.creche && !accordions.hotel)) return
-
-        try {
-            console.log('[DEBUG] Fetching assessment for pet:', selectedPet.id)
-            const data = await getPetAssessment(selectedPet.id)
-            console.log('[DEBUG] Assessment data received:', data)
-            setPetAssessment(data)
-        } catch (error) {
-            console.error('Erro ao buscar assessment:', error)
-        }
-    }, [selectedPet, accordions.assessment, accordions.creche, accordions.hotel])
-
     // Buscar histórico de agendamentos
     useEffect(() => {
         if (!selectedPet) return
@@ -187,9 +201,6 @@ function PetsContent() {
         fetchPetPackageSummary()
     }, [fetchPetPackageSummary])
 
-    useEffect(() => {
-        fetchPetAssessment()
-    }, [fetchPetAssessment])
 
     // Feedback handling
     useEffect(() => {
