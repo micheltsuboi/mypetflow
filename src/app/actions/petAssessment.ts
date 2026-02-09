@@ -117,7 +117,10 @@ export async function createPetAssessment(petId: string, formData: FormData) {
 
             // Declaração
             owner_declaration_accepted: formData.get('owner_declaration_accepted') === 'true',
-            declaration_accepted_at: new Date().toISOString()
+            declaration_accepted_at: new Date().toISOString(),
+
+            // Status (auto-approved for owner-submitted assessments)
+            status: 'approved'
         }
 
         const { error } = await supabase

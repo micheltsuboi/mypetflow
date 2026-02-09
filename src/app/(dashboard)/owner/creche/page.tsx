@@ -59,6 +59,7 @@ export default function CrechePage() {
                 .eq('services.service_categories.name', 'Creche') // Filter by joined category name
                 .gte('scheduled_at', startOfDay)
                 .lte('scheduled_at', endOfDay)
+                .in('status', ['pending', 'confirmed', 'in_progress']) // Exclude completed/cancelled
                 .order('scheduled_at')
 
             if (error) {
