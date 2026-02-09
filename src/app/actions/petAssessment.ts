@@ -122,7 +122,7 @@ export async function createPetAssessment(petId: string, formData: FormData) {
 
         const { error } = await supabase
             .from('pet_assessments')
-            .insert(assessmentData)
+            .upsert(assessmentData, { onConflict: 'pet_id' })
 
         if (error) {
             console.error('[Assessment] Error creating assessment:', error)

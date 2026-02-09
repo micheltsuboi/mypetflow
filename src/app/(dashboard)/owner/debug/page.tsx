@@ -108,9 +108,14 @@ export default function DebugPage() {
                                         <button
                                             onClick={async () => {
                                                 if (confirm('Deletar agendamento?')) {
-                                                    await deleteAppointment(a.id)
-                                                    alert('Deletado!')
-                                                    window.location.reload()
+                                                    try {
+                                                        await deleteAppointment(a.id)
+                                                        alert('Agendamento deletado!')
+                                                        window.location.reload()
+                                                    } catch (err: any) {
+                                                        console.error(err)
+                                                        alert('Erro ao deletar: ' + (err.message || err))
+                                                    }
                                                 }
                                             }}
                                             style={{ background: 'red', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
@@ -127,6 +132,6 @@ export default function DebugPage() {
                     <strong>Hoje:</strong> {new Date().toISOString().split('T')[0]}
                 </div>
             </section>
-        </div>
+        </div >
     )
 }
