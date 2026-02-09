@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import styles from '../agenda/page.module.css' // Reuse agenda styles for consistency
+import styles from '../agenda/page.module.css'
 import Link from 'next/link'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
@@ -28,13 +28,13 @@ interface Appointment {
     }
 }
 
-export default function CrechePage() {
+export default function BanhoTosaPage() {
     const supabase = createClient()
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [dateRange, setDateRange] = useState<DateRange>('today')
 
-    const fetchCrecheData = useCallback(async () => {
+    const fetchBanhoTosaData = useCallback(async () => {
         try {
             setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
@@ -61,14 +61,14 @@ export default function CrechePage() {
                     )
                 `)
                 .eq('org_id', profile.org_id)
-                .eq('services.service_categories.name', 'Creche') // Filter by joined category name
+                .eq('services.service_categories.name', 'Banho e Tosa')
                 .gte('scheduled_at', startISO)
                 .lte('scheduled_at', endISO)
-                .in('status', ['pending', 'confirmed', 'in_progress']) // Exclude completed/cancelled
+                .in('status', ['pending', 'confirmed', 'in_progress'])
                 .order('scheduled_at')
 
             if (error) {
-                console.error('Error fetching creche:', error)
+                console.error('Error fetching banho e tosa:', error)
             } else if (appts) {
                 setAppointments(appts as unknown as Appointment[])
             }
@@ -81,14 +81,14 @@ export default function CrechePage() {
     }, [supabase, dateRange])
 
     useEffect(() => {
-        fetchCrecheData()
-    }, [fetchCrecheData])
+        fetchBanhoTosaData()
+    }, [fetchBanhoTosaData])
 
     const handleCheckIn = async (appointmentId: string) => {
         const result = await checkInAppointment(appointmentId)
         if (result.success) {
             alert(result.message)
-            fetchCrecheData()
+            fetchBanhoTosaData()
         } else {
             alert(result.message)
         }
@@ -98,23 +98,21 @@ export default function CrechePage() {
         const result = await checkOutAppointment(appointmentId)
         if (result.success) {
             alert(result.message)
-            fetchCrecheData()
+            fetchBanhoTosaData()
         } else {
             alert(result.message)
         }
     }
 
-
-
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>🎾 Creche - Pets do Dia</h1>
+                <h1 className={styles.title}>🛁 Banho e Tosa</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <Link href="/owner/agenda?mode=new&category=Creche" className={styles.actionButton} style={{ textDecoration: 'none', background: 'var(--primary)', color: 'white' }}>
+                    <Link href="/owner/agenda?mode=new&category=Banho e Tosa" className={styles.actionButton} style={{ textDecoration: 'none', background: 'var(--primary)', color: 'white' }}>
                         + Novo Agendamento
                     </Link>
-                    <button className={styles.actionButton} onClick={fetchCrecheData}>↻ Atualizar</button>
+                    <button className={styles.actionButton} onClick={fetchBanhoTosaData}>↻ Atualizar</button>
                 </div>
             </div>
 
@@ -125,13 +123,13 @@ export default function CrechePage() {
                 <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
             ) : appointments.length === 0 ? (
                 <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    Nenhum pet agendado para a creche no período selecionado.
+                    Nenhum pet agendado para banho e tosa no período selecionado.
                 </div>
             ) : (
                 <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
                     {appointments.map(appt => (
                         <div key={appt.id} className={styles.appointmentCard} style={{
-                            borderLeft: `4px solid ${appt.services?.service_categories?.color || '#10B981'}`,
+                            borderLeft: `4px solid ${appt.services?.service_categories?.color || '#2563EB'}`,
                             background: 'var(--bg-secondary)',
                             opacity: 1
                         }}>
@@ -142,20 +140,23 @@ export default function CrechePage() {
                                         <div className={styles.petName}>
                                             {appt.pets?.name || 'Pet'}
                                             <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
-                                                {appt.actual_check_in && !appt.actual_check_out ? '🟢 Na Creche' :
-                                                    appt.actual_check_out ? '🏁 Já saiu' :
+                                                {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Atendimento' :
+                                                    appt.actual_check_out ? '✅ Concluído' :
                                                         '⏳ Aguardando'}
                                             </span>
                                         </div>
                                         <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
+                                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                            {appt.services?.name || 'Serviço'}
+                                        </span>
                                         {appt.actual_check_in && (
                                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                Entrada: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                Início: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         )}
                                         {appt.actual_check_out && (
                                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                Saída: {new Date(appt.actual_check_out).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                Término: {new Date(appt.actual_check_out).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         )}
                                     </div>
@@ -167,13 +168,13 @@ export default function CrechePage() {
                                     <button
                                         onClick={() => handleCheckIn(appt.id)}
                                         style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                        📥 Check-in (Entrada)
+                                        🟢 Iniciar Atendimento
                                     </button>
                                 ) : !appt.actual_check_out ? (
                                     <button
                                         onClick={() => handleCheckOut(appt.id)}
-                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                        📤 Check-out (Saída)
+                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                        ✅ Finalizar Atendimento
                                     </button>
                                 ) : null}
                             </div>
