@@ -109,23 +109,23 @@ export default function CrechePage() {
                 <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
                     {appointments.map(appt => (
                         <div key={appt.id} className={styles.appointmentCard} style={{
-                            borderLeft: `4px solid ${appt.services.service_categories.color}`,
+                            borderLeft: `4px solid ${appt.services?.service_categories?.color || '#10B981'}`,
                             background: appt.status === 'done' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
                             opacity: appt.status === 'done' ? 0.7 : 1
                         }}>
                             <div className={styles.cardTop}>
                                 <div className={styles.petInfoMain}>
-                                    <div className={styles.petAvatar}>{appt.pets.species === 'cat' ? '🐱' : '🐶'}</div>
+                                    <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                     <div className={styles.petDetails}>
                                         <div className={styles.petName}>
-                                            {appt.pets.name}
+                                            {appt.pets?.name || 'Pet'}
                                             <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
                                                 {appt.status === 'in_progress' ? '🟢 Na Creche' :
                                                     appt.status === 'done' ? '🏁 Já saiu' :
                                                         '⏳ Aguardando'}
                                             </span>
                                         </div>
-                                        <span className={styles.tutorName}>👤 {appt.pets.customers?.name}</span>
+                                        <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                     </div>
                                 </div>
                             </div>
