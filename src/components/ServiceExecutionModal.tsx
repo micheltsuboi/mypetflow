@@ -98,7 +98,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         // Auto-save report with photos
         // We preserve existing report text if any (fetching it properly would be better but for now let's just save photos)
         // Actually, let's just save the photos to the daily report table
-        await saveDailyReport(appointment.id, undefined, newPhotos)
+        await saveDailyReport(appointment.id, '', newPhotos)
 
         setUploading(false)
     }
@@ -107,7 +107,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         if (!confirm('Remover foto?')) return
         const newPhotos = photos.filter(p => p !== photoUrl)
         setPhotos(newPhotos)
-        await saveDailyReport(appointment.id, undefined, newPhotos)
+        await saveDailyReport(appointment.id, '', newPhotos)
     }
 
     const handleStatusAction = async (action: 'start' | 'checkin' | 'checkout') => {
