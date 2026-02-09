@@ -269,7 +269,7 @@ export default function HospedagemPage() {
                                             </div>
                                             <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span>📅 {dateDisplay}</span>
-                                                {(appt.services as any).base_price && (
+                                                {(appt.services as any)?.base_price && (
                                                     <span style={{
                                                         fontSize: '0.8rem',
                                                         fontWeight: 700,
@@ -278,7 +278,7 @@ export default function HospedagemPage() {
                                                         padding: '2px 6px',
                                                         borderRadius: '4px'
                                                     }}>
-                                                        R$ {(appt.services as any).base_price.toFixed(2)}
+                                                        R$ {(appt.services as any)?.base_price.toFixed(2)}
                                                     </span>
                                                 )}
                                             </div>

@@ -252,7 +252,7 @@ export default function CrechePage() {
                                         <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                         <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
                                             <span>{appt.services?.name || 'Creche'}</span>
-                                            {(appt.services as any).base_price && (
+                                            {(appt.services as any)?.base_price && (
                                                 <span style={{
                                                     fontSize: '0.8rem',
                                                     fontWeight: 700,
@@ -261,7 +261,7 @@ export default function CrechePage() {
                                                     padding: '2px 6px',
                                                     borderRadius: '4px'
                                                 }}>
-                                                    R$ {(appt.services as any).base_price.toFixed(2)}
+                                                    R$ {(appt.services as any)?.base_price.toFixed(2)}
                                                 </span>
                                             )}
                                         </div>

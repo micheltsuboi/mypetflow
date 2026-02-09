@@ -427,7 +427,7 @@
 .dayGrid {
     display: flex;
     flex-direction: column;
-    background: var(--bg-secondary);
+    background: var(--bg-secondary, #1B2D42);
     border-radius: 16px;
     border: 1px solid var(--border);
     overflow: hidden;
@@ -440,6 +440,7 @@
     min-height: 100px;
     position: relative;
     transition: background 0.2s;
+    background: transparent;
 }
 
 .hourRow:last-child {
@@ -483,6 +484,7 @@
     cursor: pointer;
     transition: all 0.2s;
     min-height: 80px;
+    background: transparent !important;
 }
 
 .hourRow:hover .addSlotBtn {

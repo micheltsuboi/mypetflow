@@ -205,7 +205,7 @@ export default function BanhoTosaPage() {
                                         <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                         <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '0.5rem' }}>
                                             {appt.services?.name || 'Serviço'}
-                                            {(appt.services as any).base_price && (
+                                            {(appt.services as any)?.base_price && (
                                                 <span style={{
                                                     fontSize: '0.8rem',
                                                     fontWeight: 700,
@@ -214,7 +214,7 @@ export default function BanhoTosaPage() {
                                                     padding: '2px 6px',
                                                     borderRadius: '4px'
                                                 }}>
-                                                    R$ {(appt.services as any).base_price.toFixed(2)}
+                                                    R$ {(appt.services as any)?.base_price.toFixed(2)}
                                                 </span>
                                             )}
                                         </span>
