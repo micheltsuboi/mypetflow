@@ -95,7 +95,7 @@ export default function AgendaPage() {
 
     // UI State
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
-    const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
+    const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month')
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
 
@@ -483,13 +483,21 @@ export default function AgendaPage() {
                             })
                             return (
                                 <div key={`${dateStr}-${h}`} className={styles.weekCell} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
-                                    {slotAppts.length > 0 ? (
-                                        <div className={styles.weekPill} style={{ backgroundColor: slotAppts[0].services?.service_categories?.color || '#ccc' }}>
-                                            {slotAppts.length} agend.
-                                        </div>
-                                    ) : (
-                                        <span className={styles.emptySlot}>-</span>
-                                    )}
+                                    {slotAppts.map(appt => {
+                                        const serviceCategory = (appt.services as any)?.service_categories
+                                        const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
+                                        const petName = appt.pets?.name || 'Pet'
+                                        return (
+                                            <div
+                                                key={appt.id}
+                                                className={styles.weekEventPill}
+                                                style={{ backgroundColor: categoryColor }}
+                                                title={`${petName} - ${appt.services?.name}`}
+                                            >
+                                                {petName}
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             )
                         })}
@@ -514,11 +522,25 @@ export default function AgendaPage() {
                 {Array.from({ length: firstDay.getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
                 {days.map(day => {
                     const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-                    const count = appointments.filter(a => a.scheduled_at.startsWith(dateStr)).length
+                    const dayAppts = appointments.filter(a => a.scheduled_at.startsWith(dateStr))
                     return (
                         <div key={day} className={styles.monthCell} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
                             <div className={styles.monthDate}>{day}</div>
-                            {count > 0 && <div className={styles.monthBadge}>{count}</div>}
+                            {dayAppts.map((appt, idx) => {
+                                const serviceCategory = (appt.services as any)?.service_categories
+                                const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
+                                const petName = appt.pets?.name || 'Pet'
+                                return (
+                                    <div
+                                        key={appt.id}
+                                        className={styles.monthEventDot}
+                                        style={{ borderLeftColor: categoryColor }}
+                                        title={`${petName} - ${appt.services?.name}`}
+                                    >
+                                        {petName}
+                                    </div>
+                                )
+                            })}
                         </div>
                     )
                 })}

@@ -58,6 +58,7 @@ export default function HospedagemPage() {
                         pets ( name, species, breed, customers ( name ) ),
                         services ( 
                             name, 
+                            base_price,
                             service_categories!inner ( name, color, icon )
                         )
                     `)
