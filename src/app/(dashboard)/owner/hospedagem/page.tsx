@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import styles from '../agenda/page.module.css' // Reuse agenda styles
+import Link from 'next/link'
 import { updateAppointmentStatus } from '@/app/actions/appointment'
 
 interface Appointment {
@@ -102,11 +103,18 @@ export default function HospedagemPage() {
         fetchHospedagemData() // Refresh
     }
 
+
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
                 <h1 className={styles.title}>🏨 Hospedagem - Hóspedes Ativos</h1>
-                <button className={styles.actionButton} onClick={fetchHospedagemData}>↻ Atualizar</button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <Link href="/owner/agenda?mode=new&category=Hospedagem" className={styles.actionButton} style={{ textDecoration: 'none', background: 'var(--primary)', color: 'white' }}>
+                        + Novo Agendamento
+                    </Link>
+                    <button className={styles.actionButton} onClick={fetchHospedagemData}>↻ Atualizar</button>
+                </div>
             </div>
 
             {loading ? (

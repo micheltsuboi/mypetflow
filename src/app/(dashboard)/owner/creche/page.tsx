@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import styles from '../agenda/page.module.css' // Reuse agenda styles for consistency
+import Link from 'next/link'
 import { updateAppointmentStatus } from '@/app/actions/appointment'
 
 interface Appointment {
@@ -84,11 +85,18 @@ export default function CrechePage() {
         fetchCrecheData() // Refresh
     }
 
+
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
                 <h1 className={styles.title}>🎾 Creche - Pets do Dia</h1>
-                <button className={styles.actionButton} onClick={fetchCrecheData}>↻ Atualizar</button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <Link href="/owner/agenda?mode=new&category=Creche" className={styles.actionButton} style={{ textDecoration: 'none', background: 'var(--primary)', color: 'white' }}>
+                        + Novo Agendamento
+                    </Link>
+                    <button className={styles.actionButton} onClick={fetchCrecheData}>↻ Atualizar</button>
+                </div>
             </div>
 
             {loading ? (

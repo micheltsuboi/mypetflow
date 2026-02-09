@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createPet, updatePet, deletePet } from '@/app/actions/pet'
 import { sellPackageToPet, getPetPackagesWithUsage } from '@/app/actions/package'
 import { getPetAssessment } from '@/app/actions/petAssessment'
+import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 
 // Interfaces
@@ -77,8 +78,12 @@ function PetsContent() {
     }
 
     // Accordion State
-    const [accordions, setAccordions] = useState({ details: true, packages: false, daycare: false, hotel: false })
+    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false })
     const toggleAccordion = (key: keyof typeof accordions) => setAccordions(prev => ({ ...prev, [key]: !prev[key] }))
+
+    // History State
+    const [crecheHistory, setCrecheHistory] = useState<any[]>([])
+    const [hotelHistory, setHotelHistory] = useState<any[]>([])
 
     const fetchData = useCallback(async () => {
         try {
@@ -146,9 +151,9 @@ function PetsContent() {
         }
     }, [selectedPet, accordions.packages])
 
-    // Buscar assessment do pet quando o accordion daycare/hotel abre
+    // Buscar assessment do pet quando o accordion assessment abre
     const fetchPetAssessment = useCallback(async () => {
-        if (!selectedPet || (!accordions.daycare && !accordions.hotel)) return
+        if (!selectedPet || !accordions.assessment) return
 
         try {
             const data = await getPetAssessment(selectedPet.id)
@@ -156,7 +161,19 @@ function PetsContent() {
         } catch (error) {
             console.error('Erro ao buscar assessment:', error)
         }
-    }, [selectedPet, accordions.daycare, accordions.hotel])
+    }, [selectedPet, accordions.assessment])
+
+    // Buscar histórico de agendamentos
+    useEffect(() => {
+        if (!selectedPet) return
+
+        if (accordions.creche) {
+            getPetAppointments(selectedPet.id, 'Creche').then(setCrecheHistory)
+        }
+        if (accordions.hotel) {
+            getPetAppointments(selectedPet.id, 'Hospedagem').then(setHotelHistory)
+        }
+    }, [selectedPet, accordions.creche, accordions.hotel])
 
     useEffect(() => {
         fetchData()
@@ -189,7 +206,7 @@ function PetsContent() {
             const pet = pets.find(p => p.id === openPetId)
             if (pet) {
                 setSelectedPet(pet)
-                setAccordions({ details: true, packages: true, daycare: false, hotel: false }) // Open packages when returning from agenda
+                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false }) // Open packages when returning from agenda
                 setShowModal(true)
                 // Clean URL
                 const url = new URL(window.location.href)
@@ -212,13 +229,13 @@ function PetsContent() {
 
     const handleRowClick = (pet: Pet) => {
         setSelectedPet(pet)
-        setAccordions({ details: true, packages: false, daycare: false, hotel: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false })
         setShowModal(true)
     }
 
     const handleNewPet = () => {
         setSelectedPet(null)
-        setAccordions({ details: true, packages: false, daycare: false, hotel: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false })
         setShowModal(true)
     }
 
@@ -532,14 +549,131 @@ function PetsContent() {
                                     </div>
                                 )}
                             </div>
-
-                            {/* 3. Creche / Hospedagem - Assessment Form */}
+                            {/* 3. Creche */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                <button type="button" onClick={() => toggleAccordion('daycare')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🎾 Avaliação para Creche / Hospedagem</span>
-                                    <span>{accordions.daycare ? '−' : '+'}</span>
+                                <button type="button" onClick={() => toggleAccordion('creche')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🎾 Agendar Creche</span>
+                                    <span>{accordions.creche ? '−' : '+'}</span>
                                 </button>
-                                {accordions.daycare && (
+                                {accordions.creche && (
+                                    <div style={{ padding: '1rem' }}>
+                                        {selectedPet ? (
+                                            <>
+                                                {/* Check Assessment */}
+                                                {!petAssessment ? (
+                                                    <div style={{ padding: '1rem', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '8px', marginBottom: '1rem', color: '#92400E' }}>
+                                                        <strong>⚠️ Avaliação Pendente</strong>
+                                                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>É necessário preencher a Avaliação Comportamental antes de agendar creche.</p>
+                                                        <button
+                                                            onClick={() => toggleAccordion('assessment')}
+                                                            style={{ marginTop: '0.5rem', background: 'none', border: 'none', color: '#D97706', textDecoration: 'underline', cursor: 'pointer' }}>
+                                                            Ir para Avaliação
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ marginBottom: '1rem' }}>
+                                                        <button
+                                                            onClick={() => router.push(`/owner/agenda?petId=${selectedPet.id}&category=Creche&mode=new`)}
+                                                            className={styles.submitButton}
+                                                            style={{ width: '100%' }}>
+                                                            + Novo Agendamento de Creche
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                <h4 style={{ marginTop: '1rem', marginBottom: '0.5rem', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Histórico Recente</h4>
+                                                {crecheHistory.length === 0 ? (
+                                                    <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Nenhum agendamento recente.</p>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {crecheHistory.map((appt: any) => (
+                                                            <div key={appt.id} style={{ padding: '0.75rem', borderRadius: '6px', background: 'var(--bg-secondary)', borderLeft: `4px solid #10B981` }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                    <span style={{ fontWeight: 600 }}>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                                                                    <span style={{ fontSize: '0.85rem' }}>{appt.status}</span>
+                                                                </div>
+                                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Salve o pet primeiro.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 4. Hospedagem */}
+                            <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                <button type="button" onClick={() => toggleAccordion('hotel')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🏨 Agendar Hospedagem</span>
+                                    <span>{accordions.hotel ? '−' : '+'}</span>
+                                </button>
+                                {accordions.hotel && (
+                                    <div style={{ padding: '1rem' }}>
+                                        {selectedPet ? (
+                                            <>
+                                                {/* Check Assessment */}
+                                                {!petAssessment ? (
+                                                    <div style={{ padding: '1rem', background: '#FEF3C7', border: '1px solid #F59E0B', borderRadius: '8px', marginBottom: '1rem', color: '#92400E' }}>
+                                                        <strong>⚠️ Avaliação Pendente</strong>
+                                                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>É necessário preencher a Avaliação Comportamental antes de agendar hospedagem.</p>
+                                                        <button
+                                                            onClick={() => toggleAccordion('assessment')}
+                                                            style={{ marginTop: '0.5rem', background: 'none', border: 'none', color: '#D97706', textDecoration: 'underline', cursor: 'pointer' }}>
+                                                            Ir para Avaliação
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ marginBottom: '1rem' }}>
+                                                        <button
+                                                            onClick={() => router.push(`/owner/agenda?petId=${selectedPet.id}&category=Hospedagem&mode=new`)}
+                                                            className={styles.submitButton}
+                                                            style={{ width: '100%' }}>
+                                                            + Novo Agendamento de Hospedagem
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                <h4 style={{ marginTop: '1rem', marginBottom: '0.5rem', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Histórico Recente</h4>
+                                                {hotelHistory.length === 0 ? (
+                                                    <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Nenhum agendamento recente.</p>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {hotelHistory.map((appt: any) => {
+                                                            const isRange = appt.check_in_date && appt.check_out_date
+                                                            return (
+                                                                <div key={appt.id} style={{ padding: '0.75rem', borderRadius: '6px', background: 'var(--bg-secondary)', borderLeft: `4px solid #F59E0B` }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                                        <span style={{ fontWeight: 600 }}>
+                                                                            {isRange
+                                                                                ? `${new Date(appt.check_in_date).toLocaleDateString('pt-BR')} - ${new Date(appt.check_out_date).toLocaleDateString('pt-BR')}`
+                                                                                : new Date(appt.scheduled_at).toLocaleDateString('pt-BR')
+                                                                            }
+                                                                        </span>
+                                                                        <span style={{ fontSize: '0.85rem' }}>{appt.status}</span>
+                                                                    </div>
+                                                                    {!isRange && <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>}
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Salve o pet primeiro.</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                <button type="button" onClick={() => toggleAccordion('assessment')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>📋 Avaliação Comportamental / Saúde</span>
+                                    <span>{accordions.assessment ? '−' : '+'}</span>
+                                </button>
+                                {accordions.assessment && (
                                     <div style={{ padding: '1rem' }}>
                                         {selectedPet ? (
                                             <>

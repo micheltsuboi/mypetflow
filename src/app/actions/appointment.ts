@@ -311,3 +311,29 @@ export async function updatePetPreferences(petId: string, prefs: { perfume_allow
     revalidatePath('/owner/agenda')
     return { message: 'Preferências atualizadas.', success: true }
 }
+
+export async function getPetAppointmentsByCategory(petId: string, category: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return []
+
+    const { data } = await supabase
+        .from('appointments')
+        .select(`
+            id, scheduled_at, status, check_in_date, check_out_date,
+            services!inner (
+                name,
+                service_categories!inner ( name )
+            )
+        `)
+        .eq('pet_id', petId)
+        .eq('org_id', profile.org_id)
+        .eq('services.service_categories.name', category)
+        .order('scheduled_at', { ascending: false })
+        .limit(10)
+
+    return data || []
+}

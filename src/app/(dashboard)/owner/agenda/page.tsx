@@ -52,6 +52,9 @@ interface Pet { id: string, name: string }
 interface Service {
     id: string
     name: string
+    duration_minutes?: number
+    base_price: number
+    category?: string
     service_categories?: {
         id: string
         name: string
@@ -109,21 +112,42 @@ export default function AgendaPage() {
     const [createState, createAction, isCreatePending] = useActionState(createAppointment, initialState)
     const [updateState, updateAction, isUpdatePending] = useActionState(updateAppointment, initialState)
 
+    const [preSelectedCategory, setPreSelectedCategory] = useState<string | null>(null)
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search)
             const petId = params.get('petId')
             const serviceId = params.get('serviceId')
+            const categoryParam = params.get('category')
+            const modeParam = params.get('mode')
             const retUrl = params.get('returnUrl')
 
             if (retUrl) setReturnUrl(retUrl)
 
-            if (petId || serviceId) {
-                if (petId) setPreSelectedPetId(petId)
-                if (serviceId) {
-                    setPreSelectedServiceId(serviceId)
-                    setSelectedServiceId(serviceId)
-                }
+            if (petId) setPreSelectedPetId(petId)
+
+            // If serviceId is passed directly
+            if (serviceId) {
+                setPreSelectedServiceId(serviceId)
+                setSelectedServiceId(serviceId)
+                setShowNewModal(true)
+            }
+            // If category + mode=new is passed (e.g. from Creche dashboard)
+            else if (modeParam === 'new' && categoryParam) {
+                // We'll filter services in the modal based on this
+                // For now, let's just open the modal. The user keeps having to select the service manually 
+                // but we can try to pre-filter or pre-select the first one.
+                setShowNewModal(true)
+                setPreSelectedCategory(categoryParam.toLowerCase())
+
+                // Store category param in a state or ref if needed to filter the dropdown
+                // For simplicity, let's just iterate services once they are loaded and pick the first one matching category
+                // (This logic needs to happen after services are loaded, so moving it to fetchData or a separate effect might be better.
+                // But for now, let's just set a flag).
+            }
+
+            if (petId || serviceId || (modeParam === 'new')) {
                 setShowNewModal(true)
             }
         }
@@ -147,7 +171,7 @@ export default function AgendaPage() {
 
                 const { data: s } = await supabase
                     .from('services')
-                    .select('id, name, service_categories (id, name, color, icon)')
+                    .select('id, name, duration_minutes, base_price, category, service_categories (id, name, color, icon)')
                     .eq('org_id', profile.org_id)
                     .order('name')
 
@@ -732,12 +756,26 @@ export default function AgendaPage() {
                                         name="serviceId"
                                         className={styles.select}
                                         required
-                                        defaultValue={preSelectedServiceId || ""}
-                                        key={preSelectedServiceId}
+                                        value={selectedServiceId}
                                         onChange={(e) => setSelectedServiceId(e.target.value)}
                                     >
                                         <option value="" disabled>Selecione...</option>
-                                        {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        {services
+                                            .filter(s => {
+                                                if (!preSelectedCategory) return true
+                                                // Handle both legacy string categories and new relational categories
+                                                const catName = s.service_categories?.name?.toLowerCase() || s.category?.toLowerCase() || ''
+
+                                                if (preSelectedCategory === 'creche') return catName === 'creche'
+                                                if (preSelectedCategory === 'hospedagem') return catName === 'hospedagem' || catName === 'hotel'
+                                                if (preSelectedCategory === 'banho') return catName.includes('banho') || catName.includes('tosa')
+                                                return true
+                                            })
+                                            .map(s => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.name} {s.duration_minutes ? `(${Math.floor(s.duration_minutes / 60)}h ${s.duration_minutes % 60}m)` : ''} - R$ {s.base_price.toFixed(2)}
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
                                 {(() => {
