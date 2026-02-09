@@ -15,12 +15,16 @@ import {
     updatePetPreferences
 } from '@/app/actions/appointment'
 import { createScheduleBlock, deleteScheduleBlock, getScheduleBlocks } from '@/app/actions/schedule'
+import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
+import DailyReportModal from '@/components/DailyReportModal'
 
 interface Appointment {
     id: string
     pet_id: string
     service_id: string
     scheduled_at: string
+    actual_check_in: string | null
+    actual_check_out: string | null
     status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'canceled' | 'no_show'
     checklist: { label: string, checked: boolean }[]
     notes: string | null
@@ -219,6 +223,7 @@ export default function AgendaPage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
+                    actual_check_in, actual_check_out,
                     pets ( 
                         name, species, breed, 
                         perfume_allowed, accessories_allowed, special_care,
@@ -413,20 +418,49 @@ export default function AgendaPage() {
         else alert(res.message)
     }
 
+    const handleSmartAction = async (e: React.MouseEvent, appt: Appointment, action: 'start' | 'check-in' | 'check-out') => {
+        e.stopPropagation()
+
+        if (action === 'check-in') {
+            const res = await checkInAppointment(appt.id)
+            if (res.success) {
+                alert(res.message)
+                fetchData()
+            } else {
+                alert(res.message)
+            }
+        } else if (action === 'check-out') {
+            const res = await checkOutAppointment(appt.id)
+            if (res.success) {
+                alert(res.message)
+                fetchData()
+            } else {
+                alert(res.message)
+            }
+        } else {
+            // Default Start
+            if (confirm(`Iniciar serviço para ${appt.pets?.name}?`)) {
+                const res = await updateAppointmentStatus(appt.id, 'in_progress')
+                if (res.success) fetchData()
+            }
+        }
+    }
+
     const renderAppointmentCard = (appt: Appointment) => {
         const categoryColor = appt.services?.service_categories?.color || '#2563EB'
         const categoryIcon = appt.services?.service_categories?.icon || '📋'
+        const isCrecheOrBanho = appt.services?.service_categories?.name === 'Creche' || appt.services?.service_categories?.name === 'Banho e Tosa'
 
         return (
             <div
                 key={appt.id}
                 className={styles.appointmentCard}
-                onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}
+                onClick={(e) => { e.stopPropagation(); isCrecheOrBanho ? setSelectedAppointment(appt) : handleOpenDetail(appt) }}
                 style={{
                     minWidth: '300px',
                     borderLeft: `4px solid ${categoryColor} `,
-                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-                    opacity: appt.status === 'done' ? 0.7 : 1
+                    backgroundColor: appt.status === 'done' || appt.status === 'completed' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                    opacity: appt.status === 'done' || appt.status === 'completed' ? 0.7 : 1
                 }}
             >
                 <div className={styles.timeDisplay}>{formatTime(appt.scheduled_at)}</div>
@@ -436,22 +470,49 @@ export default function AgendaPage() {
                         <div className={styles.petDetails}>
                             <div className={styles.petName}>
                                 {appt.pets?.name}
-                                <span className={styles.statusBadge}>{getStatusLabel(appt.status)}</span>
+                                <span className={styles.statusBadge}>
+                                    {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Andamento' :
+                                        appt.actual_check_out ? '🏁 Finalizado' :
+                                            getStatusLabel(appt.status)}
+                                </span>
                             </div>
                             <span className={styles.petBreed}>{appt.pets?.breed}</span>
                             <span className={styles.tutorName}>👤 {appt.pets?.customers?.name}</span>
                         </div>
                     </div>
-                    {(appt.status === 'pending' || appt.status === 'confirmed') && (
-                        <button className={styles.startButton} onClick={(e) => handleStartService(e, appt)}>▶ Iniciar</button>
-                    )}
-                    {appt.status === 'in_progress' && (
-                        <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>⏳ Em andamento...</div>
-                    )}
                 </div>
+
                 <div className={styles.serviceLine}>
                     <span style={{ marginRight: '0.5rem' }}>{categoryIcon}</span>
                     {appt.services?.name}
+                </div>
+
+                {/* Smart Actions */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    {isCrecheOrBanho ? (
+                        <>
+                            {!appt.actual_check_in && (
+                                <button
+                                    className={`${styles.startButton}`}
+                                    style={{ background: '#10B981', flex: 1, justifyContent: 'center' }}
+                                    onClick={(e) => handleSmartAction(e, appt, 'check-in')}>
+                                    📥 Check-in
+                                </button>
+                            )}
+                            {appt.actual_check_in && !appt.actual_check_out && (
+                                <button
+                                    className={`${styles.startButton}`}
+                                    style={{ background: '#F97316', flex: 1, justifyContent: 'center' }}
+                                    onClick={(e) => handleSmartAction(e, appt, 'check-out')}>
+                                    📤 Check-out
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        (appt.status === 'pending' || appt.status === 'confirmed') && (
+                            <button className={styles.startButton} onClick={(e) => handleSmartAction(e, appt, 'start')}>▶ Iniciar</button>
+                        )
+                    )}
                 </div>
             </div>
         )
@@ -736,6 +797,22 @@ export default function AgendaPage() {
             {viewMode === 'week' && renderWeekView()}
             {viewMode === 'month' && renderMonthView()}
 
+            {viewMode === 'month' && renderMonthView()}
+
+            {/* Daily Report Modal (for Creche/Banho) or Standard Detail Modal */}
+            {selectedAppointment && (selectedAppointment.services?.service_categories?.name === 'Creche' || selectedAppointment.services?.service_categories?.name === 'Banho e Tosa') ? (
+                <DailyReportModal
+                    appointmentId={selectedAppointment.id}
+                    petName={selectedAppointment.pets?.name || 'Pet'}
+                    serviceName={selectedAppointment.services?.name || 'Serviço'}
+                    onClose={() => setSelectedAppointment(null)}
+                    onSave={() => {
+                        fetchData()
+                        setSelectedAppointment(null)
+                    }}
+                />
+            ) : null}
+
             {/* Create Modal */}
             {showNewModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowNewModal(false)}>
@@ -829,8 +906,8 @@ export default function AgendaPage() {
                 </div>
             )}
 
-            {/* Detail / Edit Modal */}
-            {showDetailModal && selectedAppointment && (
+            {/* Detail Modal (Only for non-Creche/Banho) */}
+            {showDetailModal && selectedAppointment && selectedAppointment.services?.service_categories?.name !== 'Creche' && selectedAppointment.services?.service_categories?.name !== 'Banho e Tosa' && (
                 <div className={styles.modalOverlay} onClick={() => setShowDetailModal(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
                         <div className={styles.modalHeader}>

@@ -6,7 +6,9 @@ import styles from '../agenda/page.module.css' // Reuse agenda styles for consis
 import Link from 'next/link'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
+import { deleteAppointment } from '@/app/actions/appointment'
 import DailyReportModal from '@/components/DailyReportModal'
+import EditAppointmentModal from '@/components/EditAppointmentModal'
 
 interface Appointment {
     id: string
@@ -35,6 +37,7 @@ export default function CrechePage() {
     const [loading, setLoading] = useState(true)
     const [dateRange, setDateRange] = useState<DateRange>('today')
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+    const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
     const fetchCrecheData = useCallback(async () => {
         try {
@@ -106,6 +109,17 @@ export default function CrechePage() {
         }
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
+        const result = await deleteAppointment(id)
+        if (result.success) {
+            alert(result.message)
+            fetchCrecheData()
+        } else {
+            alert(result.message)
+        }
+    }
+
 
 
     return (
@@ -143,6 +157,50 @@ export default function CrechePage() {
                                 cursor: 'pointer'
                             }}>
                             <div className={styles.cardTop}>
+                                <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setEditingAppointment(appt)
+                                        }}
+                                        title="Editar Agendamento"
+                                        style={{
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '32px',
+                                            height: '32px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        ✏️
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleDelete(appt.id)
+                                        }}
+                                        title="Excluir Agendamento"
+                                        style={{
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            width: '32px',
+                                            height: '32px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '1rem'
+                                        }}
+                                    >
+                                        🗑️
+                                    </button>
+                                </div>
                                 <div className={styles.petInfoMain}>
                                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                     <div className={styles.petDetails}>

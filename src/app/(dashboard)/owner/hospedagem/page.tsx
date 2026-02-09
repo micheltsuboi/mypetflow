@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import styles from '../agenda/page.module.css' // Reuse agenda styles
 import Link from 'next/link'
-import { updateAppointmentStatus } from '@/app/actions/appointment'
+import { updateAppointmentStatus, deleteAppointment } from '@/app/actions/appointment'
+import EditAppointmentModal from '@/components/EditAppointmentModal'
 
 interface Appointment {
     id: string
@@ -31,6 +32,7 @@ export default function HospedagemPage() {
     const supabase = createClient()
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
+    const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
     const fetchHospedagemData = useCallback(async () => {
         try {
@@ -112,6 +114,17 @@ export default function HospedagemPage() {
         fetchHospedagemData() // Refresh
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
+        const result = await deleteAppointment(id)
+        if (result.success) {
+            alert(result.message)
+            fetchHospedagemData()
+        } else {
+            alert(result.message)
+        }
+    }
+
 
 
     return (
@@ -147,6 +160,50 @@ export default function HospedagemPage() {
                                 opacity: appt.status === 'done' ? 0.7 : 1
                             }}>
                                 <div className={styles.cardTop}>
+                                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setEditingAppointment(appt)
+                                            }}
+                                            title="Editar Agendamento"
+                                            style={{
+                                                background: 'rgba(255,255,255,0.1)',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleDelete(appt.id)
+                                            }}
+                                            title="Excluir Agendamento"
+                                            style={{
+                                                background: 'rgba(239, 68, 68, 0.1)',
+                                                border: 'none',
+                                                borderRadius: '50%',
+                                                width: '32px',
+                                                height: '32px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '1rem'
+                                            }}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                     <div className={styles.petInfoMain}>
                                         <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                         <div className={styles.petDetails}>
@@ -187,6 +244,18 @@ export default function HospedagemPage() {
                         )
                     })}
                 </div>
+            )}
+
+            {/* Edit Modal */}
+            {editingAppointment && (
+                <EditAppointmentModal
+                    appointment={editingAppointment}
+                    onClose={() => setEditingAppointment(null)}
+                    onSave={() => {
+                        fetchHospedagemData()
+                        setEditingAppointment(null)
+                    }}
+                />
             )}
         </div>
     )
