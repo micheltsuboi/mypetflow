@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import styles from '../agenda/page.module.css' // Reuse agenda styles
+import styles from '../agenda/page.module.css' // Reuse agenda styles for consistency
 import Link from 'next/link'
-import { updateAppointmentStatus, deleteAppointment } from '@/app/actions/appointment'
+import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
+import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
+import { deleteAppointment } from '@/app/actions/appointment'
+import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 
 interface Appointment {
@@ -14,6 +17,8 @@ interface Appointment {
     scheduled_at: string
     check_in_date: string | null
     check_out_date: string | null
+    actual_check_in: string | null
+    actual_check_out: string | null
     status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'completed' | 'canceled' | 'no_show'
     notes: string | null
     pets: {
@@ -24,6 +29,7 @@ interface Appointment {
     }
     services: {
         name: string
+        base_price: number | null
         service_categories: { name: string, color: string, icon: string }
     }
 }
@@ -32,9 +38,12 @@ export default function HospedagemPage() {
     const supabase = createClient()
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
+    const [dateRange, setDateRange] = useState<DateRange>('this-month') // Default to wider range for hospedagem
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
-
     const [viewMode, setViewMode] = useState<'active' | 'history'>('active')
+    const [searchTerm, setSearchTerm] = useState('')
+    const [showNewModal, setShowNewModal] = useState(false)
 
     const fetchHospedagemData = useCallback(async () => {
         try {
@@ -45,78 +54,54 @@ export default function HospedagemPage() {
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
             if (!profile?.org_id) return
 
-            // Today's Date
-            const today = new Date().toISOString().split('T')[0]
+            // Get Date Range based on filter
+            const { start, end } = getDateRange(dateRange)
+            const startISO = start.toISOString().split('T')[0]
+            const endISO = end.toISOString().split('T')[0]
 
-            if (viewMode === 'active') {
-                // Fetch ONLY in_progress status for Hospedagem (actively staying)
-                // OR pending/confirmed with check-in date = today
-                const { data: appts, error } = await supabase
-                    .from('appointments')
-                    .select(`
-                        id, pet_id, service_id, scheduled_at, status, notes, check_in_date, check_out_date,
-                        pets ( name, species, breed, customers ( name ) ),
-                        services ( 
-                            name, 
-                            base_price,
-                            service_categories!inner ( name, color, icon )
-                        )
-                    `)
-                    .eq('org_id', profile.org_id)
-                    .eq('services.service_categories.name', 'Hospedagem')
-                    .in('status', ['pending', 'confirmed', 'in_progress'])
-                    .order('scheduled_at')
+            // Status Filter based on viewMode
+            const statusFilter = viewMode === 'active'
+                ? ['pending', 'confirmed', 'in_progress']
+                : ['done', 'completed']
 
-                if (error) {
-                    console.error('Error fetching hospedagem:', error)
-                } else if (appts) {
-                    // Client-side filter for "Active Today"
-                    const active = appts.filter((a: any) => {
-                        const checkIn = a.check_in_date
-                        const checkOut = a.check_out_date
+            // Fetch Appointments
 
-                        // STRICT: Only show if:
-                        // 1. Status is in_progress (currently staying)
-                        // 2. OR status is pending/confirmed AND check-in is today or in the past AND check-out is today or future
-                        if (a.status === 'in_progress') {
-                            // If actively staying, show regardless of dates
-                            return true
-                        }
+            let query = supabase
+                .from('appointments')
+                .select(`
+                    id, pet_id, service_id, scheduled_at, status, notes,
+                    check_in_date, check_out_date,
+                    actual_check_in, actual_check_out,
+                    pets ( name, species, breed, customers ( name ) ),
+                    services ( 
+                        name, 
+                        base_price,
+                        service_categories!inner ( name, color, icon )
+                    )
+                `)
+                .eq('org_id', profile.org_id)
+                .eq('services.service_categories.name', 'Hospedagem')
+                .in('status', statusFilter)
+                .order('check_in_date', { ascending: viewMode === 'active' })
 
-                        // For pending/confirmed, require valid date range covering today
-                        if (checkIn && checkOut) {
-                            return today >= checkIn && today <= checkOut
-                        }
+            const { data: appts, error } = await query
 
-                        // Don't show appointments without proper date ranges
-                        return false
-                    })
-                    setAppointments(active as unknown as Appointment[])
-                }
-            } else {
-                // History Mode
-                // Fetch completed/done hospedagem
-                const { data: appts, error } = await supabase
-                    .from('appointments')
-                    .select(`
-                        id, pet_id, service_id, scheduled_at, status, notes, check_in_date, check_out_date,
-                        pets ( name, species, breed, customers ( name ) ),
-                        services ( 
-                            name, 
-                            service_categories!inner ( name, color, icon )
-                        )
-                    `)
-                    .eq('org_id', profile.org_id)
-                    .eq('services.service_categories.name', 'Hospedagem')
-                    .in('status', ['done', 'completed'])
-                    .order('actual_check_out', { ascending: false }) // Most recently finished first
-                    .limit(50) // Limit to 50 for performance
+            if (error) {
+                console.error('Error fetching hospedagem:', error)
+            } else if (appts) {
+                // Client-side filtering for better overlap logic
+                const filtered = appts.filter((a: any) => {
+                    // Always show if in_progress (currently hosted)
+                    if (a.status === 'in_progress' && viewMode === 'active') return true
 
-                if (error) {
-                    console.error('Error fetching hospedagem history:', error)
-                } else if (appts) {
-                    setAppointments(appts as unknown as Appointment[])
-                }
+                    // Otherwise check date overlap
+                    const checkIn = a.check_in_date || a.scheduled_at.split('T')[0]
+                    const checkOut = a.check_out_date || checkIn // Fallback to single day if no checkout
+
+                    // Check if the appointment interval [checkIn, checkOut] overlaps with [startISO, endISO]
+                    return checkIn <= endISO && checkOut >= startISO
+                })
+                setAppointments(filtered as unknown as Appointment[])
             }
 
         } catch (error) {
@@ -124,17 +109,30 @@ export default function HospedagemPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, viewMode])
+    }, [supabase, dateRange, viewMode])
 
     useEffect(() => {
         fetchHospedagemData()
     }, [fetchHospedagemData])
 
-    const handleStatusChange = async (id: string, newStatus: 'in_progress' | 'done') => {
-        if (!confirm(`Confirmar ${newStatus === 'in_progress' ? 'Check-in' : 'Check-out'} do hóspede?`)) return
+    const handleCheckIn = async (appointmentId: string) => {
+        const result = await checkInAppointment(appointmentId)
+        if (result.success) {
+            alert(result.message)
+            fetchHospedagemData()
+        } else {
+            alert(result.message)
+        }
+    }
 
-        await updateAppointmentStatus(id, newStatus)
-        fetchHospedagemData() // Refresh
+    const handleCheckOut = async (appointmentId: string) => {
+        const result = await checkOutAppointment(appointmentId)
+        if (result.success) {
+            alert(result.message)
+            fetchHospedagemData()
+        } else {
+            alert(result.message)
+        }
     }
 
     const handleDelete = async (id: string) => {
@@ -148,16 +146,40 @@ export default function HospedagemPage() {
         }
     }
 
-
+    const filteredAppointments = appointments.filter(appt => {
+        if (!searchTerm) return true
+        const lowerSearch = searchTerm.toLowerCase()
+        const petName = appt.pets?.name?.toLowerCase() || ''
+        const tutorName = appt.pets?.customers?.name?.toLowerCase() || ''
+        return petName.includes(lowerSearch) || tutorName.includes(lowerSearch)
+    })
 
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <h1 className={styles.title}>🏨 Hospedagem - {viewMode === 'active' ? 'Hóspedes Ativos' : 'Histórico'}</h1>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <Link href="/owner/agenda?mode=new&category=Hospedagem" className={styles.actionButton} style={{ textDecoration: 'none', background: 'var(--primary)', color: 'white' }}>
+                <h1 className={styles.title}>🏨 Hospedagem - {viewMode === 'active' ? 'Hóspedes' : 'Histórico'}</h1>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <input
+                        type="text"
+                        placeholder="🔍 Buscar pet ou tutor..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            padding: '0.75rem',
+                            borderRadius: '8px',
+                            border: '1px solid #334155',
+                            background: 'var(--bg-secondary)',
+                            color: 'white',
+                            minWidth: '250px'
+                        }}
+                    />
+                    <button
+                        className={styles.actionButton}
+                        onClick={() => setShowNewModal(true)}
+                        style={{ background: 'var(--primary)', color: 'white' }}
+                    >
                         + Novo Agendamento
-                    </Link>
+                    </button>
                     <button className={styles.actionButton} onClick={fetchHospedagemData}>↻ Atualizar</button>
                 </div>
             </div>
@@ -174,7 +196,7 @@ export default function HospedagemPage() {
                         cursor: 'pointer', fontSize: '1rem'
                     }}
                 >
-                    Hóspedes Ativos
+                    Hóspedes Ativos / Futuros
                 </button>
                 <button
                     onClick={() => setViewMode('history')}
@@ -190,26 +212,40 @@ export default function HospedagemPage() {
                 </button>
             </div>
 
+            {/* Date Range Filter */}
+            <DateRangeFilter value={dateRange} onChange={setDateRange} />
+
             {loading ? (
                 <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
-            ) : appointments.length === 0 ? (
+            ) : filteredAppointments.length === 0 ? (
                 <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    {viewMode === 'active' ? 'Nenhum hóspede ativo no momento.' : 'Nenhum histórico de hospedagem encontrado.'}
+                    {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum hóspede encontrado neste período.' : 'Nenhum histórico encontrado para o período.')}
                 </div>
             ) : (
                 <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                    {appointments.map(appt => {
-                        const isRange = appt.check_in_date && appt.check_out_date
-                        const dateDisplay = isRange
-                            ? `${new Date(appt.check_in_date!).toLocaleDateString('pt-BR')} - ${new Date(appt.check_out_date!).toLocaleDateString('pt-BR')}`
-                            : new Date(appt.scheduled_at).toLocaleDateString('pt-BR')
+                    {filteredAppointments.map(appt => {
+                        const checkInDate = appt.check_in_date ? new Date(appt.check_in_date + 'T12:00:00') : new Date(appt.scheduled_at)
+                        const checkOutDate = appt.check_out_date ? new Date(appt.check_out_date + 'T12:00:00') : null
+
+                        // Calculate days
+                        const days = checkOutDate
+                            ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+                            : 1
+
+                        // Price calc (rough estimate based on base price * days if not set otherwise)
+                        const totalEstimate = (appt.services?.base_price || 0) * (days || 1)
 
                         return (
-                            <div key={appt.id} className={styles.appointmentCard} style={{
-                                borderLeft: `4px solid ${appt.services?.service_categories?.color || '#ccc'}`,
-                                background: appt.status === 'done' || appt.status === 'completed' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-                                opacity: appt.status === 'done' || appt.status === 'completed' ? 0.8 : 1
-                            }}>
+                            <div
+                                key={appt.id}
+                                className={styles.appointmentCard}
+                                onClick={() => setSelectedAppointment(appt)}
+                                style={{
+                                    borderLeft: `4px solid ${appt.services?.service_categories?.color || '#3B82F6'}`,
+                                    background: 'var(--bg-secondary)',
+                                    opacity: 1,
+                                    cursor: 'pointer'
+                                }}>
                                 <div className={styles.cardTop}>
                                     {viewMode === 'active' && (
                                         <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
@@ -261,16 +297,25 @@ export default function HospedagemPage() {
                                         <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                         <div className={styles.petDetails}>
                                             <div className={styles.petName}>
-                                                {appt.pets?.name || 'Pet desconhecido'}
+                                                {appt.pets?.name || 'Pet'}
                                                 <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
                                                     {appt.status === 'in_progress' ? '🏠 Hospedado' :
                                                         (appt.status === 'done' || appt.status === 'completed') ? '🏁 Finalizado' :
                                                             '📅 Reservado'}
                                                 </span>
                                             </div>
-                                            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span>📅 {dateDisplay}</span>
-                                                {(appt.services as any)?.base_price && (
+                                            <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
+
+                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem' }}>
+                                                📅 <strong>Entrada:</strong> {checkInDate.toLocaleDateString('pt-BR')}
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>
+                                                📅 <strong>Saída:</strong> {checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}
+                                            </div>
+
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                                                <span>{appt.services?.name} ({days} dias)</span>
+                                                {appt.services?.base_price && (
                                                     <span style={{
                                                         fontSize: '0.8rem',
                                                         fontWeight: 700,
@@ -279,30 +324,46 @@ export default function HospedagemPage() {
                                                         padding: '2px 6px',
                                                         borderRadius: '4px'
                                                     }}>
-                                                        R$ {(appt.services as any)?.base_price.toFixed(2)}
+                                                        R$ {totalEstimate.toFixed(2)}
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className={styles.tutorName} style={{ marginTop: '4px' }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                    {appt.status === 'confirmed' || appt.status === 'pending' ? (
-                                        <button
-                                            onClick={() => handleStatusChange(appt.id, 'in_progress')}
-                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}
-                                        >
-                                            📥 Check-in
-                                        </button>
-                                    ) : appt.status === 'in_progress' ? (
-                                        <button
-                                            onClick={() => handleStatusChange(appt.id, 'done')}
-                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#3B82F6', color: 'white', cursor: 'pointer', fontWeight: 600 }}
-                                        >
-                                            📤 Check-out
-                                        </button>
+                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+                                    {/* Actual Check-in/out times if available */}
+                                    {(appt.actual_check_in || appt.actual_check_out) && (
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '4px' }}>
+                                            {appt.actual_check_in && <div>🟢 Check-in Real: {new Date(appt.actual_check_in).toLocaleString('pt-BR')}</div>}
+                                            {appt.actual_check_out && <div>🔴 Check-out Real: {new Date(appt.actual_check_out).toLocaleString('pt-BR')}</div>}
+                                        </div>
+                                    )}
+
+                                    {viewMode === 'active' ? (
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            {appt.status !== 'in_progress' && appt.status !== 'done' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleCheckIn(appt.id)
+                                                    }}
+                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                    📥 Check-in
+                                                </button>
+                                            )}
+                                            {appt.status === 'in_progress' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleCheckOut(appt.id)
+                                                    }}
+                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                    📤 Check-out
+                                                </button>
+                                            )}
+                                        </div>
                                     ) : null}
                                 </div>
                             </div>
@@ -311,10 +372,25 @@ export default function HospedagemPage() {
                 </div>
             )}
 
+            {/* Daily Report Modal or Details */}
+            {selectedAppointment && (
+                <DailyReportModal
+                    appointmentId={selectedAppointment.id}
+                    petName={selectedAppointment.pets?.name || 'Pet'}
+                    serviceName={selectedAppointment.services?.name || 'Hospedagem'}
+                    onClose={() => setSelectedAppointment(null)}
+                    onSave={() => {
+                        fetchHospedagemData()
+                        setSelectedAppointment(null)
+                    }}
+                    readOnly={viewMode === 'history'}
+                />
+            )}
+
             {/* Edit Modal */}
             {editingAppointment && (
                 <EditAppointmentModal
-                    appointment={editingAppointment}
+                    appointment={editingAppointment as any} // Cast safely
                     onClose={() => setEditingAppointment(null)}
                     onSave={() => {
                         fetchHospedagemData()
@@ -322,6 +398,171 @@ export default function HospedagemPage() {
                     }}
                 />
             )}
+
+            {/* New Appointment Modal */}
+            {showNewModal && (
+                <NewHospedagemAppointmentModal
+                    onClose={() => setShowNewModal(false)}
+                    onSave={() => {
+                        fetchHospedagemData()
+                        setShowNewModal(false)
+                    }}
+                />
+            )}
+        </div>
+    )
+}
+
+// Inline component for new hospedagem appointments
+function NewHospedagemAppointmentModal({ onClose, onSave }: { onClose: () => void, onSave: () => void }) {
+    const supabase = createClient()
+    const [pets, setPets] = useState<any[]>([])
+    const [services, setServices] = useState<any[]>([])
+    const [selectedPetId, setSelectedPetId] = useState('')
+    const [selectedServiceId, setSelectedServiceId] = useState('')
+
+    // Dates
+    const [checkInDate, setCheckInDate] = useState(new Date().toISOString().split('T')[0])
+    const [checkOutDate, setCheckOutDate] = useState(new Date(Date.now() + 86400000).toISOString().split('T')[0]) // Tomorrow
+
+    const [notes, setNotes] = useState('')
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        const loadData = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+            if (!profile?.org_id) return
+
+            // Load pets
+            const { data: petsData } = await supabase
+                .from('pets')
+                .select('id, name, species, breed, customers(name)')
+                .order('name')
+            if (petsData) setPets(petsData)
+
+            // Load Hospedagem services only
+            const { data: servicesData } = await supabase
+                .from('services')
+                .select('id, name, base_price, service_categories!inner(name)')
+                .eq('org_id', profile.org_id)
+                .eq('service_categories.name', 'Hospedagem')
+                .order('name')
+            if (servicesData) setServices(servicesData)
+        }
+        loadData()
+    }, [])
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedPetId || !selectedServiceId) {
+            alert('Selecione um pet e um serviço')
+            return
+        }
+
+        if (checkOutDate <= checkInDate) {
+            alert('A data de saída deve ser posterior à data de entrada.')
+            return
+        }
+
+        setLoading(true)
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+
+        // Construct FormData to use the server action if desired, check appointment.ts
+        // But here we might just insert directly or use a custom action.
+        // Let's us direct insert for simplicity as we handled Logic locally or replicate similar logic
+
+        // Actually, let's use the createAppointment action pattern if possible, 
+        // BUT the createAppointment action expects FormData and handles specifics. 
+        // Let's use direct Supabase insert for this modal to be precise with fields
+
+        const { error } = await supabase.from('appointments').insert({
+            org_id: profile?.org_id,
+            pet_id: selectedPetId,
+            service_id: selectedServiceId,
+            scheduled_at: `${checkInDate}T12:00:00`, // Sort by check-in
+            check_in_date: checkInDate,
+            check_out_date: checkOutDate,
+            status: 'confirmed',
+            notes: notes || null
+        })
+
+        setLoading(false)
+
+        if (error) {
+            alert('Erro ao criar agendamento: ' + error.message)
+        } else {
+            alert('Hospedagem agendada com sucesso!')
+            onSave()
+        }
+    }
+
+    return (
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
+        }} onClick={onClose}>
+            <div style={{
+                background: '#1e293b', borderRadius: '16px', width: '90%', maxWidth: '500px',
+                padding: '2rem', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', border: '1px solid #334155'
+            }} onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ margin: 0, color: 'white', fontSize: '1.25rem', fontWeight: 700 }}>Nova Hospedagem</h2>
+                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#cbd5e1' }}>✕</button>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Pet *</label>
+                        <select required value={selectedPetId} onChange={e => setSelectedPetId(e.target.value)}
+                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }}>
+                            <option value="">Selecione...</option>
+                            {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
+                    <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Serviço *</label>
+                        <select required value={selectedServiceId} onChange={e => setSelectedServiceId(e.target.value)}
+                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }}>
+                            <option value="">Selecione...</option>
+                            {services.map(s => <option key={s.id} value={s.id}>{s.name} - R$ {s.base_price?.toFixed(2)}/dia</option>)}
+                        </select>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Check-in *</label>
+                            <input type="date" required value={checkInDate} onChange={e => setCheckInDate(e.target.value)}
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }} />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Check-out *</label>
+                            <input type="date" required value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)}
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }} />
+                        </div>
+                    </div>
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Observações</label>
+                        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white', fontFamily: 'inherit', resize: 'vertical' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                        <button type="button" onClick={onClose}
+                            style={{ padding: '0.75rem 1.5rem', border: '1px solid #334155', borderRadius: '8px', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                            Cancelar
+                        </button>
+                        <button type="submit" disabled={loading}
+                            style={{ padding: '0.75rem 1.5rem', border: 'none', borderRadius: '8px', background: '#10B981', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 600, opacity: loading ? 0.6 : 1 }}>
+                            {loading ? 'Criando...' : 'Confirmar Reserva'}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     )
 }
