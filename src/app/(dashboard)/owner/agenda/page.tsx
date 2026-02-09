@@ -459,8 +459,8 @@ export default function AgendaPage() {
                 style={{
                     minWidth: '300px',
                     borderLeft: `4px solid ${categoryColor} `,
-                    backgroundColor: appt.status === 'done' || appt.status === 'completed' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-                    opacity: appt.status === 'done' || appt.status === 'completed' ? 0.7 : 1
+                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                    opacity: appt.status === 'done' ? 0.7 : 1
                 }}
             >
                 <div className={styles.timeDisplay}>{formatTime(appt.scheduled_at)}</div>
