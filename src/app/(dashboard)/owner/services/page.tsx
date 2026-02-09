@@ -39,7 +39,7 @@ interface Service {
     category: string
     category_id?: string
     service_categories?: ServiceCategory
-    duration_minutes: number
+    duration_minutes: number | null
     pricing_matrix: PricingRule[]
 }
 
