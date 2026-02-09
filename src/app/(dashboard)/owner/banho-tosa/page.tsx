@@ -6,6 +6,7 @@ import styles from '../agenda/page.module.css'
 import Link from 'next/link'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
+import DailyReportModal from '@/components/DailyReportModal'
 
 interface Appointment {
     id: string
@@ -33,6 +34,7 @@ export default function BanhoTosaPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [dateRange, setDateRange] = useState<DateRange>('today')
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
 
     const fetchBanhoTosaData = useCallback(async () => {
         try {
@@ -128,11 +130,16 @@ export default function BanhoTosaPage() {
             ) : (
                 <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
                     {appointments.map(appt => (
-                        <div key={appt.id} className={styles.appointmentCard} style={{
-                            borderLeft: `4px solid ${appt.services?.service_categories?.color || '#2563EB'}`,
-                            background: 'var(--bg-secondary)',
-                            opacity: 1
-                        }}>
+                        <div
+                            key={appt.id}
+                            className={styles.appointmentCard}
+                            onClick={() => setSelectedAppointment(appt)}
+                            style={{
+                                borderLeft: `4px solid ${appt.services?.service_categories?.color || '#2563EB'}`,
+                                background: 'var(--bg-secondary)',
+                                opacity: 1,
+                                cursor: 'pointer'
+                            }}>
                             <div className={styles.cardTop}>
                                 <div className={styles.petInfoMain}>
                                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
@@ -166,13 +173,19 @@ export default function BanhoTosaPage() {
                             <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
                                 {!appt.actual_check_in ? (
                                     <button
-                                        onClick={() => handleCheckIn(appt.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleCheckIn(appt.id)
+                                        }}
                                         style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
                                         🟢 Iniciar Atendimento
                                     </button>
                                 ) : !appt.actual_check_out ? (
                                     <button
-                                        onClick={() => handleCheckOut(appt.id)}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleCheckOut(appt.id)
+                                        }}
                                         style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
                                         ✅ Finalizar Atendimento
                                     </button>
@@ -181,6 +194,20 @@ export default function BanhoTosaPage() {
                         </div>
                     ))}
                 </div>
+            )}
+
+            {/* Daily Report Modal */}
+            {selectedAppointment && (
+                <DailyReportModal
+                    appointmentId={selectedAppointment.id}
+                    petName={selectedAppointment.pets?.name || 'Pet'}
+                    serviceName={selectedAppointment.services?.name || 'Banho e Tosa'}
+                    onClose={() => setSelectedAppointment(null)}
+                    onSave={() => {
+                        fetchBanhoTosaData()
+                        setSelectedAppointment(null)
+                    }}
+                />
             )}
         </div>
     )

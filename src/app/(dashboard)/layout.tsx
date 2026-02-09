@@ -26,7 +26,8 @@ export default function DashboardLayout({
 
     const ownerNavigation = [
         { name: 'Dashboard', href: '/owner', icon: '📊' },
-        { name: 'Banho e Tosa', href: '/owner/agenda', icon: '📅' },
+        { name: 'Agenda', href: '/owner/agenda', icon: '📅' },
+        { name: 'Banho e Tosa', href: '/owner/banho-tosa', icon: '🛁' },
         { name: 'Creche', href: '/owner/creche', icon: '🎾' },
         { name: 'Hospedagem', href: '/owner/hospedagem', icon: '🏨' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
