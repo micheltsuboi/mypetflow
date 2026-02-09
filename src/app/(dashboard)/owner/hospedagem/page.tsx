@@ -14,7 +14,7 @@ interface Appointment {
     scheduled_at: string
     check_in_date: string | null
     check_out_date: string | null
-    status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'canceled' | 'no_show'
+    status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'completed' | 'canceled' | 'no_show'
     notes: string | null
     pets: {
         name: string

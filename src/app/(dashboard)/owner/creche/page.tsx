@@ -15,7 +15,7 @@ interface Appointment {
     pet_id: string
     service_id: string
     scheduled_at: string
-    status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'canceled' | 'no_show'
+    status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'completed' | 'canceled' | 'no_show'
     notes: string | null
     actual_check_in: string | null
     actual_check_out: string | null
