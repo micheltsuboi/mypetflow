@@ -68,7 +68,7 @@ export default function CrechePage() {
                     id, pet_id, service_id, scheduled_at, status, notes,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
-                    services ( 
+                    services!inner ( 
                         name, 
                         base_price,
                         service_categories!inner ( name, color, icon )
