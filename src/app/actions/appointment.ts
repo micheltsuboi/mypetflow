@@ -176,6 +176,12 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
         const days = diffDays > 0 ? diffDays : 1
 
+        console.log('[CreateAppointment] Hospedagem Pricing:', {
+            initialPrice: calculatedPrice,
+            days: days,
+            totalBefore: calculatedPrice * days
+        })
+
         calculatedPrice = calculatedPrice * days
     }
 
