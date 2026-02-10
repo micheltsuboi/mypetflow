@@ -58,6 +58,8 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         .eq('id', serviceId)
         .single()
 
+    console.log('[CreateAppointment] Service Data:', serviceData)
+
     if (!serviceData) return { message: 'Serviço não encontrado.', success: false }
 
     // Force cast to any to avoid complex typing for joined relation for now
@@ -177,6 +179,14 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         calculatedPrice = calculatedPrice * days
     }
 
+    const finalChecklist = (serviceAny.checklist_template || []).map((item: string) => ({
+        text: item,
+        completed: false,
+        completed_at: null
+    }))
+
+    console.log('[CreateAppointment] Final Checklist:', finalChecklist)
+
     // 3. Create Appointment
     const { error } = await supabase
         .from('appointments')
@@ -191,11 +201,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             notes: notes || null,
             status: 'pending',
             package_credit_id: packageCreditId,
-            checklist: (serviceAny.checklist_template || []).map((item: string) => ({
-                text: item,
-                completed: false,
-                completed_at: null
-            })),
+            checklist: finalChecklist,
             check_in_date: checkIn,
             check_out_date: checkOut,
             calculated_price: calculatedPrice
