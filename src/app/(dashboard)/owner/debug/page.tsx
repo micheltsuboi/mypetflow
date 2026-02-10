@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { deleteAppointment } from '@/app/actions/appointment'
-import { fixServiceCategories } from '@/app/actions/fix_data'
+import { fixServiceCategories, listServicesWithCategories } from '@/app/actions/fix_data'
 
 export default function DebugPage() {
     const [assessments, setAssessments] = useState<any[]>([])
     const [hospedagemAppts, setHospedagemAppts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [servicesDebug, setServicesDebug] = useState<any[]>([])
+    const [categoriesDebug, setCategoriesDebug] = useState<any[]>([])
     const supabase = createClient()
 
     useEffect(() => {
@@ -41,6 +43,11 @@ export default function DebugPage() {
                 a.services?.service_categories?.name === 'Hospedagem' || a.services?.service_categories?.name === 'Creche'
             ) || [])
 
+            // Load services debug info
+            const result = await listServicesWithCategories()
+            setServicesDebug(result.services)
+            setCategoriesDebug(result.categories)
+
             setLoading(false)
         }
         fetchDebugData()
@@ -59,12 +66,58 @@ export default function DebugPage() {
                         if (confirm('Isso vai atualizar a categoria de todos os serviços com nome "Hospedagem" ou "Hotel". Continuar?')) {
                             const res = await fixServiceCategories()
                             alert(res.message)
+                            window.location.reload()
                         }
                     }}
                     style={{ background: 'blue', color: 'white', padding: '0.5rem 1rem', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
                 >
                     Corrigir Categorias de Hospedagem
                 </button>
+            </section>
+
+            {/* Services & Categories Debug */}
+            <section style={{ marginTop: '2rem', padding: '1rem', background: '#ecfdf5', borderRadius: '8px' }}>
+                <h2>📋 Categorias ({categoriesDebug.length})</h2>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '2px solid #ccc' }}>
+                            <th style={{ padding: '0.5rem', textAlign: 'left' }}>Nome</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left' }}>ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {categoriesDebug.map(c => (
+                            <tr key={c.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <td style={{ padding: '0.5rem' }}>{c.icon} {c.name}</td>
+                                <td style={{ padding: '0.5rem', fontSize: '0.7rem', fontFamily: 'monospace' }}>{c.id}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+
+                <h2 style={{ marginTop: '1.5rem' }}>🔧 Serviços ({servicesDebug.length})</h2>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '2px solid #ccc' }}>
+                            <th style={{ padding: '0.5rem', textAlign: 'left' }}>Serviço</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left' }}>Preço Base</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left' }}>Categoria</th>
+                            <th style={{ padding: '0.5rem', textAlign: 'left' }}>Category ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {servicesDebug.map((s: any) => (
+                            <tr key={s.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                <td style={{ padding: '0.5rem' }}>{s.name}</td>
+                                <td style={{ padding: '0.5rem' }}>R$ {s.base_price?.toFixed(2) || '0.00'}</td>
+                                <td style={{ padding: '0.5rem', fontWeight: 700, color: s.service_categories?.name === 'Hospedagem' ? '#F97316' : s.service_categories?.name === 'Banho e Tosa' ? '#3B82F6' : '#10B981' }}>
+                                    {s.service_categories?.name || '⚠️ SEM CATEGORIA'}
+                                </td>
+                                <td style={{ padding: '0.5rem', fontSize: '0.7rem', fontFamily: 'monospace' }}>{s.category_id || 'NULL'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </section>
 
             <section style={{ marginTop: '2rem', padding: '1rem', background: '#f3f4f6', borderRadius: '8px' }}>

@@ -61,3 +61,19 @@ export async function fixServiceCategories() {
         return { success: false, message: 'Erro interno ao corrigir dados.' }
     }
 }
+
+export async function listServicesWithCategories() {
+    const supabase = await createClient()
+
+    const { data: services } = await supabase
+        .from('services')
+        .select('id, name, base_price, category_id, service_categories(id, name)')
+        .order('name')
+
+    const { data: categories } = await supabase
+        .from('service_categories')
+        .select('id, name, color, icon')
+        .order('name')
+
+    return { services: services || [], categories: categories || [] }
+}
