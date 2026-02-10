@@ -189,9 +189,34 @@ export default function BanhoTosaPage() {
                                 borderLeft: `4px solid ${appt.services?.service_categories?.color || '#2563EB'}`,
                                 background: 'var(--bg-secondary)',
                                 opacity: 1,
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                position: 'relative' // Ensure relative positioning for absolute badge
                             }}>
-                            <div className={styles.cardTop} style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            {/* Date Badge */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '-10px',
+                                right: '20px',
+                                background: 'var(--primary)',
+                                color: 'white',
+                                padding: '4px 10px',
+                                borderRadius: '12px',
+                                textAlign: 'center',
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                                zIndex: 10,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                lineHeight: 1,
+                                border: '2px solid var(--bg-primary)'
+                            }}>
+                                <span style={{ fontSize: '1.2rem', fontWeight: '800' }}>{new Date(appt.scheduled_at).getDate()}</span>
+                                <span style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 600, marginTop: '2px' }}>
+                                    {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                </span>
+                            </div>
+
+                            <div className={styles.cardTop} style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '5px' }}>
                                 <div className={styles.petInfoMain} style={{ flex: 1, overflow: 'hidden' }}>
                                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                     <div className={styles.petDetails} style={{ minWidth: 0 }}>

@@ -147,16 +147,19 @@ export default function AgendaPage() {
             }
 
             // Calculate Date Range based on viewMode
-            let start = new Date(selectedDate)
-            let end = new Date(selectedDate)
+            // Create local date objects to avoid UTC shifting issues
+            const [y, m, d] = selectedDate.split('-').map(Number)
+            let start = new Date(y, m - 1, d) // 00:00:00 Local Time
+            let end = new Date(y, m - 1, d)   // 00:00:00 Local Time
 
             if (viewMode === 'day') {
                 end.setHours(23, 59, 59)
             } else if (viewMode === 'week') {
-                const day = start.getDay()
+                const day = start.getDay() // Local day
                 const diff = start.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
-                start.setDate(diff)
-                end = new Date(start)
+                start.setDate(diff) // Set local date to Monday
+                // Set end to Sunday
+                end = new Date(start) // Copy Monday
                 end.setDate(start.getDate() + 6)
                 end.setHours(23, 59, 59)
             } else {
@@ -454,11 +457,12 @@ export default function AgendaPage() {
 
     const renderWeekView = () => {
         const weekDays = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(selectedDate)
-            const day = d.getDay()
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1) + i
-            d.setDate(diff)
-            return d
+            const [y, m, d] = selectedDate.split('-').map(Number)
+            const date = new Date(y, m - 1, d)
+            const day = date.getDay()
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1) + i
+            date.setDate(diff)
+            return date
         })
         const hours = Array.from({ length: 13 }, (_, i) => i + 7)
 
@@ -479,7 +483,10 @@ export default function AgendaPage() {
                             const dateStr = d.toISOString().split('T')[0]
                             const slotAppts = appointments.filter(a => {
                                 const ad = new Date(a.scheduled_at)
-                                return ad.toISOString().split('T')[0] === dateStr && ad.getHours() === h
+                                const sameDay = ad.getDate() === d.getDate() &&
+                                    ad.getMonth() === d.getMonth() &&
+                                    ad.getFullYear() === d.getFullYear()
+                                return sameDay && ad.getHours() === h
                             })
                             return (
                                 <div key={`${dateStr}-${h}`} className={styles.weekCell} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
