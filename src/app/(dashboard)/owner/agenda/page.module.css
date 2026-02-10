@@ -238,18 +238,16 @@
 }
 
 .timeDisplay {
-    position: absolute;
-    top: -10px;
-    left: 20px;
-    background: var(--bg-tertiary);
-    /* Match page bg if possible, or contrasting */
-    background: #0f172a;
-    border: 1px solid #334155;
-    padding: 0.1rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    color: #94a3b8;
-    font-weight: 600;
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    align-self: flex-start;
 }
 
 /* Modal Styles */

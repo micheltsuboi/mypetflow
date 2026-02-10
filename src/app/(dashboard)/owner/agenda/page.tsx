@@ -389,7 +389,6 @@ export default function AgendaPage() {
                     <span style={{ marginRight: '0.25rem' }}>{categoryIcon}</span>
                     {appt.services?.name}
                     {/* Price Display */}
-                    {/* Price Display */}
                     {(appt.calculated_price ?? (appt.services as any)?.base_price) && (
                         <span className={styles.priceTag}>
                             R$ {(appt.calculated_price ?? (appt.services as any).base_price).toFixed(2)}
@@ -397,17 +396,15 @@ export default function AgendaPage() {
                     )}
                 </div>
 
-                {isCrecheOrBanho && (
-                    <div className={styles.quickActions}>
-                        {!appt.actual_check_in && (
-                            <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkin') }}>Entrada ➡️</button>
-                        )}
-                        {appt.actual_check_in && !appt.actual_check_out && (
-                            <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkout') }}>Saída ⬅️</button>
-                        )}
-                        <button className={styles.detailBtn} onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}>Detalhes</button>
-                    </div>
-                )}
+                <div className={styles.quickActions}>
+                    {!appt.actual_check_in && (
+                        <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkin') }}>Entrada ➡️</button>
+                    )}
+                    {appt.actual_check_in && !appt.actual_check_out && (
+                        <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkout') }}>Saída ⬅️</button>
+                    )}
+                    <button className={styles.detailBtn} onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}>Detalhes</button>
+                </div>
             </div>
         )
     }
@@ -764,17 +761,26 @@ export default function AgendaPage() {
                                         <div key={idx} className={styles.checklistItem}>
                                             <input
                                                 type="checkbox"
-                                                checked={item.done}
+                                                checked={item.completed}
                                                 onChange={async (e) => {
                                                     const newList = [...currentChecklist]
-                                                    newList[idx].done = e.target.checked
+                                                    newList[idx].completed = e.target.checked
+                                                    newList[idx].completed_at = e.target.checked ? new Date().toISOString() : null
                                                     setCurrentChecklist(newList)
-                                                    // Auto-save logic could go here or require a save button
                                                     await updateChecklist(selectedAppointment.id, newList)
                                                     fetchData()
                                                 }}
                                             />
-                                            <span>{item.item}</span>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#94a3b8' : 'inherit' }}>
+                                                    {item.text}
+                                                </span>
+                                                {item.completed && item.completed_at && (
+                                                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>
+                                                        Concluído às {new Date(item.completed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

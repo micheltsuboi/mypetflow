@@ -191,7 +191,11 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             notes: notes || null,
             status: 'pending',
             package_credit_id: packageCreditId,
-            checklist: serviceAny.checklist_template || [],
+            checklist: (serviceAny.checklist_template || []).map((item: string) => ({
+                text: item,
+                completed: false,
+                completed_at: null
+            })),
             check_in_date: checkIn,
             check_out_date: checkOut,
             calculated_price: calculatedPrice
