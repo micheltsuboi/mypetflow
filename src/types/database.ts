@@ -324,4 +324,5 @@ export interface ProductFormData {
     photo_url?: string
     barcode?: string
     description?: string
+    image_url?: string | null
 }

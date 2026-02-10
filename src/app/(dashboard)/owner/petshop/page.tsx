@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Product, ProductFormData } from '@/types/database'
+import ImageUpload from '@/components/ImageUpload'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 
@@ -326,6 +327,16 @@ export default function PetshopPage() {
                         <h2>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</h2>
 
                         <form onSubmit={handleSave}>
+                            <div className={styles.formGroup} style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                                <ImageUpload
+                                    bucket="products"
+                                    url={formData.image_url}
+                                    onUpload={(url) => setFormData(prev => ({ ...prev, image_url: url }))}
+                                    onRemove={() => setFormData(prev => ({ ...prev, image_url: null }))}
+                                    label="Foto do Produto"
+                                />
+                            </div>
+
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Nome do Produto</label>
                                 <input

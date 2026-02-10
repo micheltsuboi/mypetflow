@@ -16,6 +16,11 @@ export default function ProfilePage() {
         phone: '',
         avatar_url: '' as string | null
     })
+    const [passwordData, setPasswordData] = useState({
+        new: '',
+        confirm: '',
+        loading: false
+    })
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -76,13 +81,44 @@ export default function ProfilePage() {
         }
     }
 
+    const handleUpdatePassword = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (passwordData.new !== passwordData.confirm) {
+            alert('As senhas não conferem.')
+            return
+        }
+        if (passwordData.new.length < 6) {
+            alert('A senha deve ter no mínimo 6 caracteres.')
+            return
+        }
+
+        try {
+            setPasswordData(prev => ({ ...prev, loading: true }))
+            const { error } = await supabase.auth.updateUser({
+                password: passwordData.new
+            })
+
+            if (error) throw error
+
+            alert('Senha atualizada com sucesso!')
+            setPasswordData({ new: '', confirm: '', loading: false })
+        } catch (error) {
+            console.error('Error updating password:', error)
+            alert('Erro ao atualizar senha.')
+            setPasswordData(prev => ({ ...prev, loading: false }))
+        }
+    }
+
     if (loading) {
         return <div className={styles.container}>Carregando...</div>
     }
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Meu Perfil</h1>
+            <div>
+                <h1 className={styles.title}>Meu Perfil</h1>
+                <p className={styles.subtitle}>Gerencie suas informações pessoais e segurança</p>
+            </div>
 
             <div className={styles.card}>
                 <form onSubmit={handleSave} className={styles.form}>
@@ -96,6 +132,8 @@ export default function ProfilePage() {
                             circle={true}
                         />
                     </div>
+
+                    <h3 className={styles.sectionTitle}>Informações Pessoais</h3>
 
                     <div className={styles.formGroup}>
                         <label>Nome Completo</label>
@@ -137,10 +175,43 @@ export default function ProfilePage() {
                         />
                     </div>
 
-                    <button type="submit" className={styles.saveButton} disabled={saving}>
-                        {saving ? 'Salvando...' : 'Salvar Alterações'}
-                    </button>
+                    <div className={styles.buttonGroup}>
+                        <button type="submit" className={styles.saveButton} disabled={saving}>
+                            {saving ? 'Salvando...' : 'Salvar Informações'}
+                        </button>
+                    </div>
                 </form>
+
+                <div className={styles.passwordSection}>
+                    <h3 className={styles.sectionTitle}>Segurança</h3>
+                    <form onSubmit={handleUpdatePassword} className={styles.form}>
+                        <div className={styles.formGroup}>
+                            <label>Nova Senha</label>
+                            <input
+                                type="password"
+                                value={passwordData.new}
+                                onChange={e => setPasswordData({ ...passwordData, new: e.target.value })}
+                                className={styles.input}
+                                placeholder="Mínimo 6 caracteres"
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Confirmar Nova Senha</label>
+                            <input
+                                type="password"
+                                value={passwordData.confirm}
+                                onChange={e => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                                className={styles.input}
+                                placeholder="Digite novamente"
+                            />
+                        </div>
+                        <div className={styles.buttonGroup}>
+                            <button type="submit" className={styles.saveButton} disabled={passwordData.loading || !passwordData.new}>
+                                {passwordData.loading ? 'Atualizando...' : 'Atualizar Senha'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     )

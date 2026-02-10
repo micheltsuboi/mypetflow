@@ -10,6 +10,7 @@ import { sellPackageToPet, getPetPackagesWithUsage } from '@/app/actions/package
 import { getPetAssessment } from '@/app/actions/petAssessment'
 import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
+import ImageUpload from '@/components/ImageUpload'
 
 // Interfaces
 interface Pet {
@@ -26,6 +27,7 @@ interface Pet {
     vaccination_up_to_date: boolean
     customer_id: string
     customers: { id: string, name: string } | null
+    photo_url?: string | null
 }
 
 interface Customer {
@@ -377,7 +379,15 @@ function PetsContent() {
                                 <td>
                                     <div className={styles.itemInfo}>
                                         <div className={styles.avatar}>
-                                            {pet.species === 'cat' ? '🐱' : '🐶'}
+                                            {pet.photo_url ? (
+                                                <img
+                                                    src={pet.photo_url}
+                                                    alt={pet.name}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+                                                />
+                                            ) : (
+                                                pet.species === 'cat' ? '🐱' : '🐶'
+                                            )}
                                         </div>
                                         <div>
                                             <span className={styles.itemName}>{pet.name}</span>
@@ -439,6 +449,27 @@ function PetsContent() {
                                         <form action={selectedPet ? updateAction : createAction}>
                                             {selectedPet && <input type="hidden" name="id" value={selectedPet.id} />}
                                             <div className={styles.formGrid}>
+                                                <div className={styles.formGroup} style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
+                                                    <ImageUpload
+                                                        bucket="pets"
+                                                        url={selectedPet?.photo_url || null}
+                                                        onUpload={(url) => {
+                                                            // We need to handle this via hidden input since it's a server action form
+                                                            // But for now let's just use state or a hidden input.
+                                                            // Since the form uses native action, we need a hidden input for photo_url
+                                                            const input = document.getElementById('photo_url_input') as HTMLInputElement;
+                                                            if (input) input.value = url;
+                                                        }}
+                                                        onRemove={() => {
+                                                            const input = document.getElementById('photo_url_input') as HTMLInputElement;
+                                                            if (input) input.value = '';
+                                                        }}
+                                                        label="Foto do Pet"
+                                                        circle={true}
+                                                    />
+                                                    <input type="hidden" id="photo_url_input" name="photo_url" defaultValue={selectedPet?.photo_url || ''} />
+                                                </div>
+
                                                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                                                     <label htmlFor="customerId" className={styles.label}>Tutor *</label>
                                                     <select id="customerId" name="customerId" className={styles.select} required defaultValue={selectedPet?.customer_id || ''}>
