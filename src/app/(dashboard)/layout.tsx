@@ -128,7 +128,7 @@ export default function DashboardLayout({
                             })}
                         </span>
                     </div>
-                    <div className={styles.headerRight}>
+                    <Link href="/owner/profile" className={styles.headerRight} style={{ textDecoration: 'none', color: 'inherit' }}>
                         <div className={styles.userInfo}>
                             <span className={styles.userName}>{user?.name || 'Carregando...'}</span>
                             <span className={styles.userRole}>{user?.role || '...'}</span>
@@ -136,7 +136,7 @@ export default function DashboardLayout({
                         <div className={styles.avatar}>
                             {user?.name?.charAt(0).toUpperCase() || '?'}
                         </div>
-                    </div>
+                    </Link>
                 </header>
 
                 <div className={styles.content}>
