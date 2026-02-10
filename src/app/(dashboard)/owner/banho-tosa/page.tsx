@@ -10,6 +10,7 @@ import { deleteAppointment } from '@/app/actions/appointment'
 import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import ServiceExecutionModal from '@/components/ServiceExecutionModal'
+import { createAppointment } from '@/app/actions/appointment'
 
 interface Appointment {
     id: string
@@ -43,6 +44,9 @@ export default function BanhoTosaPage() {
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
     const [viewMode, setViewMode] = useState<'active' | 'history'>('active')
+    const [showNewModal, setShowNewModal] = useState(false)
+    const [pets, setPets] = useState<any[]>([])
+    const [services, setServices] = useState<any[]>([])
 
     const fetchBanhoTosaData = useCallback(async () => {
         try {
@@ -83,6 +87,29 @@ export default function BanhoTosaPage() {
                 .lte('scheduled_at', endISO)
                 .in('status', statusFilter)
                 .order('scheduled_at', { ascending: viewMode === 'active' }) // Ascending for active, potentially Descending for history? kept simple for now
+
+            // Load pets and services if not loaded yet
+            if (pets.length === 0) {
+                const { data: petsData } = await supabase
+                    .from('pets')
+                    .select('id, name, species, breed, weight_kg')
+                    .order('name')
+                if (petsData) setPets(petsData)
+            }
+
+            if (services.length === 0) {
+                const { data: servicesData } = await supabase
+                    .from('services')
+                    .select('id, name, base_price, service_categories(id, name)')
+                    .eq('org_id', profile.org_id)
+                    .order('name')
+
+                // Filter only Banho e Tosa services
+                const banhoTosaServices = servicesData?.filter(s =>
+                    (s as any).service_categories?.name === 'Banho e Tosa'
+                ) || []
+                if (banhoTosaServices.length > 0) setServices(banhoTosaServices)
+            }
 
             if (error) {
                 console.error('Error fetching banho e tosa:', error)
@@ -137,9 +164,9 @@ export default function BanhoTosaPage() {
             <div className={styles.header}>
                 <h1 className={styles.title}>🛁 Banho e Tosa</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <Link href="/owner/agenda?mode=new&category=Banho e Tosa" className={styles.actionButton} style={{ textDecoration: 'none', background: 'var(--primary)', color: 'white' }}>
+                    <button onClick={() => setShowNewModal(true)} className={styles.actionButton} style={{ background: 'var(--primary)', color: 'white' }}>
                         + Novo Agendamento
-                    </Link>
+                    </button>
                     <button className={styles.actionButton} onClick={fetchBanhoTosaData}>↻ Atualizar</button>
                 </div>
             </div>
@@ -370,6 +397,65 @@ export default function BanhoTosaPage() {
                         setEditingAppointment(null)
                     }}
                 />
+            )}
+
+            {/* New Appointment Modal */}
+            {showNewModal && (
+                <div className={styles.modalOverlay} onClick={() => setShowNewModal(false)}>
+                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <h2 className={styles.modalTitle}>Novo Agendamento - Banho e Tosa</h2>
+                        <form action={async (formData) => {
+                            const result = await createAppointment({ message: '', success: false }, formData)
+                            if (result.success) {
+                                setShowNewModal(false)
+                                fetchBanhoTosaData()
+                            } else {
+                                alert(result.message)
+                            }
+                        }}>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Pet *</label>
+                                <select name="petId" className={styles.select} required>
+                                    <option value="">Selecione...</option>
+                                    {pets.map(p => (
+                                        <option key={p.id} value={p.id}>
+                                            {p.name} ({p.species}) {p.weight_kg ? `- ${p.weight_kg}kg` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Serviço *</label>
+                                <select name="serviceId" className={styles.select} required>
+                                    <option value="">Selecione...</option>
+                                    {services.map(s => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.name} - R$ {(s.base_price || 0).toFixed(2)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className={styles.row}>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Data *</label>
+                                    <input name="date" type="date" className={styles.input} required />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Hora *</label>
+                                    <input name="time" type="time" className={styles.input} required />
+                                </div>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Observações</label>
+                                <textarea name="notes" className={styles.textarea} rows={3} />
+                            </div>
+                            <div className={styles.modalActions}>
+                                <button type="button" className={styles.cancelBtn} onClick={() => setShowNewModal(false)}>Cancelar</button>
+                                <button type="submit" className={styles.submitBtn}>Agendar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     )
