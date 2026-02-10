@@ -111,6 +111,7 @@ export default function PetshopPage() {
                 min_stock_alert: 5,
                 expiration_date: formData.expiration_date || null,
                 description: formData.description,
+                image_url: formData.image_url,
                 is_active: true
             }
 
