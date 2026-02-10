@@ -389,9 +389,10 @@ export default function AgendaPage() {
                     <span style={{ marginRight: '0.25rem' }}>{categoryIcon}</span>
                     {appt.services?.name}
                     {/* Price Display */}
-                    {(appt.services as any)?.base_price && (
+                    {/* Price Display */}
+                    {(appt.calculated_price ?? (appt.services as any)?.base_price) && (
                         <span className={styles.priceTag}>
-                            R$ {(appt.services as any).base_price.toFixed(2)}
+                            R$ {(appt.calculated_price ?? (appt.services as any).base_price).toFixed(2)}
                         </span>
                     )}
                 </div>
