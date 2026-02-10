@@ -215,11 +215,39 @@ export default function CrechePage() {
                                 borderLeft: `4px solid ${appt.services?.service_categories?.color || '#10B981'}`,
                                 background: 'var(--bg-secondary)',
                                 opacity: 1,
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                position: 'relative' // Ensure relative positioning for absolute badge
                             }}>
-                            <div className={styles.cardTop}>
+                            {/* Date Badge - Enhanced for visibility */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '-12px',
+                                right: '16px',
+                                background: appt.services?.service_categories?.color || 'var(--primary)',
+                                color: 'white',
+                                padding: '6px 12px',
+                                borderRadius: '12px',
+                                textAlign: 'center',
+                                boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                                zIndex: 10,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                lineHeight: 1,
+                                border: '3px solid var(--bg-primary, #0f172a)', // Thicker border to detach from card
+                                minWidth: '54px'
+                            }}>
+                                <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                    {new Date(appt.scheduled_at).getDate()}
+                                </span>
+                                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
+                                    {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                </span>
+                            </div>
+
+                            <div className={styles.cardTop} style={{ marginTop: '5px' }}>
                                 {viewMode === 'active' && (
-                                    <div style={{ position: 'absolute', top: '1rem', right: '1rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
+                                    <div style={{ position: 'absolute', top: '2rem', right: '0.5rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation()
