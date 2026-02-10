@@ -82,7 +82,7 @@ export default function HospedagemPage() {
                     )
                 `)
                 .eq('org_id', profile.org_id)
-                .eq('services.service_categories.name', 'Hospedagem')
+                .not('check_in_date', 'eq', 'check_out_date') // Only multi-day stays (Hospedagem)
                 .in('status', statusFilter)
                 .order('check_in_date', { ascending: viewMode === 'active' })
 
