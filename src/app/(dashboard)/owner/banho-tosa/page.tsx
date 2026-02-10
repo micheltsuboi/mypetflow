@@ -28,8 +28,10 @@ interface Appointment {
     }
     services: {
         name: string
+        base_price: number
         service_categories: { name: string, color: string, icon: string }
     }
+    calculated_price: number | null
 }
 
 export default function BanhoTosaPage() {
@@ -66,6 +68,7 @@ export default function BanhoTosaPage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
+                    calculated_price,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
                     services ( 
@@ -234,7 +237,7 @@ export default function BanhoTosaPage() {
                                         <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                         <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '0.5rem' }}>
                                             {appt.services?.name || 'Serviço'}
-                                            {(appt.services as any)?.base_price && (
+                                            {(appt.calculated_price ?? appt.services?.base_price) !== undefined && (
                                                 <span style={{
                                                     fontSize: '0.8rem',
                                                     fontWeight: 700,
@@ -243,7 +246,7 @@ export default function BanhoTosaPage() {
                                                     padding: '2px 6px',
                                                     borderRadius: '4px'
                                                 }}>
-                                                    R$ {(appt.services as any)?.base_price.toFixed(2)}
+                                                    R$ {(appt.calculated_price ?? appt.services?.base_price).toFixed(2)}
                                                 </span>
                                             )}
                                         </span>

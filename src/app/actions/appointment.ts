@@ -50,6 +50,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         .select(`
             id, 
             duration_minutes, 
+            base_price,
             category_id, 
             service_categories (id, name)
         `)
@@ -119,7 +120,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     // Get customer_id from the Pet
     const { data: petData, error: petError } = await supabase
         .from('pets')
-        .select('customer_id')
+        .select('customer_id, weight_kg')
         .eq('id', petId)
         .single()
 
@@ -138,6 +139,27 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         packageCreditId = creditData
     }
 
+    // Pricing Calculation Logic
+    let calculatedPrice = (serviceData as any).base_price
+
+    // Use weight_kg from petData
+    const weight = (petData as any).weight_kg ?? (petData as any).weight
+
+    if (weight !== null && weight !== undefined) {
+        const { data: rules } = await supabase
+            .from('pricing_rules')
+            .select('*')
+            .eq('service_id', serviceId)
+            .lte('min_weight', weight)
+            .gte('max_weight', weight)
+            .order('price', { ascending: false }) // Take highest if overlaps
+            .limit(1)
+
+        if (rules && rules.length > 0) {
+            calculatedPrice = rules[0].price
+        }
+    }
+
     // 3. Create Appointment
     const { error } = await supabase
         .from('appointments')
@@ -153,7 +175,8 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             package_credit_id: packageCreditId,
             checklist: [],
             check_in_date: checkIn,
-            check_out_date: checkOut
+            check_out_date: checkOut,
+            calculated_price: calculatedPrice
         })
 
     if (error) {

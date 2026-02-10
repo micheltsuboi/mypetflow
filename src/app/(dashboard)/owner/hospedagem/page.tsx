@@ -21,6 +21,7 @@ interface Appointment {
     actual_check_out: string | null
     status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'completed' | 'canceled' | 'no_show'
     notes: string | null
+    calculated_price: number | null
     pets: {
         name: string
         species: string
@@ -70,6 +71,7 @@ export default function HospedagemPage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
+                    calculated_price,
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
@@ -233,7 +235,7 @@ export default function HospedagemPage() {
                             : 1
 
                         // Price calc (rough estimate based on base price * days if not set otherwise)
-                        const totalEstimate = (appt.services?.base_price || 0) * (days || 1)
+                        const totalEstimate = ((appt.calculated_price ?? appt.services?.base_price) || 0) * (days || 1)
 
                         return (
                             <div

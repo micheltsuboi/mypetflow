@@ -65,6 +65,7 @@ interface Appointment {
     actual_check_out: string | null
     pets: Pet | null
     services: Service | null
+    calculated_price?: number | null
 }
 
 interface ScheduleBlock {
@@ -185,6 +186,7 @@ export default function AgendaPage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
+                    calculated_price,
                     actual_check_in, actual_check_out,
                     pets ( 
                         name, species, breed, 
@@ -634,7 +636,20 @@ export default function AgendaPage() {
                                     }}
                                 >
                                     <option value="" disabled>Selecione...</option>
-                                    {services.map(s => <option key={s.id} value={s.id}>{s.name} (R$ {s.base_price.toFixed(2)})</option>)}
+                                    {Object.entries(services.reduce((acc, s) => {
+                                        const cat = s.service_categories?.name || 'Outros'
+                                        if (!acc[cat]) acc[cat] = []
+                                        acc[cat].push(s)
+                                        return acc
+                                    }, {} as Record<string, typeof services>)).map(([category, catServices]) => (
+                                        <optgroup key={category} label={category}>
+                                            {catServices.map(s => (
+                                                <option key={s.id} value={s.id}>
+                                                    {s.name} (R$ {s.base_price.toFixed(2)})
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
                                 </select>
                                 {/* Preset Category hidden field if needed for logic, but usually we just need serviceId */}
                             </div>
@@ -727,7 +742,7 @@ export default function AgendaPage() {
                                     <strong>Serviço:</strong> {selectedAppointment.services?.name}
                                 </div>
                                 <div className={styles.detailRow}>
-                                    <strong>Valor:</strong> R$ {(selectedAppointment.services as any)?.base_price?.toFixed(2)}
+                                    <strong>Valor:</strong> R$ {(selectedAppointment.calculated_price ?? (selectedAppointment.services as any)?.base_price ?? 0).toFixed(2)}
                                 </div>
                                 <div className={styles.detailRow}>
                                     <strong>Data:</strong> {new Date(selectedAppointment.scheduled_at).toLocaleString('pt-BR')}
