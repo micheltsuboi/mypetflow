@@ -6,11 +6,17 @@ import { updateAppointmentStatus, updateChecklist, updatePetPreferences } from '
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import { uploadReportPhoto, saveDailyReport, getDailyReport } from '@/app/actions/dailyReport'
 
+interface ChecklistItem {
+    text: string
+    completed: boolean
+    completed_at: string | null
+}
+
 interface ServiceExecutionModalProps {
     appointment: {
         id: string
         pet_id: string
-        checklist?: { label: string, checked: boolean }[]
+        checklist?: any[]
         pets?: {
             name: string
             perfume_allowed?: boolean
@@ -26,20 +32,20 @@ interface ServiceExecutionModalProps {
     onSave: () => void
 }
 
-const DEFAULT_CHECKLIST = [
-    { label: 'Corte de Unhas', checked: false },
-    { label: 'Limpeza de Ouvidos', checked: false },
-    { label: 'Escovação de Dentes', checked: false },
-    { label: 'Banho', checked: false },
-    { label: 'Tosa Higiênica', checked: false },
-    { label: 'Secagem', checked: false },
-    { label: 'Perfume / Finalização', checked: false },
-]
+function normalizeChecklist(raw: any[] | undefined): ChecklistItem[] {
+    if (!raw || raw.length === 0) return []
+    // Support old format { label, checked } and { item, done } and new { text, completed, completed_at }
+    return raw.map((item: any) => ({
+        text: item.text || item.label || item.item || 'Item',
+        completed: item.completed ?? item.checked ?? item.done ?? false,
+        completed_at: item.completed_at || null
+    }))
+}
 
 export default function ServiceExecutionModal({ appointment, onClose, onSave }: ServiceExecutionModalProps) {
     const [loading, setLoading] = useState(false)
-    const [checklist, setChecklist] = useState<{ label: string, checked: boolean }[]>(
-        appointment.checklist?.length ? appointment.checklist : DEFAULT_CHECKLIST
+    const [checklist, setChecklist] = useState<ChecklistItem[]>(
+        normalizeChecklist(appointment.checklist)
     )
     const [perfumeAllowed, setPerfumeAllowed] = useState(appointment.pets?.perfume_allowed ?? true)
     const [accessoriesAllowed, setAccessoriesAllowed] = useState(appointment.pets?.accessories_allowed ?? true)
@@ -61,7 +67,9 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
 
     const handleChecklistToggle = (index: number) => {
         const newChecklist = [...checklist]
-        newChecklist[index].checked = !newChecklist[index].checked
+        const wasCompleted = newChecklist[index].completed
+        newChecklist[index].completed = !wasCompleted
+        newChecklist[index].completed_at = !wasCompleted ? new Date().toISOString() : null
         setChecklist(newChecklist)
     }
 
@@ -220,20 +228,29 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             <button onClick={handleSaveChecklist} style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', background: '#334155', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar Checklist</button>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
-                            {checklist.map((item, idx) => (
+                            {checklist.length === 0 ? (
+                                <p style={{ color: '#64748b', fontSize: '0.85rem', gridColumn: '1/-1' }}>Nenhum item no checklist para este serviço.</p>
+                            ) : checklist.map((item, idx) => (
                                 <label key={idx} style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                                    padding: '0.75rem', background: item.checked ? 'rgba(16, 185, 129, 0.1)' : '#0f172a',
+                                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
+                                    padding: '0.75rem', background: item.completed ? 'rgba(16, 185, 129, 0.1)' : '#0f172a',
                                     borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
-                                    border: item.checked ? '1px solid #059669' : '1px solid #334155'
+                                    border: item.completed ? '1px solid #059669' : '1px solid #334155'
                                 }}>
                                     <input
                                         type="checkbox"
-                                        checked={item.checked}
+                                        checked={item.completed}
                                         onChange={() => handleChecklistToggle(idx)}
-                                        style={{ width: '18px', height: '18px', accentColor: '#10B981' }}
+                                        style={{ width: '18px', height: '18px', accentColor: '#10B981', marginTop: '2px' }}
                                     />
-                                    <span style={{ color: item.checked ? 'white' : '#94a3b8', fontSize: '0.9rem', fontWeight: item.checked ? 600 : 400 }}>{item.label}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ color: item.completed ? 'white' : '#94a3b8', fontSize: '0.9rem', fontWeight: item.completed ? 600 : 400 }}>{item.text}</span>
+                                        {item.completed && item.completed_at && (
+                                            <span style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '2px' }}>
+                                                ✓ {new Date(item.completed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        )}
+                                    </div>
                                 </label>
                             ))}
                         </div>

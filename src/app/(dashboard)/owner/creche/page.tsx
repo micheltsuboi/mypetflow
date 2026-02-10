@@ -326,6 +326,9 @@ export default function CrechePage() {
                                                 </span>
                                             )}
                                         </div>
+                                        <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                         {appt.actual_check_in && (
                                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                                                 Entrada: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}

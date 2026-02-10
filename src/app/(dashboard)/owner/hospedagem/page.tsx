@@ -336,6 +336,10 @@ export default function HospedagemPage() {
                                             )}
                                             <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
 
+                                            <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
+                                                🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+
                                             <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem' }}>
                                                 📅 <strong>Entrada:</strong> {checkInDate.toLocaleDateString('pt-BR')}
                                             </div>

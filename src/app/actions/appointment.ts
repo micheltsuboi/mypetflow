@@ -234,7 +234,7 @@ export async function updateAppointmentStatus(id: string, status: string) {
     return { message: 'Status atualizado.', success: true }
 }
 
-export async function updateChecklist(id: string, checklist: { label: string, checked: boolean }[]) {
+export async function updateChecklist(id: string, checklist: { text?: string, label?: string, item?: string, completed?: boolean, checked?: boolean, done?: boolean, completed_at?: string | null }[]) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }

@@ -75,12 +75,14 @@ interface ScheduleBlock {
     reason: string
 }
 
-const DEFAULT_CHECKLIST_ITEMS = [
-    { item: 'Corte de Unha', done: false },
-    { item: 'Limpeza de Ouvido', done: false },
-    { item: 'Escovação de Dentes', done: false },
-    { item: 'Tosa Higiênica', done: false }
-]
+function normalizeChecklist(raw: any[] | undefined): { text: string, completed: boolean, completed_at: string | null }[] {
+    if (!raw || raw.length === 0) return []
+    return raw.map((item: any) => ({
+        text: item.text || item.label || item.item || 'Item',
+        completed: item.completed ?? item.checked ?? item.done ?? false,
+        completed_at: item.completed_at || null
+    }))
+}
 
 const initialState = { message: '', success: false }
 
@@ -116,7 +118,7 @@ export default function AgendaPage() {
     const [isEditing, setIsEditing] = useState(false)
 
     // Checklist State
-    const [currentChecklist, setCurrentChecklist] = useState<any[]>(DEFAULT_CHECKLIST_ITEMS)
+    const [currentChecklist, setCurrentChecklist] = useState<any[]>([])
 
     // Validation State
     const [bookingError, setBookingError] = useState<string | null>(null)
@@ -278,11 +280,7 @@ export default function AgendaPage() {
     const handleOpenDetail = (appt: Appointment) => {
         setSelectedAppointment(appt)
         setIsEditing(false)
-        if (appt.checklist && Array.isArray(appt.checklist) && appt.checklist.length > 0) {
-            setCurrentChecklist(appt.checklist)
-        } else {
-            setCurrentChecklist(JSON.parse(JSON.stringify(DEFAULT_CHECKLIST_ITEMS)))
-        }
+        setCurrentChecklist(normalizeChecklist(appt.checklist as any[]))
         setShowDetailModal(true)
     }
 
@@ -358,7 +356,7 @@ export default function AgendaPage() {
             <div
                 key={appt.id}
                 className={styles.appointmentCard}
-                onClick={(e) => { e.stopPropagation(); isCrecheOrBanho ? setSelectedAppointment(appt) : handleOpenDetail(appt) }}
+                onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}
                 style={{
                     minWidth: '300px',
                     borderLeft: `4px solid ${categoryColor} `,

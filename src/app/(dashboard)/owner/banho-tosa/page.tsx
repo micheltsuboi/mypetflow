@@ -45,6 +45,7 @@ export default function BanhoTosaPage() {
 
     const [viewMode, setViewMode] = useState<'active' | 'history'>('active')
     const [showNewModal, setShowNewModal] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
     const [pets, setPets] = useState<any[]>([])
     const [services, setServices] = useState<any[]>([])
 
@@ -72,7 +73,7 @@ export default function BanhoTosaPage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
-                    calculated_price,
+                    calculated_price, checklist,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
                     services!inner ( 
@@ -277,6 +278,9 @@ export default function BanhoTosaPage() {
                                                 </span>
                                             )}
                                         </span>
+                                        <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                         {appt.actual_check_in && (
                                             <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                                                 Início: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -405,12 +409,18 @@ export default function BanhoTosaPage() {
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
                         <h2 className={styles.modalTitle}>Novo Agendamento - Banho e Tosa</h2>
                         <form action={async (formData) => {
-                            const result = await createAppointment({ message: '', success: false }, formData)
-                            if (result.success) {
-                                setShowNewModal(false)
-                                fetchBanhoTosaData()
-                            } else {
-                                alert(result.message)
+                            if (submitting) return
+                            setSubmitting(true)
+                            try {
+                                const result = await createAppointment({ message: '', success: false }, formData)
+                                if (result.success) {
+                                    setShowNewModal(false)
+                                    fetchBanhoTosaData()
+                                } else {
+                                    alert(result.message)
+                                }
+                            } finally {
+                                setSubmitting(false)
                             }
                         }}>
                             <div className={styles.formGroup}>
@@ -451,7 +461,7 @@ export default function BanhoTosaPage() {
                             </div>
                             <div className={styles.modalActions}>
                                 <button type="button" className={styles.cancelBtn} onClick={() => setShowNewModal(false)}>Cancelar</button>
-                                <button type="submit" className={styles.submitBtn}>Agendar</button>
+                                <button type="submit" className={styles.submitBtn} disabled={submitting}>{submitting ? 'Agendando...' : 'Agendar'}</button>
                             </div>
                         </form>
                     </div>
