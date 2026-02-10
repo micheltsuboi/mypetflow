@@ -223,7 +223,7 @@ export default function CrechePage() {
                                 position: 'absolute',
                                 top: '-12px',
                                 right: '16px',
-                                background: appt.services?.service_categories?.color || 'var(--primary)',
+                                background: appt.services?.service_categories?.color || '#10B981', // Fallback to Green
                                 color: 'white',
                                 padding: '6px 12px',
                                 borderRadius: '12px',
@@ -245,57 +245,12 @@ export default function CrechePage() {
                                 </span>
                             </div>
 
-                            <div className={styles.cardTop} style={{ marginTop: '5px' }}>
-                                {viewMode === 'active' && (
-                                    <div style={{ position: 'absolute', top: '2rem', right: '0.5rem', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setEditingAppointment(appt)
-                                            }}
-                                            title="Editar Agendamento"
-                                            style={{
-                                                background: 'rgba(255,255,255,0.1)',
-                                                border: 'none',
-                                                borderRadius: '50%',
-                                                width: '32px',
-                                                height: '32px',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            ✏️
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                handleDelete(appt.id)
-                                            }}
-                                            title="Excluir Agendamento"
-                                            style={{
-                                                background: 'rgba(239, 68, 68, 0.1)',
-                                                border: 'none',
-                                                borderRadius: '50%',
-                                                width: '32px',
-                                                height: '32px',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                fontSize: '1rem'
-                                            }}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                )}
-                                <div className={styles.petInfoMain}>
+                            {/* Main Content with Padding to avoid badge overlap */}
+                            <div className={styles.cardTop} style={{ marginTop: '1rem', paddingTop: '0.5rem' }}>
+                                <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
                                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
-                                    <div className={styles.petDetails}>
-                                        <div className={styles.petName}>
+                                    <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
+                                        <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
                                             {appt.pets?.name || 'Pet'}
                                             <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
                                                 {appt.actual_check_in && !appt.actual_check_out ? '🟢 Na Creche' :
@@ -303,6 +258,51 @@ export default function CrechePage() {
                                                         '⏳ Aguardando'}
                                             </span>
                                         </div>
+                                        {/* Action Buttons Row (Mobile Friendly) */}
+                                        {viewMode === 'active' && (
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setEditingAppointment(appt)
+                                                    }}
+                                                    title="Editar"
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.1)',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '4px 8px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        fontSize: '0.9rem',
+                                                        color: '#e2e8f0'
+                                                    }}
+                                                >
+                                                    ✏️ Editar
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleDelete(appt.id)
+                                                    }}
+                                                    title="Excluir"
+                                                    style={{
+                                                        background: 'rgba(239, 68, 68, 0.15)',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '4px 8px',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        fontSize: '0.9rem',
+                                                        color: '#fca5a5'
+                                                    }}
+                                                >
+                                                    🗑️ Excluir
+                                                </button>
+                                            </div>
+                                        )}
                                         <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                         <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
                                             📅 {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', {

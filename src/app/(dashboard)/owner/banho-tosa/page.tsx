@@ -219,7 +219,7 @@ export default function BanhoTosaPage() {
                                 </span>
                             </div>
 
-                            <div className={styles.cardTop} style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '5px' }}>
+                            <div className={styles.cardTop} style={{ justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '1rem', paddingTop: '0.5rem' }}>
                                 <div className={styles.petInfoMain} style={{ flex: 1, overflow: 'hidden' }}>
                                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                     <div className={styles.petDetails} style={{ minWidth: 0 }}>
