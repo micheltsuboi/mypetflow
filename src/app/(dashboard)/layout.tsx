@@ -30,13 +30,13 @@ export default function DashboardLayout({
         { name: 'Banho e Tosa', href: '/owner/banho-tosa', icon: '🛁' },
         { name: 'Creche', href: '/owner/creche', icon: '🎾' },
         { name: 'Hospedagem', href: '/owner/hospedagem', icon: '🏨' },
-        { name: 'Serviços', href: '/owner/services', icon: '✂️' },
+        { name: 'Financeiro', href: '/owner/financeiro', icon: '💰' },
         { name: 'Tutores', href: '/owner/tutors', icon: '👤' },
         { name: 'Pets', href: '/owner/pets', icon: '🐾' },
-        { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
-        { name: 'Financeiro', href: '/owner/financeiro', icon: '💰' },
+        { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Vacinas', href: '/owner/vaccines', icon: '💉' },
+        { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
     ]
 
     const masterAdminNavigation = [

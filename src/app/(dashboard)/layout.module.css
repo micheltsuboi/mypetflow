@@ -5,12 +5,12 @@
 
 /* Sidebar */
 .sidebar {
-    width: 260px;
+    width: 250px;
     background: rgba(13, 27, 42, 0.95);
     border-right: 1px solid rgba(140, 180, 201, 0.1);
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
+    padding: 1rem;
     position: fixed;
     top: 0;
     left: 0;
@@ -23,17 +23,17 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .logoImage {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
 }
 
 .logoText {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     font-weight: 700;
     background: linear-gradient(135deg, #E8826A, #8CB4C9);
     -webkit-background-clip: text;
@@ -44,20 +44,33 @@
 .nav {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
     flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    /* Space for scrollbar if needed */
+}
+
+.nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.nav::-webkit-scrollbar-thumb {
+    background: rgba(140, 180, 201, 0.2);
+    border-radius: 4px;
 }
 
 .navItem {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.875rem 1rem;
-    border-radius: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.5rem;
     color: var(--text-secondary);
     text-decoration: none;
     transition: all 0.2s ease;
     font-weight: 500;
+    line-height: 1.2;
 }
 
 .navItem:hover {
@@ -68,15 +81,19 @@
 .navItem.active {
     background: linear-gradient(135deg, #2B4B6F, #3D6089);
     color: white;
-    box-shadow: 0 4px 15px rgba(43, 75, 111, 0.4);
+    box-shadow: 0 4px 10px rgba(43, 75, 111, 0.3);
 }
 
 .navIcon {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
 }
 
 .navLabel {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
 }
 
 .sidebarFooter {
