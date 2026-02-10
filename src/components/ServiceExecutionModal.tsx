@@ -25,6 +25,7 @@ interface ServiceExecutionModalProps {
         services?: {
             name: string
         }
+        notes?: string | null
         actual_check_in?: string | null
         actual_check_out?: string | null
     }
@@ -166,6 +167,18 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                     </div>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                 </div>
+
+                {appointment.notes && (
+                    <div style={{ background: 'rgba(245, 158, 11, 0.1)', borderBottom: '1px solid rgba(245, 158, 11, 0.2)', padding: '1rem 1.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+                            <div>
+                                <strong style={{ display: 'block', color: '#fbbf24', fontSize: '0.9rem', marginBottom: '0.25rem' }}>Observações do Agendamento:</strong>
+                                <p style={{ margin: 0, color: '#fcd34d', fontSize: '0.95rem', lineHeight: 1.4 }}>{appointment.notes}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
 
