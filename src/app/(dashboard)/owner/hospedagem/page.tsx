@@ -10,6 +10,7 @@ import { deleteAppointment, createAppointment } from '@/app/actions/appointment'
 import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
+import PaymentControls from '@/components/PaymentControls'
 
 interface Appointment {
     id: string
@@ -23,6 +24,10 @@ interface Appointment {
     status: 'pending' | 'confirmed' | 'in_progress' | 'done' | 'completed' | 'canceled' | 'no_show'
     notes: string | null
     calculated_price: number | null
+    final_price: number | null
+    discount_percent: number | null
+    payment_status: string | null
+    payment_method: string | null
     pets: {
         name: string
         species: string
@@ -73,6 +78,7 @@ export default function HospedagemPage() {
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
                     calculated_price,
+                    final_price, discount_percent, payment_status, payment_method,
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
@@ -351,19 +357,17 @@ export default function HospedagemPage() {
 
                                             <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
                                                 <span>{appt.services?.name} ({days} dias)</span>
-                                                {appt.services?.base_price && (
-                                                    <span style={{
-                                                        fontSize: '0.8rem',
-                                                        fontWeight: 700,
-                                                        color: '#10b981',
-                                                        background: 'rgba(16, 185, 129, 0.1)',
-                                                        padding: '2px 6px',
-                                                        borderRadius: '4px'
-                                                    }}>
-                                                        R$ {totalEstimate.toFixed(2)}
-                                                    </span>
-                                                )}
                                             </div>
+                                            <PaymentControls
+                                                appointmentId={appt.id}
+                                                calculatedPrice={totalEstimate}
+                                                finalPrice={appt.final_price}
+                                                discountPercent={appt.discount_percent}
+                                                paymentStatus={appt.payment_status}
+                                                paymentMethod={appt.payment_method}
+                                                onUpdate={() => fetchHospedagemData()}
+                                                compact
+                                            />
                                         </div>
                                     </div>
                                 </div>

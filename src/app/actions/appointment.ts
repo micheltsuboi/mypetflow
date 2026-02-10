@@ -218,7 +218,10 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             checklist: finalChecklist,
             check_in_date: checkIn,
             check_out_date: checkOut,
-            calculated_price: calculatedPrice
+            calculated_price: calculatedPrice,
+            final_price: calculatedPrice,
+            payment_status: 'pending',
+            discount_percent: 0
         })
 
     if (error) {
@@ -436,4 +439,78 @@ export async function checkOutAppointment(id: string) {
 
     revalidatePath('/owner/agenda')
     return { message: 'Check-out realizado!', success: true }
+}
+
+export async function updatePaymentStatus(id: string, paymentStatus: string, paymentMethod?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const updateData: Record<string, unknown> = {
+        payment_status: paymentStatus
+    }
+
+    if (paymentStatus === 'paid') {
+        updateData.paid_at = new Date().toISOString()
+        if (paymentMethod) {
+            updateData.payment_method = paymentMethod
+        }
+    } else if (paymentStatus === 'pending') {
+        updateData.paid_at = null
+        updateData.payment_method = null
+    }
+
+    const { error } = await supabase
+        .from('appointments')
+        .update(updateData)
+        .eq('id', id)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/agenda')
+    revalidatePath('/owner/banho-tosa')
+    revalidatePath('/owner/creche')
+    revalidatePath('/owner/hospedagem')
+    revalidatePath('/owner')
+    return { message: paymentStatus === 'paid' ? 'Pagamento registrado!' : 'Status de pagamento atualizado.', success: true }
+}
+
+export async function applyDiscount(id: string, discountPercent: number) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    if (discountPercent < 0 || discountPercent > 100) {
+        return { message: 'Desconto deve ser entre 0% e 100%.', success: false }
+    }
+
+    // Fetch current calculated_price
+    const { data: appt, error: fetchErr } = await supabase
+        .from('appointments')
+        .select('calculated_price')
+        .eq('id', id)
+        .single()
+
+    if (fetchErr || !appt) return { message: 'Agendamento não encontrado.', success: false }
+
+    const basePrice = appt.calculated_price || 0
+    const finalPrice = basePrice * (1 - discountPercent / 100)
+
+    const { error } = await supabase
+        .from('appointments')
+        .update({
+            discount_percent: discountPercent,
+            discount: basePrice - finalPrice,
+            final_price: parseFloat(finalPrice.toFixed(2))
+        })
+        .eq('id', id)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/agenda')
+    revalidatePath('/owner/banho-tosa')
+    revalidatePath('/owner/creche')
+    revalidatePath('/owner/hospedagem')
+    revalidatePath('/owner')
+    return { message: `Desconto de ${discountPercent}% aplicado! Valor final: R$ ${finalPrice.toFixed(2)}`, success: true }
 }

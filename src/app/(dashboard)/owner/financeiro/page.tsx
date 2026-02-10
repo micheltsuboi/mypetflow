@@ -33,7 +33,6 @@ export default function FinanceiroPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            // Get user's organization
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('org_id')
@@ -42,26 +41,30 @@ export default function FinanceiroPage() {
 
             if (!profile?.org_id) return
 
-            // Dates logic
+            // Dates logic: Last 6 months
             const now = new Date()
-            const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString()
+            const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
+            const startOfPeriod = sixMonthsAgo.toISOString()
 
-            // Fetch transactions
-            const { data: transactions, error } = await supabase
-                .from('financial_transactions')
-                .select('*')
+            // Fetch PAID appointments
+            const { data: appointments, error } = await supabase
+                .from('appointments')
+                .select(`
+                    id, final_price, calculated_price, payment_status, paid_at,
+                    services (
+                        name,
+                        service_categories ( name )
+                    )
+                `)
                 .eq('org_id', profile.org_id)
-                .gte('date', startOfPrevMonth)
-                .order('date', { ascending: true })
+                .eq('payment_status', 'paid')
+                .gte('paid_at', startOfPeriod)
+                .order('paid_at', { ascending: true })
 
             if (error) throw error
 
-            if (transactions) {
-                // Process Monthly Data (original logic, adapted to new fetch)
-                const sixMonthsAgo = new Date()
-                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
-                sixMonthsAgo.setDate(1)
-
+            if (appointments) {
+                // Process Monthly Data
                 const monthMap = new Map<string, MonthlyData>()
 
                 // Initialize last 6 months
@@ -72,43 +75,40 @@ export default function FinanceiroPage() {
                     monthMap.set(monthKey, { month: monthKey, revenue: 0, expenses: 0, profit: 0 })
                 }
 
-                transactions.forEach(t => {
-                    const date = new Date(t.date)
+                appointments.forEach(appt => {
+                    const date = new Date(appt.paid_at!)
                     const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
+                    const amount = appt.final_price ?? appt.calculated_price ?? 0
 
                     if (monthMap.has(monthKey)) {
                         const data = monthMap.get(monthKey)!
-                        if (t.type === 'income') {
-                            data.revenue += t.amount
-                        } else {
-                            data.expenses += t.amount
-                        }
-                        data.profit = data.revenue - data.expenses
+                        data.revenue += amount
+                        data.profit += amount // Expenses not yet tracked in appointments
                     }
                 })
 
                 setMonthlyData(Array.from(monthMap.values()))
 
                 // Process Category Data (Current Month)
-                const currentMonthFilter = (t: FinancialTransaction) => {
-                    const d = new Date(t.date)
+                const currentMonthFilter = (appt: any) => {
+                    const d = new Date(appt.paid_at!)
                     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
                 }
 
-                const currentMonthTx = transactions.filter(currentMonthFilter)
-                const totalRevenue = currentMonthTx
-                    .filter(t => t.type === 'income')
-                    .reduce((acc, curr) => acc + curr.amount, 0)
+                const currentMonthAppts = appointments.filter(currentMonthFilter)
+                const totalRevenue = currentMonthAppts.reduce((acc, curr) => acc + (curr.final_price ?? curr.calculated_price ?? 0), 0)
 
                 const catMap = new Map<string, CategoryRevenue>()
 
-                currentMonthTx.filter(t => t.type === 'income').forEach(t => {
-                    const cat = t.category || 'Outros'
-                    if (!catMap.has(cat)) {
-                        catMap.set(cat, { name: cat, revenue: 0, count: 0, percentage: 0 })
+                currentMonthAppts.forEach(appt => {
+                    const catName = (appt.services as any)?.service_categories?.name || 'Outros'
+                    const amount = appt.final_price ?? appt.calculated_price ?? 0
+
+                    if (!catMap.has(catName)) {
+                        catMap.set(catName, { name: catName, revenue: 0, count: 0, percentage: 0 })
                     }
-                    const data = catMap.get(cat)!
-                    data.revenue += t.amount
+                    const data = catMap.get(catName)!
+                    data.revenue += amount
                     data.count += 1
                 })
 
@@ -118,6 +118,30 @@ export default function FinanceiroPage() {
                 }))
 
                 setCategoryRevenue(categories.sort((a, b) => b.revenue - a.revenue))
+            }
+
+            // Also fetch expenses from financial_transactions (if still used for expenses)
+            const { data: expensesTx } = await supabase
+                .from('financial_transactions')
+                .select('*')
+                .eq('org_id', profile.org_id)
+                .eq('type', 'expense')
+                .gte('date', startOfPeriod)
+
+            if (expensesTx) {
+                setMonthlyData(prev => {
+                    const newData = [...prev]
+                    expensesTx.forEach(t => {
+                        const date = new Date(t.date)
+                        const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
+                        const monthData = newData.find(d => d.month === monthKey)
+                        if (monthData) {
+                            monthData.expenses += t.amount
+                            monthData.profit = monthData.revenue - monthData.expenses
+                        }
+                    })
+                    return newData
+                })
             }
 
         } catch (error) {

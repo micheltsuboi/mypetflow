@@ -9,6 +9,7 @@ import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOu
 import { deleteAppointment } from '@/app/actions/appointment'
 import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
+import PaymentControls from '@/components/PaymentControls'
 
 interface Appointment {
     id: string
@@ -66,6 +67,7 @@ export default function CrechePage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
+                    calculated_price, final_price, discount_percent, payment_status, payment_method,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
                     services!inner ( 
@@ -313,19 +315,17 @@ export default function CrechePage() {
                                         </div>
                                         <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
                                             <span>{appt.services?.name || 'Creche'}</span>
-                                            {(appt.services as any)?.base_price && (
-                                                <span style={{
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 700,
-                                                    color: '#10b981',
-                                                    background: 'rgba(16, 185, 129, 0.1)',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px'
-                                                }}>
-                                                    R$ {(appt.services as any)?.base_price.toFixed(2)}
-                                                </span>
-                                            )}
                                         </div>
+                                        <PaymentControls
+                                            appointmentId={appt.id}
+                                            calculatedPrice={(appt as any).calculated_price ?? (appt.services as any)?.base_price ?? null}
+                                            finalPrice={(appt as any).final_price}
+                                            discountPercent={(appt as any).discount_percent}
+                                            paymentStatus={(appt as any).payment_status}
+                                            paymentMethod={(appt as any).payment_method}
+                                            onUpdate={() => fetchCrecheData()}
+                                            compact
+                                        />
                                         <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                             🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                         </span>

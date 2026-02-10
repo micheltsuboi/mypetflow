@@ -20,6 +20,7 @@ import {
     deleteScheduleBlock
 } from '@/app/actions/schedule'
 import { format } from 'date-fns'
+import PaymentControls from '@/components/PaymentControls'
 
 interface Customer {
     name: string
@@ -66,6 +67,10 @@ interface Appointment {
     pets: Pet | null
     services: Service | null
     calculated_price?: number | null
+    final_price?: number | null
+    discount_percent?: number | null
+    payment_status?: string | null
+    payment_method?: string | null
 }
 
 interface ScheduleBlock {
@@ -189,6 +194,7 @@ export default function AgendaPage() {
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
                     calculated_price,
+                    final_price, discount_percent, payment_status, payment_method,
                     actual_check_in, actual_check_out,
                     pets ( 
                         name, species, breed, 
@@ -386,13 +392,17 @@ export default function AgendaPage() {
                 <div className={styles.serviceLine}>
                     <span style={{ marginRight: '0.25rem' }}>{categoryIcon}</span>
                     {appt.services?.name}
-                    {/* Price Display */}
-                    {(appt.calculated_price ?? (appt.services as any)?.base_price) && (
-                        <span className={styles.priceTag}>
-                            R$ {(appt.calculated_price ?? (appt.services as any).base_price).toFixed(2)}
-                        </span>
-                    )}
                 </div>
+                <PaymentControls
+                    appointmentId={appt.id}
+                    calculatedPrice={appt.calculated_price ?? (appt.services as any)?.base_price ?? null}
+                    finalPrice={appt.final_price ?? null}
+                    discountPercent={appt.discount_percent ?? null}
+                    paymentStatus={appt.payment_status ?? null}
+                    paymentMethod={appt.payment_method ?? null}
+                    onUpdate={() => fetchData()}
+                    compact
+                />
 
                 <div className={styles.quickActions}>
                     {!appt.actual_check_in && (

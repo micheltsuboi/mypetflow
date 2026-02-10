@@ -81,48 +81,58 @@ export default function OwnerDashboard() {
 
                 if (!profile?.org_id) return
 
-                // 1. Fetch Financials
-                // Calculate dates
+                // 1. Fetch Financial Data from APPOINTMENTS (paid ones)
                 const now = new Date()
                 const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
                 const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-                const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString()
+                const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString()
 
-                // Fetch transactions for current and previous month
-                const { data: transactions, error } = await supabase
-                    .from('financial_transactions')
-                    .select('*')
+                // Current month paid appointments
+                const { data: currentMonthAppts } = await supabase
+                    .from('appointments')
+                    .select('final_price, calculated_price, payment_status')
                     .eq('org_id', profile.org_id)
-                    .gte('date', startOfPreviousMonth)
+                    .gte('scheduled_at', startOfCurrentMonth)
 
-                if (error) throw error
+                // Previous month paid appointments (for growth)
+                const { data: prevMonthAppts } = await supabase
+                    .from('appointments')
+                    .select('final_price, calculated_price, payment_status')
+                    .eq('org_id', profile.org_id)
+                    .gte('scheduled_at', startOfPreviousMonth)
+                    .lte('scheduled_at', endOfPreviousMonth)
 
-                if (transactions) {
-                    // Current Month Metrics
-                    const currentMonthTx = transactions.filter(t => t.date >= startOfCurrentMonth)
-                    const revenue = currentMonthTx
-                        .filter(t => t.type === 'income')
-                        .reduce((acc, curr) => acc + curr.amount, 0)
-                    const expenses = currentMonthTx
-                        .filter(t => t.type === 'expense')
-                        .reduce((acc, curr) => acc + curr.amount, 0)
+                const currentRevenue = (currentMonthAppts || [])
+                    .filter(a => a.payment_status === 'paid')
+                    .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-                    // Previous Month Metrics for Growth
-                    const prevMonthTx = transactions.filter(t => t.date >= startOfPreviousMonth && t.date <= endOfPreviousMonth)
-                    const prevRevenue = prevMonthTx
-                        .filter(t => t.type === 'income')
-                        .reduce((acc, curr) => acc + curr.amount, 0)
+                const pendingPayments = (currentMonthAppts || [])
+                    .filter(a => a.payment_status !== 'paid')
+                    .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-                    const growth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0
+                const prevRevenue = (prevMonthAppts || [])
+                    .filter(a => a.payment_status === 'paid')
+                    .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-                    setFinancials({
-                        revenue,
-                        expenses,
-                        profit: revenue - expenses,
-                        pendingPayments: 0, // Not tracked yet
-                        monthlyGrowth: parseFloat(growth.toFixed(1))
-                    })
-                }
+                const growth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : 0
+
+                // Also fetch expenses from financial_transactions if any
+                const { data: expenseTx } = await supabase
+                    .from('financial_transactions')
+                    .select('amount')
+                    .eq('org_id', profile.org_id)
+                    .eq('type', 'expense')
+                    .gte('date', startOfCurrentMonth)
+
+                const expenses = (expenseTx || []).reduce((sum, t) => sum + t.amount, 0)
+
+                setFinancials({
+                    revenue: currentRevenue,
+                    expenses,
+                    profit: currentRevenue - expenses,
+                    pendingPayments,
+                    monthlyGrowth: parseFloat(growth.toFixed(1))
+                })
 
                 // 2. Fetch Operational Stats
                 const { count: tutorsCount } = await supabase
@@ -130,15 +140,24 @@ export default function OwnerDashboard() {
                     .select('*', { count: 'exact', head: true })
                     .eq('org_id', profile.org_id)
 
-                // RLS filters pets by org via customer relationship
                 const { count: petsCount } = await supabase
                     .from('pets')
                     .select('*', { count: 'exact', head: true })
 
+                // Today's appointments count
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+                const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
+                const { count: todayCount } = await supabase
+                    .from('appointments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('org_id', profile.org_id)
+                    .gte('scheduled_at', todayStart)
+                    .lte('scheduled_at', todayEnd)
+
                 setStats({
                     tutors: tutorsCount || 0,
                     pets: petsCount || 0,
-                    appointmentsToday: 0 // Placeholder until Appointments are implemented
+                    appointmentsToday: todayCount || 0
                 })
 
             } catch (error) {
@@ -264,6 +283,13 @@ export default function OwnerDashboard() {
                     <div className={styles.cardContent}>
                         <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(financials.profit)}</span>
                         <span className={styles.cardLabel}>Lucro Líquido</span>
+                    </div>
+                </div>
+                <div className={styles.financialCard}>
+                    <div className={styles.cardIcon}>⏳</div>
+                    <div className={styles.cardContent}>
+                        <span className={styles.cardValue} style={{ color: '#f59e0b' }}>{formatCurrency(financials.pendingPayments)}</span>
+                        <span className={styles.cardLabel}>A Receber</span>
                     </div>
                 </div>
             </div>

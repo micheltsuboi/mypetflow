@@ -8,6 +8,7 @@ import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRange
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import { deleteAppointment } from '@/app/actions/appointment'
 import DailyReportModal from '@/components/DailyReportModal'
+import PaymentControls from '@/components/PaymentControls'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import { createAppointment } from '@/app/actions/appointment'
@@ -33,6 +34,10 @@ interface Appointment {
         service_categories: { name: string, color: string, icon: string }
     }
     calculated_price: number | null
+    final_price: number | null
+    discount_percent: number | null
+    payment_status: string | null
+    payment_method: string | null
 }
 
 export default function BanhoTosaPage() {
@@ -74,6 +79,7 @@ export default function BanhoTosaPage() {
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
                     calculated_price, checklist,
+                    final_price, discount_percent, payment_status, payment_method,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
                     services!inner ( 
@@ -265,19 +271,17 @@ export default function BanhoTosaPage() {
                                         <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
                                         <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '0.5rem' }}>
                                             {appt.services?.name || 'Serviço'}
-                                            {(appt.calculated_price ?? appt.services?.base_price) !== undefined && (
-                                                <span style={{
-                                                    fontSize: '0.8rem',
-                                                    fontWeight: 700,
-                                                    color: '#10b981',
-                                                    background: 'rgba(16, 185, 129, 0.1)',
-                                                    padding: '2px 6px',
-                                                    borderRadius: '4px'
-                                                }}>
-                                                    R$ {(appt.calculated_price ?? appt.services?.base_price).toFixed(2)}
-                                                </span>
-                                            )}
                                         </span>
+                                        <PaymentControls
+                                            appointmentId={appt.id}
+                                            calculatedPrice={appt.calculated_price ?? appt.services?.base_price ?? null}
+                                            finalPrice={appt.final_price}
+                                            discountPercent={appt.discount_percent}
+                                            paymentStatus={appt.payment_status}
+                                            paymentMethod={appt.payment_method}
+                                            onUpdate={() => fetchBanhoTosaData()}
+                                            compact
+                                        />
                                         <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                             🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                         </span>
