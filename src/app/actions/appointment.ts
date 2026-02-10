@@ -230,18 +230,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     revalidatePath('/owner/creche') // Revalidate new dashboards
     revalidatePath('/owner/hospedagem')
     revalidatePath('/owner/hospedagem')
-
-    let debugMsg = `Agendamento criado! total: R$ ${calculatedPrice}`
-    if (isHospedagem) {
-        // Safe access (though logic implies it's set)
-        const daysDebug = (calculatedPrice && (serviceData as any).base_price) ? Math.round(calculatedPrice / ((calculatedPrice / (days || 1)))) : days
-        debugMsg = `Agendamento criado!
-        Preço Final: R$ ${calculatedPrice}
-        Dias Calculados: ${days}
-        (Valor Diária usado: R$ ${calculatedPrice / (days || 1)})`
-    }
-
-    return { message: debugMsg, success: true }
+    return { message: 'Agendamento criado com sucesso!', success: true }
 }
 
 export async function updateAppointmentStatus(id: string, status: string) {

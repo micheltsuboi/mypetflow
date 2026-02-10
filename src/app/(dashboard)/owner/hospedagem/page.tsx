@@ -236,7 +236,9 @@ export default function HospedagemPage() {
                             : 1
 
                         // Price calc (rough estimate based on base price * days if not set otherwise)
-                        const totalEstimate = ((appt.calculated_price ?? appt.services?.base_price) || 0) * (days || 1)
+                        const totalEstimate = appt.calculated_price
+                            ? Number(appt.calculated_price)
+                            : ((appt.services?.base_price || 0) * (days || 1))
 
                         return (
                             <div
