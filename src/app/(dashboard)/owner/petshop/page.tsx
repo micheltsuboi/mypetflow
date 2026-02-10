@@ -295,7 +295,7 @@ export default function PetshopPage() {
                             <div className={styles.stockInfo}>
                                 <div>
                                     <span className={styles.stockLabel}>Estoque: </span>
-                                    <span className={`${styles.stockValue} ${product.stock_quantity < (product.min_stock_threshold || 5) ? styles.lowStock : ''}`}>
+                                    <span className={`${styles.stockValue} ${product.stock_quantity < (product.min_stock_alert || 5) ? styles.lowStock : ''}`}>
                                         {product.stock_quantity} un
                                     </span>
                                 </div>

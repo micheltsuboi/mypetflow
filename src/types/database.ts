@@ -265,7 +265,7 @@ export interface Product {
     price: number
     cost_price?: number
     stock_quantity: number
-    min_stock_threshold?: number
+    min_stock_alert?: number
     expiration_date: string | null
     photo_url: string | null
     barcode?: string
