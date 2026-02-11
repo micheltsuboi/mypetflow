@@ -29,6 +29,7 @@ export default function PetshopPage() {
         selling_price: 0,
         stock_quantity: 0,
         expiration_date: '',
+        bar_code: '',
         description: ''
     })
 
@@ -65,7 +66,9 @@ export default function PetshopPage() {
                 selling_price: product.price,
                 stock_quantity: product.stock_quantity,
                 expiration_date: product.expiration_date || '',
-                description: product.description || ''
+                bar_code: product.bar_code || '',
+                description: product.description || '',
+                image_url: product.image_url
             })
         } else {
             setEditingProduct(null)
@@ -76,7 +79,9 @@ export default function PetshopPage() {
                 selling_price: 0,
                 stock_quantity: 0,
                 expiration_date: '',
-                description: ''
+                bar_code: '',
+                description: '',
+                image_url: null
             })
         }
         setIsModalOpen(true)
@@ -105,13 +110,14 @@ export default function PetshopPage() {
                 org_id: profile.org_id,
                 name: formData.name,
                 category: formData.category,
-                cost_price: formData.cost_price,
-                price: formData.selling_price,
-                stock_quantity: formData.stock_quantity,
+                cost_price: formData.cost_price || 0,
+                price: formData.selling_price || 0,
+                stock_quantity: formData.stock_quantity || 0,
                 min_stock_alert: 5,
                 expiration_date: formData.expiration_date || null,
                 description: formData.description,
                 image_url: formData.image_url,
+                bar_code: formData.bar_code,
                 is_active: true
             }
 
@@ -272,10 +278,13 @@ export default function PetshopPage() {
                 {filteredProducts.map(product => (
                     <div key={product.id} className={styles.productCard}>
                         <div className={styles.productImage}>
-                            {/* Placeholder for image */}
-                            <div style={{ width: '100%', height: '100%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
-                                📦
-                            </div>
+                            {product.image_url ? (
+                                <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                                <div style={{ width: '100%', height: '100%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem' }}>
+                                    📦
+                                </div>
+                            )}
                         </div>
                         <div className={styles.productContent}>
                             <div className={styles.productHeader}>
@@ -410,6 +419,15 @@ export default function PetshopPage() {
                                         required
                                         value={formData.stock_quantity}
                                         onChange={e => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Código de Barras</label>
+                                    <input
+                                        className={styles.input}
+                                        type="text"
+                                        value={formData.bar_code}
+                                        onChange={e => setFormData({ ...formData, bar_code: e.target.value })}
                                     />
                                 </div>
                             </div>

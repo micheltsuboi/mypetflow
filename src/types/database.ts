@@ -267,8 +267,8 @@ export interface Product {
     stock_quantity: number
     min_stock_alert?: number
     expiration_date: string | null
-    photo_url: string | null
-    barcode?: string
+    image_url: string | null
+    bar_code?: string
     description?: string
     is_active: boolean
     created_at: string
@@ -321,8 +321,7 @@ export interface ProductFormData {
     selling_price: number
     stock_quantity: number
     expiration_date?: string
-    photo_url?: string
-    barcode?: string
-    description?: string
     image_url?: string | null
+    bar_code?: string
+    description?: string
 }
