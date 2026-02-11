@@ -567,13 +567,15 @@ export default function AgendaPage() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <h1 className={styles.title}>Agenda</h1>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <select className={styles.select} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ width: '150px' }}>
+                <div className={styles.actionGroup}>
+                    <select className={styles.select} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                         <option value="">Filtro...</option>
                         {Array.from(new Set(services.flatMap(s => s.service_categories ? [s.service_categories.name] : []))).map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
-                    <button className={styles.actionButton} onClick={() => handleNewAppointment()}>+ Agendar</button>
-                    <button className={styles.secondaryButton} onClick={() => setShowBlockModal(true)}>Bloquear</button>
+                    <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                        <button className={styles.actionButton} style={{ flex: 1 }} onClick={() => handleNewAppointment()}>+ Agendar</button>
+                        <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>
+                    </div>
                 </div>
             </div>
 

@@ -183,6 +183,8 @@
     position: sticky;
     top: 0;
     z-index: 50;
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 
 .headerLeft {
@@ -351,6 +353,10 @@
 
     .content {
         padding: 1rem;
+        width: 100%;
+        max-width: 100vw;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 }
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import styles from '../agenda/page.module.css' // Reuse agenda styles for consistency
+import styles from './page.module.css'
 import Link from 'next/link'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
@@ -143,55 +143,43 @@ export default function CrechePage() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <h1 className={styles.title}>🎾 Creche - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className={styles.actionGroup}>
                     <input
                         type="text"
                         placeholder="🔍 Buscar pet ou tutor..."
                         value={searchTerm}
+                        className={styles.searchInput}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            padding: '0.75rem',
-                            borderRadius: '8px',
-                            border: '1px solid #334155',
-                            background: 'var(--bg-secondary)',
-                            color: 'white',
-                            minWidth: '250px'
-                        }}
                     />
-                    <button
-                        className={styles.actionButton}
-                        onClick={() => setShowNewModal(true)}
-                        style={{ background: 'var(--primary)', color: 'white' }}
-                    >
-                        + Novo Agendamento
-                    </button>
-                    <button className={styles.actionButton} onClick={fetchCrecheData}>↻ Atualizar</button>
+                    <div className={styles.buttonGroup}>
+                        <button
+                            className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                            onClick={() => setShowNewModal(true)}
+                            style={{ flex: 1 }}
+                        >
+                            + Novo Agendamento
+                        </button>
+                        <button
+                            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                            onClick={fetchCrecheData}
+                        >
+                            ↻
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* View Mode Tabs */}
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '0.5rem' }}>
+            <div className={styles.tabs}>
                 <button
                     onClick={() => setViewMode('active')}
-                    style={{
-                        background: 'none', border: 'none', padding: '0.5rem 1rem',
-                        color: viewMode === 'active' ? '#3B82F6' : '#94a3b8',
-                        fontWeight: viewMode === 'active' ? 700 : 500,
-                        borderBottom: viewMode === 'active' ? '2px solid #3B82F6' : '2px solid transparent',
-                        cursor: 'pointer', fontSize: '1rem'
-                    }}
+                    className={`${styles.tab} ${viewMode === 'active' ? styles.activeTab : ''}`}
                 >
                     Em Aberto / Na Creche
                 </button>
                 <button
                     onClick={() => setViewMode('history')}
-                    style={{
-                        background: 'none', border: 'none', padding: '0.5rem 1rem',
-                        color: viewMode === 'history' ? '#3B82F6' : '#94a3b8',
-                        fontWeight: viewMode === 'history' ? 700 : 500,
-                        borderBottom: viewMode === 'history' ? '2px solid #3B82F6' : '2px solid transparent',
-                        cursor: 'pointer', fontSize: '1rem'
-                    }}
+                    className={`${styles.tab} ${viewMode === 'history' ? styles.activeTab : ''}`}
                 >
                     📜 Histórico
                 </button>
@@ -207,7 +195,7 @@ export default function CrechePage() {
                     {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum pet agendado para a creche no período selecionado.' : 'Nenhum histórico encontrado para o período.')}
                 </div>
             ) : (
-                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                <div className={styles.grid}>
                     {filteredAppointments.map(appt => (
                         <div
                             key={appt.id}

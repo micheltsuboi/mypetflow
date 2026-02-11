@@ -1,0 +1,167 @@
+/* Creche Page Styles */
+.container {
+    padding: 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    width: 100%;
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.actionGroup {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.searchInput {
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    background: var(--bg-secondary);
+    color: white;
+    min-width: 250px;
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+@media (max-width: 480px) {
+    .buttonGroup {
+        flex-direction: column;
+    }
+}
+
+.actionButton {
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.actionButtonPrimary {
+    background: var(--primary);
+    color: white;
+}
+
+.actionButtonSecondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #334155;
+    padding-bottom: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.tab {
+    background: none;
+    border: none;
+    padding: 0.5rem 1rem;
+    color: #94a3b8;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+.activeTab {
+    color: #3B82F6;
+    font-weight: 700;
+    border-bottom-color: #3B82F6;
+}
+
+/* Appointment Cards */
+.grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    width: 100%;
+}
+
+.appointmentCard {
+    padding: 1.25rem;
+    border-radius: 12px;
+    transition: transform 0.2s ease;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.appointmentCard:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .actionGroup {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .searchInput {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .actionButton {
+        width: 100%;
+    }
+
+    .tabs {
+        margin: 0 -1rem 1.5rem -1rem;
+        padding: 0 1rem 0.5rem 1rem;
+        width: calc(100% + 2rem);
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

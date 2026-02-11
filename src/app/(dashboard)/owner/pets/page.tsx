@@ -352,14 +352,14 @@ function PetsContent() {
                 </button>
             </div>
 
-            <div style={{ marginBottom: '1rem' }}>
+            <div className={styles.actionGroup || ''} style={{ marginBottom: '1rem', width: '100%' }}>
                 <input
                     type="text"
                     placeholder="🔍 Buscar pet por nome ou raça..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={styles.input}
-                    style={{ maxWidth: '400px' }}
+                    style={{ width: '100%', maxWidth: '100%' }}
                 />
             </div>
 
