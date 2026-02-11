@@ -26,6 +26,13 @@ export default function FinanceiroPage() {
     const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
     const [categoryRevenue, setCategoryRevenue] = useState<CategoryRevenue[]>([])
     const [loading, setLoading] = useState(true)
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date()
+        return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
+    })
+    const [endDate, setEndDate] = useState(() => {
+        return new Date().toISOString().split('T')[0]
+    })
 
     // Records for drill-down
     const [extractRecords, setExtractRecords] = useState<{
@@ -41,6 +48,7 @@ export default function FinanceiroPage() {
 
     const fetchFinancials = useCallback(async () => {
         try {
+            setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
@@ -52,156 +60,127 @@ export default function FinanceiroPage() {
 
             if (!profile?.org_id) return
 
-            // Dates logic: Last 6 months
-            const now = new Date()
-            const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1)
-            const startOfPeriod = sixMonthsAgo.toISOString()
+            // 1. Fetch data for Chart (Last 6 months)
+            const sixMonthsAgo = new Date()
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
+            sixMonthsAgo.setDate(1)
+            const chartStart = sixMonthsAgo.toISOString()
 
-            // Fetch ALL appointments for the period
-            const { data: appointments, error } = await supabase
-                .from('appointments')
-                .select(`
-                    id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
-                    pets ( name ),
-                    services (
-                        name,
-                        service_categories ( name )
-                    )
-                `)
-                .eq('org_id', profile.org_id)
-                .gte('scheduled_at', startOfPeriod)
-                .order('scheduled_at', { ascending: true })
+            // 2. Fetch data for Summary and Categories (Selected Period)
+            // We fetch a bit more for the previous month to calculate growth
+            const prevMonthDate = new Date(startDate)
+            prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
+            const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            if (error) throw error
+            const [apptsResponse, txsResponse] = await Promise.all([
+                supabase
+                    .from('appointments')
+                    .select(`
+                        id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
+                        pets ( name ),
+                        services (
+                            name,
+                            service_categories ( name )
+                        )
+                    `)
+                    .eq('org_id', profile.org_id)
+                    .gte('scheduled_at', fetchStart)
+                    .order('scheduled_at', { ascending: true }),
+                supabase
+                    .from('financial_transactions')
+                    .select('*')
+                    .eq('org_id', profile.org_id)
+                    .gte('date', fetchStart)
+            ])
 
-            if (appointments) {
-                // Process Monthly Data
-                const monthMap = new Map<string, MonthlyData>()
+            if (apptsResponse.error) throw apptsResponse.error
+            if (txsResponse.error) throw txsResponse.error
 
-                // Initialize last 6 months
-                for (let i = 0; i < 6; i++) {
-                    const d = new Date(sixMonthsAgo)
-                    d.setMonth(d.getMonth() + i)
-                    const monthKey = d.toLocaleString('pt-BR', { month: 'short' })
-                    monthMap.set(monthKey, { month: monthKey, revenue: 0, expenses: 0, profit: 0 })
-                }
+            const appointments = apptsResponse.data || []
+            const transactions = txsResponse.data || []
 
-                appointments.forEach(appt => {
-                    const date = new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at)
-                    const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
-                    const amount = appt.final_price ?? appt.calculated_price ?? 0
-
-                    if (monthMap.has(monthKey) && appt.payment_status === 'paid') {
-                        const data = monthMap.get(monthKey)!
-                        data.revenue += amount
-                        data.profit += amount
-                    }
-                })
-
-                setMonthlyData(Array.from(monthMap.values()))
-
-                // Process Category Data (Current Month)
-                const currentMonthFilter = (appt: any) => {
-                    const d = new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at)
-                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-                }
-
-                const paidCurrentMonthAppts = appointments.filter(a => a.payment_status === 'paid' && currentMonthFilter(a))
-                const totalRevenue = paidCurrentMonthAppts.reduce((acc, curr) => acc + (curr.final_price ?? curr.calculated_price ?? 0), 0)
-
-                const catMap = new Map<string, CategoryRevenue>()
-
-                paidCurrentMonthAppts.forEach(appt => {
-                    const catName = (appt.services as any)?.service_categories?.name || 'Outros'
-                    const amount = appt.final_price ?? appt.calculated_price ?? 0
-
-                    if (!catMap.has(catName)) {
-                        catMap.set(catName, { name: catName, revenue: 0, count: 0, percentage: 0 })
-                    }
-                    const data = catMap.get(catName)!
-                    data.revenue += amount
-                    data.count += 1
-                })
-
-                const categories = Array.from(catMap.values()).map(c => ({
-                    ...c,
-                    percentage: totalRevenue > 0 ? parseFloat(((c.revenue / totalRevenue) * 100).toFixed(1)) : 0
-                }))
-
-                setCategoryRevenue(categories.sort((a, b) => b.revenue - a.revenue))
+            // --- Process Monthly Chart Data (Last 6 Months) ---
+            const monthMap = new Map<string, MonthlyData>()
+            for (let i = 0; i < 6; i++) {
+                const d = new Date(sixMonthsAgo)
+                d.setMonth(d.getMonth() + i)
+                const monthKey = d.toLocaleString('pt-BR', { month: 'short' })
+                monthMap.set(monthKey, { month: monthKey, revenue: 0, expenses: 0, profit: 0 })
             }
 
-            // 3. Fetch all financial transactions (income and expenses)
-            const { data: transactions } = await supabase
-                .from('financial_transactions')
-                .select('*')
-                .eq('org_id', profile.org_id)
-                .gte('date', startOfPeriod)
-
-            if (transactions) {
-                setMonthlyData(prev => {
-                    const newData = [...prev]
-                    transactions.forEach(t => {
-                        const date = new Date(t.date)
-                        const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
-                        const monthData = newData.find(d => d.month === monthKey)
-                        if (monthData) {
-                            if (t.type === 'income') {
-                                monthData.revenue += t.amount
-                            } else {
-                                monthData.expenses += t.amount
-                            }
-                            monthData.profit = monthData.revenue - monthData.expenses
-                        }
-                    })
-                    return newData
-                })
-
-                // Add to Category Data (Current Month)
-                const currentMonthTransactions = transactions.filter(t => {
-                    const d = new Date(t.date)
-                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-                })
-
-                if (currentMonthTransactions.length > 0) {
-                    setCategoryRevenue(prev => {
-                        const newCats = [...prev]
-                        currentMonthTransactions.forEach(t => {
-                            if (t.type === 'income') {
-                                const catName = t.category || 'Outros'
-                                let catData = newCats.find(c => c.name === catName)
-                                if (!catData) {
-                                    catData = { name: catName, revenue: 0, count: 0, percentage: 0 }
-                                    newCats.push(catData)
-                                }
-                                catData.revenue += t.amount
-                                catData.count += 1
-                            }
-                        })
-
-                        const totalRev = newCats.reduce((acc, curr) => acc + curr.revenue, 0)
-                        return newCats.map(c => ({
-                            ...c,
-                            percentage: totalRev > 0 ? parseFloat(((c.revenue / totalRev) * 100).toFixed(1)) : 0
-                        })).sort((a, b) => b.revenue - a.revenue)
-                    })
+            // Add Appointments to Chart
+            appointments.forEach(appt => {
+                const dateAt = appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at
+                const date = new Date(dateAt)
+                const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
+                if (monthMap.has(monthKey) && appt.payment_status === 'paid') {
+                    const data = monthMap.get(monthKey)!
+                    data.revenue += (appt.final_price ?? appt.calculated_price ?? 0)
                 }
+            })
+
+            // Add Transactions to Chart
+            transactions.forEach(t => {
+                const date = new Date(t.date)
+                const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
+                const data = monthMap.get(monthKey)
+                if (data) {
+                    if (t.type === 'income') data.revenue += t.amount
+                    else data.expenses += t.amount
+                    data.profit = data.revenue - data.expenses
+                }
+            })
+            setMonthlyData(Array.from(monthMap.values()))
+
+            // --- Process Summary and Categories (filtered by startDate/endDate) ---
+            const filterByPeriod = (dateStr: string) => {
+                const d = new Date(dateStr)
+                return d >= new Date(startDate) && d <= new Date(endDate + 'T23:59:59')
             }
 
-            // Store for extract (only current month for dashboard simplicity)
-            const currentMonthAppts = (appointments || []).filter(a => {
-                const d = new Date(a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at)
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+            const activeAppts = appointments.filter(a => filterByPeriod(a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at))
+            const activeTxs = transactions.filter(t => filterByPeriod(t.date))
+
+            const catMap = new Map<string, CategoryRevenue>()
+            let totalRev = 0
+
+            // Combine income sources for categories
+            activeAppts.forEach(a => {
+                if (a.payment_status === 'paid') {
+                    const catName = (a.services as any)?.service_categories?.name || 'Serviços'
+                    const amount = a.final_price ?? a.calculated_price ?? 0
+                    const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
+                    current.revenue += amount
+                    current.count += 1
+                    catMap.set(catName, current)
+                    totalRev += amount
+                }
             })
-            const currentMonthTxs = (transactions || []).filter(t => {
-                const d = new Date(t.date)
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+
+            activeTxs.forEach(t => {
+                if (t.type === 'income') {
+                    const catName = t.category || 'Outros'
+                    const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
+                    current.revenue += t.amount
+                    current.count += 1
+                    catMap.set(catName, current)
+                    totalRev += t.amount
+                }
             })
+
+            setCategoryRevenue(
+                Array.from(catMap.values())
+                    .map(c => ({
+                        ...c,
+                        percentage: totalRev > 0 ? parseFloat(((c.revenue / totalRev) * 100).toFixed(1)) : 0
+                    }))
+                    .sort((a, b) => b.revenue - a.revenue)
+            )
 
             setExtractRecords({
                 type: null,
-                appointments: currentMonthAppts,
-                transactions: currentMonthTxs
+                appointments: activeAppts,
+                transactions: activeTxs
             })
 
         } catch (error) {
@@ -209,7 +188,7 @@ export default function FinanceiroPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase])
+    }, [supabase, startDate, endDate])
 
     useEffect(() => {
         fetchFinancials()
@@ -240,6 +219,8 @@ export default function FinanceiroPage() {
         }
     }
 
+    const [selectedCategory, setSelectedCategory] = useState<string>('all')
+
     const handleDeleteTransaction = async (txId: string) => {
         if (!confirm('Tem certeza que deseja excluir esta transação?')) return
 
@@ -259,16 +240,28 @@ export default function FinanceiroPage() {
         }
     }
 
-    const currentMonth = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1] : { revenue: 0, expenses: 0, profit: 0 }
-    const previousMonth = monthlyData.length > 1 ? monthlyData[monthlyData.length - 2] : { revenue: 0, expenses: 0, profit: 0 }
+    const currentMonthData = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1] : { revenue: 0, expenses: 0, profit: 0 }
+    const previousMonthData = monthlyData.length > 1 ? monthlyData[monthlyData.length - 2] : { revenue: 0, expenses: 0, profit: 0 }
 
-    // Add pending calculator for the "A Receber" card logic (which we'll add)
+    const activeRevenue = extractRecords.appointments
+        .filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory))
+        .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0) +
+        extractRecords.transactions
+            .filter(t => t.type === 'income' && (selectedCategory === 'all' || t.category === selectedCategory))
+            .reduce((sum, t) => sum + t.amount, 0)
+
+    const activeExpenses = extractRecords.transactions
+        .filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory))
+        .reduce((sum, t) => sum + t.amount, 0)
+
+    const activeProfit = activeRevenue - activeExpenses
+
     const pendingTotal = extractRecords.appointments
-        .filter(a => a.payment_status !== 'paid')
+        .filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory))
         .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-    const revenueGrowth = previousMonth.revenue > 0
-        ? ((currentMonth.revenue - previousMonth.revenue) / previousMonth.revenue * 100).toFixed(1)
+    const revenueGrowth = previousMonthData.revenue > 0
+        ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
         : '0.0'
 
     const formatCurrency = (value: number) => {
@@ -278,7 +271,7 @@ export default function FinanceiroPage() {
         }).format(value)
     }
 
-    const maxRevenue = Math.max(...monthlyData.map(d => d.revenue), 1) // Avoid div by zero
+    const maxRevenue = Math.max(...monthlyData.map(d => d.revenue), 1)
 
     if (loading) {
         return (
@@ -296,19 +289,38 @@ export default function FinanceiroPage() {
                     <h1 className={styles.title}>💰 Controle Financeiro</h1>
                     <p className={styles.subtitle}>Visão geral das finanças do seu pet shop</p>
                 </div>
-                <div className={styles.periodToggle}>
-                    <button
-                        className={`${styles.periodBtn} ${period === 'month' ? styles.active : ''}`}
-                        onClick={() => setPeriod('month')}
-                    >
-                        Este Mês
-                    </button>
-                    <button
-                        className={`${styles.periodBtn} ${period === 'year' ? styles.active : ''}`}
-                        onClick={() => setPeriod('year')}
-                    >
-                        Este Ano
-                    </button>
+                <div className={styles.filters}>
+                    <div className={styles.filterGroup}>
+                        <label>De:</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            className={styles.dateInput}
+                        />
+                    </div>
+                    <div className={styles.filterGroup}>
+                        <label>Até:</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            className={styles.dateInput}
+                        />
+                    </div>
+                    <div className={styles.filterGroup}>
+                        <label>Categoria:</label>
+                        <select
+                            value={selectedCategory}
+                            onChange={e => setSelectedCategory(e.target.value)}
+                            className={styles.selectInput}
+                        >
+                            <option value="all">Todas</option>
+                            {categoryRevenue.map(cat => (
+                                <option key={cat.name} value={cat.name}>{cat.name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -324,7 +336,7 @@ export default function FinanceiroPage() {
                             {Number(revenueGrowth) >= 0 ? '+' : ''}{revenueGrowth}%
                         </span>
                     </div>
-                    <span className={styles.cardValue}>{formatCurrency(currentMonth.revenue)}</span>
+                    <span className={styles.cardValue}>{formatCurrency(activeRevenue)}</span>
                     <span className={styles.cardLabel}>Faturamento</span>
                 </div>
 
@@ -335,7 +347,7 @@ export default function FinanceiroPage() {
                     <div className={styles.cardHeader}>
                         <span className={styles.cardIcon}>📉</span>
                     </div>
-                    <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(currentMonth.expenses)}</span>
+                    <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(activeExpenses)}</span>
                     <span className={styles.cardLabel}>Despesas</span>
                 </div>
 
@@ -346,7 +358,7 @@ export default function FinanceiroPage() {
                     <div className={styles.cardHeader}>
                         <span className={styles.cardIcon}>📈</span>
                     </div>
-                    <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(currentMonth.profit)}</span>
+                    <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(activeProfit)}</span>
                     <span className={styles.cardLabel}>Lucro Líquido</span>
                 </div>
 
@@ -378,6 +390,7 @@ export default function FinanceiroPage() {
                             {/* Appointments list (for Revenue and Pending) */}
                             {extractRecords.type !== 'expenses' && extractRecords.appointments
                                 .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
+                                .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
                                 .map(appt => (
                                     <div key={appt.id} className={styles.extractItem}>
                                         <div className={styles.extractInfo}>
@@ -403,6 +416,7 @@ export default function FinanceiroPage() {
                             {/* Transactions list (for Revenue and Expenses) */}
                             {extractRecords.type !== 'pending' && extractRecords.transactions
                                 .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
+                                .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
                                 .map(tx => (
                                     <div key={tx.id} className={styles.extractItem}>
                                         <div className={styles.extractInfo}>
@@ -425,12 +439,12 @@ export default function FinanceiroPage() {
                                 ))}
 
                             {/* Empty State */}
-                            {((extractRecords.type === 'pending' && extractRecords.appointments.filter(a => a.payment_status !== 'paid').length === 0) ||
-                                (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense').length === 0) ||
+                            {((extractRecords.type === 'pending' && extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0) ||
+                                (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0) ||
                                 (extractRecords.type === 'revenue' &&
-                                    extractRecords.appointments.filter(a => a.payment_status === 'paid').length === 0 &&
-                                    extractRecords.transactions.filter(t => t.type === 'income').length === 0)) && (
-                                    <p className={styles.emptyExtract}>Nenhum registro encontrado para este período.</p>
+                                    extractRecords.appointments.filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
+                                    extractRecords.transactions.filter(t => t.type === 'income' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0)) && (
+                                    <p className={styles.emptyExtract}>Nenhum registro encontrado para este período/categoria.</p>
                                 )}
                         </div>
                     </div>
@@ -449,7 +463,11 @@ export default function FinanceiroPage() {
                                         className={styles.bar}
                                         style={{ height: `${(data.revenue / maxRevenue) * 100}%` }}
                                     >
-                                        <span className={styles.barValue}>{(data.revenue / 1000).toFixed(0)}k</span>
+                                        <span className={styles.barValue}>
+                                            {data.revenue >= 1000
+                                                ? `${(data.revenue / 1000).toFixed(1)}k`
+                                                : data.revenue > 0 ? data.revenue.toFixed(0) : '0'}
+                                        </span>
                                     </div>
                                 </div>
                                 <span className={`${styles.barLabel} ${index === monthlyData.length - 1 ? styles.current : ''}`}>

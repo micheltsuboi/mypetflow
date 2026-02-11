@@ -36,27 +36,46 @@
     margin: 0;
 }
 
-.periodToggle {
+.filters {
     display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 0.25rem;
+    gap: 1.5rem;
+    align-items: center;
 }
 
-.periodBtn {
-    padding: 0.5rem 1rem;
-    background: transparent;
-    border: none;
-    border-radius: 6px;
+.filterGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filterGroup label {
+    font-size: 0.85rem;
     color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.dateInput,
+.selectInput {
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-primary);
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.periodBtn.active {
-    background: var(--primary);
-    color: white;
+.dateInput:focus,
+.selectInput:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.periodToggle {
+    display: none;
+    /* Replaced by dates */
 }
 
 /* Summary Grid */
@@ -239,18 +258,20 @@
 }
 
 .progressBar {
-    height: 8px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    height: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 5px;
     overflow: hidden;
     margin-bottom: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .progress {
     height: 100%;
     background: linear-gradient(90deg, var(--primary) 0%, var(--coral) 100%);
-    border-radius: 4px;
-    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(var(--primary-rgb, 96, 165, 250), 0.3);
+    border-radius: 5px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .serviceFooter {
