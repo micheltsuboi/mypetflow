@@ -116,20 +116,27 @@ export default function OwnerDashboard() {
 
                 const growth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : 0
 
-                // Also fetch expenses from financial_transactions if any
-                const { data: expenseTx } = await supabase
+                // 3. Fetch all financial transactions (income and expenses) for the month
+                const { data: transactions } = await supabase
                     .from('financial_transactions')
-                    .select('amount')
+                    .select('amount, type')
                     .eq('org_id', profile.org_id)
-                    .eq('type', 'expense')
                     .gte('date', startOfCurrentMonth)
 
-                const expenses = (expenseTx || []).reduce((sum, t) => sum + t.amount, 0)
+                const productRevenue = (transactions || [])
+                    .filter(t => t.type === 'income')
+                    .reduce((sum, t) => sum + t.amount, 0)
+
+                const expenses = (transactions || [])
+                    .filter(t => t.type === 'expense')
+                    .reduce((sum, t) => sum + t.amount, 0)
+
+                const totalRevenue = currentRevenue + productRevenue
 
                 setFinancials({
-                    revenue: currentRevenue,
+                    revenue: totalRevenue,
                     expenses,
-                    profit: currentRevenue - expenses,
+                    profit: totalRevenue - expenses,
                     pendingPayments,
                     monthlyGrowth: parseFloat(growth.toFixed(1))
                 })

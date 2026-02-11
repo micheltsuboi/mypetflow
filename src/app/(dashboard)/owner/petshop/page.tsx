@@ -17,7 +17,8 @@ export default function PetshopPage() {
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false)
     const [saleData, setSaleData] = useState({
         quantity: 1,
-        tempDiscountPercent: 0
+        tempDiscountPercent: 0,
+        paymentMethod: 'cash'
     })
     const [productToSell, setProductToSell] = useState<Product | null>(null)
 
@@ -146,7 +147,7 @@ export default function PetshopPage() {
 
     const handleOpenSaleModal = (product: Product) => {
         setProductToSell(product)
-        setSaleData({ quantity: 1, tempDiscountPercent: 0 })
+        setSaleData({ quantity: 1, tempDiscountPercent: 0, paymentMethod: 'cash' })
         setIsSaleModalOpen(true)
     }
 
@@ -187,6 +188,7 @@ export default function PetshopPage() {
                     category: 'Venda Produto',
                     amount: finalTotal,
                     description: `Venda de ${saleData.quantity}x ${productToSell.name}`,
+                    payment_method: saleData.paymentMethod || 'cash',
                     created_by: user.id,
                     date: new Date().toISOString()
                 })
@@ -491,6 +493,19 @@ export default function PetshopPage() {
                                         value={saleData.tempDiscountPercent}
                                         onChange={e => setSaleData({ ...saleData, tempDiscountPercent: parseFloat(e.target.value) })}
                                     />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Forma de Pagamento</label>
+                                    <select
+                                        className={styles.select}
+                                        value={saleData.paymentMethod}
+                                        onChange={e => setSaleData({ ...saleData, paymentMethod: e.target.value })}
+                                    >
+                                        <option value="cash">Dinheiro</option>
+                                        <option value="credit">Cartão de Crédito</option>
+                                        <option value="debit">Cartão de Débito</option>
+                                        <option value="pix">PIX</option>
+                                    </select>
                                 </div>
                             </div>
 

@@ -120,28 +120,61 @@ export default function FinanceiroPage() {
                 setCategoryRevenue(categories.sort((a, b) => b.revenue - a.revenue))
             }
 
-            // Also fetch expenses from financial_transactions (if still used for expenses)
-            const { data: expensesTx } = await supabase
+            // 3. Fetch all financial transactions (income and expenses)
+            const { data: transactions } = await supabase
                 .from('financial_transactions')
                 .select('*')
                 .eq('org_id', profile.org_id)
-                .eq('type', 'expense')
                 .gte('date', startOfPeriod)
 
-            if (expensesTx) {
+            if (transactions) {
                 setMonthlyData(prev => {
                     const newData = [...prev]
-                    expensesTx.forEach(t => {
+                    transactions.forEach(t => {
                         const date = new Date(t.date)
                         const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
                         const monthData = newData.find(d => d.month === monthKey)
                         if (monthData) {
-                            monthData.expenses += t.amount
+                            if (t.type === 'income') {
+                                monthData.revenue += t.amount
+                            } else {
+                                monthData.expenses += t.amount
+                            }
                             monthData.profit = monthData.revenue - monthData.expenses
                         }
                     })
                     return newData
                 })
+
+                // Add to Category Data (Current Month)
+                const currentMonthTransactions = transactions.filter(t => {
+                    const d = new Date(t.date)
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+                })
+
+                if (currentMonthTransactions.length > 0) {
+                    setCategoryRevenue(prev => {
+                        const newCats = [...prev]
+                        currentMonthTransactions.forEach(t => {
+                            if (t.type === 'income') {
+                                const catName = t.category || 'Outros'
+                                let catData = newCats.find(c => c.name === catName)
+                                if (!catData) {
+                                    catData = { name: catName, revenue: 0, count: 0, percentage: 0 }
+                                    newCats.push(catData)
+                                }
+                                catData.revenue += t.amount
+                                catData.count += 1
+                            }
+                        })
+
+                        const totalRev = newCats.reduce((acc, curr) => acc + curr.revenue, 0)
+                        return newCats.map(c => ({
+                            ...c,
+                            percentage: totalRev > 0 ? parseFloat(((c.revenue / totalRev) * 100).toFixed(1)) : 0
+                        })).sort((a, b) => b.revenue - a.revenue)
+                    })
+                }
             }
 
         } catch (error) {
