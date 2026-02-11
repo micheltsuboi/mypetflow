@@ -234,7 +234,7 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Operational Stats */}
-            <div className={styles.financialGrid} style={{ marginBottom: '1.5rem', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <div className={styles.financialGrid}>
                 <div className={styles.financialCard}>
                     <div className={styles.cardIcon}>👤</div>
                     <div className={styles.cardContent}>
