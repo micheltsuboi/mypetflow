@@ -273,6 +273,18 @@ export default function AgendaPage() {
         let finalSvcId = serviceId || ''
         let finalPetId = petId || ''
 
+        // Check for blocks if hour is provided
+        if (hour) {
+            const isBlocked = blocks.some(b => {
+                const bStart = new Date(b.start_at)
+                return bStart.getHours() === hour && b.start_at.startsWith(finalDate)
+            })
+            if (isBlocked) {
+                alert('Este horário está bloqueado.')
+                return
+            }
+        }
+
         setSelectedDate(finalDate)
         if (hour) setSelectedHourSlot(hour.toString().padStart(2, '0'))
         if (petId) setPreSelectedPetId(petId)
@@ -440,6 +452,7 @@ export default function AgendaPage() {
                         const start = new Date(b.start_at).getHours()
                         return start === h
                     })
+                    const isBlocked = slotBlocks.length > 0
 
                     return (
                         <div key={h} className={styles.hourRow}>
@@ -452,9 +465,11 @@ export default function AgendaPage() {
                                     </div>
                                 ))}
                                 {slotAppts.map(renderAppointmentCard)}
-                                <button className={styles.addSlotBtn} onClick={() => handleNewAppointment(selectedDate, h)}>
-                                    +
-                                </button>
+                                {!isBlocked && (
+                                    <button className={styles.addSlotBtn} onClick={() => handleNewAppointment(selectedDate, h)}>
+                                        +
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )

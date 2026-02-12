@@ -32,7 +32,6 @@ export default function DashboardLayout({
         { name: 'Pets', href: '/owner/pets', icon: '🐾' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
-        { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
     ]
 
     const ownerNavigation = [
@@ -86,7 +85,12 @@ export default function DashboardLayout({
     }
 
     // Determine target navigation based on role AND current path to prevent confusion
-    let navigation = staffNavigation // Default
+    let navigation = [...staffNavigation]
+
+    // Extra safety: Filter out 'Usuários' for Staff
+    if (user?.role === 'Staff' || !user) {
+        navigation = navigation.filter((item: any) => item.name !== 'Usuários')
+    }
 
     console.log('Layout logic - Current user role:', user?.role, 'Org:', user?.org_id, 'Path:', pathname)
 
