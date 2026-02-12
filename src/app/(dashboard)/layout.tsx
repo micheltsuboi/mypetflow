@@ -90,15 +90,24 @@ export default function DashboardLayout({
     // Determine target navigation based on role AND current path to prevent confusion
     let navigation = staffNavigation // Default
 
+    console.log('Layout logic - Current user role:', user?.role, 'Path:', pathname)
+
     if (user?.role === 'Super Admin' && isMasterAdmin) {
+        console.log('Layout: Using Master Admin Navigation')
         navigation = masterAdminNavigation
+    } else if (user?.role === 'Super Admin' && isOwner) {
+        console.log('Layout: Using Owner Navigation for Super Admin')
+        navigation = ownerNavigation
     } else if (user?.role === 'Administrador' && isOwner) {
+        console.log('Layout: Using Owner Navigation')
         navigation = ownerNavigation
     } else if (user?.role === 'Staff' && (isOwner || pathname === '/staff')) {
+        console.log('Layout: Using Staff Navigation')
         // Staff might access some /owner pages (like agenda) but should see staff menu
         navigation = staffNavigation
     } else {
         // Fallback based on path if role mismatches or is loading
+        console.log('Layout: Using Fallback Navigation based on path')
         navigation = isMasterAdmin ? masterAdminNavigation : (isOwner ? ownerNavigation : staffNavigation)
     }
 

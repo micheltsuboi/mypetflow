@@ -44,12 +44,15 @@ export default function LoginPage() {
             if (!profile) throw new Error('Perfil não encontrado.')
 
             // 3. Redirect based on Role
+            console.log('Login logic - profile role:', profile.role)
             switch (profile.role) {
                 case 'superadmin':
                 case 'admin':
+                    console.log('Redirecting to /owner')
                     router.push('/owner')
                     break
                 case 'staff':
+                    console.log('Redirecting to /staff')
                     router.push('/staff')
                     break
                 case 'customer':

@@ -48,10 +48,10 @@ export default function Home() {
             <p>Painel de atendimento</p>
           </Link>
 
-          <Link href="/admin" className={styles.card}>
+          <Link href="/master-admin" className={styles.card}>
             <div className={styles.cardIcon}>⚙️</div>
-            <h2>Admin</h2>
-            <p>Gestão completa</p>
+            <h2>Admin Master</h2>
+            <p>Gestão Geral do Sistema</p>
           </Link>
 
           <Link href="/tutor" className={styles.card}>
