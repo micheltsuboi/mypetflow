@@ -85,11 +85,20 @@ export default function DashboardLayout({
         router.push('/login')
     }
 
-    // Determine target navigation based on role, falling back to path-based if role hasn't loaded
-    const navigation = user?.role === 'Super Admin' ? masterAdminNavigation :
-        user?.role === 'Staff' ? staffNavigation :
-            user?.role === 'Administrador' ? ownerNavigation :
-                (isMasterAdmin ? masterAdminNavigation : (isOwner ? ownerNavigation : staffNavigation))
+    // Determine target navigation based on role AND current path to prevent confusion
+    let navigation = staffNavigation // Default
+
+    if (user?.role === 'Super Admin' && isMasterAdmin) {
+        navigation = masterAdminNavigation
+    } else if (user?.role === 'Administrador' && isOwner) {
+        navigation = ownerNavigation
+    } else if (user?.role === 'Staff' && (isOwner || pathname === '/staff')) {
+        // Staff might access some /owner pages (like agenda) but should see staff menu
+        navigation = staffNavigation
+    } else {
+        // Fallback based on path if role mismatches or is loading
+        navigation = isMasterAdmin ? masterAdminNavigation : (isOwner ? ownerNavigation : staffNavigation)
+    }
 
     return (
         <div className={styles.container}>

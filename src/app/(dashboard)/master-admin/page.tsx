@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
 
 interface PetShop {
@@ -100,17 +102,37 @@ export default function AdminPage() {
     const [shops, setShops] = useState<PetShop[]>([])
     const [analytics, setAnalytics] = useState<Analytics | null>(null)
     const [loading, setLoading] = useState(true)
+    const router = useRouter()
+    const supabase = createClient()
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('all')
 
     useEffect(() => {
-        // Simular carregamento
-        setTimeout(() => {
+        const checkAuth = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.push('/login')
+                return
+            }
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+
+            if (!profile || profile.role !== 'superadmin') {
+                router.push('/owner') // Redirect unauthorized users to regular dashboard
+                return
+            }
+
             setShops(mockShops)
             setAnalytics(mockAnalytics)
             setLoading(false)
-        }, 500)
-    }, [])
+        }
+
+        checkAuth()
+    }, [supabase, router])
 
     const filteredShops = shops.filter(shop => {
         const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

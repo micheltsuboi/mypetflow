@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 
@@ -56,6 +57,8 @@ export default function OwnerDashboard() {
         pendingPayments: 0,
         monthlyGrowth: 0
     })
+    const router = useRouter()
+    const pathname = usePathname()
     const [petsToday] = useState<PetToday[]>([])
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({
@@ -84,13 +87,27 @@ export default function OwnerDashboard() {
                 if (!user) return
 
                 // Get user's organization
-                const { data: profile } = await supabase
+                const { data: profileData } = await supabase
                     .from('profiles')
-                    .select('org_id')
+                    .select('org_id, role')
                     .eq('id', user.id)
                     .single()
 
+                const profile = profileData as { org_id: string; role: string } | null
+
                 if (!profile?.org_id) return
+
+                // Basic Authorization Check
+                if (profile.role !== 'admin' && profile.role !== 'staff' && profile.role !== 'superadmin') {
+                    router.push('/login')
+                    return
+                }
+
+                // Superadmins shouldn't stay in /owner normally, they belong in /master-admin
+                if (profile.role === 'superadmin' && pathname === '/owner') {
+                    router.push('/master-admin')
+                    return
+                }
 
                 // 1. Fetch Financial Data from APPOINTMENTS
                 const now = new Date()
