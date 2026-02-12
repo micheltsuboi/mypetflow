@@ -46,8 +46,6 @@ export default function LoginPage() {
             // 3. Redirect based on Role
             switch (profile.role) {
                 case 'superadmin':
-                    router.push('/master-admin')
-                    break
                 case 'admin':
                     router.push('/owner')
                     break

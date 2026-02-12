@@ -17,6 +17,11 @@ export default function DashboardLayout({
     const isOwner = pathname?.startsWith('/owner')
     const isMasterAdmin = pathname?.startsWith('/master-admin')
 
+    const [user, setUser] = useState<{ name: string; role: string } | null>(null)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const supabase = createClient()
+    const router = useRouter()
+
     const staffNavigation = [
         { name: 'Dashboard', href: '/staff', icon: '📊' },
         { name: 'Agenda', href: '/owner/agenda', icon: '📅' },
@@ -44,17 +49,14 @@ export default function DashboardLayout({
         { name: 'Vacinas', href: '/owner/vaccines', icon: '💉' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
+        ...(user?.role === 'Super Admin' ? [{ name: 'Painel Master', href: '/master-admin', icon: '⚡' }] : []),
     ]
 
     const masterAdminNavigation = [
         { name: 'Dashboard', href: '/master-admin', icon: '⚡' },
         { name: 'Tenants', href: '/master-admin/tenants', icon: '🏢' },
+        { name: 'Painel Loja', href: '/owner', icon: '🏪' },
     ]
-
-    const [user, setUser] = useState<{ name: string; role: string } | null>(null)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const supabase = createClient()
-    const router = useRouter()
 
     useEffect(() => {
         const getUser = async () => {

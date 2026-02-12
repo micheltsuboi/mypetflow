@@ -103,12 +103,6 @@ export default function OwnerDashboard() {
                     return
                 }
 
-                // Superadmins shouldn't stay in /owner normally, they belong in /master-admin
-                if (profile.role === 'superadmin' && pathname === '/owner') {
-                    router.push('/master-admin')
-                    return
-                }
-
                 // 1. Fetch Financial Data from APPOINTMENTS
                 const now = new Date()
                 const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
