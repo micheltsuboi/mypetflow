@@ -50,6 +50,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
     )
     const [perfumeAllowed, setPerfumeAllowed] = useState(appointment.pets?.perfume_allowed ?? true)
     const [accessoriesAllowed, setAccessoriesAllowed] = useState(appointment.pets?.accessories_allowed ?? true)
+    const [savingChecklist, setSavingChecklist] = useState(false)
 
     // Photo State
     const [photos, setPhotos] = useState<string[]>([])
@@ -66,16 +67,33 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         loadPhotos()
     }, [appointment.id])
 
-    const handleChecklistToggle = (index: number) => {
+    const handleChecklistToggle = async (index: number) => {
         const newChecklist = [...checklist]
         const wasCompleted = newChecklist[index].completed
         newChecklist[index].completed = !wasCompleted
         newChecklist[index].completed_at = !wasCompleted ? new Date().toISOString() : null
         setChecklist(newChecklist)
+
+        // Auto-save
+        setSavingChecklist(true)
+        try {
+            await updateChecklist(appointment.id, newChecklist)
+            onSave() // Refresh parent UI
+        } catch (err) {
+            console.error('Error auto-saving checklist:', err)
+        } finally {
+            setSavingChecklist(false)
+        }
     }
 
     const handleSaveChecklist = async () => {
-        await updateChecklist(appointment.id, checklist)
+        setSavingChecklist(true)
+        try {
+            await updateChecklist(appointment.id, checklist)
+            onSave()
+        } finally {
+            setSavingChecklist(false)
+        }
     }
 
     const handlePreferenceToggle = async (type: 'perfume' | 'accessories', value: boolean) => {
@@ -238,7 +256,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                     <section>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                             <h3 style={{ color: '#cbd5e1', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Checklist de Procedimentos</h3>
-                            <button onClick={handleSaveChecklist} style={{ padding: '0.25rem 0.75rem', fontSize: '0.8rem', background: '#334155', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar Checklist</button>
+                            {savingChecklist && <span style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 500 }}>⏳ Salvando...</span>}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
                             {checklist.length === 0 ? (

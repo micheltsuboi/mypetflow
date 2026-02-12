@@ -279,6 +279,9 @@ export async function updateChecklist(id: string, checklist: { text?: string, la
     if (error) return { message: error.message, success: false }
 
     revalidatePath('/owner/agenda')
+    revalidatePath('/owner/banho-tosa')
+    revalidatePath('/owner/creche')
+    revalidatePath('/owner/hospedagem')
     return { message: 'Checklist salvo.', success: true }
 }
 
