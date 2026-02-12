@@ -462,7 +462,7 @@ export default function AgendaPage() {
     }
 
     const renderDayView = () => {
-        const hours = Array.from({ length: 13 }, (_, i) => i + 7) // 7h to 19h
+        const hours = Array.from({ length: 11 }, (_, i) => i + 8) // 08h to 18h
         return (
             <div className={styles.dayGrid}>
                 {hours.map(h => {
@@ -491,7 +491,7 @@ export default function AgendaPage() {
                             // For simplicity, let's keep it in the scheduled hour if it's the start day, 
                             // or maybe hour 7 (start of day) if it's a middle day.
                             if (selectedDate > a.check_in_date! && selectedDate <= a.check_out_date!) {
-                                hourMatches = h === 7 // Show middle days at 7 AM
+                                hourMatches = h === 8 // Show middle days at 8 AM
                             }
                         }
 
@@ -545,7 +545,7 @@ export default function AgendaPage() {
             date.setDate(diff)
             return date
         })
-        const hours = Array.from({ length: 13 }, (_, i) => i + 7)
+        const hours = Array.from({ length: 11 }, (_, i) => i + 8)
 
         return (
             <div className={styles.weekGrid}>
@@ -572,7 +572,7 @@ export default function AgendaPage() {
                                 let hourMatches = ad.getHours() === h
 
                                 if (isMultiday && dateStr > a.check_in_date! && dateStr <= a.check_out_date!) {
-                                    hourMatches = h === 7 // Middle days at 7 AM
+                                    hourMatches = h === 8 // Middle days at 8 AM
                                 }
 
                                 return matchesDay && hourMatches
