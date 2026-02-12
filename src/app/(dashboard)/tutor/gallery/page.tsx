@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useState, useCallback } from 'react'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
