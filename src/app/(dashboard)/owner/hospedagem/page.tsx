@@ -214,7 +214,7 @@ export default function HospedagemPage() {
                     {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum hóspede encontrado neste período.' : 'Nenhum histórico encontrado para o período.')}
                 </div>
             ) : (
-                <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                <div className={styles.grid}>
                     {filteredAppointments.map(appt => {
                         const checkInDate = appt.check_in_date ? new Date(appt.check_in_date + 'T12:00:00') : new Date(appt.scheduled_at)
                         const checkOutDate = appt.check_out_date ? new Date(appt.check_out_date + 'T12:00:00') : null
@@ -224,10 +224,11 @@ export default function HospedagemPage() {
                             ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
                             : 1
 
-                        // Price calc (rough estimate based on base price * days if not set otherwise)
                         const totalEstimate = appt.calculated_price
                             ? Number(appt.calculated_price)
                             : ((appt.services?.base_price || 0) * (days || 1))
+
+                        const categoryColor = appt.services?.service_categories?.color || '#F97316'
 
                         return (
                             <div
@@ -235,18 +236,17 @@ export default function HospedagemPage() {
                                 className={styles.appointmentCard}
                                 onClick={() => setSelectedAppointment(appt)}
                                 style={{
-                                    borderLeft: `4px solid ${appt.services?.service_categories?.color || '#3B82F6'}`,
+                                    borderLeft: `4px solid ${categoryColor}`,
                                     background: 'var(--bg-secondary)',
                                     opacity: 1,
-                                    cursor: 'pointer',
-                                    position: 'relative' // Ensure relative positioning
+                                    cursor: 'pointer'
                                 }}>
-                                {/* Date Badge - Enhanced for visibility */}
+                                {/* Date Badge */}
                                 <div style={{
                                     position: 'absolute',
                                     top: '-12px',
                                     right: '16px',
-                                    background: appt.services?.service_categories?.color || '#F97316', // Fallback to Orange
+                                    background: categoryColor,
                                     color: 'white',
                                     padding: '6px 12px',
                                     borderRadius: '12px',
@@ -257,7 +257,7 @@ export default function HospedagemPage() {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     lineHeight: 1,
-                                    border: '3px solid var(--bg-primary, #0f172a)', // Thicker border
+                                    border: '3px solid var(--bg-primary, #0f172a)',
                                     minWidth: '54px'
                                 }}>
                                     <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
@@ -268,7 +268,7 @@ export default function HospedagemPage() {
                                     </span>
                                 </div>
 
-                                {/* Content with Top Padding to clear badge area */}
+                                {/* Main Content */}
                                 <div className={styles.cardTop} style={{ marginTop: '1rem', paddingTop: '0.5rem' }}>
                                     <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
                                         <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
@@ -277,12 +277,12 @@ export default function HospedagemPage() {
                                                 {appt.pets?.name || 'Pet'}
                                                 <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
                                                     {appt.status === 'in_progress' ? '🏠 Hospedado' :
-                                                        (appt.status === 'done' || appt.status === 'completed') ? '🏁 Finalizado' :
-                                                            '📅 Reservado'}
+                                                        (appt.status === 'done' || appt.status === 'completed') ? '✅ Finalizado' :
+                                                            '⏳ Reservado'}
                                                 </span>
                                             </div>
 
-                                            {/* Action Buttons (Flex Row) */}
+                                            {/* Action Buttons Row */}
                                             {viewMode === 'active' && (
                                                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
                                                     <button
@@ -298,7 +298,7 @@ export default function HospedagemPage() {
                                                             cursor: 'pointer',
                                                             display: 'flex',
                                                             alignItems: 'center',
-                                                            fontSize: '0.85rem',
+                                                            fontSize: '0.9rem',
                                                             color: '#e2e8f0'
                                                         }}
                                                     >
@@ -317,7 +317,7 @@ export default function HospedagemPage() {
                                                             cursor: 'pointer',
                                                             display: 'flex',
                                                             alignItems: 'center',
-                                                            fontSize: '0.85rem',
+                                                            fontSize: '0.9rem',
                                                             color: '#fca5a5'
                                                         }}
                                                     >
@@ -327,20 +327,15 @@ export default function HospedagemPage() {
                                             )}
                                             <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
 
-                                            <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                                                🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-
-                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem' }}>
-                                                📅 <strong>Entrada:</strong> {checkInDate.toLocaleDateString('pt-BR')}
-                                            </div>
-                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>
-                                                📅 <strong>Saída:</strong> {checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}
+                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                <div>📅 <strong>In:</strong> {checkInDate.toLocaleDateString('pt-BR')}</div>
+                                                <div>📅 <strong>Out:</strong> {checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}</div>
                                             </div>
 
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                                                <span>{appt.services?.name} ({days} dias)</span>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                                                {appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})
                                             </div>
+
                                             <PaymentControls
                                                 appointmentId={appt.id}
                                                 calculatedPrice={totalEstimate}
@@ -356,38 +351,37 @@ export default function HospedagemPage() {
                                 </div>
 
                                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-                                    {/* Actual Check-in/out times if available */}
                                     {(appt.actual_check_in || appt.actual_check_out) && (
                                         <div style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '4px' }}>
-                                            {appt.actual_check_in && <div>🟢 Check-in Real: {new Date(appt.actual_check_in).toLocaleString('pt-BR')}</div>}
-                                            {appt.actual_check_out && <div>🔴 Check-out Real: {new Date(appt.actual_check_out).toLocaleString('pt-BR')}</div>}
+                                            {appt.actual_check_in && <div>🟢 Real In: {new Date(appt.actual_check_in).toLocaleString('pt-BR')}</div>}
+                                            {appt.actual_check_out && <div>🔴 Real Out: {new Date(appt.actual_check_out).toLocaleString('pt-BR')}</div>}
                                         </div>
                                     )}
 
-                                    {viewMode === 'active' ? (
+                                    {viewMode === 'active' && (
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            {appt.status !== 'in_progress' && appt.status !== 'done' && (
+                                            {appt.status !== 'in_progress' && (
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleCheckIn(appt.id)
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); handleCheckIn(appt.id) }}
                                                     style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
                                                     📥 Check-in
                                                 </button>
                                             )}
                                             {appt.status === 'in_progress' && (
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleCheckOut(appt.id)
-                                                    }}
+                                                    onClick={(e) => { e.stopPropagation(); handleCheckOut(appt.id) }}
                                                     style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
                                                     📤 Check-out
                                                 </button>
                                             )}
                                         </div>
-                                    ) : null}
+                                    )}
+                                    {viewMode === 'history' && (
+                                        <button
+                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
+                                            📜 Ver Relatório
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )

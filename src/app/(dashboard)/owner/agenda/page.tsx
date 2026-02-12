@@ -64,6 +64,8 @@ interface Appointment {
     notes: string | null
     actual_check_in: string | null
     actual_check_out: string | null
+    check_in_date?: string | null
+    check_out_date?: string | null
     pets: Pet | null
     services: Service | null
     calculated_price?: number | null
@@ -197,7 +199,10 @@ export default function AgendaPage() {
 
             if (blks) setBlocks(blks)
 
-            // Fetch Appointments
+            // Fetch Appointments - Updated for multiday support
+            const startDayStr = startDateStr.split('T')[0]
+            const endDayStr = endDateStr.split('T')[0]
+
             const { data: appts, error } = await supabase
                 .from('appointments')
                 .select(`
@@ -205,6 +210,7 @@ export default function AgendaPage() {
                     calculated_price,
                     final_price, discount_percent, payment_status, payment_method,
                     actual_check_in, actual_check_out,
+                    check_in_date, check_out_date,
                     pets ( 
                         name, species, breed, 
                         perfume_allowed, accessories_allowed, special_care,
@@ -216,8 +222,7 @@ export default function AgendaPage() {
                     )
                 `)
                 .eq('org_id', profile.org_id)
-                .gte('scheduled_at', startDateStr)
-                .lte('scheduled_at', endDateStr)
+                .or(`and(scheduled_at.gte.${startDateStr},scheduled_at.lte.${endDateStr}),and(check_in_date.lte.${endDayStr},check_out_date.gte.${startDayStr})`)
                 .neq('status', 'cancelled')
 
             if (error) console.error(error)
@@ -463,16 +468,39 @@ export default function AgendaPage() {
                 {hours.map(h => {
                     const timeStr = `${h.toString().padStart(2, '0')}:00`
                     const slotAppts = appointments.filter(a => {
+                        const isMultiday = !!(a.check_in_date && a.check_out_date)
+                        const matchesDay = isMultiday
+                            ? (selectedDate >= a.check_in_date! && selectedDate <= a.check_out_date!)
+                            : a.scheduled_at.startsWith(selectedDate)
+
+                        // For multiday, we show them at a "check-in" hour (e.g., 14h) or spread them?
+                        // User mentioned indicating them across all relevant days.
+                        // If it's the start day, show at scheduled_at hour.
+                        // If it's a middle day, maybe show at a default hour or at the top.
+                        // Let's stick to showing them if they match the day.
+                        // For day view, if it matches the day, we need to decide WHICH hour to show it in.
+                        // If it's just a regular service, it has an hour.
+                        // If it's hospedagem, it spans days.
+
                         const d = new Date(a.scheduled_at)
                         const localH = d.getHours()
-                        const matchesHour = localH === h
-                        // Filters
+                        let hourMatches = localH === h
+
+                        if (isMultiday) {
+                            // If it's a middle day, maybe show it in a specific "all day" slot or at the scheduled hour?
+                            // For simplicity, let's keep it in the scheduled hour if it's the start day, 
+                            // or maybe hour 7 (start of day) if it's a middle day.
+                            if (selectedDate > a.check_in_date! && selectedDate <= a.check_out_date!) {
+                                hourMatches = h === 7 // Show middle days at 7 AM
+                            }
+                        }
+
                         const matchesCategory = !categoryFilter || a.services?.service_categories?.name === categoryFilter
                         const matchesSearch = !searchTerm ||
                             a.pets?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             a.pets?.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
-                        return matchesHour && matchesCategory && matchesSearch
+                        return matchesDay && hourMatches && matchesCategory && matchesSearch
                     })
 
                     const slotBlocks = blocks.filter(b => {
@@ -535,11 +563,19 @@ export default function AgendaPage() {
                         {weekDays.map(d => {
                             const dateStr = d.toISOString().split('T')[0]
                             const slotAppts = appointments.filter(a => {
+                                const isMultiday = !!(a.check_in_date && a.check_out_date)
+                                const matchesDay = isMultiday
+                                    ? (dateStr >= a.check_in_date && dateStr <= a.check_out_date)
+                                    : a.scheduled_at.startsWith(dateStr)
+
                                 const ad = new Date(a.scheduled_at)
-                                const sameDay = ad.getDate() === d.getDate() &&
-                                    ad.getMonth() === d.getMonth() &&
-                                    ad.getFullYear() === d.getFullYear()
-                                return sameDay && ad.getHours() === h
+                                let hourMatches = ad.getHours() === h
+
+                                if (isMultiday && dateStr > a.check_in_date! && dateStr <= a.check_out_date!) {
+                                    hourMatches = h === 7 // Middle days at 7 AM
+                                }
+
+                                return matchesDay && hourMatches
                             })
                             const slotBlocks = blocks.filter(b => {
                                 const bStart = new Date(b.start_at)
@@ -595,7 +631,12 @@ export default function AgendaPage() {
                 {Array.from({ length: firstDay.getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
                 {days.map(day => {
                     const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-                    const dayAppts = appointments.filter(a => a.scheduled_at.startsWith(dateStr))
+                    const dayAppts = appointments.filter(a => {
+                        const isMultiday = !!(a.check_in_date && a.check_out_date)
+                        return isMultiday
+                            ? (dateStr >= a.check_in_date! && dateStr <= a.check_out_date!)
+                            : a.scheduled_at.startsWith(dateStr)
+                    })
                     return (
                         <div key={day} className={styles.monthCell} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
                             <div className={styles.monthDate}>{day}</div>
