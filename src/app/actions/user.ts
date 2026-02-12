@@ -33,6 +33,10 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     const password = formData.get('password') as string
     const fullName = formData.get('fullName') as string
     const role = formData.get('role') as string
+    const workStartTime = formData.get('workStartTime') as string
+    const lunchStartTime = formData.get('lunchStartTime') as string
+    const lunchEndTime = formData.get('lunchEndTime') as string
+    const workEndTime = formData.get('workEndTime') as string
 
     if (!email || !password || !fullName || !role) {
         return { message: 'Todos os campos são obrigatórios.', success: false }
@@ -69,6 +73,10 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
             full_name: fullName,
             role: role as 'admin' | 'staff' | 'customer',
             org_id: profile.org_id,
+            work_start_time: workStartTime || '08:00',
+            lunch_start_time: lunchStartTime || '12:00',
+            lunch_end_time: lunchEndTime || '13:00',
+            work_end_time: workEndTime || '18:00',
             is_active: true
         })
 

@@ -13,6 +13,10 @@ interface Profile {
     email: string
     role: 'superadmin' | 'admin' | 'staff' | 'customer'
     is_active: boolean
+    work_start_time?: string
+    lunch_start_time?: string
+    lunch_end_time?: string
+    work_end_time?: string
     created_at: string
 }
 
@@ -246,6 +250,26 @@ export default function UsuariosPage() {
                                             <option value="staff">Staff (Operacional)</option>
                                             <option value="admin">Administrador</option>
                                         </select>
+                                    </div>
+                                </div>
+
+                                <div className={styles.sectionDivider}>⏰ Horário de Trabalho</div>
+                                <div className={styles.row}>
+                                    <div className={styles.formGroup} style={{ flex: 1 }}>
+                                        <label htmlFor="workStartTime" className={styles.label}>Entrada</label>
+                                        <input id="workStartTime" name="workStartTime" type="time" className={styles.input} defaultValue="08:00" required />
+                                    </div>
+                                    <div className={styles.formGroup} style={{ flex: 1 }}>
+                                        <label htmlFor="lunchStartTime" className={styles.label}>Início Almoço</label>
+                                        <input id="lunchStartTime" name="lunchStartTime" type="time" className={styles.input} defaultValue="12:00" required />
+                                    </div>
+                                    <div className={styles.formGroup} style={{ flex: 1 }}>
+                                        <label htmlFor="lunchEndTime" className={styles.label}>Fim Almoço</label>
+                                        <input id="lunchEndTime" name="lunchEndTime" type="time" className={styles.input} defaultValue="13:00" required />
+                                    </div>
+                                    <div className={styles.formGroup} style={{ flex: 1 }}>
+                                        <label htmlFor="workEndTime" className={styles.label}>Saída</label>
+                                        <input id="workEndTime" name="workEndTime" type="time" className={styles.input} defaultValue="18:00" required />
                                     </div>
                                 </div>
 

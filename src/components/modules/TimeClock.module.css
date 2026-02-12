@@ -185,6 +185,112 @@
     }
 }
 
+
+/* Enhanced Styles */
+.historySection {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.historyTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.historyList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.historyItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+.historyTime {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.historyStatus {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+.statusOnTime {
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+}
+
+.statusLate {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+}
+
+/* Justification */
+.justificationField {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.justificationField label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.justificationField textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    resize: none;
+    height: 60px;
+}
+
+.justificationField textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Overtime */
+.overtimeInfo {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(var(--primary-rgb), 0.1);
+    border: 1px dashed var(--primary);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.overtimeLabel {
+    font-size: 0.8rem;
+    color: var(--primary);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.overtimeValue {
+    font-weight: 700;
+    color: var(--primary);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
     .container {
