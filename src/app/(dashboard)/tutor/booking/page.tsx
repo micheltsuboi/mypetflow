@@ -1,8 +1,7 @@
-'use client'
-
-import { useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
+import { createClient } from '@/lib/supabase/client'
 
 interface TimeSlot {
     time: string
@@ -12,41 +11,69 @@ interface TimeSlot {
 interface Service {
     id: string
     name: string
-    duration: string
-    price: number
-}
-
-const mockServices: Service[] = [
-    { id: 's1', name: 'Banho', duration: '1h', price: 65 },
-    { id: 's2', name: 'Tosa Higiênica', duration: '30min', price: 35 },
-    { id: 's3', name: 'Banho + Tosa', duration: '2h', price: 95 },
-    { id: 's4', name: 'Pacote Mensal (4 banhos)', duration: '1h/banho', price: 220 },
-]
-
-const generateTimeSlots = (): TimeSlot[] => {
-    const slots: TimeSlot[] = []
-    for (let hour = 8; hour <= 17; hour++) {
-        slots.push({
-            time: `${hour.toString().padStart(2, '0')}:00`,
-            available: Math.random() > 0.3
-        })
-        if (hour < 17) {
-            slots.push({
-                time: `${hour.toString().padStart(2, '0')}:30`,
-                available: Math.random() > 0.3
-            })
-        }
-    }
-    return slots
+    base_price: number
+    category: string
 }
 
 export default function BookingPage() {
+    const supabase = createClient()
+    const [services, setServices] = useState<Service[]>([])
     const [selectedService, setSelectedService] = useState<string | null>(null)
     const [selectedDate, setSelectedDate] = useState<string>('')
     const [selectedTime, setSelectedTime] = useState<string | null>(null)
     const [step, setStep] = useState(1)
-    const [timeSlots] = useState<TimeSlot[]>(generateTimeSlots())
+    const [loading, setLoading] = useState(true)
+    const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
     const [bookingComplete, setBookingComplete] = useState(false)
+
+    const fetchServices = useCallback(async () => {
+        try {
+            setLoading(true)
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            // 1. Get tutor profile to find org_id
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('org_id')
+                .eq('id', user.id)
+                .single()
+
+            if (!profile?.org_id) return
+
+            // 2. Get active services for this org
+            const { data: serviceData } = await supabase
+                .from('services')
+                .select('id, name, base_price, category')
+                .eq('org_id', profile.org_id)
+                .eq('is_active', true)
+
+            if (serviceData) setServices(serviceData)
+
+        } catch (error) {
+            console.error('Error fetching services:', error)
+        } finally {
+            setLoading(false)
+        }
+    }, [supabase])
+
+    useEffect(() => {
+        fetchServices()
+    }, [fetchServices])
+
+    // Generate mock time slots for now (real availability check would be complex)
+    const generateTimeSlots = useCallback(() => {
+        const slots: TimeSlot[] = []
+        for (let hour = 8; hour <= 17; hour++) {
+            slots.push({ time: `${hour.toString().padStart(2, '0')}:00`, available: Math.random() > 0.3 })
+            if (hour < 17) slots.push({ time: `${hour.toString().padStart(2, '0')}:30`, available: Math.random() > 0.3 })
+        }
+        setTimeSlots(slots)
+    }, [])
+
+    useEffect(() => {
+        if (selectedDate) generateTimeSlots()
+    }, [selectedDate, generateTimeSlots])
 
     const handleServiceSelect = (serviceId: string) => {
         setSelectedService(serviceId)
@@ -62,12 +89,13 @@ export default function BookingPage() {
         setSelectedTime(time)
     }
 
-    const handleConfirm = () => {
-        // Simular agendamento
+    const handleConfirm = async () => {
+        // Here we would implement the real appointment creation
+        // For now, let's at least simulate success
         setBookingComplete(true)
     }
 
-    const selectedServiceData = mockServices.find(s => s.id === selectedService)
+    const selectedServiceData = services.find(s => s.id === selectedService)
 
     if (bookingComplete) {
         return (
@@ -96,7 +124,7 @@ export default function BookingPage() {
                         </div>
                         <div className={styles.confirmRow}>
                             <span>Valor:</span>
-                            <strong>R$ {selectedServiceData?.price.toFixed(2)}</strong>
+                            <strong>R$ {selectedServiceData?.base_price.toFixed(2)}</strong>
                         </div>
                     </div>
 
@@ -137,7 +165,7 @@ export default function BookingPage() {
             <div className={styles.section}>
                 <h2 className={styles.sectionTitle}>Escolha o serviço</h2>
                 <div className={styles.serviceList}>
-                    {mockServices.map((service) => (
+                    {services.map((service) => (
                         <button
                             key={service.id}
                             className={`${styles.serviceCard} ${selectedService === service.id ? styles.selected : ''}`}
@@ -145,9 +173,9 @@ export default function BookingPage() {
                         >
                             <div className={styles.serviceInfo}>
                                 <span className={styles.serviceName}>{service.name}</span>
-                                <span className={styles.serviceDuration}>⏱️ {service.duration}</span>
+                                <span className={styles.serviceDuration}>⏱️ --</span>
                             </div>
-                            <span className={styles.servicePrice}>R$ {service.price}</span>
+                            <span className={styles.servicePrice}>R$ {service.base_price}</span>
                         </button>
                     ))}
                 </div>

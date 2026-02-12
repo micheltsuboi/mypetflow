@@ -116,22 +116,43 @@ export default function TutorPage() {
                         started_at: apptData.started_at
                     })
 
-                    // 4. Get Timeline (Daily Reports) for this appointment
+                    // 4. Get Daily Report Summary for this appointment
                     const { data: reportData } = await supabase
-                        .from('daily_reports')
-                        .select('id, report_type, observation, photo_url, created_at, profiles(full_name)')
+                        .from('appointment_daily_reports')
+                        .select('id, report_text, photos, created_at')
                         .eq('appointment_id', apptData.id)
-                        .order('created_at', { ascending: false })
+                        .single()
 
                     if (reportData) {
-                        setTimeline(reportData.map(r => ({
-                            id: r.id,
-                            type: r.report_type as any,
-                            observation: r.observation || '',
-                            photo_url: r.photo_url,
-                            created_at: r.created_at,
-                            staff_name: (r.profiles as any)?.full_name || 'Equipe'
-                        })))
+                        const events: TimelineEvent[] = []
+
+                        // Add report text as a general event if it exists
+                        if (reportData.report_text) {
+                            events.push({
+                                id: reportData.id + '_text',
+                                type: 'general',
+                                observation: reportData.report_text,
+                                photo_url: null,
+                                created_at: reportData.created_at,
+                                staff_name: 'Equipe'
+                            })
+                        }
+
+                        // Add each photo as a photo event
+                        if (reportData.photos && reportData.photos.length > 0) {
+                            reportData.photos.forEach((url: string, idx: number) => {
+                                events.push({
+                                    id: reportData.id + '_photo_' + idx,
+                                    type: 'photo',
+                                    observation: idx === 0 ? 'Registro fotográfico do atendimento' : '',
+                                    photo_url: url,
+                                    created_at: reportData.created_at,
+                                    staff_name: 'Equipe'
+                                })
+                            })
+                        }
+
+                        setTimeline(events)
                     }
                 }
             }
@@ -155,7 +176,7 @@ export default function TutorPage() {
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',
-                table: 'daily_reports',
+                table: 'appointment_daily_reports',
                 filter: `appointment_id=eq.${appointment.id}`
             }, () => {
                 fetchData() // Refresh on change

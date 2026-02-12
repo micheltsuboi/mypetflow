@@ -16,14 +16,14 @@ interface AppointmentDetails {
     completed_at: string | null
     status: string
     notes: string | null
-    checklist: { label: string, completed: boolean }[]
+    checklist: any[]
     services: { name: string, category: string }
     pets: { name: string }
 }
 
 interface TimelineEvent {
     id: string
-    report_type: string
+    type: 'photo' | 'text'
     observation: string
     photo_url: string | null
     created_at: string
@@ -49,14 +49,40 @@ export default function TutorServiceDetailsModal({ appointmentId, onClose }: Tut
 
                 if (apptData) setAppointment(apptData as any)
 
-                // 2. Timeline
+                // 2. Daily Report Summary
                 const { data: reportData } = await supabase
-                    .from('daily_reports')
+                    .from('appointment_daily_reports')
                     .select('*')
                     .eq('appointment_id', appointmentId)
-                    .order('created_at', { ascending: true })
+                    .single()
 
-                if (reportData) setTimeline(reportData)
+                if (reportData) {
+                    const events: TimelineEvent[] = []
+
+                    if (reportData.report_text) {
+                        events.push({
+                            id: 'report_text',
+                            type: 'text',
+                            observation: reportData.report_text,
+                            photo_url: null,
+                            created_at: reportData.created_at
+                        })
+                    }
+
+                    if (reportData.photos && reportData.photos.length > 0) {
+                        reportData.photos.forEach((url: string, idx: number) => {
+                            events.push({
+                                id: `photo_${idx}`,
+                                type: 'photo',
+                                observation: '',
+                                photo_url: url,
+                                created_at: reportData.created_at
+                            })
+                        })
+                    }
+
+                    setTimeline(events)
+                }
 
             } catch (error) {
                 console.error('Error fetching details:', error)
@@ -137,28 +163,31 @@ export default function TutorServiceDetailsModal({ appointmentId, onClose }: Tut
                     {appointment.checklist && appointment.checklist.length > 0 && (
                         <div className={styles.checklist}>
                             <h3 className={styles.sectionTitle}>✅ Lista de Tarefas</h3>
-                            {appointment.checklist.map((item, idx) => (
-                                <div key={idx} className={`${styles.checkItem} ${item.completed ? styles.completed : ''}`}>
-                                    <div className={styles.checkDot} />
-                                    <span>{item.label}</span>
-                                </div>
-                            ))}
+                            <div className={styles.checkGrid}>
+                                {appointment.checklist.map((item: any, idx: number) => {
+                                    const label = item.text || item.label || item.item || 'Item'
+                                    const completed = item.completed ?? item.checked ?? item.done ?? false
+                                    return (
+                                        <div key={idx} className={`${styles.checkItem} ${completed ? styles.completed : ''}`}>
+                                            <div className={styles.checkDot} />
+                                            <span>{label}</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
                     )}
 
                     <div className={styles.timelineSection}>
-                        <h3 className={styles.sectionTitle}>📸 Timeline do Dia</h3>
+                        <h3 className={styles.sectionTitle}>📸 Fotos e Atualizações</h3>
                         {timeline.length > 0 ? (
                             <div className={styles.timeline}>
                                 {timeline.map(event => (
                                     <div key={event.id} className={styles.timelineItem}>
                                         <div className={styles.timelineDot} />
                                         <div className={styles.timelineContent}>
-                                            <div className={styles.timelineHeader}>
-                                                <span className={styles.timelineTime}>{formatTime(event.created_at)}</span>
-                                            </div>
-                                            <p>{event.observation}</p>
-                                            {event.photo_url && (
+                                            {event.type === 'text' && <p>{event.observation}</p>}
+                                            {event.type === 'photo' && event.photo_url && (
                                                 <div className={styles.timelinePhoto}>
                                                     <img src={event.photo_url} alt="Foto do momento" />
                                                 </div>
@@ -169,7 +198,7 @@ export default function TutorServiceDetailsModal({ appointmentId, onClose }: Tut
                             </div>
                         ) : (
                             <p style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                Nenhuma atualização de timeline disponível.
+                                Nenhuma atualização de fotos disponível.
                             </p>
                         )}
                     </div>

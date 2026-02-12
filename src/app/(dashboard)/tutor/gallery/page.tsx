@@ -1,66 +1,87 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import styles from './page.module.css'
+import { createClient } from '@/lib/supabase/client'
 
 interface Photo {
     id: string
     url: string
     date: string
     service_name: string
+    pet_name: string
 }
 
-// Mock data para demonstração
-const mockPhotos: Photo[] = [
-    {
-        id: '1',
-        url: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400',
-        date: new Date().toISOString(),
-        service_name: 'Banho + Tosa'
-    },
-    {
-        id: '2',
-        url: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=400',
-        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-        service_name: 'Banho'
-    },
-    {
-        id: '3',
-        url: 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400',
-        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-        service_name: 'Creche'
-    },
-    {
-        id: '4',
-        url: 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400',
-        date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-        service_name: 'Banho + Tosa'
-    },
-    {
-        id: '5',
-        url: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400',
-        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        service_name: 'Hotel'
-    },
-    {
-        id: '6',
-        url: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?w=400',
-        date: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
-        service_name: 'Banho'
-    }
-]
-
 export default function GalleryPage() {
+    const supabase = createClient()
     const [photos, setPhotos] = useState<Photo[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null)
 
-    useEffect(() => {
-        setTimeout(() => {
-            setPhotos(mockPhotos)
+    const fetchPhotos = useCallback(async () => {
+        try {
+            setLoading(true)
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            // 1. Get pets for this customer
+            const { data: customer } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('user_id', user.id)
+                .single()
+
+            if (!customer) return
+
+            const { data: pets } = await supabase
+                .from('pets')
+                .select('id, name')
+                .eq('customer_id', customer.id)
+
+            if (!pets || pets.length === 0) return
+            const petIds = pets.map(p => p.id)
+
+            // 2. Get reports with photos for these pets
+            const { data: reportData } = await supabase
+                .from('appointment_daily_reports')
+                .select(`
+                    id,
+                    photos,
+                    created_at,
+                    appointments!inner (
+                        services (name),
+                        pets (name)
+                    )
+                `)
+                .in('appointments.pet_id', petIds)
+                .order('created_at', { ascending: false })
+
+            if (reportData) {
+                const galleryPhotos: Photo[] = []
+                reportData.forEach(report => {
+                    if (report.photos && report.photos.length > 0) {
+                        report.photos.forEach((url: string, idx: number) => {
+                            galleryPhotos.push({
+                                id: `${report.id}_${idx}`,
+                                url,
+                                date: report.created_at,
+                                service_name: (report.appointments as any).services?.name || 'Serviço',
+                                pet_name: (report.appointments as any).pets?.name || 'Pet'
+                            })
+                        })
+                    }
+                })
+                setPhotos(galleryPhotos)
+            }
+
+        } catch (error) {
+            console.error('Error fetching gallery photos:', error)
+        } finally {
             setLoading(false)
-        }, 300)
-    }, [])
+        }
+    }, [supabase])
+
+    useEffect(() => {
+        fetchPhotos()
+    }, [fetchPhotos])
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('pt-BR', {
