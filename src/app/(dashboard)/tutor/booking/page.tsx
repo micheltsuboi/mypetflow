@@ -21,6 +21,7 @@ interface Service {
     name: string
     base_price: number
     category: string
+    target_species?: 'dog' | 'cat' | 'both'
 }
 
 export default function BookingPage() {
@@ -37,6 +38,8 @@ export default function BookingPage() {
     const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
     const [bookingComplete, setBookingComplete] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [orgId, setOrgId] = useState<string | null>(null)
+    const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([])
 
     const fetchData = useCallback(async () => {
         try {
@@ -56,7 +59,7 @@ export default function BookingPage() {
                 return
             }
 
-            const orgId = customer.org_id
+            setOrgId(customer.org_id)
 
             // 2. Get tutor's pets
             const { data: petData } = await supabase
@@ -68,11 +71,11 @@ export default function BookingPage() {
             if (petData) setPets(petData)
 
             // 3. Get active services for this org
-            if (orgId) {
+            if (customer.org_id) {
                 const { data: serviceData } = await supabase
                     .from('services')
-                    .select('id, name, base_price, category')
-                    .eq('org_id', orgId)
+                    .select('id, name, base_price, category, target_species')
+                    .eq('org_id', customer.org_id)
                     .eq('is_active', true)
 
                 if (serviceData) setServices(serviceData)
@@ -90,15 +93,60 @@ export default function BookingPage() {
         fetchData()
     }, [fetchData])
 
-    // Generate mock time slots for now
+    // Fetch schedule blocks when date is selected
+    useEffect(() => {
+        const fetchBlocks = async () => {
+            if (!selectedDate || !orgId) return
+
+            const startOfDay = new Date(`${selectedDate}T00:00:00`).toISOString()
+            const endOfDay = new Date(`${selectedDate}T23:59:59`).toISOString()
+
+            // Fetch blocks that overlap with the selected day
+            // We use a broader query to catch any block that starts or ends within the day, or spans over it
+            const { data: blocks } = await supabase
+                .from('schedule_blocks')
+                .select('*')
+                .eq('org_id', orgId)
+                .lte('start_at', endOfDay)
+                .gte('end_at', startOfDay)
+
+            setScheduleBlocks(blocks || [])
+        }
+
+        fetchBlocks()
+    }, [selectedDate, orgId, supabase])
+
+    // Generate time slots
     const generateTimeSlots = useCallback(() => {
         const slots: TimeSlot[] = []
         for (let hour = 8; hour <= 17; hour++) {
-            slots.push({ time: `${hour.toString().padStart(2, '0')}:00`, available: true })
-            if (hour < 17) slots.push({ time: `${hour.toString().padStart(2, '0')}:30`, available: true })
+            const timeString = `${hour.toString().padStart(2, '0')}:00`
+            const timeDate = new Date(`${selectedDate}T${timeString}:00`)
+
+            // Check if this slot is blocked
+            const isBlocked = scheduleBlocks.some(block => {
+                const blockStart = new Date(block.start_at)
+                const blockEnd = new Date(block.end_at)
+                return timeDate >= blockStart && timeDate < blockEnd
+            })
+
+            slots.push({ time: timeString, available: !isBlocked })
+
+            if (hour < 17) {
+                const halfHourString = `${hour.toString().padStart(2, '0')}:30`
+                const halfHourDate = new Date(`${selectedDate}T${halfHourString}:00`)
+
+                const isHalfBlocked = scheduleBlocks.some(block => {
+                    const blockStart = new Date(block.start_at)
+                    const blockEnd = new Date(block.end_at)
+                    return halfHourDate >= blockStart && halfHourDate < blockEnd
+                })
+
+                slots.push({ time: halfHourString, available: !isHalfBlocked })
+            }
         }
         setTimeSlots(slots)
-    }, [])
+    }, [selectedDate, scheduleBlocks])
 
     useEffect(() => {
         if (selectedDate) generateTimeSlots()
@@ -106,6 +154,7 @@ export default function BookingPage() {
 
     const handlePetSelect = (petId: string) => {
         setSelectedPet(petId)
+        setSelectedService(null) // Reset service when pet changes
         setStep(2)
     }
 
@@ -170,6 +219,15 @@ export default function BookingPage() {
 
     const selectedPetData = pets.find(p => p.id === selectedPet)
     const selectedServiceData = services.find(s => s.id === selectedService)
+
+    // Filter services based on selected pet's species
+    const filteredServices = services.filter(service => {
+        if (!selectedPetData) return false
+        // Show service if target_species is 'both' or matches the pet's species
+        return !service.target_species ||
+            service.target_species === 'both' ||
+            service.target_species === selectedPetData.species
+    })
 
     if (bookingComplete) {
         return (
@@ -265,7 +323,7 @@ export default function BookingPage() {
                 <div className={styles.section}>
                     <h2 className={styles.sectionTitle}>Escolha o serviço</h2>
                     <div className={styles.serviceList}>
-                        {services.map((service) => (
+                        {filteredServices.length > 0 ? filteredServices.map((service) => (
                             <button
                                 key={service.id}
                                 className={`${styles.serviceCard} ${selectedService === service.id ? styles.selected : ''}`}
@@ -276,7 +334,9 @@ export default function BookingPage() {
                                 </div>
                                 <span className={styles.servicePrice}>R$ {service.base_price.toFixed(2)}</span>
                             </button>
-                        ))}
+                        )) : (
+                            <p className={styles.noServices}>Nenhum serviço disponível para este pet.</p>
+                        )}
                     </div>
                 </div>
             )}
