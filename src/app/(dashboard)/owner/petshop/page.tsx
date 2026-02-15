@@ -14,6 +14,7 @@ export default function PetshopPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('Todas')
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+    const [viewProduct, setViewProduct] = useState<Product | null>(null)
     const [isSaleModalOpen, setIsSaleModalOpen] = useState(false)
     const [saleData, setSaleData] = useState({
         quantity: 1,
@@ -276,60 +277,69 @@ export default function PetshopPage() {
                 </select>
             </div>
 
-            <div className={styles.grid}>
-                {filteredProducts.map(product => (
-                    <div key={product.id} className={styles.productCard}>
-                        <div className={styles.productImage}>
-                            {product.image_url ? (
-                                <img src={product.image_url} alt={product.name} />
-                            ) : (
-                                <div className={styles.placeholderImage}>
-                                    📦
-                                </div>
-                            )}
-                        </div>
-                        <div className={styles.productContent}>
-                            <div className={styles.productHeader}>
-                                <div>
-                                    <span className={styles.productCategory}>{product.category}</span>
-                                    <h3 className={styles.productName}>{product.name}</h3>
-                                </div>
-                            </div>
-
-                            <div className={styles.productPrice}>
-                                {formatCurrency(product.price)}
-                                <div style={{ fontSize: '0.75rem', color: '#666', fontWeight: 'normal' }}>
-                                    Custo: {formatCurrency(product.cost_price || 0)}
-                                </div>
-                            </div>
-
-                            <div className={styles.stockInfo}>
-                                <div>
-                                    <span className={styles.stockLabel}>Estoque: </span>
+            <div className={styles.tableContainer}>
+                <table className={styles.table}>
+                    <thead>
+                        <tr>
+                            <th style={{ width: '80px' }}>Foto</th>
+                            <th>Produto</th>
+                            <th>Categoria</th>
+                            <th>Preço</th>
+                            <th>Estoque</th>
+                            <th>Validade</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredProducts.map(product => (
+                            <tr key={product.id} onClick={() => setViewProduct(product)} style={{ cursor: 'pointer' }}>
+                                <td>
+                                    {product.image_url ? (
+                                        <img src={product.image_url} alt={product.name} className={styles.productThumb} />
+                                    ) : (
+                                        <div className={styles.productThumb}>📦</div>
+                                    )}
+                                </td>
+                                <td>
+                                    <div className={styles.productNameCell}>
+                                        {product.name}
+                                    </div>
+                                </td>
+                                <td><span className={styles.productCategoryCell}>{product.category}</span></td>
+                                <td style={{ color: 'var(--primary)', fontWeight: 600 }}>{formatCurrency(product.price)}</td>
+                                <td>
                                     <span className={`${styles.stockValue} ${product.stock_quantity < (product.min_stock_alert || 5) ? styles.lowStock : ''}`}>
                                         {product.stock_quantity} un
                                     </span>
-                                </div>
-                                <div>
-                                    <span className={styles.stockLabel}>Validade: </span>
-                                    <span className={styles.stockValue}>{formatDate(product.expiration_date)}</span>
-                                </div>
-                            </div>
-
-                            <div className={styles.actions}>
-                                <button className={`${styles.actionButton} ${styles.saleButton}`} onClick={() => handleOpenSaleModal(product)}>
-                                    💲 Vender
-                                </button>
-                                <button className={`${styles.actionButton} ${styles.editButton}`} onClick={() => handleOpenModal(product)}>
-                                    ✏️ Editar
-                                </button>
-                                <button className={`${styles.actionButton} ${styles.deleteButton}`} onClick={() => handleDelete(product.id)}>
-                                    🗑️ Excluir
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                                </td>
+                                <td>{formatDate(product.expiration_date)}</td>
+                                <td>
+                                    <div className={styles.actionsCell} onClick={e => e.stopPropagation()}>
+                                        <button className={styles.tableActionBtn} title="Ver Detalhes" onClick={() => setViewProduct(product)}>
+                                            👁️
+                                        </button>
+                                        <button className={styles.tableActionBtn} title="Vender" style={{ color: '#10B981', borderColor: '#10B981' }} onClick={() => handleOpenSaleModal(product)}>
+                                            💲
+                                        </button>
+                                        <button className={styles.tableActionBtn} title="Editar" onClick={() => handleOpenModal(product)}>
+                                            ✏️
+                                        </button>
+                                        <button className={styles.tableActionBtn} title="Excluir" style={{ color: '#ef4444', borderColor: '#ef4444' }} onClick={() => handleDelete(product.id)}>
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {filteredProducts.length === 0 && (
+                            <tr>
+                                <td colSpan={7} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                                    Nenhum produto encontrado.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
 
             {isModalOpen && (
@@ -535,6 +545,78 @@ export default function PetshopPage() {
                                 Confirmar Venda
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+            {viewProduct && (
+                <div className={styles.modalOverlay} onClick={() => setViewProduct(null)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <button className={styles.closeButton} onClick={() => setViewProduct(null)}>×</button>
+                        <h2>Detalhes do Produto</h2>
+
+                        <div className={styles.detailImageContainer}>
+                            {viewProduct.image_url ? (
+                                <img src={viewProduct.image_url} alt={viewProduct.name} className={styles.detailImage} />
+                            ) : (
+                                <div style={{ fontSize: '4rem' }}>📦</div>
+                            )}
+                        </div>
+
+                        <div className={styles.detailInfo}>
+                            <div>
+                                <span className={styles.detailLabel}>Nome do Produto</span>
+                                <div className={styles.detailValue}>{viewProduct.name}</div>
+                            </div>
+                            <div>
+                                <span className={styles.detailLabel}>Categoria</span>
+                                <div className={styles.detailValue}>{viewProduct.category}</div>
+                            </div>
+                            <div>
+                                <span className={styles.detailLabel}>Preço de Venda</span>
+                                <div className={styles.detailValue} style={{ color: 'var(--primary)' }}>{formatCurrency(viewProduct.price)}</div>
+                            </div>
+                            <div>
+                                <span className={styles.detailLabel}>Preço de Custo</span>
+                                <div className={styles.detailValue} style={{ fontSize: '0.9rem' }}>{formatCurrency(viewProduct.cost_price || 0)}</div>
+                            </div>
+                            <div>
+                                <span className={styles.detailLabel}>Estoque Atual</span>
+                                <div className={styles.detailValue}>{viewProduct.stock_quantity} unidades</div>
+                            </div>
+                            <div>
+                                <span className={styles.detailLabel}>Código de Barras</span>
+                                <div className={styles.detailValue}>{viewProduct.bar_code || '-'}</div>
+                            </div>
+                            <div>
+                                <span className={styles.detailLabel}>Validade</span>
+                                <div className={styles.detailValue}>{formatDate(viewProduct.expiration_date)}</div>
+                            </div>
+                        </div>
+
+                        {viewProduct.description && (
+                            <div style={{ marginTop: '1.5rem' }}>
+                                <span className={styles.detailLabel}>Descrição</span>
+                                <div className={styles.detailDescription}>
+                                    {viewProduct.description}
+                                </div>
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+                            <button
+                                className={styles.submitButton}
+                                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                                onClick={() => { setViewProduct(null); handleOpenModal(viewProduct) }}
+                            >
+                                ✏️ Editar
+                            </button>
+                            <button
+                                className={styles.submitButton}
+                                onClick={() => { setViewProduct(null); handleOpenSaleModal(viewProduct) }}
+                            >
+                                💲 Vender
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
