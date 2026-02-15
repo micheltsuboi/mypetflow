@@ -81,6 +81,17 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         }
     }
 
+    // 3. Get customer & pet data FIRST (needed for species check)
+    const { data: petData, error: petError } = await supabase
+        .from('pets')
+        .select('*, customer_id, weight_kg, species') // Ensure species is selected
+        .eq('id', petId)
+        .single()
+
+    if (petError || !petData) {
+        return { message: 'Pet não encontrado ou erro ao buscar dados do tutor.', success: false }
+    }
+
     // Prepare Date Range / Scheduled At
     let scheduledAt: string
     let checkIn: string | null = null
@@ -97,16 +108,31 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         try {
             scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
 
-            // 3. Check for Schedule Blocks (Conflict Check)
+            // 4. Check for Schedule Blocks (Conflict Check)
             const { data: blocks } = await supabase
                 .from('schedule_blocks')
-                .select('id, reason')
+                .select('id, reason, allowed_species')
                 .eq('org_id', profile.org_id)
                 .lte('start_at', scheduledAt)
                 .gte('end_at', scheduledAt)
 
-            if (blocks && blocks.length > 0 && !isCreche && !isHospedagem) {
-                return { message: `Este horário está bloqueado: ${blocks[0].reason}`, success: false }
+            // Filter blocks based on species restriction
+            const blockingBlocks = blocks?.filter(block => {
+                // If allowed_species is empty/null, it blocks everyone.
+                if (!block.allowed_species || block.allowed_species.length === 0) return true;
+
+                // If allowed_species has values, check if current pet species is in listed allowed species.
+                // If pet species is NOT in allowed list, it is BLOCKED.
+                // e.g. allowed=['cat'], pet='dog' -> blocked (true)
+                // e.g. allowed=['cat'], pet='cat' -> allowed (false)
+
+                // Need to cast petData to any or ensure type has species
+                const species = (petData as any).species || 'dog'
+                return !block.allowed_species.includes(species)
+            })
+
+            if (blockingBlocks && blockingBlocks.length > 0 && !isCreche && !isHospedagem) {
+                return { message: `Este horário está bloqueado: ${blockingBlocks[0].reason}`, success: false }
             }
         } catch (_) { // unused e
             return { message: 'Data ou hora inválida.', success: false }
@@ -122,25 +148,21 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
 
         const { data: conflictBlocks } = await supabase
             .from('schedule_blocks')
-            .select('id')
+            .select('id, reason, allowed_species')
             .eq('org_id', profile.org_id)
             .lt('start_at', endAt)
             .gt('end_at', scheduledAt)
 
-        if (conflictBlocks && conflictBlocks.length > 0 && !isCreche && !isHospedagem) {
-            return { message: 'Este horário está bloqueado na agenda.', success: false }
+        // Same filtering logic for duration blocks
+        const blockingConflicts = conflictBlocks?.filter(block => {
+            if (!block.allowed_species || block.allowed_species.length === 0) return true;
+            const species = (petData as any).species || 'dog'
+            return !block.allowed_species.includes(species)
+        })
+
+        if (blockingConflicts && blockingConflicts.length > 0 && !isCreche && !isHospedagem) {
+            return { message: `Conflito com bloqueio: ${blockingConflicts[0].reason}`, success: false }
         }
-    }
-
-    // Get customer_id from the Pet
-    const { data: petData, error: petError } = await supabase
-        .from('pets')
-        .select('customer_id, weight_kg')
-        .eq('id', petId)
-        .single()
-
-    if (petError || !petData) {
-        return { message: 'Pet não encontrado ou erro ao buscar dados do tutor.', success: false }
     }
 
     // Verify Credits
