@@ -308,6 +308,9 @@ export default function OwnerDashboard() {
                     <Link href="/owner/usuarios" className={styles.headerBtn}>
                         👥 Usuários
                     </Link>
+                    <Link href="/owner/ponto" className={styles.headerBtn}>
+                        ⏰ Ponto
+                    </Link>
                     <Link href="/owner/financeiro" className={styles.headerBtn}>
                         💰 Financeiro
                     </Link>
