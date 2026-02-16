@@ -46,6 +46,7 @@ export default function DashboardLayout({
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
+        { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
     ]
 
     const masterAdminNavigation = [
