@@ -86,13 +86,7 @@
 .submitBtn {
     grid-column: 1 / -1;
     margin-top: 1rem;
-    padding: 1rem;
-    background: linear-gradient(135deg, #E8826A, #D66D54);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    font-weight: 600;
-    cursor: pointer;
+    width: 100%;
 }
 
 .submitBtn:disabled {

@@ -299,7 +299,7 @@ export default function PetAssessmentForm({ petId, existingData, onSuccess }: As
             </div>
 
             <div className={styles.actions}>
-                <button type="submit" disabled={!declarationAccepted || isPending} className={styles.submitBtn}>
+                <button type="submit" disabled={!declarationAccepted || isPending} className="btn btn-primary">
                     {isPending ? 'Salvando...' : (isEditing ? 'Atualizar Avaliação' : 'Salvar Avaliação')}
                 </button>
             </div>

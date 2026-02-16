@@ -101,7 +101,7 @@ export default function PetRegistrationModal({ onClose, onSuccess }: { onClose: 
                         <textarea name="existing_conditions" className={styles.input} rows={2} placeholder="Ex: Alergia a frango..." />
                     </div>
 
-                    <button type="submit" className={styles.submitBtn} disabled={isPending}>
+                    <button type="submit" className={`btn btn-primary ${styles.submitBtn}`} disabled={isPending}>
                         {isPending ? 'Salvando...' : 'Cadastrar Pet'}
                     </button>
                     {!state.success && (
