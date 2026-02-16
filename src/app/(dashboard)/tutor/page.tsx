@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
+import PetRegistrationModal from '@/components/modules/PetRegistrationModal'
 
 interface Pet {
     id: string
@@ -63,7 +64,9 @@ export default function TutorPage() {
     const [appointment, setAppointment] = useState<CurrentAppointment | null>(null)
     const [timeline, setTimeline] = useState<TimelineEvent[]>([])
     const [loading, setLoading] = useState(true)
+
     const [elapsedTime, setElapsedTime] = useState('')
+    const [showPetModal, setShowPetModal] = useState(false)
 
     const fetchData = useCallback(async () => {
         try {
@@ -257,7 +260,19 @@ export default function TutorPage() {
                     <Link href="/tutor/profile" className={styles.actionButton}>
                         Completar meu Perfil
                     </Link>
+                    <button className={styles.actionButton} onClick={() => setShowPetModal(true)} style={{ marginTop: '1rem' }}>
+                        Cadastrar Primeiro Pet
+                    </button>
                 </div>
+                {showPetModal && (
+                    <PetRegistrationModal
+                        onClose={() => setShowPetModal(false)}
+                        onSuccess={() => {
+                            fetchData()
+                            setShowPetModal(false)
+                        }}
+                    />
+                )}
             </div>
         )
     }
@@ -380,7 +395,21 @@ export default function TutorPage() {
                     <span>👤</span>
                     <span>Meu Perfil</span>
                 </Link>
+                <button className={styles.actionButton} onClick={() => setShowPetModal(true)}>
+                    <span>🐶</span>
+                    <span>Cadastrar Pet</span>
+                </button>
             </div>
+
+            {showPetModal && (
+                <PetRegistrationModal
+                    onClose={() => setShowPetModal(false)}
+                    onSuccess={() => {
+                        fetchData()
+                        setShowPetModal(false)
+                    }}
+                />
+            )}
         </div>
     )
 }

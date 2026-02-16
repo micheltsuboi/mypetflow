@@ -248,3 +248,161 @@
         transform: translateY(0);
     }
 }
+/* Register Form Styles */
+.registerCard {
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(140, 180, 201, 0.15);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    animation: fadeIn 0.8s ease-out;
+}
+
+.cardTitle {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: white; /* var(--text-primary) */
+    text-align: center;
+    margin: 0;
+}
+
+.cardSubtitle {
+    color: #94a3b8; /* var(--text-secondary) */
+    text-align: center;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.formStack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.field label {
+    font-size: 0.9rem;
+    color: #cbd5e1;
+    margin-left: 0.25rem;
+}
+
+.input {
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.input:focus {
+    border-color: #8CB4C9; /* sky-blue */
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.primaryButton {
+    margin-top: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #E8826A, #D66D54);
+    color: white;
+    border: none;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: filter 0.2s;
+}
+
+.primaryButton:hover {
+    filter: brightness(1.1);
+}
+
+.primaryButton:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.errorMsg {
+    color: #f87171;
+    font-size: 0.9rem;
+    text-align: center;
+    background: rgba(220, 38, 38, 0.1);
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.loginDivider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.loginDivider span {
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+.loginButtons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.textLink {
+    color: #8CB4C9;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.textLink:hover {
+    color: #E8826A;
+    text-decoration: underline;
+}
+
+.sep {
+    color: #64748b;
+}
+
+.successCard {
+    background: rgba(22, 163, 74, 0.1);
+    border: 1px solid rgba(22, 163, 74, 0.3);
+    padding: 2rem;
+    border-radius: 1rem;
+    text-align: center;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+.button {
+    background: #16a34a;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    font-weight: 600;
+}

@@ -154,3 +154,77 @@ export async function deletePet(id: string) {
     revalidatePath('/owner/pets')
     return { message: 'Pet excluído com sucesso!', success: true }
 }
+
+export async function createPetByTutor(prevState: CreatePetState, formData: FormData) {
+    const supabase = await createClient()
+
+    // 1. Verify Authentication & Authorization (Customer)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { message: 'Não autorizado. Faça login primeiro.', success: false }
+    }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, org_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile) {
+        return { message: 'Erro ao verificar permissão.', success: false }
+    }
+
+    // 2. Get Customer Record
+    const { data: customer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+    if (!customer) {
+        return { message: 'Cadastro de tutor incompleto.', success: false }
+    }
+
+    // 3. Extract Data
+    const name = formData.get('name') as string
+    const species = formData.get('species') as string
+    const breed = formData.get('breed') as string
+    const gender = formData.get('gender') as string
+    const size = formData.get('size') as string
+    const weight = formData.get('weight') ? parseFloat(formData.get('weight') as string) : null
+    const birthDateStr = formData.get('birthDate') as string
+    const isNeutered = formData.get('isNeutered') === 'on'
+    const existing_conditions = formData.get('existing_conditions') as string
+    const vaccination_up_to_date = formData.get('vaccination_up_to_date') === 'on'
+
+    if (!name || !species || !gender || !size) {
+        return { message: 'Nome, Espécie, Sexo e Porte são obrigatórios.', success: false }
+    }
+
+    const supabaseAdmin = createAdminClient()
+
+    // 4. Create Pet
+    const { error } = await supabaseAdmin
+        .from('pets')
+        .insert({
+            customer_id: customer.id,
+            name: name,
+            species: species as 'dog' | 'cat' | 'other',
+            breed: breed || null,
+            gender: gender as 'male' | 'female',
+            size: size as 'small' | 'medium' | 'large' | 'giant',
+            weight_kg: weight,
+            birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
+            is_neutered: isNeutered,
+            existing_conditions: existing_conditions || null,
+            vaccination_up_to_date: vaccination_up_to_date,
+            // photo_url handled separately or ignored for now in simple form
+        })
+
+    if (error) {
+        return { message: `Erro ao cadastrar pet: ${error.message}`, success: false }
+    }
+
+    revalidatePath('/tutor')
+    return { message: 'Seu pet foi cadastrado com sucesso!', success: true }
+}

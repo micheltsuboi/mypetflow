@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './page.module.css'
+import RegisterForm from '@/components/modules/RegisterForm'
 
 export default function Home() {
   return (
@@ -18,71 +19,32 @@ export default function Home() {
             <Image
               src="/logo.png"
               alt="Sr. Pet Clube"
-              width={180}
-              height={180}
+              width={220}
+              height={220}
               className={styles.logoImage}
               priority
             />
           </div>
 
           <p className={styles.subtitle}>
-            Sistema completo para gestão do seu Pet Shop
+            A Petshop do seu melhor amigo
           </p>
 
           <p className={styles.description}>
-            Creche, Hotel, Banho e Tosa - Tudo em um só lugar
+            Cadastre-se para agendar banho, tosa, hotel e creche para seu pet.
           </p>
         </section>
 
-        {/* Cards Grid */}
-        <section className={styles.cardsGrid}>
-          <Link href="/login" className={styles.card}>
-            <div className={styles.cardIcon}>👤</div>
-            <h2>Entrar</h2>
-            <p>Acesse sua conta</p>
-          </Link>
-
-          <Link href="/staff" className={styles.card}>
-            <div className={styles.cardIcon}>📋</div>
-            <h2>Staff</h2>
-            <p>Painel de atendimento</p>
-          </Link>
-
-          <Link href="/master-admin" className={styles.card}>
-            <div className={styles.cardIcon}>⚙️</div>
-            <h2>Admin Master</h2>
-            <p>Gestão Geral do Sistema</p>
-          </Link>
-
-          <Link href="/tutor" className={styles.card}>
-            <div className={styles.cardIcon}>📱</div>
-            <h2>Portal do Tutor</h2>
-            <p>Acompanhe seu pet</p>
-          </Link>
-        </section>
-
-        {/* Features */}
-        <section className={styles.features}>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>🛁</span>
-            <span>Banho & Tosa</span>
-          </div>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>🏨</span>
-            <span>Hotel</span>
-          </div>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>🎓</span>
-            <span>Creche</span>
-          </div>
-          <div className={styles.feature}>
-            <span className={styles.featureIcon}>📅</span>
-            <span>Agendamentos</span>
-          </div>
+        {/* Registration Form (replaces Card Grid) */}
+        <section style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <RegisterForm />
         </section>
 
         <footer className={styles.footer}>
-          <p>© 2024 Sr. Pet Clube. Todos os direitos reservados.</p>
+          <p>© 2026 Sr. Pet Clube. Todos os direitos reservados.</p>
+          <div style={{ marginTop: '0.5rem', opacity: 0.5, fontSize: '0.8em' }}>
+            <Link href="/master-admin" style={{ color: 'inherit', textDecoration: 'none' }}>Admin Master</Link>
+          </div>
         </footer>
       </div>
     </main>
