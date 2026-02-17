@@ -29,6 +29,7 @@ export default function BookingPage() {
     const [pets, setPets] = useState<Pet[]>([])
     const [services, setServices] = useState<Service[]>([])
     const [selectedPet, setSelectedPet] = useState<string | null>(null)
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     const [selectedService, setSelectedService] = useState<string | null>(null)
     const [selectedDate, setSelectedDate] = useState<string>('')
     const [selectedTime, setSelectedTime] = useState<string | null>(null)
@@ -197,18 +198,25 @@ export default function BookingPage() {
 
     const handlePetSelect = (petId: string) => {
         setSelectedPet(petId)
+        setSelectedCategory(null)
         setSelectedService(null) // Reset service when pet changes
         setStep(2)
     }
 
+    const handleCategorySelect = (category: string) => {
+        setSelectedCategory(category)
+        setSelectedService(null)
+        setStep(3) // Move to service selection
+    }
+
     const handleServiceSelect = (serviceId: string) => {
         setSelectedService(serviceId)
-        setStep(3)
+        setStep(4) // Move to date selection
     }
 
     const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelectedDate(e.target.value)
-        setStep(4)
+        setStep(5) // Move to time selection
     }
 
     const handleTimeSelect = (time: string) => {
@@ -264,13 +272,35 @@ export default function BookingPage() {
     const selectedServiceData = services.find(s => s.id === selectedService)
 
     // Filter services based on selected pet's species
-    const filteredServices = services.filter(service => {
+    const availableServices = services.filter(service => {
         if (!selectedPetData) return false
-        // Show service if target_species is 'both' or matches the pet's species
-        return !service.target_species ||
-            service.target_species === 'both' ||
-            service.target_species === selectedPetData.species
+
+        // Strict filtering:
+        // 1. If target_species is explicitly set, must match or be 'both'
+        if (service.target_species) {
+            return service.target_species === 'both' || service.target_species === selectedPetData.species
+        }
+
+        // 2. Fallback for null target_species: Check name for keywords
+        const lowerName = service.name.toLowerCase()
+        const lowerCategory = (service.category || '').toLowerCase()
+
+        if (selectedPetData.species === 'dog') {
+            // If dog, exclude if name contains 'gato', 'felino'
+            if (lowerName.includes('gato') || lowerName.includes('felino') || lowerCategory.includes('gato')) return false
+        } else if (selectedPetData.species === 'cat') {
+            // If cat, exclude if name contains 'cão', 'cao', 'cachorro', 'canino'
+            if (lowerName.includes('cão') || lowerName.includes('cao') || lowerName.includes('cachorro') || lowerCategory.includes('cão')) return false
+        }
+
+        return true // Default to showing if no explicit conflict found
     })
+
+    // Group available services by category
+    const categories = Array.from(new Set(availableServices.map(s => s.category || 'Outros'))).sort()
+
+    // Filter services by selected category
+    const filteredServices = availableServices.filter(s => (s.category || 'Outros') === selectedCategory)
 
     if (bookingComplete) {
         return (
@@ -327,44 +357,65 @@ export default function BookingPage() {
                 <div className={styles.progressLine} />
                 <div className={`${styles.progressStep} ${step >= 2 ? styles.active : ''}`}>
                     <span>2</span>
-                    <p>Serviço</p>
+                    <p>Categoria</p>
                 </div>
                 <div className={styles.progressLine} />
                 <div className={`${styles.progressStep} ${step >= 3 ? styles.active : ''}`}>
                     <span>3</span>
-                    <p>Data</p>
-                </div>
-                <div className={styles.progressLine} />
-                <div className={`${styles.progressStep} ${step >= 4 ? styles.active : ''}`}>
-                    <span>4</span>
-                    <p>Horário</p>
+                    <p>Serviço</p>
                 </div>
             </div>
 
             {error && <div className={styles.errorBanner}>{error}</div>}
 
             {/* Step 1: Pet Selection */}
-            <div className={styles.section}>
-                <h2 className={styles.sectionTitle}>Escolha o pet</h2>
-                <div className={styles.serviceList}>
-                    {pets.map((pet) => (
-                        <button
-                            key={pet.id}
-                            className={`${styles.serviceCard} ${selectedPet === pet.id ? styles.selected : ''}`}
-                            onClick={() => handlePetSelect(pet.id)}
-                        >
-                            <div className={styles.serviceInfo}>
-                                <span className={styles.serviceName}>{pet.species === 'cat' ? '🐱' : '🐶'} {pet.name}</span>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Step 2: Service Selection */}
-            {step >= 2 && (
+            {step === 1 && (
                 <div className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Escolha o serviço</h2>
+                    <h2 className={styles.sectionTitle}>Escolha o pet</h2>
+                    <div className={styles.serviceList}>
+                        {pets.map((pet) => (
+                            <button
+                                key={pet.id}
+                                className={`${styles.serviceCard} ${selectedPet === pet.id ? styles.selected : ''}`}
+                                onClick={() => handlePetSelect(pet.id)}
+                            >
+                                <div className={styles.serviceInfo}>
+                                    <span className={styles.serviceName}>{pet.species === 'cat' ? '🐱' : '🐶'} {pet.name}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Step 2: Category Selection */}
+            {step === 2 && selectedPet && (
+                <div className={styles.section}>
+                    <h2 className={styles.sectionTitle}>Escolha a categoria</h2>
+                    <div className={styles.serviceList}>
+                        {categories.map((category) => (
+                            <button
+                                key={category}
+                                className={`${styles.serviceCard} ${selectedCategory === category ? styles.selected : ''}`}
+                                onClick={() => handleCategorySelect(category)}
+                            >
+                                <div className={styles.serviceInfo}>
+                                    <span className={styles.serviceName}>{category}</span>
+                                </div>
+                                <span className={styles.chevron}>›</span>
+                            </button>
+                        ))}
+                    </div>
+                    <button className={styles.backLink} onClick={() => setStep(1)} style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        ← Escolher outro pet
+                    </button>
+                </div>
+            )}
+
+            {/* Step 3: Service Selection */}
+            {step === 3 && selectedCategory && (
+                <div className={styles.section}>
+                    <h2 className={styles.sectionTitle}>Escolha o serviço ({selectedCategory})</h2>
                     <div className={styles.serviceList}>
                         {filteredServices.length > 0 ? filteredServices.map((service) => (
                             <button
@@ -378,14 +429,17 @@ export default function BookingPage() {
                                 <span className={styles.servicePrice}>R$ {service.base_price.toFixed(2)}</span>
                             </button>
                         )) : (
-                            <p className={styles.noServices}>Nenhum serviço disponível para este pet.</p>
+                            <p className={styles.noServices}>Nenhum serviço disponível nesta categoria.</p>
                         )}
                     </div>
+                    <button className={styles.backLink} onClick={() => setStep(2)} style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        ← Escolher outra categoria
+                    </button>
                 </div>
             )}
 
-            {/* Step 3: Date Selection */}
-            {step >= 3 && (
+            {/* Step 4: Date Selection */}
+            {step === 4 && (
                 <div className={styles.section}>
                     <h2 className={styles.sectionTitle}>Escolha a data</h2>
                     <input
@@ -395,11 +449,14 @@ export default function BookingPage() {
                         onChange={handleDateChange}
                         min={new Date().toISOString().split('T')[0]}
                     />
+                    <button className={styles.backLink} onClick={() => setStep(3)} style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        ← Escolher outro serviço
+                    </button>
                 </div>
             )}
 
-            {/* Step 4: Time Selection */}
-            {step >= 4 && selectedDate && (
+            {/* Step 5: Time Selection */}
+            {step === 5 && selectedDate && (
                 <div className={styles.section}>
                     <h2 className={styles.sectionTitle}>Escolha o horário</h2>
                     <div className={styles.timeGrid}>
@@ -414,6 +471,9 @@ export default function BookingPage() {
                             </button>
                         ))}
                     </div>
+                    <button className={styles.backLink} onClick={() => setStep(4)} style={{ marginTop: '1rem', background: 'none', border: 'none', cursor: 'pointer' }}>
+                        ← Escolher outra data
+                    </button>
                 </div>
             )}
 

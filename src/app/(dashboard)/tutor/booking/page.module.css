@@ -136,6 +136,17 @@
     gap: 0.25rem;
 }
 
+.serviceCategory {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: var(--primary);
+    background: rgba(var(--primary-rgb), 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    align-self: flex-start;
+    font-weight: 500;
+}
+
 .serviceName {
     font-weight: 600;
     font-size: 0.95rem;
