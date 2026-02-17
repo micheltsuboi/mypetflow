@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { createPetByTutor } from '@/app/actions/pet'
 import styles from './PetRegistrationModal.module.css'
+import ImageUpload from '@/components/ImageUpload'
 
 const initialState = {
     message: '',
@@ -11,6 +12,7 @@ const initialState = {
 
 export default function PetRegistrationModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: () => void }) {
     const [state, formAction, isPending] = useActionState(createPetByTutor, initialState)
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
     useEffect(() => {
         if (state.success) {
@@ -36,7 +38,20 @@ export default function PetRegistrationModal({ onClose, onSuccess }: { onClose: 
                     </div>
                 )}
 
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                    <ImageUpload
+                        bucket="pets"
+                        url={photoUrl}
+                        onUpload={setPhotoUrl}
+                        onRemove={() => setPhotoUrl(null)}
+                        label="Foto do Pet (Opcional)"
+                        circle={true}
+                    />
+                </div>
+
                 <form action={formAction} className={styles.formGrid}>
+                    <input type="hidden" name="photo_url" value={photoUrl || ''} />
+
                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                         <label className={styles.label}>Nome do Pet *</label>
                         <input name="name" required className={styles.input} placeholder="Ex: Rex" />
