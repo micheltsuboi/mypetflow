@@ -62,11 +62,12 @@ export default function UsuariosPage() {
 
             if (!currentUserProfile?.org_id) return
 
-            // Fetch profiles in the same org
+            // Fetch profiles in the same org, excluding customers
             const { data: profiles, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('org_id', currentUserProfile.org_id)
+                .neq('role', 'customer')
                 .order('full_name')
 
             if (error) throw error
