@@ -64,8 +64,15 @@
 }
 
 .actionButtonPrimary {
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
+    box-shadow: var(--shadow-md);
+    transition: all 0.2s;
+}
+
+.actionButtonPrimary:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
 }
 
 .actionButtonSecondary {

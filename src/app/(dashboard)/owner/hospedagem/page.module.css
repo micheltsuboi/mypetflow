@@ -61,8 +61,14 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.actionButton:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
 }
 
 /* Tabs */
