@@ -211,9 +211,22 @@ export default function PetshopPage() {
         }
     }
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Tem certeza que deseja excluir este produto?')) {
-            setProducts(products.filter(p => p.id !== id))
+            try {
+                const { error } = await supabase
+                    .from('products')
+                    .delete()
+                    .eq('id', id)
+
+                if (error) throw error
+
+                setProducts(products.filter(p => p.id !== id))
+                alert('Produto excluído com sucesso!')
+            } catch (error) {
+                console.error('Erro ao excluir produto:', error)
+                alert('Erro ao excluir produto.')
+            }
         }
     }
 

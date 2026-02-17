@@ -61,15 +61,20 @@
 }
 
 .actionButton {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--coral) 100%);
+    background: var(--gradient-primary);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     transition: all 0.2s;
+}
+
+.actionButton:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-1px);
 }
 
 .dateFilter {
@@ -529,14 +534,19 @@
 
 /* Secondary Button */
 .secondaryButton {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: rgba(43, 75, 111, 0.1);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+}
+
+.secondaryButton:hover {
+    background: rgba(43, 75, 111, 0.2);
+    border-color: var(--text-primary);
 }
 
 .secondaryButton:hover {
