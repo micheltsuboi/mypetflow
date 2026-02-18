@@ -23,8 +23,13 @@ export async function syncNotifications() {
         const today = new Date()
         const sevenDaysLater = new Date(today)
         sevenDaysLater.setDate(today.getDate() + 7)
+        // Normalize time part for accurate date comparison
+        const todayStr = today.toISOString().split('T')[0]
+        const sevenDaysLaterStr = sevenDaysLater.toISOString().split('T')[0]
 
-        const { data: expiringVaccines } = await supabase
+        console.log(`[Sync] Checking vaccines expiring between ${todayStr} and ${sevenDaysLaterStr}`)
+
+        const { data: expiringVaccines, error: vacError } = await supabase
             .from('pet_vaccines')
             .select(`
                 id, 
@@ -32,27 +37,36 @@ export async function syncNotifications() {
                 expiry_date, 
                 pets ( id, name, customer_id, customers ( org_id ) )
             `)
-            .lte('expiry_date', sevenDaysLater.toISOString().split('T')[0])
-        // .gte('expiry_date', today.toISOString().split('T')[0]) // Optional: include expired? yes.
+            .lte('expiry_date', sevenDaysLaterStr)
+        // .gte('expiry_date', todayStr) // Keep allowing expired ones to be notified if not yet notified
 
-        // Filter manually for org (since query is complex with deep relations) or rely on RLS if possible. 
-        // Better: Query pets in org first? No, easier to filter results in memory if dataset is small, 
-        // OR better query: 
-        // We really want: Vaccines for pets where pets.customer.org_id = orgId
+        if (vacError) {
+            console.error('[Sync] Error fetching vaccines:', vacError)
+        }
 
-        // Let's iterate found vaccines and insert notifications
-        if (expiringVaccines) {
+        if (expiringVaccines && expiringVaccines.length > 0) {
+            console.log(`[Sync] Found ${expiringVaccines.length} potential expiring vaccines.`)
+
             for (const vac of expiringVaccines) {
+                // Safely extract pet and customer data
                 // @ts-ignore
-                const pet: any = vac.pets
+                const petData = Array.isArray(vac.pets) ? vac.pets[0] : vac.pets
+                if (!petData) continue
+
                 // @ts-ignore
-                const orgMatch = pet?.customers?.org_id === orgId
+                const customerData = Array.isArray(petData.customers) ? petData.customers[0] : petData.customers
+
+                const petOrgId = customerData?.org_id
+                const orgMatch = petOrgId === orgId
 
                 if (orgMatch) {
                     const expiry = new Date(vac.expiry_date)
-                    const isExpired = expiry < today
+                    // Create date objects without time for comparison to avoid timezone issues affecting "isExpired" today
+                    const expiryStr = vac.expiry_date
+                    const isExpired = expiryStr < todayStr
+
                     const title = isExpired ? 'Vacina Vencida ⚠️' : 'Vacina Vencendo 💉'
-                    const message = `A vacina ${vac.name} do pet ${pet.name} ${isExpired ? 'venceu' : 'vence'} em ${expiry.toLocaleDateString()}.`
+                    const message = `A vacina ${vac.name} do pet ${petData.name} ${isExpired ? 'venceu' : 'vence'} em ${expiry.toLocaleDateString('pt-BR')}.`
 
                     // Check if exists
                     const { data: existing } = await supabase
@@ -63,17 +77,20 @@ export async function syncNotifications() {
                         .single()
 
                     if (!existing) {
+                        console.log(`[Sync] Creating notification for vaccine ${vac.id} (Pet: ${petData.name})`)
                         await supabase.from('notifications').insert({
                             org_id: orgId,
                             type: 'vaccine_expiry',
                             title,
                             message,
                             reference_id: vac.id,
-                            link: `/owner/pets?openPetId=${pet.id}`
+                            link: `/owner/pets?openPetId=${petData.id}`
                         })
                     }
                 }
             }
+        } else {
+            console.log('[Sync] No expiring vaccines found.')
         }
 
         // 2. Check Expiring Products (30 days)
