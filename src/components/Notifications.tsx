@@ -5,6 +5,7 @@ import { getNotifications, markAsRead, syncNotifications } from '@/app/actions/n
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './Notifications.module.css'
+import { Bell, RefreshCw, Check, Info } from 'lucide-react'
 
 export default function Notifications() {
     const [notifications, setNotifications] = useState<any[]>([])
@@ -27,15 +28,10 @@ export default function Notifications() {
     // Initial sync and fetch
     useEffect(() => {
         const init = async () => {
-            // Trigger sync (optional here, maybe better on login or periodic)
-            // But doing it here ensures user sees fresh data on load
             await syncNotifications()
             await fetchNotifications()
         }
         init()
-
-        // Poll every minute? Maybe too expensive. 
-        // Let's stick to load time for now.
     }, [])
 
     // Click outside to close
@@ -67,7 +63,7 @@ export default function Notifications() {
     return (
         <div className={styles.container} ref={dropdownRef}>
             <button className={styles.bellButton} onClick={toggleOpen}>
-                🔔
+                <Bell size={20} />
                 {unreadCount > 0 && (
                     <span className={styles.badge}>{unreadCount}</span>
                 )}
@@ -77,11 +73,16 @@ export default function Notifications() {
                 <div className={styles.dropdown}>
                     <div className={styles.header}>
                         <h3>Notificações</h3>
-                        <button className={styles.refreshBtn} onClick={fetchNotifications}>🔄</button>
+                        <button className={styles.refreshBtn} onClick={fetchNotifications} title="Atualizar">
+                            <RefreshCw size={16} />
+                        </button>
                     </div>
                     <div className={styles.list}>
                         {notifications.length === 0 ? (
-                            <div className={styles.empty}>Nenhuma notificação</div>
+                            <div className={styles.empty}>
+                                <Bell size={32} style={{ opacity: 0.2 }} />
+                                Nenhuma notificação
+                            </div>
                         ) : (
                             notifications.map(notif => (
                                 <div key={notif.id} className={`${styles.item} ${notif.read ? styles.read : styles.unread}`}>
@@ -104,7 +105,9 @@ export default function Notifications() {
                                                 className={styles.markBtn}
                                                 onClick={() => handleMarkAsRead(notif.id)}
                                                 disabled={loading}
+                                                title="Marcar como lida"
                                             >
+                                                <Check size={14} style={{ marginRight: '4px' }} />
                                                 Marcar lida
                                             </button>
                                         )}
