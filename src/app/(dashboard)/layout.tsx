@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import styles from './layout.module.css'
 import { createClient } from '@/lib/supabase/client'
+import Notifications from '@/components/Notifications'
 
 export default function DashboardLayout({
     children,
@@ -203,21 +204,27 @@ export default function DashboardLayout({
                             })}
                         </span>
                     </div>
-                    <Link href={isTutorRoute ? "/tutor/profile" : "/owner/profile"} className={styles.headerRight} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <div className={styles.userInfo}>
-                            <span className={styles.userName}>{user?.name || 'Carregando...'}</span>
-                            <span className={styles.userRole}>{user?.role || '...'}</span>
-                        </div>
-                        <div className={styles.avatar}>
-                            {user?.name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                    </Link>
+
+
+                    <div className={styles.headerRight} style={{ display: 'flex', alignItems: 'center' }}>
+                        <Notifications />
+
+                        <Link href={isTutorRoute ? "/tutor/profile" : "/owner/profile"} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
+                            <div className={styles.userInfo}>
+                                <span className={styles.userName}>{user?.name || 'Carregando...'}</span>
+                                <span className={styles.userRole}>{user?.role || '...'}</span>
+                            </div>
+                            <div className={styles.avatar}>
+                                {user?.name?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                        </Link>
+                    </div>
                 </header>
 
                 <div className={styles.content}>
                     {children}
                 </div>
             </main>
-        </div>
+        </div >
     )
 }

@@ -1,3 +1,4 @@
+
 'use client'
 
 import { useState, useEffect, useCallback, useActionState, Suspense } from 'react'
@@ -9,6 +10,7 @@ import { createPet, updatePet, deletePet } from '@/app/actions/pet'
 import { sellPackageToPet, getPetPackagesWithUsage } from '@/app/actions/package'
 import { getPetAssessment } from '@/app/actions/petAssessment'
 import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
+import { createVaccine, deleteVaccine, getPetVaccines } from '@/app/actions/vaccine'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import ImageUpload from '@/components/ImageUpload'
 
@@ -54,6 +56,10 @@ function PetsContent() {
     const [availablePackages, setAvailablePackages] = useState<any[]>([])
     const [selectedPackageId, setSelectedPackageId] = useState('')
     const [isSelling, setIsSelling] = useState(false)
+
+    // Vaccine State
+    const [vaccines, setVaccines] = useState<any[]>([])
+    const [isVaccineLoading, setIsVaccineLoading] = useState(false)
 
     // Assessment State
     const [petAssessment, setPetAssessment] = useState<any>(null)
