@@ -399,6 +399,10 @@ export default function TutorPage() {
                     <span>🐶</span>
                     <span>Cadastrar Pet</span>
                 </button>
+                <Link href="/tutor/avaliacoes" className={styles.actionButton}>
+                    <span>📋</span>
+                    <span>Avaliações de Saúde</span>
+                </Link>
             </div>
 
             {showPetModal && (

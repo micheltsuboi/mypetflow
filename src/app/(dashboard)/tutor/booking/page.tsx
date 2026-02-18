@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
+import { getPetAssessment } from '@/app/actions/petAssessment'
+import PetAssessmentForm from '@/components/PetAssessmentForm'
 
 interface TimeSlot {
     time: string
@@ -41,6 +43,10 @@ export default function BookingPage() {
     const [error, setError] = useState<string | null>(null)
     const [orgId, setOrgId] = useState<string | null>(null)
     const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([])
+
+    // Assessment Modal State
+    const [showAssessmentModal, setShowAssessmentModal] = useState(false)
+    const [pendingServiceId, setPendingServiceId] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
         try {
@@ -209,7 +215,28 @@ export default function BookingPage() {
         setStep(3) // Move to service selection
     }
 
-    const handleServiceSelect = (serviceId: string) => {
+    const handleServiceSelect = async (serviceId: string) => {
+        const service = services.find(s => s.id === serviceId)
+        if (!service || !selectedPet) return
+
+        const category = (service.category || '').toLowerCase()
+        const sensitiveCategories = ['creche', 'hospedagem', 'hotel', 'day care']
+        const isSensitive = sensitiveCategories.some(c => category.includes(c))
+
+        if (isSensitive) {
+            // Check if pet has assessment
+            setLoading(true)
+            const assessment = await getPetAssessment(selectedPet)
+            setLoading(false)
+
+            if (!assessment) {
+                // Block and show modal
+                setPendingServiceId(serviceId)
+                setShowAssessmentModal(true)
+                return
+            }
+        }
+
         setSelectedService(serviceId)
         setStep(4) // Move to date selection
     }
@@ -494,6 +521,39 @@ export default function BookingPage() {
                     >
                         {submitting ? 'Agendando...' : 'Confirmar Agendamento'}
                     </button>
+                </div>
+            )}
+            {/* Assessment Modal */}
+            {showAssessmentModal && selectedPet && (
+                <div className={styles.modalOverlay} style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.75)', zIndex: 2000,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <div className={styles.modalContent} style={{
+                        background: 'var(--bg-card)', width: '100%', maxWidth: '600px',
+                        maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px', padding: '1.5rem',
+                        position: 'relative', border: '1px solid var(--border)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            <h2 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--text-primary)' }}>⚠️ Avaliação Necessária</h2>
+                            <button onClick={() => setShowAssessmentModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>&times;</button>
+                        </div>
+                        <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+                            Para agendar este serviço, precisamos que você preencha a avaliação comportamental e de saúde do seu pet. É rapidinho!
+                        </p>
+
+                        <PetAssessmentForm
+                            petId={selectedPet}
+                            onSuccess={() => {
+                                setShowAssessmentModal(false)
+                                if (pendingServiceId) {
+                                    handleServiceSelect(pendingServiceId) // Try again, this time it should pass
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
             )}
         </div>
