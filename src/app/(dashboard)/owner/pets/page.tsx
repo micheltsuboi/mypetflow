@@ -86,7 +86,7 @@ function PetsContent() {
     }
 
     // Accordion State
-    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false })
+    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false })
 
     const toggleAccordion = async (key: keyof typeof accordions) => {
         setAccordions(prev => {
@@ -211,6 +211,15 @@ function PetsContent() {
         }
     }, [selectedPet, accordions.packages])
 
+    // Buscar vacinas
+    useEffect(() => {
+        if (!selectedPet || !accordions.vaccines) return
+        setIsVaccineLoading(true)
+        getPetVaccines(selectedPet.id)
+            .then(setVaccines)
+            .finally(() => setIsVaccineLoading(false))
+    }, [selectedPet, accordions.vaccines])
+
     // Buscar histórico de agendamentos
     useEffect(() => {
         if (!selectedPet) return
@@ -251,7 +260,9 @@ function PetsContent() {
             const pet = pets.find(p => p.id === openPetId)
             if (pet) {
                 setSelectedPet(pet)
-                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false }) // Open packages when returning from agenda
+                setSelectedPet(pet)
+                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false, vaccines: false }) // Open packages when returning from agenda
+                setShowModal(true)
                 setShowModal(true)
                 // Clean URL
                 const url = new URL(window.location.href)
@@ -274,7 +285,7 @@ function PetsContent() {
 
     const handleRowClick = async (pet: Pet) => {
         setSelectedPet(pet)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false })
 
         // Eagerly fetch assessment BEFORE showing modal
         try {
@@ -293,7 +304,7 @@ function PetsContent() {
     const handleNewPet = () => {
         setSelectedPet(null)
         setPetAssessment(null)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false })
         setShowModal(true)
     }
 
@@ -552,6 +563,94 @@ function PetsContent() {
                                                 </div>
                                             </div>
                                         </form>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 1.1 VACINAS */}
+                            <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                <button type="button" onClick={() => toggleAccordion('vaccines')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>💉 Carteira de Vacinação</span>
+                                    <span>{accordions.vaccines ? '−' : '+'}</span>
+                                </button>
+                                {accordions.vaccines && (
+                                    <div style={{ padding: '1rem' }}>
+                                        {selectedPet ? (
+                                            <>
+                                                {/* Form to add new vaccine */}
+                                                <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Adicionar Nova Vacina</h4>
+                                                    <form action={async (formData) => {
+                                                        const res = await createVaccine(formData)
+                                                        if (res.success) {
+                                                            alert(res.message)
+                                                            getPetVaccines(selectedPet.id).then(setVaccines)
+                                                            const form = document.querySelector('#vaccineForm') as HTMLFormElement
+                                                            if (form) form.reset()
+                                                        } else {
+                                                            alert(res.message)
+                                                        }
+                                                    }} id="vaccineForm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                        <input type="hidden" name="pet_id" value={selectedPet.id} />
+
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>Nome da Vacina</label>
+                                                            <input name="name" required className={styles.input} placeholder="Ex: V10, Antirrábica..." />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>Data Aplicação</label>
+                                                            <input name="application_date" type="date" className={styles.input} />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>Validade *</label>
+                                                            <input name="expiry_date" type="date" required className={styles.input} />
+                                                        </div>
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <button type="submit" className={styles.submitButton} style={{ width: '100%' }}>Adicionar Vacina</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+
+                                                {/* List of registered vaccines */}
+                                                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Vacinas Cadastradas</h4>
+                                                {isVaccineLoading ? (
+                                                    <div>Carregando...</div>
+                                                ) : vaccines.length === 0 ? (
+                                                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Nenhuma vacina registrada.</p>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {vaccines.map(vac => {
+                                                            const expiry = new Date(vac.expiry_date)
+                                                            const isExpired = expiry < new Date()
+                                                            return (
+                                                                <div key={vac.id} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px', borderLeft: `4px solid ${isExpired ? '#EF4444' : '#10B981'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <div>
+                                                                        <div style={{ fontWeight: '600' }}>{vac.name}</div>
+                                                                        <div style={{ fontSize: '0.8rem', color: isExpired ? '#EF4444' : 'var(--text-secondary)' }}>
+                                                                            Vence: {expiry.toLocaleDateString('pt-BR')} {isExpired && '(VENCIDA)'}
+                                                                        </div>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={async () => {
+                                                                            if (confirm('Excluir esta vacina?')) {
+                                                                                await deleteVaccine(vac.id)
+                                                                                getPetVaccines(selectedPet.id).then(setVaccines)
+                                                                            }
+                                                                        }}
+                                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#EF4444', opacity: 0.7 }}
+                                                                    >
+                                                                        &times;
+                                                                    </button>
+                                                                </div>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Salve o pet primeiro.</div>
+                                        )}
                                     </div>
                                 )}
                             </div>
