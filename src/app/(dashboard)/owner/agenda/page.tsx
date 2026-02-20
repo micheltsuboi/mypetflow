@@ -797,6 +797,22 @@ export default function AgendaPage() {
                     <button className={viewMode === 'week' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('week')}>Semana</button>
                     <button className={viewMode === 'month' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('month')}>Mês</button>
                 </div>
+
+                <div className={styles.legend}>
+                    <div className={styles.legendItem}>
+                        <div className={styles.legendColor} style={{ backgroundColor: '#3B82F6' }} />
+                        <span>Banho e Tosa</span>
+                    </div>
+                    <div className={styles.legendItem}>
+                        <div className={styles.legendColor} style={{ backgroundColor: '#F59E0B' }} />
+                        <span>Hospedagem</span>
+                    </div>
+                    <div className={styles.legendItem}>
+                        <div className={styles.legendColor} style={{ backgroundColor: '#10B981' }} />
+                        <span>Creche</span>
+                    </div>
+                </div>
+
                 <div className={styles.dateNav}>
                     <button className={styles.navBtn} onClick={() => {
                         const d = new Date(selectedDate)
