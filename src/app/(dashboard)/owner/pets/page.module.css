@@ -400,9 +400,9 @@
     .tableContainer {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        margin: 0 -1rem;
-        border-radius: 0;
-        width: calc(100% + 2rem);
+        margin: 0;
+        border-radius: 8px;
+        width: 100%;
     }
 
     .table {

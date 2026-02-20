@@ -88,7 +88,7 @@ export default function Notifications() {
                                 <div key={notif.id} className={`${styles.item} ${notif.read ? styles.read : styles.unread}`}>
                                     <div className={styles.itemHeader}>
                                         <span className={styles.title}>{notif.title}</span>
-                                        <span className={styles.date}>{new Date(notif.created_at).toLocaleDateString()}</span>
+                                        <span className={styles.date}>{new Date(notif.created_at).toLocaleDateString('pt-BR')}</span>
                                     </div>
                                     <p className={styles.message}>{notif.message}</p>
                                     <div className={styles.actions}>

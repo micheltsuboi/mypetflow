@@ -207,7 +207,7 @@ export default function DashboardLayout({
 
 
                     <div className={styles.headerRight} style={{ display: 'flex', alignItems: 'center' }}>
-                        <Notifications />
+                        {!isTutorRoute && <Notifications />}
 
                         <Link href={isTutorRoute ? "/tutor/profile" : "/owner/profile"} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
                             <div className={styles.userInfo}>

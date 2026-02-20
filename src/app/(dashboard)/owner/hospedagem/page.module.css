@@ -201,9 +201,9 @@
     }
 
     .tabs {
-        margin: 0 -1rem 1.5rem -1rem;
-        padding: 0 1rem 0.5rem 1rem;
-        width: calc(100% + 2rem);
+        margin: 0 0 1.5rem 0;
+        padding: 0 0 0.5rem 0;
+        width: 100%;
     }
 
     .grid {
