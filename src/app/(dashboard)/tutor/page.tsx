@@ -381,29 +381,6 @@ export default function TutorPage() {
                 )}
             </div>
 
-            {/* Quick Actions */}
-            <div className={styles.quickActions}>
-                <Link href="/tutor/booking" className={styles.actionButton}>
-                    <span>📅</span>
-                    <span>Novo Agendamento</span>
-                </Link>
-                <Link href="/tutor/history" className={styles.actionButton}>
-                    <span>📜</span>
-                    <span>Histórico de Serviços</span>
-                </Link>
-                <Link href="/tutor/profile" className={styles.actionButton}>
-                    <span>👤</span>
-                    <span>Meu Perfil</span>
-                </Link>
-                <button className={styles.actionButton} onClick={() => setShowPetModal(true)}>
-                    <span>🐶</span>
-                    <span>Cadastrar Pet</span>
-                </button>
-                <Link href="/tutor/avaliacoes" className={styles.actionButton}>
-                    <span>📋</span>
-                    <span>Avaliações de Saúde</span>
-                </Link>
-            </div>
 
             {showPetModal && (
                 <PetRegistrationModal

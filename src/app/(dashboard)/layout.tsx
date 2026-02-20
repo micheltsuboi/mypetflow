@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import styles from './layout.module.css'
 import { createClient } from '@/lib/supabase/client'
 import Notifications from '@/components/Notifications'
+import PetRegistrationModal from '@/components/modules/PetRegistrationModal'
 
 export default function DashboardLayout({
     children,
@@ -20,6 +21,7 @@ export default function DashboardLayout({
 
     const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null } | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [showPetModal, setShowPetModal] = useState(false)
     const supabase = createClient()
     const router = useRouter()
 
@@ -61,6 +63,8 @@ export default function DashboardLayout({
         { name: 'Histórico', href: '/tutor/history', icon: '📜' },
         { name: 'Agendar', href: '/tutor/booking', icon: '📅' },
         { name: 'Galeria', href: '/tutor/gallery', icon: '🖼️' },
+        { name: 'Avaliações de Saúde', href: '/tutor/avaliacoes', icon: '📋' },
+        { name: 'Cadastrar Pet', href: '#', icon: '🐶', action: 'cadastrar-pet' },
         { name: 'Perfil', href: '/tutor/profile', icon: '👤' },
     ]
 
@@ -172,17 +176,36 @@ export default function DashboardLayout({
                 </div>
 
                 <nav className={styles.nav}>
-                    {navigation.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`${styles.navItem} ${pathname === item.href ? styles.active : ''}`}
-                            onClick={() => setIsSidebarOpen(false)}
-                        >
-                            <span className={styles.navIcon}>{item.icon}</span>
-                            <span className={styles.navLabel}>{item.name}</span>
-                        </Link>
-                    ))}
+                    {navigation.map((item: any) => {
+                        if (item.action === 'cadastrar-pet') {
+                            return (
+                                <button
+                                    key={item.href}
+                                    className={`${styles.navItem}`}
+                                    onClick={() => {
+                                        setIsSidebarOpen(false)
+                                        setShowPetModal(true)
+                                    }}
+                                    style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
+                                >
+                                    <span className={styles.navIcon}>{item.icon}</span>
+                                    <span className={styles.navLabel}>{item.name}</span>
+                                </button>
+                            )
+                        }
+
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`${styles.navItem} ${pathname === item.href ? styles.active : ''}`}
+                                onClick={() => setIsSidebarOpen(false)}
+                            >
+                                <span className={styles.navIcon}>{item.icon}</span>
+                                <span className={styles.navLabel}>{item.name}</span>
+                            </Link>
+                        )
+                    })}
                 </nav>
 
                 <div className={styles.sidebarFooter}>
@@ -239,6 +262,17 @@ export default function DashboardLayout({
                     {children}
                 </div>
             </main>
+
+            {showPetModal && (
+                <PetRegistrationModal
+                    onClose={() => setShowPetModal(false)}
+                    onSuccess={() => {
+                        setShowPetModal(false)
+                        // Trigger a page reload or event to refresh tutor page data if needed
+                        window.location.reload()
+                    }}
+                />
+            )}
         </div >
     )
 }
