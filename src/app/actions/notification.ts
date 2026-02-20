@@ -66,7 +66,9 @@ export async function syncNotifications() {
                     const isExpired = expiryStr < todayStr
 
                     const title = isExpired ? 'Vacina Vencida ⚠️' : 'Vacina Vencendo 💉'
-                    const message = `A vacina ${vac.name} do pet ${petData.name} ${isExpired ? 'venceu' : 'vence'} em ${expiry.toLocaleDateString('pt-BR')}.`
+                    const [vYear, vMonth, vDay] = vac.expiry_date.split('-')
+                    const formattedExpiry = `${vDay}/${vMonth}/${vYear}`
+                    const message = `A vacina ${vac.name} do pet ${petData.name} ${isExpired ? 'venceu' : 'vence'} em ${formattedExpiry}.`
 
                     // Check if exists
                     const { data: existing } = await supabase
@@ -109,7 +111,9 @@ export async function syncNotifications() {
                     const expiry = new Date(prod.expiration_date)
                     const isExpired = expiry < today
                     const title = isExpired ? 'Produto Vencido ⚠️' : 'Produto Vencendo 📦'
-                    const message = `O produto ${prod.name} ${isExpired ? 'venceu' : 'vence'} em ${expiry.toLocaleDateString()}.`
+                    const [pYear, pMonth, pDay] = prod.expiration_date.split('-')
+                    const formattedExpiry = `${pDay}/${pMonth}/${pYear}`
+                    const message = `O produto ${prod.name} ${isExpired ? 'venceu' : 'vence'} em ${formattedExpiry}.`
 
                     // Check if exists
                     const { data: existing } = await supabase
