@@ -322,35 +322,6 @@ export default function OwnerDashboard() {
                     <h1 className={styles.title}>👋 Olá, Proprietário</h1>
                     <p className={styles.subtitle}>Painel de Gestão do Pet Shop</p>
                 </div>
-                <div className={styles.headerActions}>
-                    <Link href="/owner/agenda" className={styles.headerBtn}>
-                        🛁 Banho e Tosa
-                    </Link>
-                    <Link href="/owner/services" className={styles.headerBtn}>
-                        ✂️ Serviços
-                    </Link>
-                    <Link href="/owner/packages" className={styles.headerBtn}>
-                        📦 Pacotes
-                    </Link>
-                    <Link href="/owner/tutors" className={styles.headerBtn}>
-                        👤 Tutores
-                    </Link>
-                    <Link href="/owner/pets" className={styles.headerBtn}>
-                        🐾 Pets
-                    </Link>
-                    <Link href="/owner/usuarios" className={styles.headerBtn}>
-                        👥 Usuários
-                    </Link>
-                    <Link href="/owner/ponto" className={styles.headerBtn}>
-                        ⏰ Ponto
-                    </Link>
-                    <Link href="/owner/financeiro" className={styles.headerBtn}>
-                        💰 Financeiro
-                    </Link>
-                    <Link href="/owner/petshop" className={styles.headerBtn}>
-                        🛍️ Petshop
-                    </Link>
-                </div>
             </div>
 
             {/* Operational Stats */}
