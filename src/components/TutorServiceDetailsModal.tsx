@@ -117,6 +117,15 @@ export default function TutorServiceDetailsModal({ appointmentId, onClose }: Tut
         </div>
     )
 
+    const statusLabels: Record<string, string> = {
+        pending: 'Aguardando',
+        confirmed: 'Confirmado',
+        in_progress: 'Em Atendimento',
+        done: 'Concluído',
+        canceled: 'Cancelado',
+        no_show: 'Faltou'
+    }
+
     if (!appointment) return null
 
     return (
@@ -132,7 +141,7 @@ export default function TutorServiceDetailsModal({ appointmentId, onClose }: Tut
                         <div className={styles.serviceHeader}>
                             <h1 className={styles.serviceName}>{appointment.services.name}</h1>
                             <span className={`${styles.badge} ${styles['status_' + appointment.status]}`}>
-                                {appointment.status}
+                                {statusLabels[appointment.status] || appointment.status}
                             </span>
                         </div>
 

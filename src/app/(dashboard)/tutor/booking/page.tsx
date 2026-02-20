@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { getPetAssessment } from '@/app/actions/petAssessment'
+import { calculateDynamicPrice } from '@/app/actions/pricing'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 
 interface TimeSlot {
@@ -43,6 +44,8 @@ export default function BookingPage() {
     const [error, setError] = useState<string | null>(null)
     const [orgId, setOrgId] = useState<string | null>(null)
     const [scheduleBlocks, setScheduleBlocks] = useState<any[]>([])
+    const [dynamicPrices, setDynamicPrices] = useState<Record<string, number>>({})
+    const [loadingPrices, setLoadingPrices] = useState(false)
 
     // Assessment Modal State
     const [showAssessmentModal, setShowAssessmentModal] = useState(false)
@@ -209,9 +212,29 @@ export default function BookingPage() {
         setStep(2)
     }
 
-    const handleCategorySelect = (category: string) => {
+    const handleCategorySelect = async (category: string) => {
         setSelectedCategory(category)
         setSelectedService(null)
+
+        if (selectedPet) {
+            setLoadingPrices(true)
+            const catServices = availableServices.filter(s => (s.category || 'Outros') === category)
+            const pricePromises = catServices.map(async (s) => {
+                // Use today as proxy for price if date not selected yet
+                const today = new Date().toISOString().split('T')[0]
+                const dynPrice = await calculateDynamicPrice(selectedPet, s.id, today)
+                return { id: s.id, price: dynPrice ?? s.base_price }
+            })
+
+            const results = await Promise.all(pricePromises)
+            const newPrices = { ...dynamicPrices }
+            results.forEach(r => {
+                newPrices[r.id] = r.price
+            })
+            setDynamicPrices(newPrices)
+            setLoadingPrices(false)
+        }
+
         setStep(3) // Move to service selection
     }
 
@@ -280,6 +303,7 @@ export default function BookingPage() {
                     customer_id: customerData.id,
                     scheduled_at: scheduledAt,
                     status: 'pending',
+                    calculated_price: dynamicPrices[selectedService] || null,
                     notes: 'Agendado pelo portal do tutor',
                     payment_status: 'pending'
                 })
@@ -453,7 +477,9 @@ export default function BookingPage() {
                                 <div className={styles.serviceInfo}>
                                     <span className={styles.serviceName}>{service.name}</span>
                                 </div>
-                                <span className={styles.servicePrice}>R$ {service.base_price.toFixed(2)}</span>
+                                <span className={styles.servicePrice}>
+                                    {loadingPrices ? 'Calculando...' : `R$ ${(dynamicPrices[service.id] ?? service.base_price).toFixed(2)}`}
+                                </span>
                             </button>
                         )) : (
                             <p className={styles.noServices}>Nenhum serviço disponível nesta categoria.</p>

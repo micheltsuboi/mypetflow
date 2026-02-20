@@ -15,6 +15,8 @@ interface Appointment {
     scheduled_at: string
     status: string
     pet_id: string
+    final_price: number | null
+    calculated_price: number | null
     services: {
         name: string
         category: string
@@ -77,7 +79,7 @@ export default function HistoryPage() {
             // 3. Get Appointments
             let query = supabase
                 .from('appointments')
-                .select('id, scheduled_at, status, pet_id, services(name, category), pets(name)')
+                .select('id, scheduled_at, status, pet_id, final_price, calculated_price, services(name, category), pets(name)')
                 .order('scheduled_at', { ascending: false })
 
             if (selectedPetId !== 'all') {
@@ -176,7 +178,14 @@ export default function HistoryPage() {
                                 {categoryIcons[appt.services?.category || 'outro']}
                             </div>
                             <div className={styles.cardInfo}>
-                                <h3 className={styles.serviceName}>{appt.services?.name}</h3>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3 className={styles.serviceName}>{appt.services?.name}</h3>
+                                    {(appt.final_price !== null || appt.calculated_price !== null) && (
+                                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                                            R$ {Number(appt.final_price ?? appt.calculated_price ?? 0).toFixed(2)}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className={styles.serviceDate}>
                                     {appt.pets?.name} • {formatDate(appt.scheduled_at)}
                                 </span>
@@ -184,7 +193,7 @@ export default function HistoryPage() {
                                     {statusLabels[appt.status] || appt.status}
                                 </span>
                             </div>
-                            <div style={{ alignSelf: 'center', opacity: 0.5 }}>
+                            <div style={{ alignSelf: 'center', opacity: 0.5, marginLeft: '1rem' }}>
                                 ❯
                             </div>
                         </div>
