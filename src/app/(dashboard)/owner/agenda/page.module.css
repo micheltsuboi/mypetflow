@@ -1078,3 +1078,41 @@
     gap: 0.5rem;
     cursor: pointer;
 }
+
+.modalTools {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.editBtnSmall,
+.deleteBtnSmall {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.editBtnSmall:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.deleteBtnSmall {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.deleteBtnSmall:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #ef4444;
+}

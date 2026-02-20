@@ -643,7 +643,7 @@ export default function AgendaPage() {
                                 const isMultiday = !!(a.check_in_date && a.check_out_date)
                                 const apptDateStr = new Date(a.scheduled_at).toLocaleDateString('en-CA')
                                 const matchesDay = isMultiday
-                                    ? (dateStr >= a.check_in_date && dateStr <= a.check_out_date)
+                                    ? (dateStr >= a.check_in_date! && dateStr <= a.check_out_date!)
                                     : apptDateStr === dateStr
 
                                 const ad = new Date(a.scheduled_at)
@@ -926,8 +926,8 @@ export default function AgendaPage() {
                             <h2 className={styles.modalTitle}>{isEditing ? 'Editar Agendamento' : 'Detalhes do Agendamento'}</h2>
                             {!isEditing && (
                                 <div className={styles.modalTools}>
-                                    <button onClick={() => setIsEditing(true)}>✏️ Editar</button>
-                                    <button onClick={handleDelete} style={{ color: '#ef4444' }}>🗑️ Cancelar</button>
+                                    <button className={styles.editBtnSmall} onClick={() => setIsEditing(true)}>✏️ Editar</button>
+                                    <button className={styles.deleteBtnSmall} onClick={handleDelete}>🗑️ Cancelar</button>
                                 </div>
                             )}
                         </div>
