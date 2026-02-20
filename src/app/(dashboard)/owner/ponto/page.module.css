@@ -187,4 +187,70 @@
         width: 100%;
         justify-content: space-between;
     }
+
+    .tableContainer {
+        overflow-x: hidden;
+        width: 100%;
+        background: transparent;
+        border: none;
+    }
+
+    .detailTable,
+    .detailTable tbody,
+    .detailTable tr,
+    .detailTable td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .detailTable thead {
+        display: none;
+    }
+
+    .detailTable tr {
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .detailTable td {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem 0;
+        border: none !important;
+        text-align: left;
+    }
+
+    .detailTable td:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .detailTable td::before {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .detailTable td:nth-child(1)::before {
+        content: "Data";
+    }
+
+    .detailTable td:nth-child(2)::before {
+        content: "Entradas / Saídas";
+    }
+
+    .detailTable td:nth-child(3)::before {
+        content: "Total";
+    }
+
+    .detailTable td:nth-child(4)::before {
+        content: "Saldo";
+    }
 }

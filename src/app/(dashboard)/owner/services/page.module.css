@@ -468,4 +468,72 @@
         flex-direction: column;
         align-items: stretch;
     }
+
+    .matrixTable,
+    .matrixTable tbody,
+    .matrixTable tr,
+    .matrixTable td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .matrixTable {
+        background: transparent;
+        border: none;
+    }
+
+    .matrixTable thead {
+        display: none;
+    }
+
+    .matrixTable tr {
+        margin-bottom: 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .matrixTable td {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem 0;
+        border: none !important;
+        text-align: left;
+    }
+
+    .matrixTable td:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .matrixTable td::before {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .matrixTable td:nth-child(1)::before {
+        content: "Min/Max (kg)";
+    }
+
+    .matrixTable td:nth-child(2)::before {
+        content: "Porte";
+    }
+
+    .matrixTable td:nth-child(3)::before {
+        content: "Dia";
+    }
+
+    .matrixTable td:nth-child(4)::before {
+        content: "Preço";
+    }
+
+    .matrixTable td:nth-child(5)::before {
+        content: "";
+    }
 }

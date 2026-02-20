@@ -418,3 +418,82 @@
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     vertical-align: middle;
 }
+
+@media (max-width: 768px) {
+
+    .batchTable,
+    .batchTable tbody,
+    .batchTable tr,
+    .batchTable td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .batchTable {
+        background: transparent;
+        border: none;
+    }
+
+    .batchTable thead {
+        display: none;
+    }
+
+    .batchTable tr {
+        margin-bottom: 1rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .batchTable td {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem 0;
+        border: none !important;
+        text-align: left;
+    }
+
+    .batchTable td:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .batchTable td::before {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .batchTable td:nth-child(1)::before {
+        content: "Lote";
+    }
+
+    .batchTable td:nth-child(2)::before {
+        content: "Validade";
+    }
+
+    .batchTable td:nth-child(3)::before {
+        content: "Qtd.";
+    }
+
+    .batchTable td:nth-child(4)::before {
+        content: "Custo";
+    }
+
+    .batchTable td:nth-child(5)::before {
+        content: "Venda";
+    }
+
+    .batchTable td:nth-child(6)::before {
+        content: "Status";
+    }
+
+    .batchTable td:nth-child(7)::before {
+        content: "Ações";
+    }
+}

@@ -552,4 +552,82 @@
     .grid {
         grid-template-columns: 1fr;
     }
+
+    .tableContainer {
+        overflow-x: hidden;
+        width: 100%;
+        background: transparent;
+        border: none;
+    }
+
+    .table,
+    .table tbody,
+    .table tr,
+    .table td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tr {
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+    }
+
+    .table td {
+        display: flex;
+        flex-direction: column;
+        padding: 0.75rem 0;
+        border: none !important;
+        text-align: left;
+    }
+
+    .table td:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    .table td::before {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .table td:nth-child(1)::before {
+        content: "Foto";
+    }
+
+    .table td:nth-child(2)::before {
+        content: "Produto";
+    }
+
+    .table td:nth-child(3)::before {
+        content: "Categoria";
+    }
+
+    .table td:nth-child(4)::before {
+        content: "Preço";
+    }
+
+    .table td:nth-child(5)::before {
+        content: "Estoque";
+    }
+
+    .table td:nth-child(6)::before {
+        content: "Validade";
+    }
+
+    .table td:nth-child(7)::before {
+        content: "Ações";
+    }
 }
