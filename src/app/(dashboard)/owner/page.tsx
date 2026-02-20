@@ -115,7 +115,7 @@ export default function OwnerDashboard() {
                     .select(`
                         id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
                         pets ( name ),
-                        services ( name )
+                        services ( name, service_categories ( name ) )
                     `)
                     .eq('org_id', profile.org_id)
                     .gte('scheduled_at', startOfCurrentMonth)
@@ -299,8 +299,25 @@ export default function OwnerDashboard() {
     }
 
     const getAreaStats = () => {
-        // Placeholder implementation until we have real appointment data
-        return { todayCount: 0, monthCount: 0, revenue: 0 }
+        const todayCount = selectedArea === 'all'
+            ? petsToday.length
+            : petsToday.filter(p => p.area === selectedArea).length
+
+        const monthAppts = extractRecords.appointments.filter(a => {
+            if (selectedArea === 'all') return true
+            const catName = (a.services as any)?.service_categories?.name || ''
+            if (selectedArea === 'banho_tosa') return catName.includes('Banho') || catName.includes('Tosa')
+            if (selectedArea === 'creche') return catName.includes('Creche')
+            if (selectedArea === 'hotel') return catName.includes('Hospedagem') || catName.includes('Hotel')
+            return false
+        })
+
+        const monthCount = monthAppts.length
+        const revenue = monthAppts
+            .filter(a => a.payment_status === 'paid')
+            .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+
+        return { todayCount, monthCount, revenue }
     }
 
     if (loading) {
