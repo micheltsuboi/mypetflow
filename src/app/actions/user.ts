@@ -40,10 +40,14 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     }
 
     let workSchedule = []
-    try {
-        if (workScheduleStr) workSchedule = JSON.parse(workScheduleStr)
-    } catch (e) {
-        return { message: 'Formato de horário de trabalho inválido.', success: false }
+    if (role === 'staff') {
+        try {
+            if (workScheduleStr) workSchedule = JSON.parse(workScheduleStr)
+        } catch (e) {
+            return { message: 'Formato de horário de trabalho inválido.', success: false }
+        }
+    } else {
+        workSchedule = [] // Not a staff member, no schedule needed
     }
 
     // 3. Create User with Admin Client
@@ -137,8 +141,10 @@ export async function updateUser(prevState: any, formData: FormData) {
         is_active: isActive
     }
 
-    if (workSchedule !== null) {
+    if (role === 'staff' && workSchedule !== null) {
         updateData.work_schedule = workSchedule
+    } else if (role !== 'staff') {
+        updateData.work_schedule = [] // Clear schedule for non-staff
     }
 
     const { error: updateError } = await supabaseAdmin
