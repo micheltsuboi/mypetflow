@@ -51,6 +51,7 @@
     top: calc(100% + 10px);
     right: 0;
     width: 380px;
+    max-width: calc(100vw - 2rem);
     background: rgba(27, 45, 66, 0.95);
     /* var(--bg-secondary) with opacity */
     backdrop-filter: blur(12px);
