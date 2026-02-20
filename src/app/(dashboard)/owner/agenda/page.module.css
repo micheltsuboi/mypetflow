@@ -794,6 +794,15 @@
     background: rgba(255, 255, 255, 0.03);
 }
 
+.weekHeaderCell.today {
+    background: rgba(59, 130, 246, 0.1);
+    border-bottom: 2px solid var(--primary);
+}
+
+.weekCell.today {
+    background: rgba(59, 130, 246, 0.03);
+}
+
 .weekEvent {
     position: absolute;
     top: 2px;
@@ -953,4 +962,119 @@
 
 .detailBtn:active {
     transform: translateY(0);
+}
+
+.detailContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.detailRow {
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detailRow strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+    min-width: 80px;
+}
+
+.detailActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+
+.confirmBtn {
+    background: var(--success, #10b981);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.confirmBtn:hover {
+    background: #059669;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3);
+}
+
+.closeBtn {
+    background: transparent;
+    border: 1px solid var(--text-secondary);
+    color: var(--text-secondary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.closeBtn:hover {
+    color: var(--text-primary);
+    border-color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.checklistSection {
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.checklistSection h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.preferencesParams {
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.preferencesParams h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+}
+
+.prefToggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.prefToggle label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
 }

@@ -50,6 +50,8 @@ interface Service {
     duration_minutes?: number
     base_price: number
     category_id: string
+    category?: string
+    target_species?: string
     service_categories?: ServiceCategory
     scheduling_rules?: { day: number, species: string[] }[]
 }
@@ -105,7 +107,15 @@ export default function AgendaPage() {
     const [services, setServices] = useState<Service[]>([])
 
     // UI State
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [todayStr] = useState(() => {
+        const d = new Date()
+        const y = d.getFullYear()
+        const m = (d.getMonth() + 1).toString().padStart(2, '0')
+        const day = d.getDate().toString().padStart(2, '0')
+        return `${y}-${m}-${day}`
+    })
+
+    const [selectedDate, setSelectedDate] = useState<string>(todayStr)
     const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('month')
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
@@ -322,7 +332,7 @@ export default function AgendaPage() {
 
                 const myStart = new Date(startDateTime).getTime()
 
-                const conflictingBlock = scheduleBlocks.find(b => {
+                const conflictingBlock = blocks.find((b: any) => {
                     const blockStart = new Date(b.start_at).getTime()
                     const blockEnd = new Date(b.end_at).getTime()
                     return myStart >= blockStart && myStart < blockEnd
@@ -613,12 +623,16 @@ export default function AgendaPage() {
         return (
             <div className={styles.weekGrid}>
                 <div className={styles.weekHeaderCell}>Hora</div>
-                {weekDays.map(d => (
-                    <div key={d.toISOString()} className={styles.weekHeaderCell} style={{ fontWeight: d.toISOString().split('T')[0] === selectedDate ? 'bold' : 'normal', color: d.toISOString().split('T')[0] === selectedDate ? 'var(--primary)' : 'inherit' }}>
-                        <div>{d.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
-                        <div>{d.getDate()}</div>
-                    </div>
-                ))}
+                {weekDays.map(d => {
+                    const dateStr = d.toISOString().split('T')[0]
+                    const isToday = dateStr === todayStr
+                    return (
+                        <div key={d.toISOString()} className={`${styles.weekHeaderCell} ${isToday ? styles.today : ''}`} style={{ fontWeight: dateStr === selectedDate ? 'bold' : 'normal', color: dateStr === selectedDate ? 'var(--primary)' : 'inherit' }}>
+                            <div>{d.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
+                            <div>{d.getDate()}</div>
+                        </div>
+                    )
+                })}
 
                 {hours.map(h => (
                     <div key={h} style={{ display: 'contents' }}>
@@ -640,7 +654,7 @@ export default function AgendaPage() {
                                 if (localH < 8 && h === 8) hourMatches = true
                                 if (localH > 18 && h === 18) hourMatches = true
 
-                                if (isMultiday && dateStr > a.check_in_date! && dateStr <= a.check_out_date!) {
+                                if (isMultiday && a.check_in_date && a.check_out_date && dateStr > a.check_in_date && dateStr <= a.check_out_date) {
                                     hourMatches = h === 8 // Middle days at 8 AM
                                 }
 
@@ -665,10 +679,11 @@ export default function AgendaPage() {
                             })
                             const isBlocked = slotBlocks.length > 0
 
+                            const isToday = dateStr === todayStr
                             return (
                                 <div
                                     key={`${dateStr}-${h}`}
-                                    className={`${styles.weekCell} ${isBlocked ? styles.blockedCell : ''}`}
+                                    className={`${styles.weekCell} ${isBlocked ? styles.blockedCell : ''} ${isToday ? styles.today : ''}`}
                                     onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}
                                 >
                                     {isBlocked && <div className={styles.weekBlockIndicator}>🔒</div>}
@@ -730,8 +745,9 @@ export default function AgendaPage() {
 
                         return matchesDay && matchesCategory && matchesSearch
                     })
+                    const isToday = dateStr === todayStr
                     return (
-                        <div key={day} className={styles.monthCell} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
+                        <div key={day} className={`${styles.monthCell} ${isToday ? styles.today : ''}`} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
                             <div className={styles.monthDate}>{day}</div>
                             {dayAppts.map((appt, idx) => {
                                 const serviceCategory = (appt.services as any)?.service_categories
@@ -787,7 +803,12 @@ export default function AgendaPage() {
                         d.setDate(d.getDate() - 1)
                         setSelectedDate(d.toISOString().split('T')[0])
                     }}>◀</button>
-                    <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={styles.dateInput} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={styles.dateInput} style={{ color: selectedDate === todayStr ? 'var(--primary)' : 'inherit' }} />
+                        {selectedDate === todayStr && (
+                            <span style={{ fontSize: '0.75rem', background: 'var(--primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>Hoje</span>
+                        )}
+                    </div>
                     <button className={styles.navBtn} onClick={() => {
                         const d = new Date(selectedDate)
                         d.setDate(d.getDate() + 1)
@@ -1024,7 +1045,11 @@ export default function AgendaPage() {
 
                                 <div className={styles.detailActions}>
                                     {selectedAppointment.status === 'pending' && (
-                                        <button className={styles.confirmBtn} onClick={async () => { await updateAppointmentStatus(selectedAppointment.id, 'confirmed'); fetchData() }}>Confirmar Agendamento</button>
+                                        <button className={styles.confirmBtn} onClick={async () => {
+                                            setSelectedAppointment({ ...selectedAppointment, status: 'confirmed' })
+                                            await updateAppointmentStatus(selectedAppointment.id, 'confirmed')
+                                            fetchData()
+                                        }}>Confirmar Agendamento</button>
                                     )}
                                     <button className={styles.closeBtn} onClick={() => setShowDetailModal(false)}>Fechar</button>
                                 </div>

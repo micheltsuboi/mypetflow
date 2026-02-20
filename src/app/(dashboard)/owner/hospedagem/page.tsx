@@ -327,9 +327,23 @@ export default function HospedagemPage() {
                                             )}
                                             <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
 
-                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                <div>📅 <strong>In:</strong> {checkInDate.toLocaleDateString('pt-BR')}</div>
-                                                <div>📅 <strong>Out:</strong> {checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}</div>
+                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span>📅 <strong>Check-in:</strong></span>
+                                                    {appt.actual_check_in ? (
+                                                        <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_in).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
+                                                    ) : (
+                                                        <span>{checkInDate.toLocaleDateString('pt-BR')}</span>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span>📅 <strong>Check-out:</strong></span>
+                                                    {appt.actual_check_out ? (
+                                                        <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_out).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
+                                                    ) : (
+                                                        <span>{checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}</span>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
@@ -351,12 +365,7 @@ export default function HospedagemPage() {
                                 </div>
 
                                 <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-                                    {(appt.actual_check_in || appt.actual_check_out) && (
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', background: 'rgba(0,0,0,0.2)', padding: '0.5rem', borderRadius: '4px' }}>
-                                            {appt.actual_check_in && <div>🟢 Real In: {new Date(appt.actual_check_in).toLocaleString('pt-BR')}</div>}
-                                            {appt.actual_check_out && <div>🔴 Real Out: {new Date(appt.actual_check_out).toLocaleString('pt-BR')}</div>}
-                                        </div>
-                                    )}
+
 
                                     {viewMode === 'active' && (
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
