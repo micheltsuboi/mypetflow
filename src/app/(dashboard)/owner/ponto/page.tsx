@@ -232,38 +232,40 @@ export default function PontoHistoryPage() {
                                     </div>
                                 </div>
 
-                                <table className={styles.detailTable}>
-                                    <thead>
-                                        <tr>
-                                            <th>Data</th>
-                                            <th>Entradas / Saídas</th>
-                                            <th>Total</th>
-                                            <th>Saldo</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Object.values(emp.days).sort((a, b) => b.date.localeCompare(a.date)).map(day => (
-                                            <tr key={day.date}>
-                                                <td>{format(parseISO(day.date), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}</td>
-                                                <td>
-                                                    <div className={styles.entriesList}>
-                                                        {day.entries.map(entry => (
-                                                            <span key={entry.id} className={styles.timePair}>
-                                                                {format(parseISO(entry.clock_in), 'HH:mm')} -
-                                                                {entry.clock_out ? format(parseISO(entry.clock_out), 'HH:mm') : 'Em andamento...'}
-                                                                {entry.justification && <span title={entry.justification}> 📝</span>}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                                <td>{formatDuration(day.totalMinutes)}</td>
-                                                <td className={getBalanceColor(day.balanceMinutes)}>
-                                                    {day.balanceMinutes > 0 ? '+' : ''}{formatDuration(day.balanceMinutes)}
-                                                </td>
+                                <div className={styles.tableContainer}>
+                                    <table className={styles.detailTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Entradas / Saídas</th>
+                                                <th>Total</th>
+                                                <th>Saldo</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {Object.values(emp.days).sort((a, b) => b.date.localeCompare(a.date)).map(day => (
+                                                <tr key={day.date}>
+                                                    <td>{format(parseISO(day.date), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}</td>
+                                                    <td>
+                                                        <div className={styles.entriesList}>
+                                                            {day.entries.map(entry => (
+                                                                <span key={entry.id} className={styles.timePair}>
+                                                                    {format(parseISO(entry.clock_in), 'HH:mm')} -
+                                                                    {entry.clock_out ? format(parseISO(entry.clock_out), 'HH:mm') : 'Em andamento...'}
+                                                                    {entry.justification && <span title={entry.justification}> 📝</span>}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td>{formatDuration(day.totalMinutes)}</td>
+                                                    <td className={getBalanceColor(day.balanceMinutes)}>
+                                                        {day.balanceMinutes > 0 ? '+' : ''}{formatDuration(day.balanceMinutes)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         ))}
                 </div>

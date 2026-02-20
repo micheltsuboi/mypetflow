@@ -115,9 +115,16 @@
     color: var(--text-primary);
 }
 
+.tableContainer {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .detailTable {
     width: 100%;
     border-collapse: collapse;
+    min-width: 600px;
 }
 
 .detailTable th {
@@ -175,10 +182,5 @@
     .summaryStats {
         width: 100%;
         justify-content: space-between;
-    }
-
-    .detailTable th:nth-child(2),
-    .detailTable td:nth-child(2) {
-        /* Hide complex entries on tiny screens if needed, strictly speaking user asked for clarity */
     }
 }

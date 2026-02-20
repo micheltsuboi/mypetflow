@@ -243,6 +243,8 @@
 @media (max-width: 768px) {
     .tableContainer {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
     }
 
     .table {
