@@ -59,7 +59,7 @@ export default function OwnerDashboard() {
     })
     const router = useRouter()
     const pathname = usePathname()
-    const [petsToday] = useState<PetToday[]>([])
+    const [petsToday, setPetsToday] = useState<PetToday[]>([])
     const [loading, setLoading] = useState(true)
     const [stats, setStats] = useState({
         tutors: 0,
@@ -183,20 +183,53 @@ export default function OwnerDashboard() {
                     .from('pets')
                     .select('*', { count: 'exact', head: true })
 
-                // Today's appointments count
+                // Today's appointments for petsToday list and count
                 const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
                 const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
-                const { count: todayCount } = await supabase
+                const { data: appts, error: apptError } = await supabase
                     .from('appointments')
-                    .select('*', { count: 'exact', head: true })
+                    .select(`
+                        id, scheduled_at, status, check_in_date, check_out_date,
+                        pets ( id, name, breed, species, customers ( name ) ),
+                        services ( name, service_categories ( name ) )
+                    `)
                     .eq('org_id', profile.org_id)
-                    .gte('scheduled_at', todayStart)
-                    .lte('scheduled_at', todayEnd)
+                    // Match today's single-day spots OR multi-day checking where today is inside the range
+                    .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
+                    .neq('status', 'cancelled')
+                    .order('scheduled_at', { ascending: true })
+
+                if (apptError) {
+                    console.error("Error fetching owner appointments:", apptError)
+                }
+
+                let mappedPets: PetToday[] = []
+                if (appts) {
+                    mappedPets = appts.map(a => {
+                        const catName = (a.services as any)?.service_categories?.name || ''
+                        let area: ServiceArea = 'all'
+                        if (catName.includes('Banho') || catName.includes('Tosa')) area = 'banho_tosa'
+                        else if (catName.includes('Creche')) area = 'creche'
+                        else if (catName.includes('Hospedagem') || catName.includes('Hotel')) area = 'hotel'
+
+                        return {
+                            id: a.id,
+                            name: (a.pets as any)?.name || 'Desconhecido',
+                            breed: (a.pets as any)?.breed || '',
+                            area,
+                            service: (a.services as any)?.name || '',
+                            status: a.status === 'done' ? 'done' : a.status === 'in_progress' ? 'in_progress' : 'waiting',
+                            checkedInAt: new Date(a.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                            ownerName: (a.pets as any)?.customers?.name || 'Cliente'
+                        }
+                    })
+                    setPetsToday(mappedPets)
+                }
 
                 setStats({
                     tutors: tutorsCount || 0,
                     pets: petsCount || 0,
-                    appointmentsToday: todayCount || 0
+                    appointmentsToday: mappedPets.length
                 })
 
             } catch (error) {

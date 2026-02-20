@@ -71,18 +71,22 @@ export default function StaffDashboard() {
                 const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
 
                 // Fetch Today's Appointments
-                const { data: appts } = await supabase
+                const { data: appts, error: apptError } = await supabase
                     .from('appointments')
                     .select(`
-                        id, scheduled_at, status,
-                        pets ( id, name, breed, species ),
-                        customers ( full_name ),
+                        id, scheduled_at, status, check_in_date, check_out_date,
+                        pets ( id, name, breed, species, customers ( name ) ),
                         services ( name, service_categories ( name ) )
                     `)
                     .eq('org_id', profile.org_id)
-                    .gte('scheduled_at', todayStart)
-                    .lte('scheduled_at', todayEnd)
+                    // Match today's single-day spots OR multi-day checking where today is inside the range
+                    .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
+                    .neq('status', 'cancelled')
                     .order('scheduled_at', { ascending: true })
+
+                if (apptError) {
+                    console.error("Error fetching staff appointments:", apptError)
+                }
 
                 if (appts) {
                     const mappedPets: PetToday[] = appts.map(a => {
@@ -90,7 +94,7 @@ export default function StaffDashboard() {
                         let area: ServiceArea = 'all'
                         if (catName.includes('Banho') || catName.includes('Tosa')) area = 'banho_tosa'
                         else if (catName.includes('Creche')) area = 'creche'
-                        else if (catName.includes('Hospedagem')) area = 'hotel'
+                        else if (catName.includes('Hospedagem') || catName.includes('Hotel')) area = 'hotel'
 
                         return {
                             id: a.id,
@@ -100,7 +104,7 @@ export default function StaffDashboard() {
                             service: (a.services as any)?.name || '',
                             status: a.status === 'done' ? 'done' : a.status === 'in_progress' ? 'in_progress' : 'waiting',
                             checkedInAt: new Date(a.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                            ownerName: (a.customers as any)?.full_name || ''
+                            ownerName: (a.pets as any)?.customers?.name || 'Cliente'
                         }
                     })
 
