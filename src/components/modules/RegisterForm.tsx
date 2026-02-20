@@ -79,7 +79,7 @@ export default function RegisterForm() {
                 <div className={styles.loginButtons}>
                     <Link href="/login" className={styles.textLink}>Login do Tutor</Link>
                     <span className={styles.sep}>•</span>
-                    <Link href="/login" className={styles.textLink}>Login do Pet</Link>
+                    <Link href="/login" className={styles.textLink}>Login do Pet Shop</Link>
                     <span className={styles.sep}>•</span>
                     <Link href="/login" className={styles.textLink}>Sou Staff</Link>
                 </div>
