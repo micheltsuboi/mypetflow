@@ -71,11 +71,20 @@ export default function DashboardLayout({
                 // Fetch profile
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('full_name, role, org_id, avatar_url')
+                    .select('full_name, role, org_id, avatar_url, is_active')
                     .eq('id', user.id)
                     .single()
 
                 if (profile) {
+                    if (profile.is_active === false) {
+                        await supabase.auth.signOut()
+                        // Use a short timeout to ensure state is cleared
+                        setTimeout(() => {
+                            router.push('/login?error=Conta%20desativada')
+                        }, 100)
+                        return
+                    }
+
                     setUser({
                         name: profile.full_name || user.email?.split('@')[0] || 'Usuário',
                         role: profile.role === 'superadmin' ? 'Super Admin' :

@@ -25,9 +25,14 @@ export default function Notifications() {
         }
     }
 
+    const hasSynced = useRef(false)
+
     // Initial sync and fetch
     useEffect(() => {
         const init = async () => {
+            if (hasSynced.current) return
+            hasSynced.current = true
+
             await syncNotifications()
             await fetchNotifications()
         }
