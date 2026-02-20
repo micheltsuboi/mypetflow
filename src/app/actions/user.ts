@@ -33,13 +33,17 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     const password = formData.get('password') as string
     const fullName = formData.get('fullName') as string
     const role = formData.get('role') as string
-    const workStartTime = formData.get('workStartTime') as string
-    const lunchStartTime = formData.get('lunchStartTime') as string
-    const lunchEndTime = formData.get('lunchEndTime') as string
-    const workEndTime = formData.get('workEndTime') as string
+    const workScheduleStr = formData.get('workSchedule') as string
 
     if (!email || !password || !fullName || !role) {
         return { message: 'Todos os campos são obrigatórios.', success: false }
+    }
+
+    let workSchedule = []
+    try {
+        if (workScheduleStr) workSchedule = JSON.parse(workScheduleStr)
+    } catch (e) {
+        return { message: 'Formato de horário de trabalho inválido.', success: false }
     }
 
     // 3. Create User with Admin Client
@@ -73,10 +77,7 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
             full_name: fullName,
             role: role as 'admin' | 'staff' | 'customer',
             org_id: profile.org_id,
-            work_start_time: workStartTime || '08:00',
-            lunch_start_time: lunchStartTime || '12:00',
-            lunch_end_time: lunchEndTime || '13:00',
-            work_end_time: workEndTime || '18:00',
+            work_schedule: workSchedule,
             is_active: true
         })
 
@@ -113,30 +114,36 @@ export async function updateUser(prevState: any, formData: FormData) {
     const userId = formData.get('userId') as string
     const fullName = formData.get('fullName') as string
     const role = formData.get('role') as string
-    const workStartTime = formData.get('workStartTime') as string
-    const lunchStartTime = formData.get('lunchStartTime') as string
-    const lunchEndTime = formData.get('lunchEndTime') as string
-    const workEndTime = formData.get('workEndTime') as string
+    const workScheduleStr = formData.get('workSchedule') as string
     const isActive = formData.get('isActive') === 'true'
 
     if (!userId || !fullName || !role) {
         return { message: 'Campos obrigatórios faltando.', success: false }
     }
 
+    let workSchedule: any = null
+    try {
+        if (workScheduleStr) workSchedule = JSON.parse(workScheduleStr)
+    } catch (e) {
+        return { message: 'Formato de horário de trabalho inválido.', success: false }
+    }
+
     // 3. Update Profile with Admin Client
     const supabaseAdmin = createAdminClient()
 
+    const updateData: any = {
+        full_name: fullName,
+        role: role as 'admin' | 'staff' | 'customer',
+        is_active: isActive
+    }
+
+    if (workSchedule !== null) {
+        updateData.work_schedule = workSchedule
+    }
+
     const { error: updateError } = await supabaseAdmin
         .from('profiles')
-        .update({
-            full_name: fullName,
-            role: role as 'admin' | 'staff' | 'customer',
-            work_start_time: workStartTime,
-            lunch_start_time: lunchStartTime,
-            lunch_end_time: lunchEndTime,
-            work_end_time: workEndTime,
-            is_active: isActive
-        })
+        .update(updateData)
         .eq('id', userId)
         .eq('org_id', profile.org_id) // Ensure we only update users in the same org
 

@@ -14,6 +14,7 @@ interface Profile {
     work_end_time: string | null
     lunch_start_time: string | null
     lunch_end_time: string | null
+    work_schedule?: any
 }
 
 interface TimeEntry {
@@ -74,7 +75,8 @@ export default function PontoHistoryPage() {
                         work_start_time,
                         work_end_time,
                         lunch_start_time,
-                        lunch_end_time
+                        lunch_end_time,
+                        work_schedule
                     )
                 `)
                 .eq('org_id', profile.org_id)
@@ -106,7 +108,30 @@ export default function PontoHistoryPage() {
                 if (!employeeMap[userId].days[dateKey]) {
                     // Calculate expected minutes for this day
                     let expected = 480 // Default 8h
-                    if (profile.work_start_time && profile.work_end_time) {
+
+                    const entryDate = parseISO(entry.clock_in)
+                    const dayOfWeek = entryDate.getDay() // 0 = Sunday, 1 = Monday, etc.
+
+                    if (profile.work_schedule && Array.isArray(profile.work_schedule) && profile.work_schedule.length > 0) {
+                        const daySchedule = profile.work_schedule.find((s: any) => s.day === dayOfWeek)
+                        if (daySchedule) {
+                            if (!daySchedule.isActive) {
+                                expected = 0
+                            } else if (daySchedule.start && daySchedule.end) {
+                                const start = parseTime(daySchedule.start)
+                                const end = parseTime(daySchedule.end)
+                                let total = end - start
+
+                                if (daySchedule.lunchStart && daySchedule.lunchEnd) {
+                                    const lStart = parseTime(daySchedule.lunchStart)
+                                    const lEnd = parseTime(daySchedule.lunchEnd)
+                                    total -= (lEnd - lStart)
+                                }
+                                expected = total
+                            }
+                        }
+                    } else if (profile.work_start_time && profile.work_end_time) {
+                        // Fallback logic for older records without work_schedule JSON
                         const start = parseTime(profile.work_start_time)
                         const end = parseTime(profile.work_end_time)
                         let total = end - start
@@ -116,7 +141,17 @@ export default function PontoHistoryPage() {
                             const lEnd = parseTime(profile.lunch_end_time)
                             total -= (lEnd - lStart)
                         }
-                        expected = total
+                        // Default to 0 for weekends if no new schedule exists
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            expected = 0
+                        } else {
+                            expected = total
+                        }
+                    } else {
+                        // Global fallback
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            expected = 0;
+                        }
                     }
 
                     employeeMap[userId].days[dateKey] = {

@@ -14,10 +14,11 @@ interface TimeEntry {
 interface UserProfile {
     id: string
     org_id: string
-    work_start_time: string
-    lunch_start_time: string
-    lunch_end_time: string
-    work_end_time: string
+    work_start_time: string | null
+    lunch_start_time: string | null
+    lunch_end_time: string | null
+    work_end_time: string | null
+    work_schedule?: any
 }
 
 export default function TimeClock() {
@@ -121,8 +122,26 @@ export default function TimeClock() {
         if (!profile) return false
 
         const now = currentTime.getHours() * 60 + currentTime.getMinutes()
-        const [h, m] = profile.work_start_time.split(':').map(Number)
-        const scheduled = h * 60 + m
+        let scheduled = 0;
+        const dayOfWeek = currentTime.getDay();
+
+        if (profile.work_schedule && Array.isArray(profile.work_schedule) && profile.work_schedule.length > 0) {
+            const daySchedule = profile.work_schedule.find((s: any) => s.day === dayOfWeek)
+            if (daySchedule && daySchedule.isActive && daySchedule.start) {
+                const [h, m] = daySchedule.start.split(':').map(Number)
+                scheduled = h * 60 + m
+            } else if (daySchedule && !daySchedule.isActive) {
+                // Not scheduled to work today, no justification needed
+                return false
+            } else {
+                return false
+            }
+        } else if (profile.work_start_time) {
+            const [h, m] = profile.work_start_time.split(':').map(Number)
+            scheduled = h * 60 + m
+        } else {
+            return false
+        }
 
         // Only for first punch of the day
         if (entries.length === 0 && now > scheduled + 5) { // 5 min tolerance

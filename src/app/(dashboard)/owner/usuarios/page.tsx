@@ -6,6 +6,25 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createUser, updateUser } from '@/app/actions/user'
 
+export interface WorkScheduleDay {
+    day: number
+    isActive: boolean
+    start: string
+    end: string
+    lunchStart: string
+    lunchEnd: string
+}
+
+export const defaultSchedule: WorkScheduleDay[] = [
+    { day: 0, isActive: false, start: '', end: '', lunchStart: '', lunchEnd: '' },
+    { day: 1, isActive: true, start: '08:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 2, isActive: true, start: '08:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 3, isActive: true, start: '08:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 4, isActive: true, start: '08:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 5, isActive: true, start: '08:00', end: '18:00', lunchStart: '12:00', lunchEnd: '13:00' },
+    { day: 6, isActive: false, start: '', end: '', lunchStart: '', lunchEnd: '' }
+]
+
 // Use Profile interface or define local type matching DB
 export interface Profile {
     id: string
@@ -13,10 +32,7 @@ export interface Profile {
     email: string
     role: 'superadmin' | 'admin' | 'staff' | 'customer'
     is_active: boolean
-    work_start_time?: string
-    lunch_start_time?: string
-    lunch_end_time?: string
-    work_end_time?: string
+    work_schedule?: any
     created_at: string
 }
 
@@ -40,6 +56,7 @@ export default function UsuariosPage() {
     const [showEditModal, setShowEditModal] = useState(false)
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [workSchedule, setWorkSchedule] = useState<WorkScheduleDay[]>(defaultSchedule)
 
     // Server Action State - Create
     const [state, formAction, isPending] = useActionState(createUser, initialState)
@@ -101,6 +118,7 @@ export default function UsuariosPage() {
 
     const handleEdit = (user: Profile) => {
         setSelectedUser(user)
+        setWorkSchedule(Array.isArray(user.work_schedule) && user.work_schedule.length > 0 ? user.work_schedule : defaultSchedule)
         setShowEditModal(true)
     }
 
@@ -113,11 +131,8 @@ export default function UsuariosPage() {
         formData.append('role', user.role)
         formData.append('isActive', (!user.is_active).toString())
 
-        // Pass existing work hours if any
-        if (user.work_start_time) formData.append('workStartTime', user.work_start_time)
-        if (user.lunch_start_time) formData.append('lunchStartTime', user.lunch_start_time)
-        if (user.lunch_end_time) formData.append('lunchEndTime', user.lunch_end_time)
-        if (user.work_end_time) formData.append('workEndTime', user.work_end_time)
+        // Pass existing work schedule if any
+        if (user.work_schedule) formData.append('workSchedule', JSON.stringify(user.work_schedule))
 
         const result = await updateUser(null, formData)
         if (result.success) {
@@ -143,7 +158,7 @@ export default function UsuariosPage() {
                     <h1 className={styles.title}>👥 Gestão de Usuários</h1>
                     <p className={styles.subtitle}>Gerencie os funcionários do seu pet shop</p>
                 </div>
-                <button className={styles.addButton} onClick={() => setShowModal(true)}>
+                <button className={styles.addButton} onClick={() => { setWorkSchedule(defaultSchedule); setShowModal(true) }}>
                     + Novo Usuário
                 </button>
             </div>
@@ -293,24 +308,34 @@ export default function UsuariosPage() {
                                     </div>
                                 </div>
 
-                                <div className={styles.sectionDivider}>⏰ Horário de Trabalho</div>
-                                <div className={styles.row}>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="workStartTime" className={styles.label}>Entrada</label>
-                                        <input id="workStartTime" name="workStartTime" type="time" className={styles.input} defaultValue="08:00" required />
-                                    </div>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="lunchStartTime" className={styles.label}>Início Almoço</label>
-                                        <input id="lunchStartTime" name="lunchStartTime" type="time" className={styles.input} defaultValue="12:00" required />
-                                    </div>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="lunchEndTime" className={styles.label}>Fim Almoço</label>
-                                        <input id="lunchEndTime" name="lunchEndTime" type="time" className={styles.input} defaultValue="13:00" required />
-                                    </div>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="workEndTime" className={styles.label}>Saída</label>
-                                        <input id="workEndTime" name="workEndTime" type="time" className={styles.input} defaultValue="18:00" required />
-                                    </div>
+                                <div className={styles.sectionDivider}>⏰ Escala de Horários</div>
+                                <input type="hidden" name="workSchedule" value={JSON.stringify(workSchedule)} />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                    {workSchedule.map((day, idx) => (
+                                        <div key={day.day} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', opacity: day.isActive ? 1 : 0.5, flexWrap: 'wrap' }}>
+                                            <div style={{ width: '60px' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={day.isActive}
+                                                        onChange={(e) => {
+                                                            const newSch = [...workSchedule]
+                                                            newSch[idx] = { ...newSch[idx], isActive: e.target.checked }
+                                                            setWorkSchedule(newSch)
+                                                        }}
+                                                    />
+                                                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][day.day]}
+                                                </label>
+                                            </div>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.start} onChange={e => { const newSch = [...workSchedule]; newSch[idx].start = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Entrada" />
+                                            <span style={{ fontSize: '0.8rem', color: '#666' }}>até</span>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.lunchStart} onChange={e => { const newSch = [...workSchedule]; newSch[idx].lunchStart = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Saída Almoço" />
+                                            <span style={{ fontSize: '0.8rem', color: '#666' }}>-</span>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.lunchEnd} onChange={e => { const newSch = [...workSchedule]; newSch[idx].lunchEnd = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Volta Almoço" />
+                                            <span style={{ fontSize: '0.8rem', color: '#666' }}>até</span>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.end} onChange={e => { const newSch = [...workSchedule]; newSch[idx].end = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Saída" />
+                                        </div>
+                                    ))}
                                 </div>
 
                                 {state.message && !state.success && (
@@ -378,24 +403,34 @@ export default function UsuariosPage() {
                                     </select>
                                 </div>
 
-                                <div className={styles.sectionDivider}>⏰ Horário de Trabalho</div>
-                                <div className={styles.row}>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="editWorkStartTime" className={styles.label}>Entrada</label>
-                                        <input id="editWorkStartTime" name="workStartTime" type="time" className={styles.input} defaultValue={selectedUser.work_start_time || "08:00"} required />
-                                    </div>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="editLunchStartTime" className={styles.label}>Início Almoço</label>
-                                        <input id="editLunchStartTime" name="lunchStartTime" type="time" className={styles.input} defaultValue={selectedUser.lunch_start_time || "12:00"} required />
-                                    </div>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="editLunchEndTime" className={styles.label}>Fim Almoço</label>
-                                        <input id="editLunchEndTime" name="lunchEndTime" type="time" className={styles.input} defaultValue={selectedUser.lunch_end_time || "13:00"} required />
-                                    </div>
-                                    <div className={styles.formGroup} style={{ flex: 1 }}>
-                                        <label htmlFor="editWorkEndTime" className={styles.label}>Saída</label>
-                                        <input id="editWorkEndTime" name="workEndTime" type="time" className={styles.input} defaultValue={selectedUser.work_end_time || "18:00"} required />
-                                    </div>
+                                <div className={styles.sectionDivider}>⏰ Escala de Horários</div>
+                                <input type="hidden" name="workSchedule" value={JSON.stringify(workSchedule)} />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                    {workSchedule.map((day, idx) => (
+                                        <div key={day.day} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', opacity: day.isActive ? 1 : 0.5, flexWrap: 'wrap' }}>
+                                            <div style={{ width: '60px' }}>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={day.isActive}
+                                                        onChange={(e) => {
+                                                            const newSch = [...workSchedule]
+                                                            newSch[idx] = { ...newSch[idx], isActive: e.target.checked }
+                                                            setWorkSchedule(newSch)
+                                                        }}
+                                                    />
+                                                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][day.day]}
+                                                </label>
+                                            </div>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.start} onChange={e => { const newSch = [...workSchedule]; newSch[idx].start = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Entrada" />
+                                            <span style={{ fontSize: '0.8rem', color: '#666' }}>até</span>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.lunchStart} onChange={e => { const newSch = [...workSchedule]; newSch[idx].lunchStart = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Saída Almoço" />
+                                            <span style={{ fontSize: '0.8rem', color: '#666' }}>-</span>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.lunchEnd} onChange={e => { const newSch = [...workSchedule]; newSch[idx].lunchEnd = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Volta Almoço" />
+                                            <span style={{ fontSize: '0.8rem', color: '#666' }}>até</span>
+                                            <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.end} onChange={e => { const newSch = [...workSchedule]; newSch[idx].end = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Saída" />
+                                        </div>
+                                    ))}
                                 </div>
 
                                 {updateState.message && !updateState.success && (
