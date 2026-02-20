@@ -18,7 +18,7 @@ export default function DashboardLayout({
     const isOwner = pathname?.startsWith('/owner')
     const isMasterAdmin = pathname?.startsWith('/master-admin')
 
-    const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null } | null>(null)
+    const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null } | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const supabase = createClient()
     const router = useRouter()
@@ -71,7 +71,7 @@ export default function DashboardLayout({
                 // Fetch profile
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('full_name, role, org_id')
+                    .select('full_name, role, org_id, avatar_url')
                     .eq('id', user.id)
                     .single()
 
@@ -82,7 +82,8 @@ export default function DashboardLayout({
                             profile.role === 'admin' ? 'Administrador' :
                                 profile.role === 'staff' ? 'Staff' :
                                     profile.role === 'customer' ? 'Tutor' : 'Usuário',
-                        org_id: profile.org_id
+                        org_id: profile.org_id,
+                        avatar_url: profile.avatar_url
                     })
                 }
             }
@@ -215,7 +216,11 @@ export default function DashboardLayout({
                                 <span className={styles.userRole}>{user?.role || '...'}</span>
                             </div>
                             <div className={styles.avatar}>
-                                {user?.name?.charAt(0).toUpperCase() || '?'}
+                                {user?.avatar_url ? (
+                                    <Image src={user.avatar_url} alt={user.name} width={44} height={44} className={styles.avatarImage} />
+                                ) : (
+                                    user?.name?.charAt(0).toUpperCase() || '?'
+                                )}
                             </div>
                         </Link>
                     </div>
