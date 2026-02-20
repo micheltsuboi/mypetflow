@@ -446,6 +446,14 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .rolesInfo {
+        grid-template-columns: 1fr;
+    }
+
     .tableContainer {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;

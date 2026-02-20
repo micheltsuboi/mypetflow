@@ -534,3 +534,22 @@
     border-radius: 8px;
     border: 1px solid var(--border);
 }
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    .searchBox {
+        min-width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    .categoryFilter {
+        width: 100%;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}

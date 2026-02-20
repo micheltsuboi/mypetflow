@@ -241,6 +241,10 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
     .tableContainer {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
