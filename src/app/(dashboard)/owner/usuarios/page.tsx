@@ -45,9 +45,13 @@ const roleLabels: Record<string, string> = {
 }
 
 const STAFF_MODULES = [
+    { id: 'agenda', label: '📅 Agenda' },
     { id: 'banho_tosa', label: '🛁 Banho e Tosa' },
     { id: 'creche', label: '🐕 Creche' },
     { id: 'hospedagem', label: '🏨 Hospedagem' },
+    { id: 'tutores', label: '👤 Tutores' },
+    { id: 'pets', label: '🐾 Pets' },
+    { id: 'petshop', label: '🛍️ Petshop' },
     { id: 'servicos', label: '📋 Serviços' },
     { id: 'ponto', label: '⏰ Cartão Ponto' }
 ]

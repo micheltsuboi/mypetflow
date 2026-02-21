@@ -117,13 +117,17 @@ export default function DashboardLayout({
     if (user?.role === 'Staff' || !user) {
         const perms = user?.permissions || []
         navigation = navigation.filter((item: any) => {
-            if (item.name === 'Usuários') return false
+            if (item.name === 'Dashboard') return true
+            if (item.name === 'Agenda') return perms.includes('agenda')
             if (item.name === 'Banho e Tosa') return perms.includes('banho_tosa')
             if (item.name === 'Creche') return perms.includes('creche')
             if (item.name === 'Hospedagem') return perms.includes('hospedagem')
+            if (item.name === 'Tutores') return perms.includes('tutores')
+            if (item.name === 'Pets') return perms.includes('pets')
+            if (item.name === 'Petshop') return perms.includes('petshop')
             if (item.name === 'Serviços') return perms.includes('servicos')
             if (item.name === 'Ponto') return perms.includes('ponto')
-            return true
+            return false // Hide everything else (such as Usuários, Financeiro)
         })
     }
 
