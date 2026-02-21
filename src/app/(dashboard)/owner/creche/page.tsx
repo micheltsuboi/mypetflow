@@ -200,12 +200,11 @@ export default function CrechePage() {
                         <div
                             key={appt.id}
                             className={styles.appointmentCard}
-                            onClick={() => setSelectedAppointment(appt)}
                             style={{
                                 borderLeft: `4px solid ${appt.services?.service_categories?.color || '#10B981'}`,
                                 background: 'var(--bg-secondary)',
                                 opacity: 1,
-                                cursor: 'pointer',
+                                cursor: 'default',
                                 position: 'relative' // Ensure relative positioning for absolute badge
                             }}>
                             {/* Date Badge - Enhanced for visibility */}
@@ -240,7 +239,10 @@ export default function CrechePage() {
                                 <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
                                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                     <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
-                                        <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                                        <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem' }} onClick={(e) => {
+                                            e.stopPropagation()
+                                            setSelectedAppointment(appt)
+                                        }}>
                                             {appt.pets?.name || 'Pet'}
                                             <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
                                                 {appt.actual_check_in && !appt.actual_check_out ? '🟢 Na Creche' :

@@ -149,7 +149,10 @@ export default function PaymentControls({
                             />
                             {!isPaid && (
                                 <button
-                                    onClick={handleDiscount}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDiscount()
+                                    }}
                                     disabled={loading || discountValue === discountPercent?.toString()}
                                     style={{
                                         fontSize: '0.75rem',
@@ -177,7 +180,7 @@ export default function PaymentControls({
 
                     <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem', color: '#1e293b' }}>
                         <span>Total Final:</span>
-                        <span>R$ {displayPrice.toFixed(2)}</span>
+                        <span>R$ {parseFloat(displayPrice.toFixed(2)).toFixed(2)}</span>
                     </div>
                 </div>
 

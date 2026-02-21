@@ -234,12 +234,11 @@ export default function HospedagemPage() {
                             <div
                                 key={appt.id}
                                 className={styles.appointmentCard}
-                                onClick={() => setSelectedAppointment(appt)}
                                 style={{
                                     borderLeft: `4px solid ${categoryColor}`,
                                     background: 'var(--bg-secondary)',
                                     opacity: 1,
-                                    cursor: 'pointer'
+                                    cursor: 'default'
                                 }}>
                                 {/* Date Badge */}
                                 <div style={{
@@ -273,7 +272,10 @@ export default function HospedagemPage() {
                                     <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
                                         <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                                         <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
-                                            <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem', cursor: 'pointer' }} onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedAppointment(appt)
+                                            }}>
                                                 {appt.pets?.name || 'Pet'}
                                                 <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
                                                     {appt.status === 'in_progress' ? '🏠 Hospedado' :
@@ -325,7 +327,10 @@ export default function HospedagemPage() {
                                                     </button>
                                                 </div>
                                             )}
-                                            <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
+                                            <span className={styles.tutorName} style={{ cursor: 'pointer' }} onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedAppointment(appt)
+                                            }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
 
                                             <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
