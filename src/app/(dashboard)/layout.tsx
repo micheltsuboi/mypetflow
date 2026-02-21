@@ -113,24 +113,6 @@ export default function DashboardLayout({
     // Determine target navigation based on role AND current path to prevent confusion
     let navigation = [...staffNavigation]
 
-    // Extra safety: Filter out 'Usuários' for Staff, and apply granular permissions
-    if (user?.role === 'Staff' || !user) {
-        const perms = user?.permissions || []
-        navigation = navigation.filter((item: any) => {
-            if (item.name === 'Dashboard') return true
-            if (item.name === 'Agenda') return perms.includes('agenda')
-            if (item.name === 'Banho e Tosa') return perms.includes('banho_tosa')
-            if (item.name === 'Creche') return perms.includes('creche')
-            if (item.name === 'Hospedagem') return perms.includes('hospedagem')
-            if (item.name === 'Tutores') return perms.includes('tutores')
-            if (item.name === 'Pets') return perms.includes('pets')
-            if (item.name === 'Petshop') return perms.includes('petshop')
-            if (item.name === 'Serviços') return perms.includes('servicos')
-            if (item.name === 'Ponto') return perms.includes('ponto')
-            return false // Hide everything else (such as Usuários, Financeiro)
-        })
-    }
-
     console.log('Layout logic - Current user role:', user?.role, 'Org:', user?.org_id, 'Path:', pathname)
 
     const isTutorRoute = pathname?.startsWith('/tutor')
@@ -158,6 +140,25 @@ export default function DashboardLayout({
         // Fallback based on path if role mismatches or is loading
         console.log('Layout: Using Fallback Navigation based on path')
         navigation = isMasterAdmin ? (isSaaSMaster ? masterAdminNavigation : ownerNavigation) : (isOwner ? ownerNavigation : staffNavigation)
+    }
+
+    // Extra safety: Filter out 'Usuários' for Staff, and apply granular permissions
+    // Apply this AFTER determining the base navigation array
+    if (user?.role === 'Staff' || !user) {
+        const perms = user?.permissions || []
+        navigation = navigation.filter((item: any) => {
+            if (item.name === 'Dashboard') return true
+            if (item.name === 'Agenda') return perms.includes('agenda')
+            if (item.name === 'Banho e Tosa') return perms.includes('banho_tosa')
+            if (item.name === 'Creche') return perms.includes('creche')
+            if (item.name === 'Hospedagem') return perms.includes('hospedagem')
+            if (item.name === 'Tutores') return perms.includes('tutores')
+            if (item.name === 'Pets') return perms.includes('pets')
+            if (item.name === 'Petshop') return perms.includes('petshop')
+            if (item.name === 'Serviços') return perms.includes('servicos')
+            if (item.name === 'Ponto') return perms.includes('ponto')
+            return false // Hide everything else (such as Usuários, Financeiro)
+        })
     }
 
     return (
