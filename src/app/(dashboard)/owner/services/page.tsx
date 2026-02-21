@@ -106,13 +106,13 @@ export default function ServicesPage() {
         const { data: svcs } = await supabase.from('services').select(`
             *,
             service_categories (*),
-            pricing_rules (*)
+            pricing_matrix (*)
         `).order('name')
 
         if (svcs) {
             const formatted: Service[] = svcs.map((s: any) => ({
                 ...s,
-                pricing_matrix: s.pricing_rules || [],
+                pricing_matrix: s.pricing_matrix || [],
                 scheduling_rules: s.scheduling_rules || [],
                 checklist_template: s.checklist_template || []
             }))
@@ -186,9 +186,9 @@ export default function ServicesPage() {
         // Refresh data but keep modal open
         await fetchData()
         // We need to re-find the selected service to update the matrix in the modal
-        const { data } = await supabase.from('services').select('*, pricing_rules(*)').eq('id', selectedService.id).single()
+        const { data } = await supabase.from('services').select('*, pricing_matrix(*)').eq('id', selectedService.id).single()
         if (data) {
-            setSelectedService({ ...data, pricing_matrix: data.pricing_rules || [] })
+            setSelectedService({ ...data, pricing_matrix: (data as any).pricing_matrix || [] })
         }
         setRuleLoading(false)
     }
@@ -197,9 +197,9 @@ export default function ServicesPage() {
         if (!confirm('Excluir regra?')) return
         await deletePricingRule(id)
         await fetchData()
-        const { data } = await supabase.from('services').select('*, pricing_rules(*)').eq('id', selectedService!.id).single()
+        const { data } = await supabase.from('services').select('*, pricing_matrix(*)').eq('id', selectedService!.id).single()
         if (data) {
-            setSelectedService({ ...data, pricing_matrix: data.pricing_rules || [] })
+            setSelectedService({ ...data, pricing_matrix: (data as any).pricing_matrix || [] })
         }
     }
 
