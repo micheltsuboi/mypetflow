@@ -73,7 +73,7 @@ export default function PaymentControls({
         if (isNaN(percent) || percent < 0 || percent > 100) return
         setLoading(true)
         try {
-            await applyDiscount(appointmentId, percent)
+            await applyDiscount(appointmentId, percent, basePrice)
             onUpdate?.()
         } finally {
             setLoading(false)
@@ -81,7 +81,7 @@ export default function PaymentControls({
     }
 
     // Modal Content
-    const PaymentModal = () => (
+    const paymentModalJSX = (
         <div
             onClick={(e) => {
                 e.stopPropagation()
@@ -303,7 +303,7 @@ export default function PaymentControls({
                 </div>
             </div>
 
-            {showModal && typeof document !== 'undefined' && createPortal(<PaymentModal />, document.body)}
+            {showModal && typeof document !== 'undefined' && createPortal(paymentModalJSX, document.body)}
         </>
     )
 }

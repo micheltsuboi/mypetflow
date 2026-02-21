@@ -512,7 +512,7 @@ export async function updatePaymentStatus(id: string, paymentStatus: string, pay
     return { message: paymentStatus === 'paid' ? 'Pagamento registrado!' : 'Status de pagamento atualizado.', success: true }
 }
 
-export async function applyDiscount(id: string, discountPercent: number) {
+export async function applyDiscount(id: string, discountPercent: number, frontendBasePrice?: number) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
@@ -524,13 +524,14 @@ export async function applyDiscount(id: string, discountPercent: number) {
     // Fetch current calculated_price
     const { data: appt, error: fetchErr } = await supabase
         .from('appointments')
-        .select('calculated_price')
+        .select(`calculated_price, services(base_price)`)
         .eq('id', id)
         .single()
 
     if (fetchErr || !appt) return { message: 'Agendamento não encontrado.', success: false }
 
-    const basePrice = appt.calculated_price || 0
+    const dbBasePrice = appt.calculated_price ?? (appt.services as any)?.base_price ?? 0
+    const basePrice = frontendBasePrice ?? dbBasePrice
     const finalPrice = basePrice * (1 - discountPercent / 100)
 
     const { error } = await supabase
