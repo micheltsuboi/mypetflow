@@ -5,6 +5,9 @@ import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { FinancialTransaction } from '@/types/database'
+import { exportToCsv } from '@/utils/export'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface MonthlyData {
     month: string
@@ -273,6 +276,121 @@ export default function FinanceiroPage() {
 
     const maxRevenue = Math.max(...monthlyData.map(d => d.revenue), 1)
 
+    const handleExportCSV = () => {
+        if (!extractRecords.type) return;
+
+        const headers = extractRecords.type === 'expenses'
+            ? ['Categoria', 'Descrição', 'Data', 'Valor']
+            : ['Item', 'Data', 'Valor', 'Categoria'];
+
+        const rows: any[][] = [];
+
+        if (extractRecords.type !== 'expenses') {
+            extractRecords.appointments
+                .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
+                .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
+                .forEach(appt => {
+                    const dateVal = appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at;
+                    rows.push([
+                        `${appt.pets?.name || 'Pet'} • ${appt.services?.name || 'Serviço'}`,
+                        new Date(dateVal).toLocaleDateString('pt-BR'),
+                        (appt.final_price || appt.calculated_price || 0).toFixed(2).replace('.', ','),
+                        (appt.services as any)?.service_categories?.name || 'Serviços'
+                    ])
+                })
+        }
+
+        if (extractRecords.type !== 'pending') {
+            extractRecords.transactions
+                .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
+                .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
+                .forEach(tx => {
+                    if (extractRecords.type === 'expenses') {
+                        rows.push([
+                            tx.category,
+                            tx.description || '',
+                            new Date(tx.date).toLocaleDateString('pt-BR'),
+                            tx.amount.toFixed(2).replace('.', ',')
+                        ])
+                    } else {
+                        rows.push([
+                            tx.description || 'Transação Avulsa',
+                            new Date(tx.date).toLocaleDateString('pt-BR'),
+                            tx.amount.toFixed(2).replace('.', ','),
+                            tx.category
+                        ])
+                    }
+                })
+        }
+
+        exportToCsv(`financeiro_${extractRecords.type}`, headers, rows)
+    }
+
+    const handleExportPDF = () => {
+        if (!extractRecords.type) return;
+
+        const title =
+            extractRecords.type === 'revenue' ? 'Extrato de Faturamento' :
+                extractRecords.type === 'expenses' ? 'Extrato de Despesas' : 'Valores a Receber';
+
+        const doc = new jsPDF()
+        doc.text(title, 14, 15)
+
+        const headers = extractRecords.type === 'expenses'
+            ? [['Categoria', 'Descrição', 'Data', 'Valor']]
+            : [['Item', 'Data', 'Valor', 'Categoria']];
+
+        const rows: any[][] = [];
+
+        if (extractRecords.type !== 'expenses') {
+            extractRecords.appointments
+                .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
+                .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
+                .forEach(appt => {
+                    const dateVal = appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at;
+                    rows.push([
+                        `${appt.pets?.name || 'Pet'} • ${appt.services?.name || 'Serviço'}`,
+                        new Date(dateVal).toLocaleDateString('pt-BR'),
+                        formatCurrency(appt.final_price || appt.calculated_price || 0),
+                        (appt.services as any)?.service_categories?.name || 'Serviços'
+                    ])
+                })
+        }
+
+        if (extractRecords.type !== 'pending') {
+            extractRecords.transactions
+                .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
+                .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
+                .forEach(tx => {
+                    if (extractRecords.type === 'expenses') {
+                        rows.push([
+                            tx.category,
+                            tx.description || '',
+                            new Date(tx.date).toLocaleDateString('pt-BR'),
+                            formatCurrency(tx.amount)
+                        ])
+                    } else {
+                        rows.push([
+                            tx.description || 'Transação Avulsa',
+                            new Date(tx.date).toLocaleDateString('pt-BR'),
+                            formatCurrency(tx.amount),
+                            tx.category
+                        ])
+                    }
+                })
+        }
+
+        autoTable(doc, {
+            head: headers,
+            body: rows,
+            startY: 20,
+            styles: { fontSize: 9 },
+            theme: 'striped'
+        })
+
+        doc.save(`financeiro_${extractRecords.type}.pdf`)
+    }
+
     if (loading) {
         return (
             <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -380,11 +498,27 @@ export default function FinanceiroPage() {
                     <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
                         <button className={styles.closeButton} onClick={() => setIsExtractModalOpen(false)}>×</button>
 
-                        <h2>
-                            {extractRecords.type === 'revenue' && '📜 Extrato de Faturamento'}
-                            {extractRecords.type === 'expenses' && '📉 Extrato de Despesas'}
-                            {extractRecords.type === 'pending' && '⏳ Valores a Receber'}
-                        </h2>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', paddingRight: '2rem' }}>
+                            <h2 style={{ margin: 0 }}>
+                                {extractRecords.type === 'revenue' && '📜 Extrato de Faturamento'}
+                                {extractRecords.type === 'expenses' && '📉 Extrato de Despesas'}
+                                {extractRecords.type === 'pending' && '⏳ Valores a Receber'}
+                            </h2>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                    onClick={handleExportCSV}
+                                    style={{ padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                >
+                                    Exportar CSV
+                                </button>
+                                <button
+                                    onClick={handleExportPDF}
+                                    style={{ padding: '0.4rem 0.8rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
+                                >
+                                    Exportar PDF
+                                </button>
+                            </div>
+                        </div>
 
                         <div className={styles.extractList}>
                             {/* Appointments list (for Revenue and Pending) */}

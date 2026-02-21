@@ -6,6 +6,9 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { format, differenceInMinutes, parseISO, startOfDay, endOfDay, isSameDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { exportToCsv } from '@/utils/export'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface Profile {
     id: string
@@ -216,11 +219,92 @@ export default function PontoHistoryPage() {
         return styles.neutral // Gray
     }
 
+    const handleExportCSV = () => {
+        const headers = ['Funcionário', 'Data', 'Entradas/Saídas', 'Total Trabalhado', 'Saldo (Banco de Horas)']
+        const rows: any[][] = []
+
+        Object.values(employees)
+            .filter(emp => selectedEmployeeId === 'all' || emp.profile.id === selectedEmployeeId)
+            .forEach(emp => {
+                const sortedDays = Object.values(emp.days).sort((a, b) => b.date.localeCompare(a.date))
+                sortedDays.forEach(day => {
+                    const dateStr = format(parseISO(day.date), 'dd/MM/yyyy (EEEE)', { locale: ptBR })
+                    const entriesStr = day.entries.map(e =>
+                        `${format(parseISO(e.clock_in), 'HH:mm')} - ${e.clock_out ? format(parseISO(e.clock_out), 'HH:mm') : 'Em andamento'}`
+                    ).join(' | ')
+                    rows.push([
+                        emp.profile.full_name,
+                        dateStr,
+                        entriesStr,
+                        formatDuration(day.totalMinutes),
+                        (day.balanceMinutes > 0 ? '+' : '') + formatDuration(day.balanceMinutes)
+                    ])
+                })
+            })
+
+        exportToCsv('relatorio_ponto', headers, rows)
+    }
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF()
+        doc.text('Relatório de Ponto', 14, 15)
+
+        const headers = [['Funcionário', 'Data', 'Entradas/Saídas', 'Total', 'Saldo']]
+        const rows: any[][] = []
+
+        Object.values(employees)
+            .filter(emp => selectedEmployeeId === 'all' || emp.profile.id === selectedEmployeeId)
+            .forEach(emp => {
+                const sortedDays = Object.values(emp.days).sort((a, b) => b.date.localeCompare(a.date))
+                sortedDays.forEach(day => {
+                    const dateStr = format(parseISO(day.date), 'dd/MM/yyyy', { locale: ptBR })
+                    const entriesStr = day.entries.map(e =>
+                        `${format(parseISO(e.clock_in), 'HH:mm')} - ${e.clock_out ? format(parseISO(e.clock_out), 'HH:mm') : '...'}`
+                    ).join('\n')
+                    rows.push([
+                        emp.profile.full_name,
+                        dateStr,
+                        entriesStr,
+                        formatDuration(day.totalMinutes),
+                        (day.balanceMinutes > 0 ? '+' : '') + formatDuration(day.balanceMinutes)
+                    ])
+                })
+            })
+
+        autoTable(doc, {
+            head: headers,
+            body: rows,
+            startY: 20,
+            styles: { fontSize: 8 },
+            theme: 'striped'
+        })
+
+        doc.save('relatorio_ponto.pdf')
+    }
+
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                <h1>Relatório de Ponto</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <Link href="/owner" className={styles.backLink}>← Voltar</Link>
+                    <h1 style={{ margin: 0 }}>Relatório de Ponto</h1>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                        onClick={handleExportCSV}
+                        style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}
+                        disabled={loading || Object.keys(employees).length === 0}
+                    >
+                        Exportar CSV
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        style={{ padding: '0.5rem 1rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}
+                        disabled={loading || Object.keys(employees).length === 0}
+                    >
+                        Exportar PDF
+                    </button>
+                </div>
             </div>
 
             <div className={styles.filters}>
