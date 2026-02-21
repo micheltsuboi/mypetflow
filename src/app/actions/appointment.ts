@@ -17,11 +17,13 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('org_id')
+        .select('org_id, role')
         .eq('id', user.id)
         .single()
 
     if (!profile?.org_id) return { message: 'Organização não encontrada.', success: false }
+
+    const isCustomer = profile.role === 'customer'
 
     // 2. Extract Data
     const petId = formData.get('petId') as string
@@ -132,7 +134,11 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             })
 
             if (blockingBlocks && blockingBlocks.length > 0 && !isCreche && !isHospedagem) {
-                return { message: `Este horário está bloqueado: ${blockingBlocks[0].reason}`, success: false }
+                if (isCustomer) {
+                    return { message: `Este horário está bloqueado: ${blockingBlocks[0].reason}`, success: false }
+                } else {
+                    console.log('[CreateAppointment] Bypassing schedule block for non-customer user.')
+                }
             }
         } catch (_) { // unused e
             return { message: 'Data ou hora inválida.', success: false }
@@ -161,7 +167,11 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         })
 
         if (blockingConflicts && blockingConflicts.length > 0 && !isCreche && !isHospedagem) {
-            return { message: `Conflito com bloqueio: ${blockingConflicts[0].reason}`, success: false }
+            if (isCustomer) {
+                return { message: `Conflito com bloqueio: ${blockingConflicts[0].reason}`, success: false }
+            } else {
+                console.log('[CreateAppointment] Bypassing duration conflict block for non-customer user.')
+            }
         }
     }
 
