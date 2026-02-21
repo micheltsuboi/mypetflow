@@ -10,6 +10,7 @@ import { createPet, updatePet, deletePet } from '@/app/actions/pet'
 import { sellPackageToPet, getPetPackagesWithUsage } from '@/app/actions/package'
 import { getPetAssessment } from '@/app/actions/petAssessment'
 import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
+import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import { createVaccine, deleteVaccine, getPetVaccines } from '@/app/actions/vaccine'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import ImageUpload from '@/components/ImageUpload'
@@ -86,7 +87,7 @@ function PetsContent() {
     }
 
     // Accordion State
-    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false })
+    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false })
 
     const toggleAccordion = async (key: keyof typeof accordions) => {
         setAccordions(prev => {
@@ -132,9 +133,9 @@ function PetsContent() {
     }
 
     // History State
-    // History State
     const [crecheHistory, setCrecheHistory] = useState<any[]>([])
     const [hotelHistory, setHotelHistory] = useState<any[]>([])
+    const [petshopHistory, setPetshopHistory] = useState<any[]>([])
     const [searchTerm, setSearchTerm] = useState('')
 
     const fetchData = useCallback(async () => {
@@ -230,7 +231,10 @@ function PetsContent() {
         if (accordions.hotel) {
             getPetAppointments(selectedPet.id, 'Hospedagem').then(setHotelHistory)
         }
-    }, [selectedPet, accordions.creche, accordions.hotel])
+        if (accordions.petshop) {
+            getPetshopHistory(selectedPet.id).then(res => setPetshopHistory(res.data || []))
+        }
+    }, [selectedPet, accordions.creche, accordions.hotel, accordions.petshop])
 
     useEffect(() => {
         fetchData()
@@ -260,8 +264,7 @@ function PetsContent() {
             const pet = pets.find(p => p.id === openPetId)
             if (pet) {
                 setSelectedPet(pet)
-                setSelectedPet(pet)
-                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false, vaccines: false }) // Open packages when returning from agenda
+                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false }) // Open packages when returning from agenda
                 setShowModal(true)
                 setShowModal(true)
                 // Clean URL
@@ -285,7 +288,7 @@ function PetsContent() {
 
     const handleRowClick = async (pet: Pet) => {
         setSelectedPet(pet)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false })
 
         // Eagerly fetch assessment BEFORE showing modal
         try {
@@ -304,7 +307,7 @@ function PetsContent() {
     const handleNewPet = () => {
         setSelectedPet(null)
         setPetAssessment(null)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false })
         setShowModal(true)
     }
 
@@ -929,6 +932,64 @@ function PetsContent() {
                                             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
                                                 Salve o pet primeiro para preencher a avaliação.
                                             </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 6. Produtos Pet Shop */}
+                            <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                <button type="button" onClick={() => toggleAccordion('petshop')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🛒 Produtos Pet Shop</span>
+                                    <span>{accordions.petshop ? '−' : '+'}</span>
+                                </button>
+                                {accordions.petshop && (
+                                    <div style={{ padding: '1rem' }}>
+                                        {selectedPet ? (
+                                            <>
+                                                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Histórico de Compras</h4>
+                                                {petshopHistory.length === 0 ? (
+                                                    <p style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Nenhum produto comprado.</p>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {petshopHistory.map((sale: any) => (
+                                                            <div key={sale.id} style={{ padding: '0.75rem', borderRadius: '6px', background: 'var(--bg-secondary)', borderLeft: `4px solid ${sale.payment_status === 'paid' ? '#10B981' : '#EF4444'}` }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                                    <div style={{ fontWeight: 600 }}>{sale.quantity}x {sale.product_name}</div>
+                                                                    <div style={{ fontWeight: 600 }}>R$ {sale.total_price.toFixed(2)}</div>
+                                                                </div>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(sale.created_at).toLocaleDateString('pt-BR')} • {sale.payment_status === 'paid' ? 'Pago' : 'Pendente'}</div>
+                                                                    {sale.payment_status === 'pending' && (
+                                                                        <button
+                                                                            type="button"
+                                                                            style={{ padding: '0.25rem 0.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                                                            onClick={async () => {
+                                                                                if (confirm(`Confirmar pagamento de R$ ${sale.total_price.toFixed(2)} para ${sale.product_name}?`)) {
+                                                                                    const paymentMethod = prompt('Qual a forma de pagamento? (pix, cash, credit, debit)', 'pix')
+                                                                                    if (paymentMethod) {
+                                                                                        const res = await payPetshopSale(sale.id, paymentMethod)
+                                                                                        if (res.success) {
+                                                                                            alert(res.message)
+                                                                                            getPetshopHistory(selectedPet.id).then(r => setPetshopHistory(r.data || []))
+                                                                                        } else {
+                                                                                            alert(res.message)
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            💵 Marcar como Pago
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Salve o pet primeiro.</div>
                                         )}
                                     </div>
                                 )}

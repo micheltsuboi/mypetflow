@@ -8,6 +8,7 @@ import { FinancialTransaction } from '@/types/database'
 import { exportToCsv } from '@/utils/export'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { payPetshopSale } from '@/app/actions/petshop'
 
 interface MonthlyData {
     month: string
@@ -37,15 +38,16 @@ export default function FinanceiroPage() {
         return new Date().toISOString().split('T')[0]
     })
 
-    // Records for drill-down
     const [extractRecords, setExtractRecords] = useState<{
         type: 'revenue' | 'expenses' | 'pending' | null;
         appointments: any[];
         transactions: any[];
+        pendingSales: any[];
     }>({
         type: null,
         appointments: [],
-        transactions: []
+        transactions: [],
+        pendingSales: []
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
 
@@ -75,7 +77,7 @@ export default function FinanceiroPage() {
             prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
             const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            const [apptsResponse, txsResponse] = await Promise.all([
+            const [apptsResponse, txsResponse, pendingSalesResponse] = await Promise.all([
                 supabase
                     .from('appointments')
                     .select(`
@@ -93,14 +95,22 @@ export default function FinanceiroPage() {
                     .from('financial_transactions')
                     .select('*')
                     .eq('org_id', profile.org_id)
-                    .gte('date', fetchStart)
+                    .gte('date', fetchStart),
+                supabase
+                    .from('petshop_sales')
+                    .select('id, product_name, total_price, payment_status, created_at, pets ( name )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
+                    .order('created_at', { ascending: true })
             ])
 
             if (apptsResponse.error) throw apptsResponse.error
             if (txsResponse.error) throw txsResponse.error
+            if (pendingSalesResponse.error) throw pendingSalesResponse.error
 
             const appointments = apptsResponse.data || []
             const transactions = txsResponse.data || []
+            const pendingSales = pendingSalesResponse.data || []
 
             // --- Process Monthly Chart Data (Last 6 Months) ---
             const monthMap = new Map<string, MonthlyData>()
@@ -183,7 +193,8 @@ export default function FinanceiroPage() {
             setExtractRecords({
                 type: null,
                 appointments: activeAppts,
-                transactions: activeTxs
+                transactions: activeTxs,
+                pendingSales
             })
 
         } catch (error) {
@@ -219,6 +230,21 @@ export default function FinanceiroPage() {
         } catch (error) {
             console.error('Erro ao confirmar pagamento:', error)
             alert('Erro ao confirmar pagamento.')
+        }
+    }
+
+    const handleConfirmPetshopPayment = async (saleId: string, productName: string, price: number) => {
+        if (confirm(`Confirmar pagamento de R$ ${price.toFixed(2).replace('.', ',')} para ${productName}?`)) {
+            const paymentMethod = prompt('Qual a forma de pagamento? (pix, cash, credit, debit)', 'pix')
+            if (paymentMethod) {
+                const res = await payPetshopSale(saleId, paymentMethod)
+                if (res.success) {
+                    alert(res.message)
+                    fetchFinancials()
+                } else {
+                    alert(res.message)
+                }
+            }
         }
     }
 
@@ -262,6 +288,9 @@ export default function FinanceiroPage() {
     const pendingTotal = extractRecords.appointments
         .filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory))
         .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+        + extractRecords.pendingSales
+            .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
+            .reduce((sum, s) => sum + s.total_price, 0)
 
     const revenueGrowth = previousMonthData.revenue > 0
         ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
@@ -323,6 +352,20 @@ export default function FinanceiroPage() {
                 })
         }
 
+        if (extractRecords.type === 'pending') {
+            extractRecords.pendingSales
+                .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
+                .forEach(sale => {
+                    const dateVal = sale.created_at;
+                    rows.push([
+                        `${sale.pets?.name || 'Avulso'} • ${sale.product_name}`,
+                        new Date(dateVal).toLocaleDateString('pt-BR'),
+                        sale.total_price.toFixed(2).replace('.', ','),
+                        'Venda Produto'
+                    ])
+                })
+        }
+
         exportToCsv(`financeiro_${extractRecords.type}`, headers, rows)
     }
 
@@ -377,6 +420,20 @@ export default function FinanceiroPage() {
                             tx.category
                         ])
                     }
+                })
+        }
+
+        if (extractRecords.type === 'pending') {
+            extractRecords.pendingSales
+                .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
+                .forEach(sale => {
+                    const dateVal = sale.created_at;
+                    rows.push([
+                        `${sale.pets?.name || 'Avulso'} • ${sale.product_name}`,
+                        new Date(dateVal).toLocaleDateString('pt-BR'),
+                        formatCurrency(sale.total_price),
+                        'Venda Produto'
+                    ])
                 })
         }
 
@@ -547,6 +604,29 @@ export default function FinanceiroPage() {
                                     </div>
                                 ))}
 
+                            {/* Pending Pet Shop Sales list */}
+                            {extractRecords.type === 'pending' && extractRecords.pendingSales
+                                .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
+                                .map(sale => (
+                                    <div key={sale.id} className={styles.extractItem}>
+                                        <div className={styles.extractInfo}>
+                                            <strong>{sale.pets?.name || 'Cliente Avulso'} • {sale.product_name}</strong>
+                                            <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                        </div>
+                                        <div className={styles.extractActions}>
+                                            <span className={styles.extractAmount}>
+                                                {formatCurrency(sale.total_price)}
+                                            </span>
+                                            <button
+                                                className={styles.confirmPayBtn}
+                                                onClick={() => handleConfirmPetshopPayment(sale.id, sale.product_name, sale.total_price)}
+                                            >
+                                                Confirmar Pago
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+
                             {/* Transactions list (for Revenue and Expenses) */}
                             {extractRecords.type !== 'pending' && extractRecords.transactions
                                 .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
@@ -573,7 +653,9 @@ export default function FinanceiroPage() {
                                 ))}
 
                             {/* Empty State */}
-                            {((extractRecords.type === 'pending' && extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0) ||
+                            {((extractRecords.type === 'pending' &&
+                                extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
+                                extractRecords.pendingSales.filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto').length === 0) ||
                                 (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0) ||
                                 (extractRecords.type === 'revenue' &&
                                     extractRecords.appointments.filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
@@ -582,8 +664,9 @@ export default function FinanceiroPage() {
                                 )}
                         </div>
                     </div>
-                </div>
-            )}
+                </div >
+            )
+            }
 
             {/* Revenue Chart */}
             <div className={styles.chartSection}>
@@ -650,6 +733,6 @@ export default function FinanceiroPage() {
             </div>
 
             {/* Quick Stats - Removed fake stats */}
-        </div>
+        </div >
     )
 }

@@ -19,9 +19,12 @@ export default function PetshopPage() {
     const [saleData, setSaleData] = useState({
         quantity: 1,
         tempDiscountPercent: 0,
-        paymentMethod: 'cash'
+        paymentMethod: 'cash',
+        paymentStatus: 'paid',
+        petId: ''
     })
     const [productToSell, setProductToSell] = useState<Product | null>(null)
+    const [pets, setPets] = useState<{ id: string, name: string }[]>([])
 
     // Form State
     const [formData, setFormData] = useState<ProductFormData>({
@@ -54,9 +57,23 @@ export default function PetshopPage() {
         }
     }, [supabase])
 
+    const fetchPets = useCallback(async () => {
+        try {
+            const { data } = await supabase
+                .from('pets')
+                .select('id, name')
+                .eq('is_active', true)
+                .order('name')
+            if (data) setPets(data)
+        } catch (error) {
+            console.error('Erro ao buscar pets:', error)
+        }
+    }, [supabase])
+
     useEffect(() => {
         fetchProducts()
-    }, [fetchProducts])
+        fetchPets()
+    }, [fetchProducts, fetchPets])
 
     const handleOpenModal = (product?: Product) => {
         if (product) {
@@ -148,7 +165,7 @@ export default function PetshopPage() {
 
     const handleOpenSaleModal = (product: Product) => {
         setProductToSell(product)
-        setSaleData({ quantity: 1, tempDiscountPercent: 0, paymentMethod: 'cash' })
+        setSaleData({ quantity: 1, tempDiscountPercent: 0, paymentMethod: 'cash', paymentStatus: 'paid', petId: '' })
         setIsSaleModalOpen(true)
     }
 
@@ -180,25 +197,56 @@ export default function PetshopPage() {
 
             if (stockError) throw stockError
 
-            // 2. Create Financial Transaction
-            const { error: transactionError } = await supabase
-                .from('financial_transactions')
+            let transactionId = null
+
+            // 2. ONLY Create Financial Transaction if Status is Paid
+            if (saleData.paymentStatus === 'paid') {
+                const { data: txData, error: transactionError } = await supabase
+                    .from('financial_transactions')
+                    .insert({
+                        org_id: profile.org_id,
+                        type: 'income',
+                        category: 'Venda Produto',
+                        amount: finalTotal,
+                        description: `Venda de ${saleData.quantity}x ${productToSell.name}`,
+                        payment_method: saleData.paymentMethod || 'cash',
+                        created_by: user.id,
+                        date: new Date().toISOString()
+                    })
+                    .select()
+                    .single()
+
+                if (transactionError) {
+                    console.error('Erro ao registrar transação:', transactionError)
+                    alert('Erro ao registrar transação no financeiro.')
+                    throw transactionError
+                }
+                transactionId = txData.id
+            }
+
+            // 3. Register the Pet Shop Sale
+            const { error: saleError } = await supabase
+                .from('petshop_sales')
                 .insert({
                     org_id: profile.org_id,
-                    type: 'income',
-                    category: 'Venda Produto',
-                    amount: finalTotal,
-                    description: `Venda de ${saleData.quantity}x ${productToSell.name}`,
+                    pet_id: saleData.petId || null,
+                    product_id: productToSell.id,
+                    product_name: productToSell.name,
+                    quantity: saleData.quantity,
+                    unit_price: productToSell.price,
+                    total_price: finalTotal,
+                    discount_percent: saleData.tempDiscountPercent,
+                    payment_status: saleData.paymentStatus,
                     payment_method: saleData.paymentMethod || 'cash',
-                    created_by: user.id,
-                    date: new Date().toISOString()
+                    financial_transaction_id: transactionId
                 })
 
-            if (transactionError) {
-                console.error('Erro ao registrar transação:', transactionError)
-                alert('Venda realizada, mas houve um erro ao registrar no financeiro.')
+            if (saleError) throw saleError
+
+            if (saleData.paymentStatus === 'paid') {
+                alert(`Venda concluída com sucesso!\n\nTotal: ${formatCurrency(finalTotal)}\nStatus: Paga e registrada no financeiro.`)
             } else {
-                alert(`Venda realizada com sucesso!\n\nTotal: ${formatCurrency(finalTotal)}\nEstoque atualizado e transação registrada.`)
+                alert(`Venda registrada como PENDENTE com sucesso!\n\nTotal: ${formatCurrency(finalTotal)}\nStatus: Aguardando pagamento na Ficha do Pet.`)
             }
 
             await fetchProducts()
@@ -495,6 +543,34 @@ export default function PetshopPage() {
 
                             <div className={styles.row}>
                                 <div className={styles.formGroup}>
+                                    <label className={styles.label}>Vincular a um Pet (Opcional)</label>
+                                    <select
+                                        className={styles.select}
+                                        value={saleData.petId}
+                                        onChange={e => setSaleData({ ...saleData, petId: e.target.value })}
+                                    >
+                                        <option value="">Anônimo / Avulso</option>
+                                        {pets.map(pet => (
+                                            <option key={pet.id} value={pet.id}>{pet.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Status do Pagamento</label>
+                                    <select
+                                        className={styles.select}
+                                        value={saleData.paymentStatus}
+                                        onChange={e => setSaleData({ ...saleData, paymentStatus: e.target.value })}
+                                        style={{ borderColor: saleData.paymentStatus === 'pending' ? '#ef4444' : '#10b981', background: saleData.paymentStatus === 'pending' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(16, 185, 129, 0.05)' }}
+                                    >
+                                        <option value="paid">✅ Pago (Gera Caixa)</option>
+                                        <option value="pending">⏳ Pendente (Aguardando)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className={styles.row}>
+                                <div className={styles.formGroup}>
                                     <label className={styles.label}>Quantidade</label>
                                     <input
                                         className={styles.input}
@@ -523,6 +599,8 @@ export default function PetshopPage() {
                                         className={styles.select}
                                         value={saleData.paymentMethod}
                                         onChange={e => setSaleData({ ...saleData, paymentMethod: e.target.value })}
+                                        disabled={saleData.paymentStatus === 'pending'}
+                                        style={{ opacity: saleData.paymentStatus === 'pending' ? 0.5 : 1 }}
                                     >
                                         <option value="cash">Dinheiro</option>
                                         <option value="credit">Cartão de Crédito</option>

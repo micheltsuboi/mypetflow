@@ -315,6 +315,23 @@ export interface FinancialTransaction {
     updated_at: string
 }
 
+export interface PetShopSale {
+    id: string
+    org_id: string
+    pet_id: string | null
+    product_id: string | null
+    product_name: string
+    quantity: number
+    unit_price: number
+    total_price: number
+    discount_percent: number
+    payment_status: 'pending' | 'paid' | 'partial'
+    payment_method: string | null
+    financial_transaction_id: string | null
+    created_at: string
+    updated_at: string
+}
+
 export interface ProductFormData {
     name: string
     category: string
