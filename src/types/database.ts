@@ -42,6 +42,7 @@ export interface Profile {
     full_name: string | null
     phone: string | null
     role: UserRole
+    permissions?: string[] | null
     avatar_url: string | null
     is_active: boolean
     created_at: string

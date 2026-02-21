@@ -45,6 +45,7 @@ export default function StaffDashboard() {
     const [selectedArea, setSelectedArea] = useState<ServiceArea>('all')
     const [petsToday, setPetsToday] = useState<PetToday[]>([])
     const [loading, setLoading] = useState(true)
+    const [staffPermissions, setStaffPermissions] = useState<string[]>([])
     const [stats, setStats] = useState({
         appointmentsToday: 0,
         pending: 0,
@@ -60,11 +61,14 @@ export default function StaffDashboard() {
 
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('org_id')
+                    .select('org_id, permissions')
                     .eq('id', user.id)
                     .single()
 
                 if (!profile?.org_id) return
+
+                const userPerms = profile.permissions || []
+                setStaffPermissions(userPerms)
 
                 const now = new Date()
                 const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
@@ -141,6 +145,12 @@ export default function StaffDashboard() {
         )
     }
 
+    // Determine allowed areas based on permissions
+    const allowedAreas: ServiceArea[] = ['all']
+    if (staffPermissions.includes('banho_tosa')) allowedAreas.push('banho_tosa')
+    if (staffPermissions.includes('creche')) allowedAreas.push('creche')
+    if (staffPermissions.includes('hospedagem')) allowedAreas.push('hotel')
+
     return (
         <div className={styles.container}>
             {/* Header / Salutation */}
@@ -151,7 +161,7 @@ export default function StaffDashboard() {
 
             {/* Time Clock & Alerts */}
             <div className={styles.staffTools}>
-                <TimeClock />
+                {staffPermissions.includes('ponto') && <TimeClock />}
                 <CreditAlerts />
             </div>
 
@@ -189,7 +199,7 @@ export default function StaffDashboard() {
 
             {/* Area Filter Tabs */}
             <div className={styles.areaTabs}>
-                {(['all', 'banho_tosa', 'creche', 'hotel'] as ServiceArea[]).map(area => (
+                {allowedAreas.map(area => (
                     <button
                         key={area}
                         className={`${styles.areaTab} ${selectedArea === area ? styles.active : ''}`}
@@ -199,7 +209,7 @@ export default function StaffDashboard() {
                         <span>{area === 'all' ? 'Todas' : areaLabels[area].split(' ').slice(1).join(' ')}</span>
                         <span className={styles.tabCount}>
                             {area === 'all'
-                                ? petsToday.length
+                                ? petsToday.filter(p => allowedAreas.includes(p.area)).length
                                 : petsToday.filter(p => p.area === area).length}
                         </span>
                     </button>
@@ -213,29 +223,31 @@ export default function StaffDashboard() {
                 </h2>
 
                 <div className={styles.petsList}>
-                    {filteredPets.map(pet => (
-                        <div key={pet.id} className={styles.petCard}>
-                            <div className={styles.petAvatar}>
-                                <span>{areaIcons[pet.area]}</span>
-                            </div>
-                            <div className={styles.petInfo}>
-                                <div className={styles.petHeader}>
-                                    <span className={styles.petName}>{pet.name}</span>
-                                    <span className={`${styles.statusBadge} ${styles[pet.status]}`}>
-                                        {statusLabels[pet.status]}
-                                    </span>
+                    {filteredPets
+                        .filter(pet => allowedAreas.includes(pet.area))
+                        .map(pet => (
+                            <div key={pet.id} className={styles.petCard}>
+                                <div className={styles.petAvatar}>
+                                    <span>{areaIcons[pet.area]}</span>
                                 </div>
-                                <span className={styles.petBreed}>{pet.breed}</span>
-                                <span className={styles.petService}>{pet.service}</span>
+                                <div className={styles.petInfo}>
+                                    <div className={styles.petHeader}>
+                                        <span className={styles.petName}>{pet.name}</span>
+                                        <span className={`${styles.statusBadge} ${styles[pet.status]}`}>
+                                            {statusLabels[pet.status]}
+                                        </span>
+                                    </div>
+                                    <span className={styles.petBreed}>{pet.breed}</span>
+                                    <span className={styles.petService}>{pet.service}</span>
+                                </div>
+                                <div className={styles.petMeta}>
+                                    <span className={styles.ownerName}>{pet.ownerName}</span>
+                                    {pet.checkedInAt && (
+                                        <span className={styles.checkInTime}>Check-in: {pet.checkedInAt}</span>
+                                    )}
+                                </div>
                             </div>
-                            <div className={styles.petMeta}>
-                                <span className={styles.ownerName}>{pet.ownerName}</span>
-                                {pet.checkedInAt && (
-                                    <span className={styles.checkInTime}>Check-in: {pet.checkedInAt}</span>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
 
                 {filteredPets.length === 0 && (

@@ -19,7 +19,7 @@ export default function DashboardLayout({
     const isOwner = pathname?.startsWith('/owner')
     const isMasterAdmin = pathname?.startsWith('/master-admin')
 
-    const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null } | null>(null)
+    const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null; permissions?: string[] } | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [showPetModal, setShowPetModal] = useState(false)
     const supabase = createClient()
@@ -75,7 +75,7 @@ export default function DashboardLayout({
                 // Fetch profile
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('full_name, role, org_id, avatar_url, is_active')
+                    .select('full_name, role, org_id, avatar_url, is_active, permissions')
                     .eq('id', user.id)
                     .single()
 
@@ -96,7 +96,8 @@ export default function DashboardLayout({
                                 profile.role === 'staff' ? 'Staff' :
                                     profile.role === 'customer' ? 'Tutor' : 'Usuário',
                         org_id: profile.org_id,
-                        avatar_url: profile.avatar_url
+                        avatar_url: profile.avatar_url,
+                        permissions: profile.permissions || []
                     })
                 }
             }
@@ -112,9 +113,18 @@ export default function DashboardLayout({
     // Determine target navigation based on role AND current path to prevent confusion
     let navigation = [...staffNavigation]
 
-    // Extra safety: Filter out 'Usuários' for Staff
+    // Extra safety: Filter out 'Usuários' for Staff, and apply granular permissions
     if (user?.role === 'Staff' || !user) {
-        navigation = navigation.filter((item: any) => item.name !== 'Usuários')
+        const perms = user?.permissions || []
+        navigation = navigation.filter((item: any) => {
+            if (item.name === 'Usuários') return false
+            if (item.name === 'Banho e Tosa') return perms.includes('banho_tosa')
+            if (item.name === 'Creche') return perms.includes('creche')
+            if (item.name === 'Hospedagem') return perms.includes('hospedagem')
+            if (item.name === 'Serviços') return perms.includes('servicos')
+            if (item.name === 'Ponto') return perms.includes('ponto')
+            return true
+        })
     }
 
     console.log('Layout logic - Current user role:', user?.role, 'Org:', user?.org_id, 'Path:', pathname)

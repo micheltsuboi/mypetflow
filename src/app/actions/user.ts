@@ -34,20 +34,24 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     const fullName = formData.get('fullName') as string
     const role = formData.get('role') as string
     const workScheduleStr = formData.get('workSchedule') as string
+    const permissionsStr = formData.get('permissions') as string
 
     if (!email || !password || !fullName || !role) {
         return { message: 'Todos os campos são obrigatórios.', success: false }
     }
 
     let workSchedule = []
+    let permissions = []
     if (role === 'staff') {
         try {
             if (workScheduleStr) workSchedule = JSON.parse(workScheduleStr)
+            if (permissionsStr) permissions = JSON.parse(permissionsStr)
         } catch (e) {
-            return { message: 'Formato de horário de trabalho inválido.', success: false }
+            return { message: 'Formato de horário ou permissões inválido.', success: false }
         }
     } else {
         workSchedule = [] // Not a staff member, no schedule needed
+        permissions = []
     }
 
     // 3. Create User with Admin Client
@@ -82,6 +86,7 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
             role: role as 'admin' | 'staff' | 'customer',
             org_id: profile.org_id,
             work_schedule: workSchedule,
+            permissions: permissions,
             is_active: true
         })
 
@@ -119,6 +124,7 @@ export async function updateUser(prevState: any, formData: FormData) {
     const fullName = formData.get('fullName') as string
     const role = formData.get('role') as string
     const workScheduleStr = formData.get('workSchedule') as string
+    const permissionsStr = formData.get('permissions') as string
     const isActive = formData.get('isActive') === 'true'
 
     if (!userId || !fullName || !role) {
@@ -126,10 +132,12 @@ export async function updateUser(prevState: any, formData: FormData) {
     }
 
     let workSchedule: any = null
+    let permissions: any = null
     try {
         if (workScheduleStr) workSchedule = JSON.parse(workScheduleStr)
+        if (permissionsStr) permissions = JSON.parse(permissionsStr)
     } catch (e) {
-        return { message: 'Formato de horário de trabalho inválido.', success: false }
+        return { message: 'Formato de horário ou permissões inválido.', success: false }
     }
 
     // 3. Update Profile with Admin Client
@@ -145,6 +153,12 @@ export async function updateUser(prevState: any, formData: FormData) {
         updateData.work_schedule = workSchedule
     } else if (role !== 'staff') {
         updateData.work_schedule = [] // Clear schedule for non-staff
+    }
+
+    if (role === 'staff' && permissions !== null) {
+        updateData.permissions = permissions
+    } else if (role !== 'staff') {
+        updateData.permissions = []
     }
 
     const { error: updateError } = await supabaseAdmin

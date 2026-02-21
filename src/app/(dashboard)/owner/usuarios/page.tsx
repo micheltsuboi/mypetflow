@@ -33,6 +33,7 @@ export interface Profile {
     role: 'superadmin' | 'admin' | 'staff' | 'customer'
     is_active: boolean
     work_schedule?: any
+    permissions?: string[]
     created_at: string
 }
 
@@ -42,6 +43,14 @@ const roleLabels: Record<string, string> = {
     staff: 'Staff',
     customer: 'Cliente'
 }
+
+const STAFF_MODULES = [
+    { id: 'banho_tosa', label: '🛁 Banho e Tosa' },
+    { id: 'creche', label: '🐕 Creche' },
+    { id: 'hospedagem', label: '🏨 Hospedagem' },
+    { id: 'servicos', label: '📋 Serviços' },
+    { id: 'ponto', label: '⏰ Cartão Ponto' }
+]
 
 const initialState = {
     message: '',
@@ -58,6 +67,7 @@ export default function UsuariosPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [workSchedule, setWorkSchedule] = useState<WorkScheduleDay[]>(defaultSchedule)
     const [selectedRole, setSelectedRole] = useState<string>('staff')
+    const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
 
     // Server Action State - Create
     const [state, formAction, isPending] = useActionState(createUser, initialState)
@@ -121,6 +131,7 @@ export default function UsuariosPage() {
         setSelectedUser(user)
         setSelectedRole(user.role)
         setWorkSchedule(Array.isArray(user.work_schedule) && user.work_schedule.length > 0 ? user.work_schedule : defaultSchedule)
+        setSelectedPermissions(user.permissions || [])
         setShowEditModal(true)
     }
 
@@ -135,6 +146,7 @@ export default function UsuariosPage() {
 
         // Pass existing work schedule if any
         if (user.work_schedule) formData.append('workSchedule', JSON.stringify(user.work_schedule))
+        if (user.permissions) formData.append('permissions', JSON.stringify(user.permissions))
 
         const result = await updateUser(null, formData)
         if (result.success) {
@@ -163,6 +175,7 @@ export default function UsuariosPage() {
                 <button className={styles.addButton} onClick={() => {
                     setWorkSchedule(defaultSchedule);
                     setSelectedRole('staff');
+                    setSelectedPermissions([]);
                     setShowModal(true)
                 }}>
                     + Novo Usuário
@@ -352,6 +365,28 @@ export default function UsuariosPage() {
                                                 </div>
                                             ))}
                                         </div>
+
+                                        <div className={styles.sectionDivider}>🚪 Permissões de Acesso</div>
+                                        <input type="hidden" name="permissions" value={JSON.stringify(selectedPermissions)} />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                                            {STAFF_MODULES.map((module) => (
+                                                <label key={module.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        style={{ width: '1.1rem', height: '1.1rem' }}
+                                                        checked={selectedPermissions.includes(module.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedPermissions([...selectedPermissions, module.id])
+                                                            } else {
+                                                                setSelectedPermissions(selectedPermissions.filter(id => id !== module.id))
+                                                            }
+                                                        }}
+                                                    />
+                                                    {module.label}
+                                                </label>
+                                            ))}
+                                        </div>
                                     </>
                                 )}
 
@@ -456,6 +491,28 @@ export default function UsuariosPage() {
                                                     <span style={{ fontSize: '0.8rem', color: '#666' }}>até</span>
                                                     <input type="time" className={styles.input} style={{ padding: '0.25rem 0.5rem', width: 'auto' }} value={day.end} onChange={e => { const newSch = [...workSchedule]; newSch[idx].end = e.target.value; setWorkSchedule(newSch) }} disabled={!day.isActive} title="Saída" />
                                                 </div>
+                                            ))}
+                                        </div>
+
+                                        <div className={styles.sectionDivider}>🚪 Permissões de Acesso</div>
+                                        <input type="hidden" name="permissions" value={JSON.stringify(selectedPermissions)} />
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '1.5rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                                            {STAFF_MODULES.map((module) => (
+                                                <label key={module.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        style={{ width: '1.1rem', height: '1.1rem' }}
+                                                        checked={selectedPermissions.includes(module.id)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setSelectedPermissions([...selectedPermissions, module.id])
+                                                            } else {
+                                                                setSelectedPermissions(selectedPermissions.filter(id => id !== module.id))
+                                                            }
+                                                        }}
+                                                    />
+                                                    {module.label}
+                                                </label>
                                             ))}
                                         </div>
                                     </>
