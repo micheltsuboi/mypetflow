@@ -43,9 +43,9 @@ export default function CrechePage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [showNewModal, setShowNewModal] = useState(false)
 
-    const fetchCrecheData = useCallback(async () => {
+    const fetchCrecheData = useCallback(async (isBackground = false) => {
         try {
-            setLoading(true)
+            if (!isBackground) setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
@@ -92,7 +92,7 @@ export default function CrechePage() {
         } catch (error) {
             console.error(error)
         } finally {
-            setLoading(false)
+            if (!isBackground) setLoading(false)
         }
     }, [supabase, dateRange, viewMode])
 
@@ -161,7 +161,7 @@ export default function CrechePage() {
                         </button>
                         <button
                             className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-                            onClick={fetchCrecheData}
+                            onClick={() => fetchCrecheData()}
                         >
                             ↻
                         </button>
@@ -313,7 +313,7 @@ export default function CrechePage() {
                                             discountPercent={(appt as any).discount_percent}
                                             paymentStatus={(appt as any).payment_status}
                                             paymentMethod={(appt as any).payment_method}
-                                            onUpdate={() => fetchCrecheData()}
+                                            onUpdate={() => fetchCrecheData(true)}
                                             compact
                                         />
                                         <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

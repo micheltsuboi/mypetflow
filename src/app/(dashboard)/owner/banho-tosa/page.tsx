@@ -55,9 +55,9 @@ export default function BanhoTosaPage() {
     const [pets, setPets] = useState<any[]>([])
     const [services, setServices] = useState<any[]>([])
 
-    const fetchBanhoTosaData = useCallback(async () => {
+    const fetchBanhoTosaData = useCallback(async (isBackground = false) => {
         try {
-            setLoading(true)
+            if (!isBackground) setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
@@ -128,9 +128,9 @@ export default function BanhoTosaPage() {
         } catch (error) {
             console.error(error)
         } finally {
-            setLoading(false)
+            if (!isBackground) setLoading(false)
         }
-    }, [supabase, dateRange, viewMode])
+    }, [supabase, dateRange, viewMode, pets.length, services.length])
 
     useEffect(() => {
         fetchBanhoTosaData()
@@ -189,7 +189,7 @@ export default function BanhoTosaPage() {
                         </button>
                         <button
                             className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-                            onClick={fetchBanhoTosaData}
+                            onClick={() => fetchBanhoTosaData()}
                         >
                             ↻
                         </button>
@@ -291,7 +291,7 @@ export default function BanhoTosaPage() {
                                             discountPercent={appt.discount_percent}
                                             paymentStatus={appt.payment_status}
                                             paymentMethod={appt.payment_method}
-                                            onUpdate={() => fetchBanhoTosaData()}
+                                            onUpdate={() => fetchBanhoTosaData(true)}
                                             compact
                                         />
                                         <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

@@ -52,9 +52,9 @@ export default function HospedagemPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [showNewModal, setShowNewModal] = useState(false)
 
-    const fetchHospedagemData = useCallback(async () => {
+    const fetchHospedagemData = useCallback(async (isBackground = false) => {
         try {
-            setLoading(true)
+            if (!isBackground) setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
@@ -116,7 +116,7 @@ export default function HospedagemPage() {
         } catch (error) {
             console.error(error)
         } finally {
-            setLoading(false)
+            if (!isBackground) setLoading(false)
         }
     }, [supabase, dateRange, viewMode])
 
@@ -183,7 +183,7 @@ export default function HospedagemPage() {
                         >
                             + Novo Agendamento
                         </button>
-                        <button className={styles.actionButton} onClick={fetchHospedagemData}>↻</button>
+                        <button className={styles.actionButton} onClick={() => fetchHospedagemData()}>↻</button>
                     </div>
                 </div>
             </div>
@@ -362,7 +362,7 @@ export default function HospedagemPage() {
                                                 discountPercent={appt.discount_percent}
                                                 paymentStatus={appt.payment_status}
                                                 paymentMethod={appt.payment_method}
-                                                onUpdate={() => fetchHospedagemData()}
+                                                onUpdate={() => fetchHospedagemData(true)}
                                                 compact
                                             />
                                         </div>
