@@ -23,9 +23,7 @@ export default function RegisterForm() {
         if (res.success) {
             setIsSuccess(true)
             setMsg('Cadastro realizado com sucesso! Redirecionando para login...')
-            setTimeout(() => {
-                router.push('/login')
-            }, 2000)
+            router.push('/')
         } else {
             setMsg(res.message)
         }
@@ -36,7 +34,7 @@ export default function RegisterForm() {
         return (
             <div className={styles.successCard}>
                 <h3>{msg}</h3>
-                <Link href="/login" className={styles.button}>Ir para Login</Link>
+                <Link href="/" className={styles.button}>Ir para Login</Link>
             </div>
         )
     }
@@ -76,13 +74,11 @@ export default function RegisterForm() {
 
             <div className={styles.loginDivider}>
                 <span>Já possui conta?</span>
-                <div className={styles.loginButtons}>
-                    <Link href="/login" className={styles.textLink}>Login do Tutor</Link>
-                    <span className={styles.sep}>•</span>
-                    <Link href="/login" className={styles.textLink}>Login do Pet Shop</Link>
-                    <span className={styles.sep}>•</span>
-                    <Link href="/login" className={styles.textLink}>Sou Staff</Link>
-                </div>
+                <Link href="/" className={styles.textLink}>Login do Tutor</Link>
+                <span className={styles.sep}>•</span>
+                <Link href="/" className={styles.textLink}>Login do Pet Shop</Link>
+                <span className={styles.sep}>•</span>
+                <Link href="/" className={styles.textLink}>Sou Staff</Link>
             </div>
         </div>
     )

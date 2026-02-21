@@ -84,7 +84,7 @@ export default function DashboardLayout({
                         await supabase.auth.signOut()
                         // Use a short timeout to ensure state is cleared
                         setTimeout(() => {
-                            router.push('/login?error=Conta%20desativada')
+                            router.push('/?error=Conta%20desativada')
                         }, 100)
                         return
                     }
@@ -107,7 +107,7 @@ export default function DashboardLayout({
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
-        router.push('/login')
+        router.push('/')
     }
 
     // Determine target navigation based on role AND current path to prevent confusion

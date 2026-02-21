@@ -1,52 +1,159 @@
 'use client'
 
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
-import RegisterForm from '@/components/modules/RegisterForm'
 
-export default function Home() {
-  return (
-    <main className={styles.main}>
-      {/* Background gradient orbs */}
-      <div className={styles.gradientOrb1} />
-      <div className={styles.gradientOrb2} />
+export default function LoginPage() {
+    const router = useRouter()
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState('')
 
-      <div className={styles.container}>
-        {/* Hero Section */}
-        <section className={styles.hero}>
-          <div className={styles.logoContainer}>
-            <Image
-              src="/logo.png"
-              alt="Sr. Pet Clube"
-              width={220}
-              height={220}
-              className={styles.logoImage}
-              priority
-            />
-          </div>
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        setError('')
 
-          <p className={styles.subtitle}>
-            A Petshop do seu melhor amigo
-          </p>
+        try {
+            const supabase = createClient()
 
-          <p className={styles.description}>
-            Cadastre-se para agendar banho, tosa, hotel e creche para seu pet.
-          </p>
-        </section>
+            // 1. Sign In
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            })
 
-        {/* Registration Form (replaces Card Grid) */}
-        <section style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-          <RegisterForm />
-        </section>
+            if (signInError) throw signInError
 
-        <footer className={styles.footer}>
-          <p>© 2026 Sr. Pet Clube. Todos os direitos reservados.</p>
-          <div style={{ marginTop: '0.5rem', opacity: 0.5, fontSize: '0.8em' }}>
-            <Link href="/master-admin" style={{ color: 'inherit', textDecoration: 'none' }}>Admin Master</Link>
-          </div>
-        </footer>
-      </div>
-    </main>
-  )
+            // 2. Get User Profile/Role
+            const { data: { user } } = await supabase.auth.getUser()
+
+            if (!user) throw new Error('Erro ao recuperar usuário.')
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single()
+
+            if (!profile) throw new Error('Perfil não encontrado.')
+
+            // 3. Redirect based on Role
+            console.log('Login logic - profile role:', profile.role)
+            switch (profile.role) {
+                case 'superadmin':
+                case 'admin':
+                    console.log('Redirecting to /owner')
+                    router.push('/owner')
+                    break
+                case 'staff':
+                    console.log('Redirecting to /staff')
+                    router.push('/staff')
+                    break
+                case 'customer':
+                    router.push('/tutor') // Adjust if needed
+                    break
+                default:
+                    router.push('/owner') // Fallback
+            }
+
+        } catch (error) {
+            console.error('Login error:', error)
+            const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.'
+
+            setError(errorMessage.includes('Invalid login credentials')
+                ? 'Email ou senha incorretos.'
+                : 'Ocorreu um erro ao fazer login.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <main className={styles.main}>
+            {/* Background gradient orbs */}
+            <div className={styles.gradientOrb1} />
+            <div className={styles.gradientOrb2} />
+
+            <div className={styles.container}>
+                <div className={styles.card}>
+                    {/* Logo */}
+                    <div className={styles.logo}>
+                        <Image
+                            src="/logo.png"
+                            alt="Sr. Pet Clube"
+                            width={100}
+                            height={100}
+                            className={styles.logoImage}
+                        />
+                    </div>
+
+                    <p className={styles.subtitle}>Entre na sua conta</p>
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className={styles.form}>
+                        {error && (
+                            <div className={styles.error}>
+                                {error}
+                            </div>
+                        )}
+
+                        <div className={styles.field}>
+                            <label htmlFor="email" className={styles.label}>Email</label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="seu@email.com"
+                                className={styles.input}
+                                autoComplete="email"
+                            />
+                        </div>
+
+                        <div className={styles.field}>
+                            <label htmlFor="password" className={styles.label}>Senha</label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className={styles.input}
+                                autoComplete="current-password"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            className={styles.button}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <>
+                                    <span className={styles.spinner} />
+                                    Entrando...
+                                </>
+                            ) : (
+                                'Entrar'
+                            )}
+                        </button>
+                    </form>
+
+                    <div className={styles.divider}>
+                        <span>ou</span>
+                    </div>
+
+                    <Link href="/cadastro" className={styles.backLink}>
+                        Não tem uma conta? <strong>Cadastre-se aqui</strong>
+                    </Link>
+                </div>
+            </div>
+        </main>
+    )
 }

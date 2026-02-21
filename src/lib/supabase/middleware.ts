@@ -36,7 +36,7 @@ export async function updateSession(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // Rotas públicas - não requerem autenticação
-    const publicPaths = ['/', '/login', '/auth', '/tutor']
+    const publicPaths = ['/', '/cadastro', '/auth', '/tutor']
     const isPublicPath = publicPaths.some(path =>
         request.nextUrl.pathname === path ||
         request.nextUrl.pathname.startsWith(path + '/')
@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     // Redireciona para login se não autenticado em rota protegida
     if (!user && !isPublicPath) {
         const url = request.nextUrl.clone()
-        url.pathname = '/login'
+        url.pathname = '/'
         return NextResponse.redirect(url)
     }
 

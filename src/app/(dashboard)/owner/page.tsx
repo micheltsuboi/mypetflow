@@ -99,7 +99,7 @@ export default function OwnerDashboard() {
 
                 // Basic Authorization Check
                 if (profile.role !== 'admin' && profile.role !== 'staff' && profile.role !== 'superadmin') {
-                    router.push('/login')
+                    router.push('/')
                     return
                 }
 
