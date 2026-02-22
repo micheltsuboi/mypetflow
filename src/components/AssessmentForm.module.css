@@ -67,6 +67,40 @@
     cursor: pointer;
 }
 
+.radioGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-top: 0.2rem;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.radioLabel input[type="radio"] {
+    cursor: pointer;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--primary);
+}
+
+.progressContainer {
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
 .fieldGroup input[type="text"],
 .fieldGroup select,
 .fieldGroup textarea {

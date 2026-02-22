@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 export interface AssessmentQuestion {
@@ -121,11 +122,13 @@ export async function createAssessmentQuestion(formData: FormData) {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('org_id')
+            .select('org_id, role')
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id) return { success: false, message: 'Organização não encontrada' }
+        if (!profile?.org_id || !['owner', 'staff'].includes(profile.role)) {
+            return { success: false, message: 'Sem autorização ou organização não encontrada' }
+        }
 
         const category = formData.get('category') as string
         const question_text = formData.get('question_text') as string
@@ -153,7 +156,8 @@ export async function createAssessmentQuestion(formData: FormData) {
             is_active: true
         }
 
-        const { error } = await supabase
+        const adminClient = createAdminClient()
+        const { error } = await adminClient
             .from('assessment_questions')
             .insert(questionData)
 
@@ -174,6 +178,19 @@ export async function createAssessmentQuestion(formData: FormData) {
 export async function updateAssessmentQuestion(id: string, formData: FormData) {
     try {
         const supabase = await createClient()
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autenticado' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id, role')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id || !['owner', 'staff'].includes(profile.role)) {
+            return { success: false, message: 'Sem autorização' }
+        }
 
         const category = formData.get('category') as string
         const question_text = formData.get('question_text') as string
@@ -198,7 +215,8 @@ export async function updateAssessmentQuestion(id: string, formData: FormData) {
             order_index,
         }
 
-        const { error } = await supabase
+        const adminClient = createAdminClient()
+        const { error } = await adminClient
             .from('assessment_questions')
             .update(questionData)
             .eq('id', id)
@@ -221,7 +239,21 @@ export async function toggleAssessmentQuestionStatus(id: string, currentStatus: 
     try {
         const supabase = await createClient()
 
-        const { error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autenticado' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile || !['owner', 'staff'].includes(profile.role)) {
+            return { success: false, message: 'Sem autorização' }
+        }
+
+        const adminClient = createAdminClient()
+        const { error } = await adminClient
             .from('assessment_questions')
             .update({ is_active: !currentStatus })
             .eq('id', id)
