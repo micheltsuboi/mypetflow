@@ -89,16 +89,18 @@ export async function getActiveQuestionsForPet(petId: string) {
 
         const { data: pet } = await supabase
             .from('pets')
-            .select('org_id')
+            .select('customers!inner(org_id)')
             .eq('id', petId)
             .single()
 
-        if (!pet?.org_id) return []
+        // Handle the possibility of customers being an array or object depending on Supabase's type inference
+        const orgId = pet?.customers && Array.isArray(pet.customers) ? pet.customers[0]?.org_id : (pet?.customers as any)?.org_id
+        if (!orgId) return []
 
         const { data, error } = await supabase
             .from('assessment_questions')
             .select('*')
-            .eq('org_id', pet.org_id)
+            .eq('org_id', orgId)
             .eq('is_active', true)
             .order('category', { ascending: true })
             .order('order_index', { ascending: true })
@@ -157,7 +159,7 @@ export async function createAssessmentQuestion(formData: FormData) {
 
         if (error) {
             console.error('Error creating question:', error)
-            return { success: false, message: 'Erro ao criar pergunta' }
+            return { success: false, message: 'Erro ao criar pergunta: ' + error.message }
         }
 
         revalidatePath('/owner/assessment')
