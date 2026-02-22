@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useActionState } from 'react'
-import { createPetAssessment, updatePetAssessment } from '@/app/actions/petAssessment'
+import { useState, useActionState, useEffect } from 'react'
+import { createPetAssessment, updatePetAssessment, getActiveQuestionsForContext, getActiveQuestionsForPet, AssessmentQuestion } from '@/app/actions/petAssessment'
 import styles from './AssessmentForm.module.css'
 
 interface AssessmentFormProps {
@@ -19,6 +19,9 @@ export default function PetAssessmentForm({ petId, existingData, onSuccess }: As
     const [openSections, setOpenSections] = useState({ social: true, routine: false, health: false, care: false })
     const [declarationAccepted, setDeclarationAccepted] = useState(existingData?.owner_declaration_accepted || false)
 
+    const [questions, setQuestions] = useState<AssessmentQuestion[]>([])
+    const [loadingQuestions, setLoadingQuestions] = useState(true)
+
     const isEditing = !!existingData
     const action = isEditing ? updatePetAssessment : createPetAssessment
 
@@ -30,8 +33,137 @@ export default function PetAssessmentForm({ petId, existingData, onSuccess }: As
         return result
     }, initialState)
 
+    useEffect(() => {
+        const fetchQuestions = async () => {
+            setLoadingQuestions(true)
+            try {
+                // Fetch dynamic questions for this pet's org
+                const q = await getActiveQuestionsForPet(petId)
+                if (q.length > 0) {
+                    setQuestions(q)
+                } else {
+                    // Fallback to active questions for context if no pet org found directly
+                    const fallbackQ = await getActiveQuestionsForContext()
+                    setQuestions(fallbackQ)
+                }
+            } catch (err) {
+                console.error(err)
+            } finally {
+                setLoadingQuestions(false)
+            }
+        }
+        fetchQuestions()
+    }, [petId])
+
     const toggleSection = (key: keyof typeof openSections) => {
         setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+    }
+
+    const categories = {
+        social: { title: '🐕 Socialização e Comportamento', key: 'social' },
+        routine: { title: '📅 Rotina e Adaptação', key: 'routine' },
+        health: { title: '🏥 Saúde e Restrições', key: 'health' },
+        care: { title: '🍖 Cuidados Específicos', key: 'care' }
+    }
+
+    const renderQuestionInput = (question: AssessmentQuestion) => {
+        const fieldName = `question_${question.id}`
+
+        // Let's get existing answer if editing
+        let exBoolean = false
+        let exText = ''
+        if (existingData?.answers && existingData.answers[question.id]) {
+            exBoolean = existingData.answers[question.id].boolean || false
+            exText = existingData.answers[question.id].text || ''
+        } else if (existingData && question.system_key) {
+            // Legacy data mapping fallback
+            const val = existingData[question.system_key]
+            if (typeof val === 'boolean') exBoolean = val
+            else if (typeof val === 'string') exText = val
+        }
+
+        if (question.question_type === 'boolean') {
+            return (
+                <div className={styles.fieldGroup}>
+                    <label>
+                        <input
+                            type="checkbox"
+                            name={fieldName}
+                            value="true"
+                            defaultChecked={exBoolean}
+                        />
+                        {question.question_text}
+                    </label>
+                </div>
+            )
+        }
+
+        if (question.question_type === 'text') {
+            return (
+                <div className={styles.fieldGroup}>
+                    <label>{question.question_text}</label>
+                    <textarea
+                        name={fieldName}
+                        rows={3}
+                        defaultValue={exText}
+                        className={styles.textarea}
+                    />
+                </div>
+            )
+        }
+
+        if (question.question_type === 'select') {
+            const options = Array.isArray(question.options) ? question.options : []
+            return (
+                <div className={styles.fieldGroup}>
+                    <label>{question.question_text}</label>
+                    <select name={fieldName} defaultValue={exText} className={styles.select}>
+                        <option value="">Selecione...</option>
+                        {options.map((opt: string) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                </div>
+            )
+        }
+
+        return null
+    }
+
+    const renderSection = (catKey: keyof typeof openSections, catTitle: string) => {
+        const sectionQuestions = questions.filter(q => q.category === catKey)
+        if (sectionQuestions.length === 0) return null
+
+        return (
+            <div className={styles.section} key={catKey}>
+                <button type="button" onClick={() => toggleSection(catKey)} className={styles.sectionHeader}>
+                    <span>{catTitle}</span>
+                    <span>{openSections[catKey] ? '−' : '+'}</span>
+                </button>
+                {openSections[catKey] && (
+                    <div className={styles.sectionContent}>
+                        {sectionQuestions.map(q => (
+                            <div key={q.id}>
+                                {renderQuestionInput(q)}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    if (loadingQuestions) {
+        return <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando questionário...</div>
+    }
+
+    if (questions.length === 0) {
+        return (
+            <div style={{ padding: '2rem', textAlign: 'center' }}>
+                <p>Nenhuma pergunta cadastrada para o questionário.</p>
+                <p style={{ fontSize: '0.875rem', color: '#666', marginTop: '0.5rem' }}>Entre em contato com a equipe responsável.</p>
+            </div>
+        )
     }
 
     return (
@@ -42,242 +174,9 @@ export default function PetAssessmentForm({ petId, existingData, onSuccess }: As
                 </div>
             )}
 
-            {/* Seção 1: Socialização */}
-            <div className={styles.section}>
-                <button type="button" onClick={() => toggleSection('social')} className={styles.sectionHeader}>
-                    <span>🐕 Socialização e Comportamento</span>
-                    <span>{openSections.social ? '−' : '+'}</span>
-                </button>
-                {openSections.social && (
-                    <div className={styles.sectionContent}>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="sociable_with_humans" defaultChecked={existingData?.sociable_with_humans} />
-                                É sociável com humanos?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="sociable_with_dogs" defaultChecked={existingData?.sociable_with_dogs} />
-                                É sociável com outros cães?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="socialized_early" defaultChecked={existingData?.socialized_early} />
-                                Foi socializado na infância (primeiros meses)?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="desensitized" defaultChecked={existingData?.desensitized} />
-                                Foi dessensibilizado (acostumado a sons, pessoas, objetos)?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="is_reactive" defaultChecked={existingData?.is_reactive} />
-                                É reativo?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Se sim, descreva o comportamento reativo:</label>
-                            <textarea name="reactive_description" rows={3} defaultValue={existingData?.reactive_description || ''} />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="shows_escape_signs" defaultChecked={existingData?.shows_escape_signs} />
-                                Apresenta sinais de fuga (tentar sair, cavar, pular portões)?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="has_bitten_person" defaultChecked={existingData?.has_bitten_person} />
-                                Já mordeu alguma pessoa?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="has_been_bitten" defaultChecked={existingData?.has_been_bitten} />
-                                Já foi mordido ou atacado por outro cão?
-                            </label>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Seção 2: Rotina */}
-            <div className={styles.section}>
-                <button type="button" onClick={() => toggleSection('routine')} className={styles.sectionHeader}>
-                    <span>📅 Rotina e Adaptação</span>
-                    <span>{openSections.routine ? '−' : '+'}</span>
-                </button>
-                {openSections.routine && (
-                    <div className={styles.sectionContent}>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="has_routine" defaultChecked={existingData?.has_routine} />
-                                Possui rotina organizada?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="regular_walks" defaultChecked={existingData?.regular_walks} />
-                                Faz passeios regularmente?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="stays_alone_ok" defaultChecked={existingData?.stays_alone_ok} />
-                                Fica em casa sozinho sem estresse?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Descreva a rotina diária do cão:</label>
-                            <textarea name="daily_routine_description" rows={4} placeholder="Alimentação, passeios, tempo sozinho, interações..." defaultValue={existingData?.daily_routine_description || ''} />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="separation_anxiety" defaultChecked={existingData?.separation_anxiety} />
-                                Possui ansiedade de separação?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="has_phobias" defaultChecked={existingData?.has_phobias} />
-                                Possui algum tipo de fobia (barulhos, chuva, pessoas)?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Se sim, qual fobia?</label>
-                            <input type="text" name="phobia_description" defaultValue={existingData?.phobia_description || ''} />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="possessive_behavior" defaultChecked={existingData?.possessive_behavior} />
-                                É possessivo com objetos, brinquedos ou pessoas?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="humanization_traits" defaultChecked={existingData?.humanization_traits} />
-                                Possui traços de humanização? (tratado como bebê, dorme na cama)
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="obeys_basic_commands" defaultChecked={existingData?.obeys_basic_commands} />
-                                Obedece a comandos básicos (senta, fica, vem)?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="professionally_trained" defaultChecked={existingData?.professionally_trained} />
-                                Já foi adestrado por profissional?
-                            </label>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Seção 3: Saúde */}
-            <div className={styles.section}>
-                <button type="button" onClick={() => toggleSection('health')} className={styles.sectionHeader}>
-                    <span>🏥 Saúde e Restrições</span>
-                    <span>{openSections.health ? '−' : '+'}</span>
-                </button>
-                {openSections.health && (
-                    <div className={styles.sectionContent}>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="is_brachycephalic" defaultChecked={existingData?.is_brachycephalic} />
-                                É braquicefálico? (focinho achatado)
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="age_health_restrictions" defaultChecked={existingData?.age_health_restrictions} />
-                                Tem restrições de convivência por idade ou saúde?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="has_health_issues" defaultChecked={existingData?.has_health_issues} />
-                                Possui (ou já teve) algum problema de saúde?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Se sim, qual problema de saúde?</label>
-                            <textarea name="health_issues_description" rows={3} defaultValue={existingData?.health_issues_description || ''} />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="food_restrictions" defaultChecked={existingData?.food_restrictions} />
-                                Possui restrição alimentar?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Se sim, qual restrição?</label>
-                            <input type="text" name="food_restrictions_description" defaultValue={existingData?.food_restrictions_description || ''} />
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="has_dermatitis" defaultChecked={existingData?.has_dermatitis} />
-                                Possui dermatite ou alergias de pele?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="activity_restrictions" defaultChecked={existingData?.activity_restrictions} />
-                                Possui restrição de atividade física?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="patellar_orthopedic_issues" defaultChecked={existingData?.patellar_orthopedic_issues} />
-                                Possui problema patelar ou ortopédico?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Outros problemas de saúde, medicações ou cirurgias:</label>
-                            <textarea name="other_health_notes" rows={4} defaultValue={existingData?.other_health_notes || ''} />
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Seção 4: Cuidados Específicos */}
-            <div className={styles.section}>
-                <button type="button" onClick={() => toggleSection('care')} className={styles.sectionHeader}>
-                    <span>🍖 Cuidados Específicos</span>
-                    <span>{openSections.care ? '−' : '+'}</span>
-                </button>
-                {openSections.care && (
-                    <div className={styles.sectionContent}>
-                        <div className={styles.fieldGroup}>
-                            <label>Como o pet reage quando entra em contato com água?</label>
-                            <select name="water_reaction" defaultValue={existingData?.water_reaction || ''}>
-                                <option value="">Selecione...</option>
-                                <option value="calmo">Calmo</option>
-                                <option value="nervoso">Nervoso</option>
-                                <option value="adora">Adora</option>
-                                <option value="medo">Tem medo</option>
-                                <option value="neutro">Neutro</option>
-                            </select>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>
-                                <input type="checkbox" name="pool_authorized" defaultChecked={existingData?.pool_authorized} />
-                                O pet tem autorização para uso da piscina?
-                            </label>
-                        </div>
-                        <div className={styles.fieldGroup}>
-                            <label>Qual ração ele come?</label>
-                            <input type="text" name="food_brand" placeholder="Ex: Royal Canin Mini Adult" defaultValue={existingData?.food_brand || ''} />
-                        </div>
-                    </div>
-                )}
-            </div>
+            {Object.values(categories).map(cat =>
+                renderSection(cat.key as keyof typeof openSections, cat.title)
+            )}
 
             {/* Declaração */}
             <div className={styles.declaration}>
@@ -285,6 +184,7 @@ export default function PetAssessmentForm({ petId, existingData, onSuccess }: As
                     <input
                         type="checkbox"
                         name="owner_declaration_accepted"
+                        value="true"
                         required
                         checked={declarationAccepted}
                         onChange={(e) => setDeclarationAccepted(e.target.checked)}

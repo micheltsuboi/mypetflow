@@ -35,6 +35,7 @@ export default function DashboardLayout({
         { name: 'Pets', href: '/owner/pets', icon: '🐾' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
+        { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
     ]
 
     const ownerNavigation = [
@@ -48,6 +49,7 @@ export default function DashboardLayout({
         { name: 'Pets', href: '/owner/pets', icon: '🐶' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
+        { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
     ]
@@ -156,6 +158,7 @@ export default function DashboardLayout({
             if (item.name === 'Pets') return perms.includes('pets')
             if (item.name === 'Petshop') return perms.includes('petshop')
             if (item.name === 'Serviços') return perms.includes('servicos')
+            if (item.name === 'Questionário') return perms.includes('pets') // Tie access to pets permission
             if (item.name === 'Ponto') return perms.includes('ponto')
             return false // Hide everything else (such as Usuários, Financeiro)
         })
