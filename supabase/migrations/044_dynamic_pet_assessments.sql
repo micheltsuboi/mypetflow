@@ -148,7 +148,7 @@ DECLARE
 BEGIN
     FOR assessment IN SELECT * FROM pet_assessments LOOP
         -- For each assessment, loop through all questions in this org
-        FOR q IN SELECT * FROM assessment_questions WHERE org_id = assessment.org_id LOOP
+        FOR q IN SELECT * FROM assessment_questions WHERE org_id = (SELECT org_id FROM pets WHERE id = assessment.pet_id) LOOP
             IF q.system_key = 'sociable_with_humans' AND assessment.sociable_with_humans IS NOT NULL THEN
                 INSERT INTO assessment_answers (pet_id, question_id, answer_boolean) VALUES (assessment.pet_id, q.id, assessment.sociable_with_humans);
             ELSIF q.system_key = 'sociable_with_dogs' AND assessment.sociable_with_dogs IS NOT NULL THEN
