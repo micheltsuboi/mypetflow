@@ -34,6 +34,7 @@ export default function DashboardLayout({
         { name: 'Tutores', href: '/owner/tutors', icon: '👤' },
         { name: 'Pets', href: '/owner/pets', icon: '🐾' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
+        { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
     ]
@@ -48,6 +49,7 @@ export default function DashboardLayout({
         { name: 'Tutores', href: '/owner/tutors', icon: '👤' },
         { name: 'Pets', href: '/owner/pets', icon: '🐶' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
+        { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },

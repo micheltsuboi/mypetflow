@@ -341,7 +341,7 @@ export default function PackagesPage() {
                             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
                                 <h3 className={styles.sectionTitle}>Serviços Inclusos no Pacote</h3>
                                 <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '1rem' }}>
-                                    Defina quais serviços e quantidades fazem parte deste pacote
+                                    Defina quais serviços e quantidades fazem parte deste pacote. Diferentes categorias (Creche, Hotel, Banho) podem ser misturadas!
                                 </p>
 
                                 {/* Current Services */}
@@ -385,7 +385,7 @@ export default function PackagesPage() {
                                                 <option value="">Selecione um serviço</option>
                                                 {services.map(service => (
                                                     <option key={service.id} value={service.id}>
-                                                        {service.name} - R$ {service.base_price.toFixed(2)}
+                                                        [{service.category}] {service.name} - R$ {service.base_price.toFixed(2)}
                                                     </option>
                                                 ))}
                                             </select>
