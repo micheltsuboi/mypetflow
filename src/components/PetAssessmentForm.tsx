@@ -46,6 +46,9 @@ export default function PetAssessmentForm({ petId, existingData, onSuccess }: As
                     const fallbackQ = await getActiveQuestionsForContext()
                     setQuestions(fallbackQ)
                 }
+
+                console.log('[DEBUG] Fetched Questions:', await getActiveQuestionsForPet(petId))
+                console.log('[DEBUG] Existing Data:', existingData)
             } catch (err) {
                 console.error(err)
             } finally {
