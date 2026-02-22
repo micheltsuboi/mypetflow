@@ -126,7 +126,7 @@ export async function createAssessmentQuestion(formData: FormData) {
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id || !['owner', 'staff'].includes(profile.role)) {
+        if (!profile?.org_id || !['owner', 'staff', 'superadmin'].includes(profile.role)) {
             return { success: false, message: 'Sem autorização ou organização não encontrada' }
         }
 
@@ -188,7 +188,7 @@ export async function updateAssessmentQuestion(id: string, formData: FormData) {
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id || !['owner', 'staff'].includes(profile.role)) {
+        if (!profile?.org_id || !['owner', 'staff', 'superadmin'].includes(profile.role)) {
             return { success: false, message: 'Sem autorização' }
         }
 
@@ -248,7 +248,7 @@ export async function toggleAssessmentQuestionStatus(id: string, currentStatus: 
             .eq('id', user.id)
             .single()
 
-        if (!profile || !['owner', 'staff'].includes(profile.role)) {
+        if (!profile || !['owner', 'staff', 'superadmin'].includes(profile.role)) {
             return { success: false, message: 'Sem autorização' }
         }
 
