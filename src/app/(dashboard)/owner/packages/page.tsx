@@ -58,6 +58,24 @@ export default function PackagesPage() {
     const [serviceQuantity, setServiceQuantity] = useState(1)
     const [addingService, setAddingService] = useState(false)
 
+    const formatCategory = (category: string) => {
+        if (!category) return ''
+        const mapping: Record<string, string> = {
+            'creche': 'Creche',
+            'hotel': 'Hospedagem',
+            'banho_tosa': 'Banho e Tosa',
+            'hospedagem': 'Hospedagem'
+        }
+
+        if (mapping[category.toLowerCase()]) return mapping[category.toLowerCase()]
+
+        return category
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ')
+    }
+
     const fetchData = useCallback(async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -350,7 +368,7 @@ export default function PackagesPage() {
                                         <div key={item.id} className={styles.serviceRow}>
                                             <div className={styles.serviceInfo}>
                                                 <span className={styles.serviceName}>{item.services.name}</span>
-                                                <span className={styles.serviceCategory}>{item.services.category}</span>
+                                                <span className={styles.serviceCategory}>{formatCategory(item.services.category)}</span>
                                             </div>
                                             <div className={styles.serviceQty}>
                                                 <span className={styles.qtyBadge}>{item.quantity}x</span>
@@ -385,7 +403,7 @@ export default function PackagesPage() {
                                                 <option value="">Selecione um serviço</option>
                                                 {services.map(service => (
                                                     <option key={service.id} value={service.id}>
-                                                        [{service.category}] {service.name} - R$ {service.base_price.toFixed(2)}
+                                                        [{formatCategory(service.category)}] {service.name} - R$ {service.base_price.toFixed(2)}
                                                     </option>
                                                 ))}
                                             </select>
