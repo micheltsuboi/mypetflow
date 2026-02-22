@@ -374,8 +374,8 @@ export default function PackagesPage() {
                                 {/* Add Service Form */}
                                 <div className={styles.addServiceForm}>
                                     <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Adicionar Serviço</h4>
-                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'end' }}>
-                                        <div className={styles.inputGroup} style={{ flex: 2 }}>
+                                    <div className={styles.addServiceControls}>
+                                        <div className={`${styles.inputGroup} ${styles.flex2}`}>
                                             <label className={styles.label}>Serviço</label>
                                             <select
                                                 className={styles.select}
@@ -390,7 +390,7 @@ export default function PackagesPage() {
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className={styles.inputGroup} style={{ flex: 1 }}>
+                                        <div className={`${styles.inputGroup} ${styles.flex1}`}>
                                             <label className={styles.label}>Quantidade</label>
                                             <input
                                                 type="number"
