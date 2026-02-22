@@ -72,7 +72,9 @@ CREATE POLICY "Tutors can view org assessment questions" ON assessment_questions
 -- Tutors can manage answers for their own pets
 CREATE POLICY "Tutors can manage their pets answers" ON assessment_answers
     USING (pet_id IN (
-        SELECT id FROM pets WHERE owner_id = auth.uid()
+        SELECT id FROM pets WHERE customer_id IN (
+            SELECT id FROM customers WHERE user_id = auth.uid()
+        )
     ));
 
 -- Staff/Owner can manage all answers in their org
