@@ -61,6 +61,7 @@ export async function createPet(prevState: CreatePetState, formData: FormData) {
     }
 
     const photo_url = formData.get('photo_url') as string
+    const isAdapted = formData.get('is_adapted') === 'on'
 
     const { error } = await supabaseAdmin
         .from('pets')
@@ -76,7 +77,8 @@ export async function createPet(prevState: CreatePetState, formData: FormData) {
             is_neutered: isNeutered,
             existing_conditions: existing_conditions || null,
             vaccination_up_to_date: vaccination_up_to_date,
-            photo_url: photo_url || null
+            photo_url: photo_url || null,
+            is_adapted: isAdapted
         })
 
     if (error) {
@@ -109,6 +111,7 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
     const existing_conditions = formData.get('existing_conditions') as string
     const vaccination_up_to_date = formData.get('vaccination_up_to_date') === 'on'
     const photo_url = formData.get('photo_url') as string
+    const isAdapted = formData.get('is_adapted') === 'on'
 
     const supabaseAdmin = createAdminClient()
 
@@ -127,7 +130,8 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
             customer_id: customerId,
             existing_conditions: existing_conditions || null,
             vaccination_up_to_date: vaccination_up_to_date,
-            photo_url: photo_url || null
+            photo_url: photo_url || null,
+            is_adapted: isAdapted
         })
         .eq('id', id)
 
@@ -229,3 +233,47 @@ export async function createPetByTutor(prevState: CreatePetState, formData: Form
     revalidatePath('/tutor')
     return { message: 'Seu pet foi cadastrado com sucesso!', success: true }
 }
+
+export async function togglePetAdaptation(petId: string, isAdapted: boolean) {
+    const supabase = await createClient()
+
+    // Auth Check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || !['superadmin', 'admin', 'staff'].includes(profile.role)) {
+        return { message: 'Permissão negada.', success: false }
+    }
+
+    const supabaseAdmin = createAdminClient()
+
+    // Verify pet exists
+    const { data: pet } = await supabaseAdmin
+        .from('pets')
+        .select('id')
+        .eq('id', petId)
+        .single()
+
+    if (!pet) return { message: 'Pet não encontrado.', success: false }
+
+    const { error } = await supabaseAdmin
+        .from('pets')
+        .update({ is_adapted: isAdapted })
+        .eq('id', petId)
+
+    if (error) {
+        return { message: `Erro ao atualizar adaptação: ${error.message}`, success: false }
+    }
+
+    revalidatePath('/owner/pets')
+    revalidatePath('/tutor/booking')
+
+    return { message: 'Status de adaptação atualizado!', success: true }
+}
+

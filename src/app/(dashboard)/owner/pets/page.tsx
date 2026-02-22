@@ -31,6 +31,7 @@ interface Pet {
     customer_id: string
     customers: { id: string, name: string } | null
     photo_url?: string | null
+    is_adapted?: boolean
 }
 
 interface Customer {
@@ -546,6 +547,12 @@ function PetsContent() {
                                                 <div className={styles.formGroup}>
                                                     <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                                         <input type="checkbox" name="vaccination_up_to_date" defaultChecked={selectedPet?.vaccination_up_to_date} /> Vacinação em dia
+                                                    </label>
+                                                </div>
+                                                <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                                                    <label className={styles.label} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--accent)' }}>
+                                                        <input type="checkbox" name="is_adapted" defaultChecked={selectedPet?.is_adapted || false} />
+                                                        Adaptação Realizada (Necessário para Creche/Hotel)
                                                     </label>
                                                 </div>
                                                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>

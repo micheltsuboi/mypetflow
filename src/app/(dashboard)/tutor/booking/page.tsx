@@ -17,6 +17,7 @@ interface Pet {
     id: string
     name: string
     species: string
+    is_adapted?: boolean
 }
 
 interface Service {
@@ -50,6 +51,7 @@ export default function BookingPage() {
     // Assessment Modal State
     const [showAssessmentModal, setShowAssessmentModal] = useState(false)
     const [pendingServiceId, setPendingServiceId] = useState<string | null>(null)
+    const [requiresAdaptationWarning, setRequiresAdaptationWarning] = useState(false)
 
     const fetchData = useCallback(async () => {
         try {
@@ -74,7 +76,7 @@ export default function BookingPage() {
             // 2. Get tutor's pets
             const { data: petData } = await supabase
                 .from('pets')
-                .select('id, name, species')
+                .select('id, name, species, is_adapted')
                 .eq('customer_id', customer.id)
                 .eq('is_active', true)
 
@@ -209,6 +211,7 @@ export default function BookingPage() {
         setSelectedPet(petId)
         setSelectedCategory(null)
         setSelectedService(null) // Reset service when pet changes
+        setRequiresAdaptationWarning(false) // Reset warning
         setStep(2)
     }
 
@@ -258,6 +261,16 @@ export default function BookingPage() {
                 setShowAssessmentModal(true)
                 return
             }
+
+            // Check if adapted
+            const petData = pets.find(p => p.id === selectedPet)
+            if (petData && !petData.is_adapted) {
+                setRequiresAdaptationWarning(true)
+            } else {
+                setRequiresAdaptationWarning(false)
+            }
+        } else {
+            setRequiresAdaptationWarning(false)
         }
 
         setSelectedService(serviceId)
@@ -540,6 +553,13 @@ export default function BookingPage() {
                         <span>•</span>
                         <span>{selectedTime}</span>
                     </div>
+
+                    {requiresAdaptationWarning && (
+                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(241, 196, 15, 0.1)', border: '1px solid #f1c40f', borderRadius: '8px', color: '#b89406', fontSize: '0.9rem' }}>
+                            <strong>⚠️ Atenção:</strong> Este serviço está sujeito a uma avaliação de adaptação presencial do pet. Após a solicitação nossa equipe entrará em contato para alinhar os detalhes.
+                        </div>
+                    )}
+
                     <button
                         className={styles.confirmButton}
                         onClick={handleConfirm}

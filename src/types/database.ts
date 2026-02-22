@@ -100,6 +100,7 @@ export interface Pet {
     last_vaccination_date: string | null
     next_vaccination_date: string | null
     is_active: boolean
+    is_adapted: boolean
     created_at: string
     updated_at: string
 }

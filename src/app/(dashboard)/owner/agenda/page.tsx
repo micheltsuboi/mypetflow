@@ -35,6 +35,7 @@ interface Pet {
     perfume_allowed: boolean
     accessories_allowed: boolean
     special_care: string | null
+    is_adapted?: boolean
 }
 
 interface ServiceCategory {
@@ -163,7 +164,7 @@ export default function AgendaPage() {
 
             // Load Metadata
             if (pets.length === 0) {
-                const { data: p } = await supabase.from('pets').select('id, name, species, breed, customers(name), perfume_allowed, accessories_allowed, special_care').order('name')
+                const { data: p } = await supabase.from('pets').select('id, name, species, breed, customers(name), perfume_allowed, accessories_allowed, special_care, is_adapted').order('name')
                 if (p) setPets(p as any)
 
                 const { data: s } = await supabase
@@ -224,7 +225,7 @@ export default function AgendaPage() {
                     check_in_date, check_out_date,
                     pets ( 
                         name, species, breed, 
-                        perfume_allowed, accessories_allowed, special_care,
+                        perfume_allowed, accessories_allowed, special_care, is_adapted,
                         customers ( name )
                     ),
                     services ( 
@@ -460,7 +461,10 @@ export default function AgendaPage() {
         const serviceCategory = (appt.services as any)?.service_categories
         const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
         const categoryIcon = serviceCategory?.icon || (Array.isArray(serviceCategory) ? serviceCategory[0]?.icon : '📋')
-        const isCrecheOrBanho = appt.services?.name?.toLowerCase().includes('creche') || appt.services?.name?.toLowerCase().includes('banho')
+
+        const serviceNameLower = appt.services?.name?.toLowerCase() || ''
+        const isCrecheOrHotel = serviceNameLower.includes('creche') || serviceNameLower.includes('hospedagem') || serviceNameLower.includes('hotel') || serviceNameLower.includes('day care')
+        const needsAdaptation = isCrecheOrHotel && appt.pets && !appt.pets.is_adapted
 
         const petName = appt.pets?.name || 'Pet Desconhecido'
         const ownerName = appt.pets?.customers?.name || 'Cliente'
@@ -472,8 +476,8 @@ export default function AgendaPage() {
                 onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}
                 style={{
                     minWidth: '300px',
-                    borderLeft: `4px solid ${categoryColor} `,
-                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
+                    borderLeft: `4px solid ${needsAdaptation ? '#f1c40f' : categoryColor} `,
+                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : (needsAdaptation ? 'rgba(241, 196, 15, 0.05)' : 'var(--bg-secondary)'),
                     opacity: appt.status === 'done' ? 0.7 : 1
                 }}
             >
@@ -484,6 +488,11 @@ export default function AgendaPage() {
                         <div className={styles.petDetails}>
                             <div className={styles.petName}>
                                 {petName}
+                                {needsAdaptation && (
+                                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: '#f1c40f', color: '#000', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: 'bold' }}>
+                                        ⚠️ Adaptação Pendente
+                                    </span>
+                                )}
                                 <span className={styles.statusBadge}>
                                     {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Andamento' :
                                         appt.actual_check_out ? '🏁 Finalizado' :
