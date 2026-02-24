@@ -5,24 +5,35 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import styles from './page.module.css'
 import RegisterForm from '@/components/modules/RegisterForm'
 
-export default async function CadastroPage() {
+export default async function CadastroPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ org?: string }>;
+}) {
+    const params = await searchParams
     const headerStack = await headers()
     const host = headerStack.get('host') || ''
     const supabaseAdmin = createAdminClient()
 
-    // Detectar subdomínio
-    let subdomain = ''
-    if (host.includes('localhost') || host.includes('vercel.app')) {
-        const { data: firstOrg } = await supabaseAdmin.from('organizations').select('subdomain').limit(1).single()
-        subdomain = firstOrg?.subdomain || ''
-    } else {
-        subdomain = host.split('.')[0]
+    // Lógica inteligente de detecção:
+    // 1. Tentar pegar por parâmetro ?org= (útil para Vercel sem wildcard)
+    // 2. Tentar pegar por subdomínio real (útil para o domínio final)
+    let subdomain = params.org || ''
+
+    if (!subdomain) {
+        if (host.includes('localhost') || host.includes('vercel.app')) {
+            // No vercel sem parametro, pegamos a primeira ativa para demonstração
+            const { data: firstOrg } = await supabaseAdmin.from('organizations').select('subdomain').eq('is_active', true).limit(1).single()
+            subdomain = firstOrg?.subdomain || ''
+        } else {
+            subdomain = host.split('.')[0]
+        }
     }
 
     // Buscar dados da organização para o branding
     const { data: org } = await supabaseAdmin
         .from('organizations')
-        .select('name')
+        .select('id, name')
         .eq('subdomain', subdomain)
         .maybeSingle()
 
@@ -52,7 +63,7 @@ export default async function CadastroPage() {
                         {org ? `Área exclusiva para clientes ${org.name}` : 'Crie sua conta para acompanhar seu pet'}
                     </p>
 
-                    <RegisterForm />
+                    <RegisterForm orgId={org?.id} />
 
                     <footer className={styles.loginDivider}>
                         <span>Já tem uma conta?</span>

@@ -33,19 +33,27 @@ export async function registerClient(prevState: RegisterState, formData: FormDat
         subdomain = host.split('.')[0]
     }
 
-    // 1. Buscar a Organização pelo subdomínio extraído
-    const { data: org } = await supabaseAdmin
-        .from('organizations')
-        .select('id')
-        .eq('subdomain', subdomain)
-        .eq('is_active', true)
-        .maybeSingle()
+    // 1. Buscar a Organização
+    // Prioridade 1: ID vindo do formulário (útil no Vercel)
+    // Prioridade 2: Subdomínio da URL (útil no domínio final)
+    const formOrgId = formData.get('org_id') as string
+    let orgId = ''
 
-    if (!org) {
-        return { message: 'Loja não encontrada ou link inválido.', success: false }
+    if (formOrgId) {
+        orgId = formOrgId
+    } else {
+        const { data: org } = await supabaseAdmin
+            .from('organizations')
+            .select('id')
+            .eq('subdomain', subdomain)
+            .eq('is_active', true)
+            .maybeSingle()
+
+        if (!org) {
+            return { message: 'Loja não encontrada ou link inválido.', success: false }
+        }
+        orgId = org.id
     }
-
-    const orgId = org.id
 
     // 2. Create Auth User
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

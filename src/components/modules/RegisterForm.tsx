@@ -6,7 +6,7 @@ import styles from '@/app/page.module.css'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-export default function RegisterForm() {
+export default function RegisterForm({ orgId }: { orgId?: string }) {
     const [loading, setLoading] = useState(false)
     const [msg, setMsg] = useState('')
     const [isSuccess, setIsSuccess] = useState(false)
@@ -41,6 +41,9 @@ export default function RegisterForm() {
 
     return (
         <form onSubmit={handleSubmit} className={styles.formStack}>
+            {/* Campo oculto para garantir vínculo com a empresa no Vercel */}
+            <input type="hidden" name="org_id" value={orgId || ''} />
+
             <div className={styles.field}>
                 <label>Nome Completo</label>
                 <input name="name" type="text" required placeholder="Seu nome" className={styles.input} />
