@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   description: "Sistema completo para gestão de Pet Shops, incluindo creche, hotel, banho e tosa.",
   keywords: ["pet shop", "banho e tosa", "hotel pet", "creche pet", "gestão pet shop"],
   icons: {
-    icon: '/logo.png',
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
   },
 };
 
