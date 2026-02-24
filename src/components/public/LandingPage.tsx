@@ -11,6 +11,12 @@ export default async function LandingPage() {
 
     return (
         <main className={styles.main}>
+            {/* Top Banner */}
+            <div className={styles.topBanner}>
+                <span>Já possui uma conta MyPetFlow?</span>
+                <Link href="/login" className={styles.topBannerLink}>Acessar meu Pet Shop &rarr;</Link>
+            </div>
+
             {/* Navbar */}
             <header className={styles.header}>
                 <div className={styles.container}>

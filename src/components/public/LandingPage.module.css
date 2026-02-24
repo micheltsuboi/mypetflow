@@ -47,6 +47,35 @@
     padding: 0 2rem;
 }
 
+/* Top Banner */
+.topBanner {
+    background-color: rgba(0, 228, 206, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0.65rem 0;
+    text-align: center;
+    font-size: 0.9rem;
+    position: relative;
+    z-index: 101;
+    border-bottom: 1px solid rgba(0, 228, 206, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.topBannerLink {
+    color: var(--color-sky);
+    font-weight: 600;
+    margin-left: 0.5rem;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.topBannerLink:hover {
+    color: white;
+    text-decoration: underline;
+}
+
 /* Header Navbar */
 .header {
     background-color: transparent;
@@ -54,7 +83,8 @@
     padding: 1.5rem 0;
     position: absolute;
     width: 100%;
-    top: 0;
+    top: 40px;
+    /* offset por causa do topBanner */
     z-index: 100;
 }
 
