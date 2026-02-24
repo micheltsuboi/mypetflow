@@ -126,7 +126,7 @@ export async function createAssessmentQuestion(formData: FormData) {
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id || !['owner', 'staff', 'superadmin'].includes(profile.role)) {
+        if (!profile?.org_id || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role)) {
             return { success: false, message: 'Sem autorização ou organização não encontrada' }
         }
 
@@ -188,7 +188,7 @@ export async function updateAssessmentQuestion(id: string, formData: FormData) {
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id || !['owner', 'staff', 'superadmin'].includes(profile.role)) {
+        if (!profile?.org_id || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role)) {
             return { success: false, message: 'Sem autorização' }
         }
 
@@ -248,7 +248,7 @@ export async function toggleAssessmentQuestionStatus(id: string, currentStatus: 
             .eq('id', user.id)
             .single()
 
-        if (!profile || !['owner', 'staff', 'superadmin'].includes(profile.role)) {
+        if (!profile || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role)) {
             return { success: false, message: 'Sem autorização' }
         }
 
@@ -288,7 +288,7 @@ export async function createPetAssessment(petId: string, formData: FormData) {
         if (!profile?.org_id) return { success: false, message: 'Organização não encontrada' }
 
         const orgId = profile.org_id
-        const isOwnerOrStaff = ['owner', 'staff'].includes(formData.get('user_role') as string || '') // Optionally passed by the client if we want to change behavior (like auto-approve)
+        const isOwnerOrStaff = ['admin', 'owner', 'staff'].includes(formData.get('user_role') as string || '') // Optionally passed by the client if we want to change behavior (like auto-approve)
 
         // 1. First upsert the base pet_assessment record (to track declaration, status)
         const ownerDeclarationAccepted = formData.get('owner_declaration_accepted') === 'true'
