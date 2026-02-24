@@ -14,6 +14,7 @@ import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import { createVaccine, deleteVaccine, getPetVaccines } from '@/app/actions/vaccine'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import ImageUpload from '@/components/ImageUpload'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 // Interfaces
 interface Pet {
@@ -1018,8 +1019,10 @@ function PetsContent() {
 
 export default function PetsPage() {
     return (
-        <Suspense fallback={<div>Carregando...</div>}>
-            <PetsContent />
-        </Suspense>
+        <PlanGuard requiredModule="pets">
+            <Suspense fallback={<div>Carregando...</div>}>
+                <PetsContent />
+            </Suspense>
+        </PlanGuard>
     )
 }

@@ -12,6 +12,7 @@ import {
     addPackageItem,
     deletePackageItem
 } from '@/app/actions/package'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 interface Service {
     id: string
@@ -221,218 +222,220 @@ export default function PackagesPage() {
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div>
-                    <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
-                    <h1 className={styles.title}>Pacotes de Serviços</h1>
-                    <p style={{ color: '#666', fontSize: '0.9rem' }}>
-                        Crie pacotes mensais com múltiplos serviços. Créditos não utilizados acumulam para o próximo mês.
-                    </p>
+        <PlanGuard requiredModule="pacotes">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <div>
+                        <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
+                        <h1 className={styles.title}>Pacotes de Serviços</h1>
+                        <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                            Crie pacotes mensais com múltiplos serviços. Créditos não utilizados acumulam para o próximo mês.
+                        </p>
+                    </div>
+                    <button className={styles.actionButton} onClick={handleCreate}>
+                        + Novo Pacote
+                    </button>
                 </div>
-                <button className={styles.actionButton} onClick={handleCreate}>
-                    + Novo Pacote
-                </button>
-            </div>
 
-            <div className={styles.grid}>
-                {packages.map(pkg => (
-                    <div key={pkg.id} className={`${styles.card} ${!pkg.is_active ? styles.inactiveCard : ''}`} onClick={() => handleEdit(pkg)}>
-                        <div className={styles.cardHeader}>
-                            <div>
-                                <span className={styles.cardTitle}>{pkg.name}</span>
-                                {!pkg.is_active && <span className={styles.badge}>Inativo</span>}
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span className={styles.cardPrice}>R$ {pkg.total_price.toFixed(2)}</span>
-                                <button
-                                    className={styles.toggleBtn}
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleToggleStatus(pkg)
-                                    }}
-                                    title={pkg.is_active ? 'Desativar' : 'Ativar'}
-                                >
-                                    {pkg.is_active ? '✓' : '✗'}
-                                </button>
-                            </div>
-                        </div>
-                        {pkg.description && (
-                            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>
-                                {pkg.description}
-                            </div>
-                        )}
-                        <div className={styles.cardMeta}>
-                            {pkg.validity_days ? `Validade: ${pkg.validity_days} dias` : 'Sem expiração'}
-                        </div>
-                        <div className={styles.servicesList}>
-                            {pkg.package_items?.map(item => (
-                                <div key={item.id} className={styles.serviceItem}>
-                                    <span>{item.quantity}x {item.services.name}</span>
+                <div className={styles.grid}>
+                    {packages.map(pkg => (
+                        <div key={pkg.id} className={`${styles.card} ${!pkg.is_active ? styles.inactiveCard : ''}`} onClick={() => handleEdit(pkg)}>
+                            <div className={styles.cardHeader}>
+                                <div>
+                                    <span className={styles.cardTitle}>{pkg.name}</span>
+                                    {!pkg.is_active && <span className={styles.badge}>Inativo</span>}
                                 </div>
-                            ))}
-                            {(!pkg.package_items || pkg.package_items.length === 0) && (
-                                <div style={{ fontSize: '0.8rem', color: '#999' }}>Nenhum serviço adicionado</div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-                {packages.length === 0 && (
-                    <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#999' }}>
-                        Nenhum pacote criado ainda. Clique em "Novo Pacote" para começar.
-                    </div>
-                )}
-            </div>
-
-            {/* Modal */}
-            {showModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h2 className={styles.title}>{isEditing ? 'Editar Pacote' : 'Novo Pacote'}</h2>
-
-                        {/* Main Package Form */}
-                        <form action={isEditing ? updateAction : createAction} id="packageForm">
-                            {isEditing && <input type="hidden" name="id" value={selectedPackage!.id} />}
-                            <div className={styles.formGrid}>
-                                <div className={styles.inputGroup}>
-                                    <label className={styles.label}>Nome do Pacote *</label>
-                                    <input
-                                        name="name"
-                                        className={styles.input}
-                                        defaultValue={selectedPackage?.name}
-                                        placeholder="Ex: Pacote Mensal Premium"
-                                        required
-                                    />
-                                </div>
-                                <div className={styles.inputGroup}>
-                                    <label className={styles.label}>Preço Total (R$) *</label>
-                                    <input
-                                        name="total_price"
-                                        type="number"
-                                        step="0.01"
-                                        className={styles.input}
-                                        defaultValue={selectedPackage?.total_price}
-                                        required
-                                    />
-                                </div>
-                                <div className={styles.inputGroup} style={{ gridColumn: '1/-1' }}>
-                                    <label className={styles.label}>Descrição</label>
-                                    <input
-                                        name="description"
-                                        className={styles.input}
-                                        defaultValue={selectedPackage?.description || ''}
-                                        placeholder="Descrição opcional do pacote"
-                                    />
-                                </div>
-                                <div className={styles.inputGroup}>
-                                    <label className={styles.label}>Validade (dias)</label>
-                                    <input
-                                        name="validity_days"
-                                        type="number"
-                                        className={styles.input}
-                                        defaultValue={selectedPackage?.validity_days || ''}
-                                        placeholder="Deixe vazio para sem expiração"
-                                    />
-                                    <small style={{ fontSize: '0.75rem', color: '#666' }}>
-                                        Deixe vazio para pacotes sem expiração
-                                    </small>
-                                </div>
-                            </div>
-
-                            <div className={styles.modalActions} style={{ marginTop: '1rem', marginBottom: '2rem' }}>
-                                {isEditing && (
-                                    <button type="button" className={styles.deleteBtn} onClick={handleDelete}>
-                                        Excluir Pacote
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <span className={styles.cardPrice}>R$ {pkg.total_price.toFixed(2)}</span>
+                                    <button
+                                        className={styles.toggleBtn}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleToggleStatus(pkg)
+                                        }}
+                                        title={pkg.is_active ? 'Desativar' : 'Ativar'}
+                                    >
+                                        {pkg.is_active ? '✓' : '✗'}
                                     </button>
-                                )}
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" form="packageForm" className={styles.submitBtn} disabled={isCreatePending || isUpdatePending}>
-                                    {isEditing ? 'Salvar Alterações' : 'Criar Pacote'}
-                                </button>
+                                </div>
                             </div>
-                        </form>
+                            {pkg.description && (
+                                <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.5rem' }}>
+                                    {pkg.description}
+                                </div>
+                            )}
+                            <div className={styles.cardMeta}>
+                                {pkg.validity_days ? `Validade: ${pkg.validity_days} dias` : 'Sem expiração'}
+                            </div>
+                            <div className={styles.servicesList}>
+                                {pkg.package_items?.map(item => (
+                                    <div key={item.id} className={styles.serviceItem}>
+                                        <span>{item.quantity}x {item.services.name}</span>
+                                    </div>
+                                ))}
+                                {(!pkg.package_items || pkg.package_items.length === 0) && (
+                                    <div style={{ fontSize: '0.8rem', color: '#999' }}>Nenhum serviço adicionado</div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    {packages.length === 0 && (
+                        <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: '#999' }}>
+                            Nenhum pacote criado ainda. Clique em "Novo Pacote" para começar.
+                        </div>
+                    )}
+                </div>
 
-                        {/* Services in Package - Only in Edit Mode */}
-                        {isEditing && selectedPackage && (
-                            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                                <h3 className={styles.sectionTitle}>Serviços Inclusos no Pacote</h3>
-                                <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '1rem' }}>
-                                    Defina quais serviços e quantidades fazem parte deste pacote. Diferentes categorias (Creche, Hotel, Banho) podem ser misturadas!
-                                </p>
+                {/* Modal */}
+                {showModal && (
+                    <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+                        <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                            <h2 className={styles.title}>{isEditing ? 'Editar Pacote' : 'Novo Pacote'}</h2>
 
-                                {/* Current Services */}
-                                <div className={styles.servicesTable}>
-                                    {selectedPackage.package_items?.map(item => (
-                                        <div key={item.id} className={styles.serviceRow}>
-                                            <div className={styles.serviceInfo}>
-                                                <span className={styles.serviceName}>{item.services.name}</span>
-                                                <span className={styles.serviceCategory}>{formatCategory(item.services.category)}</span>
+                            {/* Main Package Form */}
+                            <form action={isEditing ? updateAction : createAction} id="packageForm">
+                                {isEditing && <input type="hidden" name="id" value={selectedPackage!.id} />}
+                                <div className={styles.formGrid}>
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Nome do Pacote *</label>
+                                        <input
+                                            name="name"
+                                            className={styles.input}
+                                            defaultValue={selectedPackage?.name}
+                                            placeholder="Ex: Pacote Mensal Premium"
+                                            required
+                                        />
+                                    </div>
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Preço Total (R$) *</label>
+                                        <input
+                                            name="total_price"
+                                            type="number"
+                                            step="0.01"
+                                            className={styles.input}
+                                            defaultValue={selectedPackage?.total_price}
+                                            required
+                                        />
+                                    </div>
+                                    <div className={styles.inputGroup} style={{ gridColumn: '1/-1' }}>
+                                        <label className={styles.label}>Descrição</label>
+                                        <input
+                                            name="description"
+                                            className={styles.input}
+                                            defaultValue={selectedPackage?.description || ''}
+                                            placeholder="Descrição opcional do pacote"
+                                        />
+                                    </div>
+                                    <div className={styles.inputGroup}>
+                                        <label className={styles.label}>Validade (dias)</label>
+                                        <input
+                                            name="validity_days"
+                                            type="number"
+                                            className={styles.input}
+                                            defaultValue={selectedPackage?.validity_days || ''}
+                                            placeholder="Deixe vazio para sem expiração"
+                                        />
+                                        <small style={{ fontSize: '0.75rem', color: '#666' }}>
+                                            Deixe vazio para pacotes sem expiração
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div className={styles.modalActions} style={{ marginTop: '1rem', marginBottom: '2rem' }}>
+                                    {isEditing && (
+                                        <button type="button" className={styles.deleteBtn} onClick={handleDelete}>
+                                            Excluir Pacote
+                                        </button>
+                                    )}
+                                    <button type="button" className={styles.cancelBtn} onClick={() => setShowModal(false)}>
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" form="packageForm" className={styles.submitBtn} disabled={isCreatePending || isUpdatePending}>
+                                        {isEditing ? 'Salvar Alterações' : 'Criar Pacote'}
+                                    </button>
+                                </div>
+                            </form>
+
+                            {/* Services in Package - Only in Edit Mode */}
+                            {isEditing && selectedPackage && (
+                                <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                                    <h3 className={styles.sectionTitle}>Serviços Inclusos no Pacote</h3>
+                                    <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '1rem' }}>
+                                        Defina quais serviços e quantidades fazem parte deste pacote. Diferentes categorias (Creche, Hotel, Banho) podem ser misturadas!
+                                    </p>
+
+                                    {/* Current Services */}
+                                    <div className={styles.servicesTable}>
+                                        {selectedPackage.package_items?.map(item => (
+                                            <div key={item.id} className={styles.serviceRow}>
+                                                <div className={styles.serviceInfo}>
+                                                    <span className={styles.serviceName}>{item.services.name}</span>
+                                                    <span className={styles.serviceCategory}>{formatCategory(item.services.category)}</span>
+                                                </div>
+                                                <div className={styles.serviceQty}>
+                                                    <span className={styles.qtyBadge}>{item.quantity}x</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className={styles.deleteBtnSmall}
+                                                    onClick={() => handleRemoveService(item.id)}
+                                                >
+                                                    🗑️
+                                                </button>
                                             </div>
-                                            <div className={styles.serviceQty}>
-                                                <span className={styles.qtyBadge}>{item.quantity}x</span>
+                                        ))}
+                                        {(!selectedPackage.package_items || selectedPackage.package_items.length === 0) && (
+                                            <div style={{ textAlign: 'center', padding: '1rem', color: '#999' }}>
+                                                Nenhum serviço adicionado ainda
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Add Service Form */}
+                                    <div className={styles.addServiceForm}>
+                                        <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Adicionar Serviço</h4>
+                                        <div className={styles.addServiceControls}>
+                                            <div className={`${styles.inputGroup} ${styles.flex2}`}>
+                                                <label className={styles.label}>Serviço</label>
+                                                <select
+                                                    className={styles.select}
+                                                    value={selectedServiceId}
+                                                    onChange={(e) => setSelectedServiceId(e.target.value)}
+                                                >
+                                                    <option value="">Selecione um serviço</option>
+                                                    {services.map(service => (
+                                                        <option key={service.id} value={service.id}>
+                                                            [{formatCategory(service.category)}] {service.name} - R$ {service.base_price.toFixed(2)}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className={`${styles.inputGroup} ${styles.flex1}`}>
+                                                <label className={styles.label}>Quantidade</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    className={styles.input}
+                                                    value={serviceQuantity}
+                                                    onChange={(e) => setServiceQuantity(parseInt(e.target.value) || 1)}
+                                                />
                                             </div>
                                             <button
                                                 type="button"
-                                                className={styles.deleteBtnSmall}
-                                                onClick={() => handleRemoveService(item.id)}
+                                                className={styles.addBtn}
+                                                onClick={handleAddService}
+                                                disabled={!selectedServiceId || addingService}
                                             >
-                                                🗑️
+                                                + Adicionar
                                             </button>
                                         </div>
-                                    ))}
-                                    {(!selectedPackage.package_items || selectedPackage.package_items.length === 0) && (
-                                        <div style={{ textAlign: 'center', padding: '1rem', color: '#999' }}>
-                                            Nenhum serviço adicionado ainda
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Add Service Form */}
-                                <div className={styles.addServiceForm}>
-                                    <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem' }}>Adicionar Serviço</h4>
-                                    <div className={styles.addServiceControls}>
-                                        <div className={`${styles.inputGroup} ${styles.flex2}`}>
-                                            <label className={styles.label}>Serviço</label>
-                                            <select
-                                                className={styles.select}
-                                                value={selectedServiceId}
-                                                onChange={(e) => setSelectedServiceId(e.target.value)}
-                                            >
-                                                <option value="">Selecione um serviço</option>
-                                                {services.map(service => (
-                                                    <option key={service.id} value={service.id}>
-                                                        [{formatCategory(service.category)}] {service.name} - R$ {service.base_price.toFixed(2)}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className={`${styles.inputGroup} ${styles.flex1}`}>
-                                            <label className={styles.label}>Quantidade</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                className={styles.input}
-                                                value={serviceQuantity}
-                                                onChange={(e) => setServiceQuantity(parseInt(e.target.value) || 1)}
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className={styles.addBtn}
-                                            onClick={handleAddService}
-                                            disabled={!selectedServiceId || addingService}
-                                        >
-                                            + Adicionar
-                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </PlanGuard>
     )
 }

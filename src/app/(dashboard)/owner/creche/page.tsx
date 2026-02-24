@@ -10,6 +10,7 @@ import { deleteAppointment } from '@/app/actions/appointment'
 import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PaymentControls from '@/components/PaymentControls'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 interface Appointment {
     id: string
@@ -140,260 +141,262 @@ export default function CrechePage() {
     })
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>🎾 Creche - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
-                <div className={styles.actionGroup}>
-                    <input
-                        type="text"
-                        placeholder="🔍 Buscar pet ou tutor..."
-                        value={searchTerm}
-                        className={styles.searchInput}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <div className={styles.buttonGroup}>
-                        <button
-                            className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
-                            onClick={() => setShowNewModal(true)}
-                            style={{ flex: 1 }}
-                        >
-                            + Novo Agendamento
-                        </button>
-                        <button
-                            className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
-                            onClick={() => fetchCrecheData()}
-                        >
-                            ↻
-                        </button>
+        <PlanGuard requiredModule="creche">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>🎾 Creche - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
+                    <div className={styles.actionGroup}>
+                        <input
+                            type="text"
+                            placeholder="🔍 Buscar pet ou tutor..."
+                            value={searchTerm}
+                            className={styles.searchInput}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <div className={styles.buttonGroup}>
+                            <button
+                                className={`${styles.actionButton} ${styles.actionButtonPrimary}`}
+                                onClick={() => setShowNewModal(true)}
+                                style={{ flex: 1 }}
+                            >
+                                + Novo Agendamento
+                            </button>
+                            <button
+                                className={`${styles.actionButton} ${styles.actionButtonSecondary}`}
+                                onClick={() => fetchCrecheData()}
+                            >
+                                ↻
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* View Mode Tabs */}
-            <div className={styles.tabs}>
-                <button
-                    onClick={() => setViewMode('active')}
-                    className={`${styles.tab} ${viewMode === 'active' ? styles.activeTab : ''}`}
-                >
-                    Em Aberto / Na Creche
-                </button>
-                <button
-                    onClick={() => setViewMode('history')}
-                    className={`${styles.tab} ${viewMode === 'history' ? styles.activeTab : ''}`}
-                >
-                    📜 Histórico
-                </button>
-            </div>
-
-            {/* Date Range Filter */}
-            <DateRangeFilter value={dateRange} onChange={setDateRange} />
-
-            {loading ? (
-                <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
-            ) : filteredAppointments.length === 0 ? (
-                <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum pet agendado para a creche no período selecionado.' : 'Nenhum histórico encontrado para o período.')}
+                {/* View Mode Tabs */}
+                <div className={styles.tabs}>
+                    <button
+                        onClick={() => setViewMode('active')}
+                        className={`${styles.tab} ${viewMode === 'active' ? styles.activeTab : ''}`}
+                    >
+                        Em Aberto / Na Creche
+                    </button>
+                    <button
+                        onClick={() => setViewMode('history')}
+                        className={`${styles.tab} ${viewMode === 'history' ? styles.activeTab : ''}`}
+                    >
+                        📜 Histórico
+                    </button>
                 </div>
-            ) : (
-                <div className={styles.grid}>
-                    {filteredAppointments.map(appt => (
-                        <div
-                            key={appt.id}
-                            className={styles.appointmentCard}
-                            style={{
-                                borderLeft: `4px solid ${appt.services?.service_categories?.color || '#10B981'}`,
-                                background: 'var(--bg-secondary)',
-                                opacity: 1,
-                                cursor: 'default',
-                                position: 'relative' // Ensure relative positioning for absolute badge
-                            }}>
-                            {/* Date Badge - Enhanced for visibility */}
-                            <div style={{
-                                position: 'absolute',
-                                top: '-12px',
-                                right: '16px',
-                                background: appt.services?.service_categories?.color || '#10B981', // Fallback to Green
-                                color: 'white',
-                                padding: '6px 12px',
-                                borderRadius: '12px',
-                                textAlign: 'center',
-                                boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
-                                zIndex: 10,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                lineHeight: 1,
-                                border: '3px solid var(--bg-primary, #0f172a)', // Thicker border to detach from card
-                                minWidth: '54px'
-                            }}>
-                                <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                                    {new Date(appt.scheduled_at).getDate()}
-                                </span>
-                                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
-                                    {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-                                </span>
-                            </div>
 
-                            {/* Main Content with Padding to avoid badge overlap */}
-                            <div className={styles.cardTop} style={{ marginTop: '1rem', paddingTop: '0.5rem' }}>
-                                <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
-                                    <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
-                                    <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
-                                        <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem' }} onClick={(e) => {
-                                            e.stopPropagation()
-                                            setSelectedAppointment(appt)
-                                        }}>
-                                            {appt.pets?.name || 'Pet'}
-                                            <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
-                                                {appt.actual_check_in && !appt.actual_check_out ? '🟢 Na Creche' :
-                                                    appt.actual_check_out ? '✅ Finalizado' :
-                                                        '⏳ Aguardando'}
-                                            </span>
-                                        </div>
-                                        {/* Action Buttons Row (Mobile Friendly) */}
-                                        {viewMode === 'active' && (
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setEditingAppointment(appt)
-                                                    }}
-                                                    title="Editar"
-                                                    style={{
-                                                        background: 'rgba(255,255,255,0.1)',
-                                                        border: 'none',
-                                                        borderRadius: '4px',
-                                                        padding: '4px 8px',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        fontSize: '0.9rem',
-                                                        color: '#e2e8f0'
-                                                    }}
-                                                >
-                                                    ✏️ Editar
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleDelete(appt.id)
-                                                    }}
-                                                    title="Excluir"
-                                                    style={{
-                                                        background: 'rgba(239, 68, 68, 0.15)',
-                                                        border: 'none',
-                                                        borderRadius: '4px',
-                                                        padding: '4px 8px',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        fontSize: '0.9rem',
-                                                        color: '#fca5a5'
-                                                    }}
-                                                >
-                                                    🗑️ Excluir
-                                                </button>
+                {/* Date Range Filter */}
+                <DateRangeFilter value={dateRange} onChange={setDateRange} />
+
+                {loading ? (
+                    <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
+                ) : filteredAppointments.length === 0 ? (
+                    <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                        {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum pet agendado para a creche no período selecionado.' : 'Nenhum histórico encontrado para o período.')}
+                    </div>
+                ) : (
+                    <div className={styles.grid}>
+                        {filteredAppointments.map(appt => (
+                            <div
+                                key={appt.id}
+                                className={styles.appointmentCard}
+                                style={{
+                                    borderLeft: `4px solid ${appt.services?.service_categories?.color || '#10B981'}`,
+                                    background: 'var(--bg-secondary)',
+                                    opacity: 1,
+                                    cursor: 'default',
+                                    position: 'relative' // Ensure relative positioning for absolute badge
+                                }}>
+                                {/* Date Badge - Enhanced for visibility */}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-12px',
+                                    right: '16px',
+                                    background: appt.services?.service_categories?.color || '#10B981', // Fallback to Green
+                                    color: 'white',
+                                    padding: '6px 12px',
+                                    borderRadius: '12px',
+                                    textAlign: 'center',
+                                    boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                                    zIndex: 10,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    lineHeight: 1,
+                                    border: '3px solid var(--bg-primary, #0f172a)', // Thicker border to detach from card
+                                    minWidth: '54px'
+                                }}>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                        {new Date(appt.scheduled_at).getDate()}
+                                    </span>
+                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
+                                        {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                    </span>
+                                </div>
+
+                                {/* Main Content with Padding to avoid badge overlap */}
+                                <div className={styles.cardTop} style={{ marginTop: '1rem', paddingTop: '0.5rem' }}>
+                                    <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
+                                        <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
+                                        <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
+                                            <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem' }} onClick={(e) => {
+                                                e.stopPropagation()
+                                                setSelectedAppointment(appt)
+                                            }}>
+                                                {appt.pets?.name || 'Pet'}
+                                                <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
+                                                    {appt.actual_check_in && !appt.actual_check_out ? '🟢 Na Creche' :
+                                                        appt.actual_check_out ? '✅ Finalizado' :
+                                                            '⏳ Aguardando'}
+                                                </span>
                                             </div>
-                                        )}
-                                        <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                            📅 {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', {
-                                                weekday: 'short',
-                                                day: '2-digit',
-                                                month: 'short'
-                                            })}
-                                        </div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
-                                            <span>{appt.services?.name || 'Creche'}</span>
-                                        </div>
-                                        <PaymentControls
-                                            appointmentId={appt.id}
-                                            calculatedPrice={(appt as any).calculated_price ?? (appt.services as any)?.base_price ?? null}
-                                            finalPrice={(appt as any).final_price}
-                                            discountPercent={(appt as any).discount_percent}
-                                            paymentStatus={(appt as any).payment_status}
-                                            paymentMethod={(appt as any).payment_method}
-                                            onUpdate={() => fetchCrecheData(true)}
-                                            compact
-                                        />
-                                        <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                            🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                        {appt.actual_check_in && (
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                Entrada: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            {/* Action Buttons Row (Mobile Friendly) */}
+                                            {viewMode === 'active' && (
+                                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            setEditingAppointment(appt)
+                                                        }}
+                                                        title="Editar"
+                                                        style={{
+                                                            background: 'rgba(255,255,255,0.1)',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            padding: '4px 8px',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            fontSize: '0.9rem',
+                                                            color: '#e2e8f0'
+                                                        }}
+                                                    >
+                                                        ✏️ Editar
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleDelete(appt.id)
+                                                        }}
+                                                        title="Excluir"
+                                                        style={{
+                                                            background: 'rgba(239, 68, 68, 0.15)',
+                                                            border: 'none',
+                                                            borderRadius: '4px',
+                                                            padding: '4px 8px',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            fontSize: '0.9rem',
+                                                            color: '#fca5a5'
+                                                        }}
+                                                    >
+                                                        🗑️ Excluir
+                                                    </button>
+                                                </div>
+                                            )}
+                                            <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                                📅 {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', {
+                                                    weekday: 'short',
+                                                    day: '2-digit',
+                                                    month: 'short'
+                                                })}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+                                                <span>{appt.services?.name || 'Creche'}</span>
+                                            </div>
+                                            <PaymentControls
+                                                appointmentId={appt.id}
+                                                calculatedPrice={(appt as any).calculated_price ?? (appt.services as any)?.base_price ?? null}
+                                                finalPrice={(appt as any).final_price}
+                                                discountPercent={(appt as any).discount_percent}
+                                                paymentStatus={(appt as any).payment_status}
+                                                paymentMethod={(appt as any).payment_method}
+                                                onUpdate={() => fetchCrecheData(true)}
+                                                compact
+                                            />
+                                            <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                                🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
-                                        )}
-                                        {appt.actual_check_out && (
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                Saída: {new Date(appt.actual_check_out).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        )}
+                                            {appt.actual_check_in && (
+                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                    Entrada: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
+                                            {appt.actual_check_out && (
+                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                    Saída: {new Date(appt.actual_check_out).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
+                                    {viewMode === 'active' ? (
+                                        <>
+                                            {!appt.actual_check_in ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleCheckIn(appt.id)
+                                                    }}
+                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                    📥 Check-in (Entrada)
+                                                </button>
+                                            ) : !appt.actual_check_out ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleCheckOut(appt.id)
+                                                    }}
+                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                    📤 Check-out (Saída)
+                                                </button>
+                                            ) : null}
+                                        </>
+                                    ) : (
+                                        <button
+                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
+                                            📜 Ver Relatório do Dia
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+                        ))}
+                    </div>
+                )}
 
-                            <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                {viewMode === 'active' ? (
-                                    <>
-                                        {!appt.actual_check_in ? (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleCheckIn(appt.id)
-                                                }}
-                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                                📥 Check-in (Entrada)
-                                            </button>
-                                        ) : !appt.actual_check_out ? (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    handleCheckOut(appt.id)
-                                                }}
-                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                                📤 Check-out (Saída)
-                                            </button>
-                                        ) : null}
-                                    </>
-                                ) : (
-                                    <button
-                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
-                                        📜 Ver Relatório do Dia
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                {/* Daily Report Modal */}
+                {selectedAppointment && (
+                    <DailyReportModal
+                        appointmentId={selectedAppointment.id}
+                        petName={selectedAppointment.pets?.name || 'Pet'}
+                        serviceName={selectedAppointment.services?.name || 'Creche'}
+                        onClose={() => setSelectedAppointment(null)}
+                        onSave={() => {
+                            fetchCrecheData()
+                            setSelectedAppointment(null)
+                        }}
+                        readOnly={viewMode === 'history'}
+                    />
+                )}
 
-            {/* Daily Report Modal */}
-            {selectedAppointment && (
-                <DailyReportModal
-                    appointmentId={selectedAppointment.id}
-                    petName={selectedAppointment.pets?.name || 'Pet'}
-                    serviceName={selectedAppointment.services?.name || 'Creche'}
-                    onClose={() => setSelectedAppointment(null)}
-                    onSave={() => {
-                        fetchCrecheData()
-                        setSelectedAppointment(null)
-                    }}
-                    readOnly={viewMode === 'history'}
-                />
-            )}
-
-            {/* New Appointment Modal */}
-            {showNewModal && (
-                <NewCrecheAppointmentModal
-                    onClose={() => setShowNewModal(false)}
-                    onSave={() => {
-                        fetchCrecheData()
-                        setShowNewModal(false)
-                    }}
-                />
-            )}
-        </div>
+                {/* New Appointment Modal */}
+                {showNewModal && (
+                    <NewCrecheAppointmentModal
+                        onClose={() => setShowNewModal(false)}
+                        onSave={() => {
+                            fetchCrecheData()
+                            setShowNewModal(false)
+                        }}
+                    />
+                )}
+            </div>
+        </PlanGuard>
     )
 }
 

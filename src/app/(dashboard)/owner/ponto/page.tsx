@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale'
 import { exportToCsv } from '@/utils/export'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 interface Profile {
     id: string
@@ -283,112 +284,114 @@ export default function PontoHistoryPage() {
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                    <h1 style={{ margin: 0 }}>Relatório de Ponto</h1>
+        <PlanGuard requiredModule="ponto">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <Link href="/owner" className={styles.backLink}>← Voltar</Link>
+                        <h1 style={{ margin: 0 }}>Relatório de Ponto</h1>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                            onClick={handleExportCSV}
+                            style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}
+                            disabled={loading || Object.keys(employees).length === 0}
+                        >
+                            Exportar CSV
+                        </button>
+                        <button
+                            onClick={handleExportPDF}
+                            style={{ padding: '0.5rem 1rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}
+                            disabled={loading || Object.keys(employees).length === 0}
+                        >
+                            Exportar PDF
+                        </button>
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <button
-                        onClick={handleExportCSV}
-                        style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}
-                        disabled={loading || Object.keys(employees).length === 0}
-                    >
-                        Exportar CSV
-                    </button>
-                    <button
-                        onClick={handleExportPDF}
-                        style={{ padding: '0.5rem 1rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 500 }}
-                        disabled={loading || Object.keys(employees).length === 0}
-                    >
-                        Exportar PDF
-                    </button>
-                </div>
-            </div>
 
-            <div className={styles.filters}>
-                <div className={styles.filterGroup}>
-                    <label>Início:</label>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <div className={styles.filters}>
+                    <div className={styles.filterGroup}>
+                        <label>Início:</label>
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                    </div>
+                    <div className={styles.filterGroup}>
+                        <label>Fim:</label>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                    </div>
+                    <div className={styles.filterGroup}>
+                        <label>Funcionário:</label>
+                        <select value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)}>
+                            <option value="all">Todos</option>
+                            {Object.values(employees).map(emp => (
+                                <option key={emp.profile.id} value={emp.profile.id}>{emp.profile.full_name}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
-                <div className={styles.filterGroup}>
-                    <label>Fim:</label>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-                </div>
-                <div className={styles.filterGroup}>
-                    <label>Funcionário:</label>
-                    <select value={selectedEmployeeId} onChange={e => setSelectedEmployeeId(e.target.value)}>
-                        <option value="all">Todos</option>
-                        {Object.values(employees).map(emp => (
-                            <option key={emp.profile.id} value={emp.profile.id}>{emp.profile.full_name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
 
-            {loading ? (
-                <div className={styles.loading}>Carregando...</div>
-            ) : Object.keys(employees).length === 0 ? (
-                <div className={styles.empty}>Nenhum registro encontrado no período.</div>
-            ) : (
-                <div className={styles.reports}>
-                    {Object.values(employees)
-                        .filter(emp => selectedEmployeeId === 'all' || emp.profile.id === selectedEmployeeId)
-                        .map(emp => (
-                            <div key={emp.profile.id} className={styles.employeeCard}>
-                                <div className={styles.employeeHeader}>
-                                    <h2>{emp.profile.full_name}</h2>
-                                    <div className={styles.summaryStats}>
-                                        <div className={styles.stat}>
-                                            <span>Total Trabalhado</span>
-                                            <strong>{formatDuration(emp.totalWorkedMinutes)}</strong>
-                                        </div>
-                                        <div className={`${styles.stat} ${getBalanceColor(emp.totalBalanceMinutes)}`}>
-                                            <span>Saldo (Banco de Horas)</span>
-                                            <strong>{emp.totalBalanceMinutes > 0 ? '+' : ''}{formatDuration(emp.totalBalanceMinutes)}</strong>
+                {loading ? (
+                    <div className={styles.loading}>Carregando...</div>
+                ) : Object.keys(employees).length === 0 ? (
+                    <div className={styles.empty}>Nenhum registro encontrado no período.</div>
+                ) : (
+                    <div className={styles.reports}>
+                        {Object.values(employees)
+                            .filter(emp => selectedEmployeeId === 'all' || emp.profile.id === selectedEmployeeId)
+                            .map(emp => (
+                                <div key={emp.profile.id} className={styles.employeeCard}>
+                                    <div className={styles.employeeHeader}>
+                                        <h2>{emp.profile.full_name}</h2>
+                                        <div className={styles.summaryStats}>
+                                            <div className={styles.stat}>
+                                                <span>Total Trabalhado</span>
+                                                <strong>{formatDuration(emp.totalWorkedMinutes)}</strong>
+                                            </div>
+                                            <div className={`${styles.stat} ${getBalanceColor(emp.totalBalanceMinutes)}`}>
+                                                <span>Saldo (Banco de Horas)</span>
+                                                <strong>{emp.totalBalanceMinutes > 0 ? '+' : ''}{formatDuration(emp.totalBalanceMinutes)}</strong>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className={styles.tableContainer}>
-                                    <table className={styles.detailTable}>
-                                        <thead>
-                                            <tr>
-                                                <th>Data</th>
-                                                <th>Entradas / Saídas</th>
-                                                <th>Total</th>
-                                                <th>Saldo</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {Object.values(emp.days).sort((a, b) => b.date.localeCompare(a.date)).map(day => (
-                                                <tr key={day.date}>
-                                                    <td>{format(parseISO(day.date), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}</td>
-                                                    <td>
-                                                        <div className={styles.entriesList}>
-                                                            {day.entries.map(entry => (
-                                                                <span key={entry.id} className={styles.timePair}>
-                                                                    {format(parseISO(entry.clock_in), 'HH:mm')} -
-                                                                    {entry.clock_out ? format(parseISO(entry.clock_out), 'HH:mm') : 'Em andamento...'}
-                                                                    {entry.justification && <span title={entry.justification}> 📝</span>}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                    <td>{formatDuration(day.totalMinutes)}</td>
-                                                    <td className={getBalanceColor(day.balanceMinutes)}>
-                                                        {day.balanceMinutes > 0 ? '+' : ''}{formatDuration(day.balanceMinutes)}
-                                                    </td>
+                                    <div className={styles.tableContainer}>
+                                        <table className={styles.detailTable}>
+                                            <thead>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Entradas / Saídas</th>
+                                                    <th>Total</th>
+                                                    <th>Saldo</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {Object.values(emp.days).sort((a, b) => b.date.localeCompare(a.date)).map(day => (
+                                                    <tr key={day.date}>
+                                                        <td>{format(parseISO(day.date), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}</td>
+                                                        <td>
+                                                            <div className={styles.entriesList}>
+                                                                {day.entries.map(entry => (
+                                                                    <span key={entry.id} className={styles.timePair}>
+                                                                        {format(parseISO(entry.clock_in), 'HH:mm')} -
+                                                                        {entry.clock_out ? format(parseISO(entry.clock_out), 'HH:mm') : 'Em andamento...'}
+                                                                        {entry.justification && <span title={entry.justification}> 📝</span>}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td>{formatDuration(day.totalMinutes)}</td>
+                                                        <td className={getBalanceColor(day.balanceMinutes)}>
+                                                            {day.balanceMinutes > 0 ? '+' : ''}{formatDuration(day.balanceMinutes)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                </div>
-            )}
-        </div>
+                            ))}
+                    </div>
+                )}
+            </div>
+        </PlanGuard>
     )
 }

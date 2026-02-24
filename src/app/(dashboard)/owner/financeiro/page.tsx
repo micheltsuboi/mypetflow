@@ -9,6 +9,7 @@ import { exportToCsv } from '@/utils/export'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { payPetshopSale } from '@/app/actions/petshop'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 interface MonthlyData {
     month: string
@@ -457,282 +458,284 @@ export default function FinanceiroPage() {
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div>
-                    <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                    <h1 className={styles.title}>💰 Controle Financeiro</h1>
-                    <p className={styles.subtitle}>Visão geral das finanças do seu pet shop</p>
-                </div>
-                <div className={styles.filters}>
-                    <div className={styles.filterGroup}>
-                        <label>De:</label>
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            className={styles.dateInput}
-                        />
+        <PlanGuard requiredModule="financeiro">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <div>
+                        <Link href="/owner" className={styles.backLink}>← Voltar</Link>
+                        <h1 className={styles.title}>💰 Controle Financeiro</h1>
+                        <p className={styles.subtitle}>Visão geral das finanças do seu pet shop</p>
                     </div>
-                    <div className={styles.filterGroup}>
-                        <label>Até:</label>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            className={styles.dateInput}
-                        />
-                    </div>
-                    <div className={styles.filterGroup}>
-                        <label>Categoria:</label>
-                        <select
-                            value={selectedCategory}
-                            onChange={e => setSelectedCategory(e.target.value)}
-                            className={styles.selectInput}
-                        >
-                            <option value="all">Todas</option>
-                            {categoryRevenue.map(cat => (
-                                <option key={cat.name} value={cat.name}>{cat.name}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Summary Cards */}
-            <div className={styles.summaryGrid}>
-                <div
-                    className={`${styles.summaryCard} ${styles.clickable}`}
-                    onClick={() => handleOpenExtract('revenue')}
-                >
-                    <div className={styles.cardHeader}>
-                        <span className={styles.cardIcon}>💵</span>
-                        <span className={`${styles.cardGrowth} ${Number(revenueGrowth) >= 0 ? styles.positive : styles.negative}`}>
-                            {Number(revenueGrowth) >= 0 ? '+' : ''}{revenueGrowth}%
-                        </span>
-                    </div>
-                    <span className={styles.cardValue}>{formatCurrency(activeRevenue)}</span>
-                    <span className={styles.cardLabel}>Faturamento</span>
-                </div>
-
-                <div
-                    className={`${styles.summaryCard} ${styles.clickable}`}
-                    onClick={() => handleOpenExtract('expenses')}
-                >
-                    <div className={styles.cardHeader}>
-                        <span className={styles.cardIcon}>📉</span>
-                    </div>
-                    <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(activeExpenses)}</span>
-                    <span className={styles.cardLabel}>Despesas</span>
-                </div>
-
-                <div
-                    className={`${styles.summaryCard} ${styles.clickable}`}
-                    onClick={() => handleOpenExtract('revenue')}
-                >
-                    <div className={styles.cardHeader}>
-                        <span className={styles.cardIcon}>📈</span>
-                    </div>
-                    <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(activeProfit)}</span>
-                    <span className={styles.cardLabel}>Lucro Líquido</span>
-                </div>
-
-                <div
-                    className={`${styles.summaryCard} ${styles.clickable}`}
-                    onClick={() => handleOpenExtract('pending')}
-                >
-                    <div className={styles.cardHeader}>
-                        <span className={styles.cardIcon}>⏳</span>
-                    </div>
-                    <span className={styles.cardValue} style={{ color: '#f39c12' }}>{formatCurrency(pendingTotal)}</span>
-                    <span className={styles.cardLabel}>A Receber</span>
-                </div>
-            </div>
-
-            {/* Extract Modal */}
-            {isExtractModalOpen && extractRecords.type && (
-                <div className={styles.modalOverlay} onClick={() => setIsExtractModalOpen(false)}>
-                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                        <button className={styles.closeButton} onClick={() => setIsExtractModalOpen(false)}>×</button>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', paddingRight: '2rem' }}>
-                            <h2 style={{ margin: 0 }}>
-                                {extractRecords.type === 'revenue' && '📜 Extrato de Faturamento'}
-                                {extractRecords.type === 'expenses' && '📉 Extrato de Despesas'}
-                                {extractRecords.type === 'pending' && '⏳ Valores a Receber'}
-                            </h2>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
-                                    onClick={handleExportCSV}
-                                    style={{ padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                                >
-                                    Exportar CSV
-                                </button>
-                                <button
-                                    onClick={handleExportPDF}
-                                    style={{ padding: '0.4rem 0.8rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
-                                >
-                                    Exportar PDF
-                                </button>
-                            </div>
+                    <div className={styles.filters}>
+                        <div className={styles.filterGroup}>
+                            <label>De:</label>
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
+                                className={styles.dateInput}
+                            />
                         </div>
+                        <div className={styles.filterGroup}>
+                            <label>Até:</label>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={e => setEndDate(e.target.value)}
+                                className={styles.dateInput}
+                            />
+                        </div>
+                        <div className={styles.filterGroup}>
+                            <label>Categoria:</label>
+                            <select
+                                value={selectedCategory}
+                                onChange={e => setSelectedCategory(e.target.value)}
+                                className={styles.selectInput}
+                            >
+                                <option value="all">Todas</option>
+                                {categoryRevenue.map(cat => (
+                                    <option key={cat.name} value={cat.name}>{cat.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-                        <div className={styles.extractList}>
-                            {/* Appointments list (for Revenue and Pending) */}
-                            {extractRecords.type !== 'expenses' && extractRecords.appointments
-                                .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
-                                .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
-                                .map(appt => (
-                                    <div key={appt.id} className={styles.extractItem}>
-                                        <div className={styles.extractInfo}>
-                                            <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
-                                            <span>{new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                {/* Summary Cards */}
+                <div className={styles.summaryGrid}>
+                    <div
+                        className={`${styles.summaryCard} ${styles.clickable}`}
+                        onClick={() => handleOpenExtract('revenue')}
+                    >
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardIcon}>💵</span>
+                            <span className={`${styles.cardGrowth} ${Number(revenueGrowth) >= 0 ? styles.positive : styles.negative}`}>
+                                {Number(revenueGrowth) >= 0 ? '+' : ''}{revenueGrowth}%
+                            </span>
+                        </div>
+                        <span className={styles.cardValue}>{formatCurrency(activeRevenue)}</span>
+                        <span className={styles.cardLabel}>Faturamento</span>
+                    </div>
+
+                    <div
+                        className={`${styles.summaryCard} ${styles.clickable}`}
+                        onClick={() => handleOpenExtract('expenses')}
+                    >
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardIcon}>📉</span>
+                        </div>
+                        <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(activeExpenses)}</span>
+                        <span className={styles.cardLabel}>Despesas</span>
+                    </div>
+
+                    <div
+                        className={`${styles.summaryCard} ${styles.clickable}`}
+                        onClick={() => handleOpenExtract('revenue')}
+                    >
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardIcon}>📈</span>
+                        </div>
+                        <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(activeProfit)}</span>
+                        <span className={styles.cardLabel}>Lucro Líquido</span>
+                    </div>
+
+                    <div
+                        className={`${styles.summaryCard} ${styles.clickable}`}
+                        onClick={() => handleOpenExtract('pending')}
+                    >
+                        <div className={styles.cardHeader}>
+                            <span className={styles.cardIcon}>⏳</span>
+                        </div>
+                        <span className={styles.cardValue} style={{ color: '#f39c12' }}>{formatCurrency(pendingTotal)}</span>
+                        <span className={styles.cardLabel}>A Receber</span>
+                    </div>
+                </div>
+
+                {/* Extract Modal */}
+                {isExtractModalOpen && extractRecords.type && (
+                    <div className={styles.modalOverlay} onClick={() => setIsExtractModalOpen(false)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                            <button className={styles.closeButton} onClick={() => setIsExtractModalOpen(false)}>×</button>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', paddingRight: '2rem' }}>
+                                <h2 style={{ margin: 0 }}>
+                                    {extractRecords.type === 'revenue' && '📜 Extrato de Faturamento'}
+                                    {extractRecords.type === 'expenses' && '📉 Extrato de Despesas'}
+                                    {extractRecords.type === 'pending' && '⏳ Valores a Receber'}
+                                </h2>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={handleExportCSV}
+                                        style={{ padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                    >
+                                        Exportar CSV
+                                    </button>
+                                    <button
+                                        onClick={handleExportPDF}
+                                        style={{ padding: '0.4rem 0.8rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
+                                    >
+                                        Exportar PDF
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className={styles.extractList}>
+                                {/* Appointments list (for Revenue and Pending) */}
+                                {extractRecords.type !== 'expenses' && extractRecords.appointments
+                                    .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
+                                    .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
+                                    .map(appt => (
+                                        <div key={appt.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                <span>{new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount}>
+                                                    {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                </span>
+                                                {extractRecords.type === 'pending' && (
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => handleConfirmPayment(appt.id)}
+                                                    >
+                                                        Confirmar Pago
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className={styles.extractActions}>
-                                            <span className={styles.extractAmount}>
-                                                {formatCurrency(appt.final_price || appt.calculated_price || 0)}
-                                            </span>
-                                            {extractRecords.type === 'pending' && (
+                                    ))}
+
+                                {/* Pending Pet Shop Sales list */}
+                                {extractRecords.type === 'pending' && extractRecords.pendingSales
+                                    .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
+                                    .map(sale => (
+                                        <div key={sale.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>{sale.pets?.name || 'Cliente Avulso'} • {sale.product_name}</strong>
+                                                <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount}>
+                                                    {formatCurrency(sale.total_price)}
+                                                </span>
                                                 <button
                                                     className={styles.confirmPayBtn}
-                                                    onClick={() => handleConfirmPayment(appt.id)}
+                                                    onClick={() => handleConfirmPetshopPayment(sale.id, sale.product_name, sale.total_price)}
                                                 >
                                                     Confirmar Pago
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
 
-                            {/* Pending Pet Shop Sales list */}
-                            {extractRecords.type === 'pending' && extractRecords.pendingSales
-                                .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
-                                .map(sale => (
-                                    <div key={sale.id} className={styles.extractItem}>
-                                        <div className={styles.extractInfo}>
-                                            <strong>{sale.pets?.name || 'Cliente Avulso'} • {sale.product_name}</strong>
-                                            <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                {/* Transactions list (for Revenue and Expenses) */}
+                                {extractRecords.type !== 'pending' && extractRecords.transactions
+                                    .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
+                                    .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
+                                    .map(tx => (
+                                        <div key={tx.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>{tx.category}</strong>
+                                                <span>{tx.description}</span>
+                                                <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount}>
+                                                    {formatCurrency(tx.amount)}
+                                                </span>
+                                                <button
+                                                    className={styles.deleteBtn}
+                                                    onClick={() => handleDeleteTransaction(tx.id)}
+                                                >
+                                                    Excluir
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className={styles.extractActions}>
-                                            <span className={styles.extractAmount}>
-                                                {formatCurrency(sale.total_price)}
-                                            </span>
-                                            <button
-                                                className={styles.confirmPayBtn}
-                                                onClick={() => handleConfirmPetshopPayment(sale.id, sale.product_name, sale.total_price)}
-                                            >
-                                                Confirmar Pago
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
 
-                            {/* Transactions list (for Revenue and Expenses) */}
-                            {extractRecords.type !== 'pending' && extractRecords.transactions
-                                .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
-                                .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
-                                .map(tx => (
-                                    <div key={tx.id} className={styles.extractItem}>
-                                        <div className={styles.extractInfo}>
-                                            <strong>{tx.category}</strong>
-                                            <span>{tx.description}</span>
-                                            <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
-                                        </div>
-                                        <div className={styles.extractActions}>
-                                            <span className={styles.extractAmount}>
-                                                {formatCurrency(tx.amount)}
-                                            </span>
-                                            <button
-                                                className={styles.deleteBtn}
-                                                onClick={() => handleDeleteTransaction(tx.id)}
-                                            >
-                                                Excluir
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-
-                            {/* Empty State */}
-                            {((extractRecords.type === 'pending' &&
-                                extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
-                                extractRecords.pendingSales.filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto').length === 0) ||
-                                (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0) ||
-                                (extractRecords.type === 'revenue' &&
-                                    extractRecords.appointments.filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
-                                    extractRecords.transactions.filter(t => t.type === 'income' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0)) && (
-                                    <p className={styles.emptyExtract}>Nenhum registro encontrado para este período/categoria.</p>
-                                )}
+                                {/* Empty State */}
+                                {((extractRecords.type === 'pending' &&
+                                    extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
+                                    extractRecords.pendingSales.filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto').length === 0) ||
+                                    (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0) ||
+                                    (extractRecords.type === 'revenue' &&
+                                        extractRecords.appointments.filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
+                                        extractRecords.transactions.filter(t => t.type === 'income' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0)) && (
+                                        <p className={styles.emptyExtract}>Nenhum registro encontrado para este período/categoria.</p>
+                                    )}
+                            </div>
                         </div>
-                    </div>
-                </div >
-            )
-            }
+                    </div >
+                )
+                }
 
-            {/* Revenue Chart */}
-            <div className={styles.chartSection}>
-                <h2 className={styles.sectionTitle}>📊 Faturamento Mensal (Últimos 6 Meses)</h2>
-                {monthlyData.length > 0 ? (
-                    <div className={styles.chart}>
-                        {/* Background Grid Lines */}
-                        <div className={styles.gridLines}>
-                            {[0, 1, 2, 3, 4].map((i) => (
-                                <div key={i} className={styles.gridLine} />
+                {/* Revenue Chart */}
+                <div className={styles.chartSection}>
+                    <h2 className={styles.sectionTitle}>📊 Faturamento Mensal (Últimos 6 Meses)</h2>
+                    {monthlyData.length > 0 ? (
+                        <div className={styles.chart}>
+                            {/* Background Grid Lines */}
+                            <div className={styles.gridLines}>
+                                {[0, 1, 2, 3, 4].map((i) => (
+                                    <div key={i} className={styles.gridLine} />
+                                ))}
+                            </div>
+                            {monthlyData.map((data, index) => (
+                                <div key={data.month} className={styles.chartBar}>
+                                    <div className={styles.barContainer}>
+                                        <div
+                                            className={styles.bar}
+                                            style={{ height: `${(data.revenue / maxRevenue) * 100}%` }}
+                                        >
+                                            <span className={styles.barValue}>
+                                                {data.revenue >= 1000
+                                                    ? `${(data.revenue / 1000).toFixed(1)}k`
+                                                    : data.revenue > 0 ? data.revenue.toFixed(0) : '0'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className={`${styles.barLabel} ${index === monthlyData.length - 1 ? styles.current : ''}`}>
+                                        {data.month}
+                                    </span>
+                                </div>
                             ))}
                         </div>
-                        {monthlyData.map((data, index) => (
-                            <div key={data.month} className={styles.chartBar}>
-                                <div className={styles.barContainer}>
-                                    <div
-                                        className={styles.bar}
-                                        style={{ height: `${(data.revenue / maxRevenue) * 100}%` }}
-                                    >
-                                        <span className={styles.barValue}>
-                                            {data.revenue >= 1000
-                                                ? `${(data.revenue / 1000).toFixed(1)}k`
-                                                : data.revenue > 0 ? data.revenue.toFixed(0) : '0'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <span className={`${styles.barLabel} ${index === monthlyData.length - 1 ? styles.current : ''}`}>
-                                    {data.month}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>Sem dados financeiros registrados.</p>
-                )}
-            </div>
-
-            {/* Revenue by Service */}
-            <div className={styles.servicesSection}>
-                <h2 className={styles.sectionTitle}>💼 Receita por Categoria</h2>
-                <div className={styles.servicesList}>
-                    {categoryRevenue.map(cat => (
-                        <div key={cat.name} className={styles.serviceItem}>
-                            <div className={styles.serviceHeader}>
-                                <span className={styles.serviceName}>{cat.name}</span>
-                                <span className={styles.serviceRevenue}>{formatCurrency(cat.revenue)}</span>
-                            </div>
-                            <div className={styles.progressBar}>
-                                <div
-                                    className={styles.progress}
-                                    style={{ width: `${cat.percentage}%` }}
-                                />
-                            </div>
-                            <div className={styles.serviceFooter}>
-                                <span className={styles.serviceCount}>{cat.count} vendas</span>
-                                <span className={styles.servicePercentage}>{cat.percentage}%</span>
-                            </div>
-                        </div>
-                    ))}
-                    {categoryRevenue.length === 0 && (
-                        <p style={{ color: '#666', textAlign: 'center', padding: '1rem' }}>Nenhuma venda registrada este mês.</p>
+                    ) : (
+                        <p style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>Sem dados financeiros registrados.</p>
                     )}
                 </div>
-            </div>
 
-            {/* Quick Stats - Removed fake stats */}
-        </div >
+                {/* Revenue by Service */}
+                <div className={styles.servicesSection}>
+                    <h2 className={styles.sectionTitle}>💼 Receita por Categoria</h2>
+                    <div className={styles.servicesList}>
+                        {categoryRevenue.map(cat => (
+                            <div key={cat.name} className={styles.serviceItem}>
+                                <div className={styles.serviceHeader}>
+                                    <span className={styles.serviceName}>{cat.name}</span>
+                                    <span className={styles.serviceRevenue}>{formatCurrency(cat.revenue)}</span>
+                                </div>
+                                <div className={styles.progressBar}>
+                                    <div
+                                        className={styles.progress}
+                                        style={{ width: `${cat.percentage}%` }}
+                                    />
+                                </div>
+                                <div className={styles.serviceFooter}>
+                                    <span className={styles.serviceCount}>{cat.count} vendas</span>
+                                    <span className={styles.servicePercentage}>{cat.percentage}%</span>
+                                </div>
+                            </div>
+                        ))}
+                        {categoryRevenue.length === 0 && (
+                            <p style={{ color: '#666', textAlign: 'center', padding: '1rem' }}>Nenhuma venda registrada este mês.</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Quick Stats - Removed fake stats */}
+            </div>
+        </PlanGuard>
     )
 }

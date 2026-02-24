@@ -11,6 +11,7 @@ import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PaymentControls from '@/components/PaymentControls'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 interface Appointment {
     id: string
@@ -164,283 +165,285 @@ export default function HospedagemPage() {
     })
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>🏨 Hospedagem - {viewMode === 'active' ? 'Hóspedes' : 'Histórico'}</h1>
-                <div className={styles.actionGroup}>
-                    <input
-                        type="text"
-                        placeholder="🔍 Buscar pet ou tutor..."
-                        value={searchTerm}
-                        className={styles.searchInput}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <div className={styles.buttonGroup}>
-                        <button
-                            className={styles.actionButton}
-                            onClick={() => setShowNewModal(true)}
-                            style={{ flex: 1 }}
-                        >
-                            + Novo Agendamento
-                        </button>
-                        <button className={styles.actionButton} onClick={() => fetchHospedagemData()}>↻</button>
+        <PlanGuard requiredModule="hospedagem">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>🏨 Hospedagem - {viewMode === 'active' ? 'Hóspedes' : 'Histórico'}</h1>
+                    <div className={styles.actionGroup}>
+                        <input
+                            type="text"
+                            placeholder="🔍 Buscar pet ou tutor..."
+                            value={searchTerm}
+                            className={styles.searchInput}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        <div className={styles.buttonGroup}>
+                            <button
+                                className={styles.actionButton}
+                                onClick={() => setShowNewModal(true)}
+                                style={{ flex: 1 }}
+                            >
+                                + Novo Agendamento
+                            </button>
+                            <button className={styles.actionButton} onClick={() => fetchHospedagemData()}>↻</button>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* View Mode Tabs */}
-            <div className={styles.tabs}>
-                <button
-                    onClick={() => setViewMode('active')}
-                    className={`${styles.tab} ${viewMode === 'active' ? styles.activeTab : ''}`}
-                >
-                    Hóspedes Ativos / Futuros
-                </button>
-                <button
-                    onClick={() => setViewMode('history')}
-                    className={`${styles.tab} ${viewMode === 'history' ? styles.activeTab : ''}`}
-                >
-                    📜 Histórico
-                </button>
-            </div>
-
-            {/* Date Range Filter */}
-            <DateRangeFilter value={dateRange} onChange={setDateRange} />
-
-            {loading ? (
-                <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
-            ) : filteredAppointments.length === 0 ? (
-                <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                    {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum hóspede encontrado neste período.' : 'Nenhum histórico encontrado para o período.')}
+                {/* View Mode Tabs */}
+                <div className={styles.tabs}>
+                    <button
+                        onClick={() => setViewMode('active')}
+                        className={`${styles.tab} ${viewMode === 'active' ? styles.activeTab : ''}`}
+                    >
+                        Hóspedes Ativos / Futuros
+                    </button>
+                    <button
+                        onClick={() => setViewMode('history')}
+                        className={`${styles.tab} ${viewMode === 'history' ? styles.activeTab : ''}`}
+                    >
+                        📜 Histórico
+                    </button>
                 </div>
-            ) : (
-                <div className={styles.grid}>
-                    {filteredAppointments.map(appt => {
-                        const checkInDate = appt.check_in_date ? new Date(appt.check_in_date + 'T12:00:00') : new Date(appt.scheduled_at)
-                        const checkOutDate = appt.check_out_date ? new Date(appt.check_out_date + 'T12:00:00') : null
 
-                        // Calculate days
-                        const days = checkOutDate
-                            ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
-                            : 1
+                {/* Date Range Filter */}
+                <DateRangeFilter value={dateRange} onChange={setDateRange} />
 
-                        const totalEstimate = appt.calculated_price
-                            ? Number(appt.calculated_price)
-                            : ((appt.services?.base_price || 0) * (days || 1))
+                {loading ? (
+                    <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
+                ) : filteredAppointments.length === 0 ? (
+                    <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                        {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum hóspede encontrado neste período.' : 'Nenhum histórico encontrado para o período.')}
+                    </div>
+                ) : (
+                    <div className={styles.grid}>
+                        {filteredAppointments.map(appt => {
+                            const checkInDate = appt.check_in_date ? new Date(appt.check_in_date + 'T12:00:00') : new Date(appt.scheduled_at)
+                            const checkOutDate = appt.check_out_date ? new Date(appt.check_out_date + 'T12:00:00') : null
 
-                        const categoryColor = appt.services?.service_categories?.color || '#F97316'
+                            // Calculate days
+                            const days = checkOutDate
+                                ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+                                : 1
 
-                        return (
-                            <div
-                                key={appt.id}
-                                className={styles.appointmentCard}
-                                style={{
-                                    borderLeft: `4px solid ${categoryColor}`,
-                                    background: 'var(--bg-secondary)',
-                                    opacity: 1,
-                                    cursor: 'default'
-                                }}>
-                                {/* Date Badge */}
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '-12px',
-                                    right: '16px',
-                                    background: categoryColor,
-                                    color: 'white',
-                                    padding: '6px 12px',
-                                    borderRadius: '12px',
-                                    textAlign: 'center',
-                                    boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
-                                    zIndex: 10,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    lineHeight: 1,
-                                    border: '3px solid var(--bg-primary, #0f172a)',
-                                    minWidth: '54px'
-                                }}>
-                                    <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
-                                        {checkInDate.getDate()}
-                                    </span>
-                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
-                                        {checkInDate.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
-                                    </span>
-                                </div>
+                            const totalEstimate = appt.calculated_price
+                                ? Number(appt.calculated_price)
+                                : ((appt.services?.base_price || 0) * (days || 1))
 
-                                {/* Main Content */}
-                                <div className={styles.cardTop} style={{ marginTop: '1rem', paddingTop: '0.5rem' }}>
-                                    <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
-                                        <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
-                                        <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
-                                            <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem', cursor: 'pointer' }} onClick={(e) => {
-                                                e.stopPropagation()
-                                                setSelectedAppointment(appt)
-                                            }}>
-                                                {appt.pets?.name || 'Pet'}
-                                                <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
-                                                    {appt.status === 'in_progress' ? '🏠 Hospedado' :
-                                                        (appt.status === 'done' || appt.status === 'completed') ? '✅ Finalizado' :
-                                                            '⏳ Reservado'}
-                                                </span>
-                                            </div>
+                            const categoryColor = appt.services?.service_categories?.color || '#F97316'
 
-                                            {/* Action Buttons Row */}
-                                            {viewMode === 'active' && (
-                                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            setEditingAppointment(appt)
-                                                        }}
-                                                        style={{
-                                                            background: 'rgba(255,255,255,0.1)',
-                                                            border: 'none',
-                                                            borderRadius: '4px',
-                                                            padding: '4px 8px',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            fontSize: '0.9rem',
-                                                            color: '#e2e8f0'
-                                                        }}
-                                                    >
-                                                        ✏️ Editar
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handleDelete(appt.id)
-                                                        }}
-                                                        style={{
-                                                            background: 'rgba(239, 68, 68, 0.15)',
-                                                            border: 'none',
-                                                            borderRadius: '4px',
-                                                            padding: '4px 8px',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            fontSize: '0.9rem',
-                                                            color: '#fca5a5'
-                                                        }}
-                                                    >
-                                                        🗑️ Excluir
-                                                    </button>
+                            return (
+                                <div
+                                    key={appt.id}
+                                    className={styles.appointmentCard}
+                                    style={{
+                                        borderLeft: `4px solid ${categoryColor}`,
+                                        background: 'var(--bg-secondary)',
+                                        opacity: 1,
+                                        cursor: 'default'
+                                    }}>
+                                    {/* Date Badge */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '-12px',
+                                        right: '16px',
+                                        background: categoryColor,
+                                        color: 'white',
+                                        padding: '6px 12px',
+                                        borderRadius: '12px',
+                                        textAlign: 'center',
+                                        boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
+                                        zIndex: 10,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        lineHeight: 1,
+                                        border: '3px solid var(--bg-primary, #0f172a)',
+                                        minWidth: '54px'
+                                    }}>
+                                        <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                            {checkInDate.getDate()}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
+                                            {checkInDate.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}
+                                        </span>
+                                    </div>
+
+                                    {/* Main Content */}
+                                    <div className={styles.cardTop} style={{ marginTop: '1rem', paddingTop: '0.5rem' }}>
+                                        <div className={styles.petInfoMain} style={{ flex: 1, minWidth: 0 }}>
+                                            <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
+                                            <div className={styles.petDetails} style={{ minWidth: 0, paddingRight: '1rem' }}>
+                                                <div className={styles.petName} style={{ flexWrap: 'wrap', gap: '0.5rem', cursor: 'pointer' }} onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setSelectedAppointment(appt)
+                                                }}>
+                                                    {appt.pets?.name || 'Pet'}
+                                                    <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 6px' }}>
+                                                        {appt.status === 'in_progress' ? '🏠 Hospedado' :
+                                                            (appt.status === 'done' || appt.status === 'completed') ? '✅ Finalizado' :
+                                                                '⏳ Reservado'}
+                                                    </span>
                                                 </div>
-                                            )}
-                                            <span className={styles.tutorName} style={{ cursor: 'pointer' }} onClick={(e) => {
-                                                e.stopPropagation()
-                                                setSelectedAppointment(appt)
-                                            }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
 
-                                            <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span>📅 <strong>Check-in:</strong></span>
-                                                    {appt.actual_check_in ? (
-                                                        <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_in).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
-                                                    ) : (
-                                                        <span>{checkInDate.toLocaleDateString('pt-BR')}</span>
-                                                    )}
+                                                {/* Action Buttons Row */}
+                                                {viewMode === 'active' && (
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', marginBottom: '0.25rem' }}>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                setEditingAppointment(appt)
+                                                            }}
+                                                            style={{
+                                                                background: 'rgba(255,255,255,0.1)',
+                                                                border: 'none',
+                                                                borderRadius: '4px',
+                                                                padding: '4px 8px',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                fontSize: '0.9rem',
+                                                                color: '#e2e8f0'
+                                                            }}
+                                                        >
+                                                            ✏️ Editar
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleDelete(appt.id)
+                                                            }}
+                                                            style={{
+                                                                background: 'rgba(239, 68, 68, 0.15)',
+                                                                border: 'none',
+                                                                borderRadius: '4px',
+                                                                padding: '4px 8px',
+                                                                cursor: 'pointer',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                fontSize: '0.9rem',
+                                                                color: '#fca5a5'
+                                                            }}
+                                                        >
+                                                            🗑️ Excluir
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <span className={styles.tutorName} style={{ cursor: 'pointer' }} onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setSelectedAppointment(appt)
+                                                }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
+
+                                                <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span>📅 <strong>Check-in:</strong></span>
+                                                        {appt.actual_check_in ? (
+                                                            <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_in).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
+                                                        ) : (
+                                                            <span>{checkInDate.toLocaleDateString('pt-BR')}</span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span>📅 <strong>Check-out:</strong></span>
+                                                        {appt.actual_check_out ? (
+                                                            <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_out).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
+                                                        ) : (
+                                                            <span>{checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span>📅 <strong>Check-out:</strong></span>
-                                                    {appt.actual_check_out ? (
-                                                        <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_out).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
-                                                    ) : (
-                                                        <span>{checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}</span>
-                                                    )}
+
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
+                                                    {appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})
                                                 </div>
-                                            </div>
 
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-                                                {appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})
+                                                <PaymentControls
+                                                    appointmentId={appt.id}
+                                                    calculatedPrice={totalEstimate}
+                                                    finalPrice={appt.final_price}
+                                                    discountPercent={appt.discount_percent}
+                                                    paymentStatus={appt.payment_status}
+                                                    paymentMethod={appt.payment_method}
+                                                    onUpdate={() => fetchHospedagemData(true)}
+                                                    compact
+                                                />
                                             </div>
-
-                                            <PaymentControls
-                                                appointmentId={appt.id}
-                                                calculatedPrice={totalEstimate}
-                                                finalPrice={appt.final_price}
-                                                discountPercent={appt.discount_percent}
-                                                paymentStatus={appt.payment_status}
-                                                paymentMethod={appt.payment_method}
-                                                onUpdate={() => fetchHospedagemData(true)}
-                                                compact
-                                            />
                                         </div>
                                     </div>
+
+                                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+
+
+                                        {viewMode === 'active' && (
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                {appt.status !== 'in_progress' && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleCheckIn(appt.id) }}
+                                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                        📥 Check-in
+                                                    </button>
+                                                )}
+                                                {appt.status === 'in_progress' && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleCheckOut(appt.id) }}
+                                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                                                        📤 Check-out
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                        {viewMode === 'history' && (
+                                            <button
+                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
+                                                📜 Ver Relatório
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                            )
+                        })}
+                    </div>
+                )}
 
-                                <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+                {/* Daily Report Modal or Details */}
+                {selectedAppointment && (
+                    <DailyReportModal
+                        appointmentId={selectedAppointment.id}
+                        petName={selectedAppointment.pets?.name || 'Pet'}
+                        serviceName={selectedAppointment.services?.name || 'Hospedagem'}
+                        onClose={() => setSelectedAppointment(null)}
+                        onSave={() => {
+                            fetchHospedagemData()
+                            setSelectedAppointment(null)
+                        }}
+                        readOnly={viewMode === 'history'}
+                    />
+                )}
 
+                {/* Edit Modal */}
+                {editingAppointment && (
+                    <EditAppointmentModal
+                        appointment={editingAppointment as any} // Cast safely
+                        onClose={() => setEditingAppointment(null)}
+                        onSave={() => {
+                            fetchHospedagemData()
+                            setEditingAppointment(null)
+                        }}
+                    />
+                )}
 
-                                    {viewMode === 'active' && (
-                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            {appt.status !== 'in_progress' && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleCheckIn(appt.id) }}
-                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#10B981', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                                    📥 Check-in
-                                                </button>
-                                            )}
-                                            {appt.status === 'in_progress' && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleCheckOut(appt.id) }}
-                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#F97316', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                                    📤 Check-out
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                    {viewMode === 'history' && (
-                                        <button
-                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
-                                            📜 Ver Relatório
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            )}
-
-            {/* Daily Report Modal or Details */}
-            {selectedAppointment && (
-                <DailyReportModal
-                    appointmentId={selectedAppointment.id}
-                    petName={selectedAppointment.pets?.name || 'Pet'}
-                    serviceName={selectedAppointment.services?.name || 'Hospedagem'}
-                    onClose={() => setSelectedAppointment(null)}
-                    onSave={() => {
-                        fetchHospedagemData()
-                        setSelectedAppointment(null)
-                    }}
-                    readOnly={viewMode === 'history'}
-                />
-            )}
-
-            {/* Edit Modal */}
-            {editingAppointment && (
-                <EditAppointmentModal
-                    appointment={editingAppointment as any} // Cast safely
-                    onClose={() => setEditingAppointment(null)}
-                    onSave={() => {
-                        fetchHospedagemData()
-                        setEditingAppointment(null)
-                    }}
-                />
-            )}
-
-            {/* New Appointment Modal */}
-            {showNewModal && (
-                <NewHospedagemAppointmentModal
-                    onClose={() => setShowNewModal(false)}
-                    onSave={() => {
-                        fetchHospedagemData()
-                        setShowNewModal(false)
-                    }}
-                />
-            )}
-        </div>
+                {/* New Appointment Modal */}
+                {showNewModal && (
+                    <NewHospedagemAppointmentModal
+                        onClose={() => setShowNewModal(false)}
+                        onSave={() => {
+                            fetchHospedagemData()
+                            setShowNewModal(false)
+                        }}
+                    />
+                )}
+            </div>
+        </PlanGuard>
     )
 }
 

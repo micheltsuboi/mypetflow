@@ -3,13 +3,15 @@
 import { useState } from 'react'
 import { createTenant } from '@/app/actions/master-admin'
 import styles from './TenantRegistrationModal.module.css'
+import { SaasPlan } from '@/app/actions/plans'
 
 interface Props {
     onClose: () => void
     onSuccess: () => void
+    plans: SaasPlan[]
 }
 
-export default function TenantRegistrationModal({ onClose, onSuccess }: Props) {
+export default function TenantRegistrationModal({ onClose, onSuccess, plans }: Props) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
     const [success, setSuccess] = useState(false)
@@ -59,6 +61,18 @@ export default function TenantRegistrationModal({ onClose, onSuccess }: Props) {
                             <input name="subdomain" required className={styles.input} placeholder="ex: srpet" style={{ flex: 1 }} />
                             <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>.mypetflow.com.br</span>
                         </div>
+                    </div>
+
+                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                        <label className={styles.label}>Plano de Assinatura *</label>
+                        <select name="planId" required className={styles.input}>
+                            <option value="">Selecione o plano inicial...</option>
+                            {plans.map(plan => (
+                                <option key={plan.id} value={plan.id}>
+                                    {plan.name} {plan.price ? `- R$ ${plan.price}/mês` : ''}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className={styles.sectionHeader}>Usuário Administrador</div>

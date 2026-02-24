@@ -19,7 +19,7 @@ export default function DashboardLayout({
     const isOwner = pathname?.startsWith('/owner')
     const isMasterAdmin = pathname?.startsWith('/master-admin')
 
-    const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null; permissions?: string[] } | null>(null)
+    const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null; permissions?: string[]; planFeatures?: string[] } | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [showPetModal, setShowPetModal] = useState(false)
     const supabase = createClient()
@@ -59,6 +59,7 @@ export default function DashboardLayout({
     const masterAdminNavigation = [
         { name: 'Dashboard', href: '/master-admin', icon: '⚡' },
         { name: 'Clientes', href: '/master-admin/clientes', icon: '🏢' },
+        { name: 'Planos SaaS', href: '/master-admin/planos', icon: '💎' },
         { name: 'Painel Loja', href: '/owner', icon: '🏪' },
     ]
 
@@ -94,19 +95,28 @@ export default function DashboardLayout({
                     }
 
                     // 2. Verificar se a organização está ativa (Ignorar para Master Admin)
+                    let planFeatures: string[] = []
+
                     if (profile.org_id && profile.role !== 'superadmin') {
                         const { data: org } = await supabase
                             .from('organizations')
-                            .select('is_active')
+                            .select('is_active, saas_plans(features)')
                             .eq('id', profile.org_id)
                             .maybeSingle()
 
-                        if (org && org.is_active === false) {
-                            await supabase.auth.signOut()
-                            setTimeout(() => {
-                                router.push('/?error=O%20acesso%20desta%20empresa%20está%20suspenso.%20Entre%20em%20contato%20com%20a%20MyPet%20Flow.')
-                            }, 100)
-                            return
+                        if (org) {
+                            if (org.is_active === false) {
+                                await supabase.auth.signOut()
+                                setTimeout(() => {
+                                    router.push('/?error=O%20acesso%20desta%20empresa%20está%20suspenso.%20Entre%20em%20contato%20com%20a%20MyPet%20Flow.')
+                                }, 100)
+                                return
+                            }
+
+                            // Coletar features do plano se existir
+                            if (org.saas_plans && typeof org.saas_plans === 'object') {
+                                planFeatures = (org.saas_plans as any).features || []
+                            }
                         }
                     }
 
@@ -118,7 +128,8 @@ export default function DashboardLayout({
                                     profile.role === 'customer' ? 'Tutor' : 'Usuário',
                         org_id: profile.org_id,
                         avatar_url: profile.avatar_url,
-                        permissions: profile.permissions || []
+                        permissions: profile.permissions || [],
+                        planFeatures
                     })
                 }
             }
@@ -181,6 +192,35 @@ export default function DashboardLayout({
             if (item.name === 'Ponto') return perms.includes('ponto')
             return false // Hide everything else (such as Usuários, Financeiro)
         })
+    }
+
+    // Aplicação da Restrição do PLANO SAAS (Para Owner e Staff)
+    // Se a organização tem um plano definido, limitamos o que pode ser visto.
+    // Se não tiver plano definido (planFeatures empty), no momento vamos assumir acesso total (legacy)
+    // Ou podemos forçar restrição se preferir. Aqui assumiremos permissão caso não haja plano.
+    if ((isOwner || pathname === '/staff') && user?.role !== 'Super Admin') {
+        const hasPlanDefined = user?.planFeatures && user.planFeatures.length > 0;
+
+        if (hasPlanDefined) {
+            const planFeat = user.planFeatures || [];
+            navigation = navigation.filter((item: any) => {
+                if (item.name === 'Dashboard') return true
+                if (item.name === 'Usuários') return planFeat.includes('usuarios')
+                if (item.name === 'Financeiro') return planFeat.includes('financeiro')
+                if (item.name === 'Agenda') return planFeat.includes('agenda')
+                if (item.name === 'Banho e Tosa') return planFeat.includes('banho_tosa')
+                if (item.name === 'Creche') return planFeat.includes('creche')
+                if (item.name === 'Hospedagem') return planFeat.includes('hospedagem')
+                if (item.name === 'Tutores') return planFeat.includes('tutores')
+                if (item.name === 'Pets') return planFeat.includes('pets')
+                if (item.name === 'Petshop') return planFeat.includes('petshop')
+                if (item.name === 'Serviços') return planFeat.includes('servicos')
+                if (item.name === 'Pacotes') return planFeat.includes('pacotes')
+                if (item.name === 'Questionário') return planFeat.includes('pets')
+                if (item.name === 'Ponto') return planFeat.includes('ponto')
+                return true; // Fallback para itens não previstos no bloqueio rigoroso
+            })
+        }
     }
 
     return (

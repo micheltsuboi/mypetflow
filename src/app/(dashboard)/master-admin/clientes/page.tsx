@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchOrganizations, toggleOrganizationStatus, type OrganizationData } from '@/app/actions/master-admin'
 import styles from '../page.module.css'
 import TenantRegistrationModal from '@/components/modules/TenantRegistrationModal'
+import EditTenantPlanModal from '@/components/modules/EditTenantPlanModal'
+import { fetchPlans, SaasPlan } from '@/app/actions/plans'
 
 export default function ClientesPage() {
     const [shops, setShops] = useState<OrganizationData[]>([])
@@ -13,12 +15,18 @@ export default function ClientesPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('all')
     const [showModal, setShowModal] = useState(false)
+    const [editingPlanTenant, setEditingPlanTenant] = useState<OrganizationData | null>(null)
+    const [plans, setPlans] = useState<SaasPlan[]>([])
 
     const supabase = createClient()
 
     const loadData = async () => {
-        const data = await fetchOrganizations()
-        setShops(data)
+        const [orgsData, plansData] = await Promise.all([
+            fetchOrganizations(),
+            fetchPlans()
+        ])
+        setShops(orgsData)
+        setPlans(plansData.filter(p => p.is_active))
         setLoading(false)
     }
 
@@ -145,6 +153,14 @@ export default function ClientesPage() {
                                     <div className={styles.actions}>
                                         <button
                                             className={styles.actionBtn}
+                                            title="Alterar Plano SaaS"
+                                            onClick={() => setEditingPlanTenant(shop)}
+                                            style={{ color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.2)', marginRight: '0.5rem' }}
+                                        >
+                                            💎
+                                        </button>
+                                        <button
+                                            className={styles.actionBtn}
                                             title={shop.is_active ? 'Desativar Empresa' : 'Ativar Empresa'}
                                             onClick={() => handleToggleStatus(shop.id, shop.is_active)}
                                             disabled={actionLoading === shop.id}
@@ -170,6 +186,16 @@ export default function ClientesPage() {
             {showModal && (
                 <TenantRegistrationModal
                     onClose={() => setShowModal(false)}
+                    onSuccess={loadData}
+                    plans={plans}
+                />
+            )}
+
+            {editingPlanTenant && (
+                <EditTenantPlanModal
+                    tenant={editingPlanTenant}
+                    plans={plans}
+                    onClose={() => setEditingPlanTenant(null)}
                     onSuccess={loadData}
                 />
             )}

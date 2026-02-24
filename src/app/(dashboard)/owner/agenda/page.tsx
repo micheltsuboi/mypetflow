@@ -21,6 +21,7 @@ import {
 } from '@/app/actions/schedule'
 import { format } from 'date-fns'
 import PaymentControls from '@/components/PaymentControls'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 interface Customer {
     name: string
@@ -781,357 +782,359 @@ export default function AgendaPage() {
     }
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Agenda</h1>
-                <div className={styles.actionGroup}>
-                    <select className={styles.select} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                        <option value="">Filtro...</option>
-                        {Array.from(new Set(services.flatMap(s => {
-                            const sc = (s as any).service_categories
-                            const name = Array.isArray(sc) ? sc[0]?.name : sc?.name
-                            return name ? [name] : []
-                        }))).map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-                        <button className={styles.actionButton} style={{ flex: 1 }} onClick={() => handleNewAppointment()}>+ Agendar</button>
-                        <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>
-                    </div>
-                </div>
-            </div>
-
-            <div className={styles.toolbar}>
-                <div className={styles.viewToggle}>
-                    <button className={viewMode === 'day' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('day')}>Dia</button>
-                    <button className={viewMode === 'week' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('week')}>Semana</button>
-                    <button className={viewMode === 'month' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('month')}>Mês</button>
-                </div>
-
-                <div className={styles.legend}>
-                    <div className={styles.legendItem}>
-                        <div className={styles.legendColor} style={{ backgroundColor: '#3B82F6' }} />
-                        <span>Banho e Tosa</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                        <div className={styles.legendColor} style={{ backgroundColor: '#F59E0B' }} />
-                        <span>Hospedagem</span>
-                    </div>
-                    <div className={styles.legendItem}>
-                        <div className={styles.legendColor} style={{ backgroundColor: '#10B981' }} />
-                        <span>Creche</span>
+        <PlanGuard requiredModule="agenda">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>Agenda</h1>
+                    <div className={styles.actionGroup}>
+                        <select className={styles.select} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                            <option value="">Filtro...</option>
+                            {Array.from(new Set(services.flatMap(s => {
+                                const sc = (s as any).service_categories
+                                const name = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                return name ? [name] : []
+                            }))).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                            <button className={styles.actionButton} style={{ flex: 1 }} onClick={() => handleNewAppointment()}>+ Agendar</button>
+                            <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>
+                        </div>
                     </div>
                 </div>
 
-                <div className={styles.dateNav}>
-                    <button className={styles.navBtn} onClick={() => {
-                        const d = new Date(selectedDate)
-                        d.setDate(d.getDate() - 1)
-                        setSelectedDate(d.toISOString().split('T')[0])
-                    }}>◀</button>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={styles.dateInput} style={{ color: selectedDate === todayStr ? 'var(--primary)' : 'inherit' }} />
-                        {selectedDate === todayStr && (
-                            <span style={{ fontSize: '0.75rem', background: 'var(--primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>Hoje</span>
-                        )}
+                <div className={styles.toolbar}>
+                    <div className={styles.viewToggle}>
+                        <button className={viewMode === 'day' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('day')}>Dia</button>
+                        <button className={viewMode === 'week' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('week')}>Semana</button>
+                        <button className={viewMode === 'month' ? `${styles.viewBtn} ${styles.viewBtnActive}` : styles.viewBtn} onClick={() => setViewMode('month')}>Mês</button>
                     </div>
-                    <button className={styles.navBtn} onClick={() => {
-                        const d = new Date(selectedDate)
-                        d.setDate(d.getDate() + 1)
-                        setSelectedDate(d.toISOString().split('T')[0])
-                    }}>▶</button>
-                </div>
-            </div>
 
-            {loading ? <div className={styles.loading}>Carregando agenda...</div> : (
-                <>
-                    {viewMode === 'day' && renderDayView()}
-                    {viewMode === 'week' && renderWeekView()}
-                    {viewMode === 'month' && renderMonthView()}
-                </>
-            )}
-
-            {/* New Appointment Modal */}
-            {showNewModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowNewModal(false)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h2 className={styles.modalTitle}>Novo Agendamento</h2>
-                        <form action={createAction}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Pet *</label>
-                                <select
-                                    name="petId"
-                                    className={styles.select}
-                                    required
-                                    defaultValue={preSelectedPetId || ""}
-                                    key={preSelectedPetId}
-                                    onChange={(e) => {
-                                        setPreSelectedPetId(e.target.value)
-                                        validateScheduling(selectedDate, selectedServiceId, e.target.value)
-                                    }}
-                                >
-                                    <option value="" disabled>Selecione...</option>
-                                    {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Serviço *</label>
-                                <select
-                                    name="serviceId"
-                                    className={styles.select}
-                                    required
-                                    value={selectedServiceId}
-                                    onChange={(e) => {
-                                        setSelectedServiceId(e.target.value)
-                                        validateScheduling(selectedDate, e.target.value, preSelectedPetId || "")
-                                    }}
-                                >
-                                    <option value="" disabled>Selecione...</option>
-                                    {Object.entries(services.reduce((acc, s) => {
-                                        const cat = s.service_categories?.name || 'Outros'
-                                        if (!acc[cat]) acc[cat] = []
-                                        acc[cat].push(s)
-                                        return acc
-                                    }, {} as Record<string, typeof services>)).map(([category, catServices]) => (
-                                        <optgroup key={category} label={category}>
-                                            {catServices.map(s => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.name} (R$ {s.base_price.toFixed(2)})
-                                                </option>
-                                            ))}
-                                        </optgroup>
-                                    ))}
-                                </select>
-                                {/* Preset Category hidden field if needed for logic, but usually we just need serviceId */}
-                            </div>
-                            <div className={styles.row}>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Data *</label>
-                                    <input
-                                        name="date"
-                                        type="date"
-                                        className={styles.input}
-                                        required
-                                        defaultValue={selectedDate}
-                                        onChange={(e) => {
-                                            setSelectedDate(e.target.value)
-                                            validateScheduling(e.target.value, selectedServiceId, preSelectedPetId || "")
-                                        }}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Hora *</label>
-                                    <input name="time" type="time" className={styles.input} required defaultValue={selectedHourSlot ? `${selectedHourSlot}:00` : ''} />
-                                </div>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Observações</label>
-                                <textarea name="notes" className={styles.textarea} rows={3} />
-                            </div>
-
-                            {bookingError && (
-                                <div style={{ color: '#ef4444', padding: '0.5rem', background: '#fee2e2', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                                    ⚠️ {bookingError}
-                                </div>
-                            )}
-
-                            <div className={styles.modalActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowNewModal(false)}>Cancelar</button>
-                                <button type="submit" className={styles.submitBtn} disabled={isCreatePending || !!bookingError}>Agendar</button>
-                            </div>
-                        </form>
+                    <div className={styles.legend}>
+                        <div className={styles.legendItem}>
+                            <div className={styles.legendColor} style={{ backgroundColor: '#3B82F6' }} />
+                            <span>Banho e Tosa</span>
+                        </div>
+                        <div className={styles.legendItem}>
+                            <div className={styles.legendColor} style={{ backgroundColor: '#F59E0B' }} />
+                            <span>Hospedagem</span>
+                        </div>
+                        <div className={styles.legendItem}>
+                            <div className={styles.legendColor} style={{ backgroundColor: '#10B981' }} />
+                            <span>Creche</span>
+                        </div>
                     </div>
-                </div>
-            )}
 
-            {/* Detail/Edit Modal */}
-            {showDetailModal && selectedAppointment && (
-                <div className={styles.modalOverlay} onClick={() => setShowDetailModal(false)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <div className={styles.modalHeader}>
-                            <h2 className={styles.modalTitle}>{isEditing ? 'Editar Agendamento' : 'Detalhes do Agendamento'}</h2>
-                            {!isEditing && (
-                                <div className={styles.modalTools}>
-                                    <button className={styles.editBtnSmall} onClick={() => setIsEditing(true)}>✏️ Editar</button>
-                                    <button className={styles.deleteBtnSmall} onClick={handleDelete}>🗑️ Cancelar</button>
-                                </div>
+                    <div className={styles.dateNav}>
+                        <button className={styles.navBtn} onClick={() => {
+                            const d = new Date(selectedDate)
+                            d.setDate(d.getDate() - 1)
+                            setSelectedDate(d.toISOString().split('T')[0])
+                        }}>◀</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={styles.dateInput} style={{ color: selectedDate === todayStr ? 'var(--primary)' : 'inherit' }} />
+                            {selectedDate === todayStr && (
+                                <span style={{ fontSize: '0.75rem', background: 'var(--primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>Hoje</span>
                             )}
                         </div>
+                        <button className={styles.navBtn} onClick={() => {
+                            const d = new Date(selectedDate)
+                            d.setDate(d.getDate() + 1)
+                            setSelectedDate(d.toISOString().split('T')[0])
+                        }}>▶</button>
+                    </div>
+                </div>
 
-                        {isEditing ? (
-                            <form action={updateAction}>
-                                <input type="hidden" name="id" value={selectedAppointment.id} />
+                {loading ? <div className={styles.loading}>Carregando agenda...</div> : (
+                    <>
+                        {viewMode === 'day' && renderDayView()}
+                        {viewMode === 'week' && renderWeekView()}
+                        {viewMode === 'month' && renderMonthView()}
+                    </>
+                )}
+
+                {/* New Appointment Modal */}
+                {showNewModal && (
+                    <div className={styles.modalOverlay} onClick={() => setShowNewModal(false)}>
+                        <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                            <h2 className={styles.modalTitle}>Novo Agendamento</h2>
+                            <form action={createAction}>
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>Data</label>
-                                    <input name="date" type="date" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]} />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Hora</label>
-                                    <input name="time" type="time" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Serviço</label>
-                                    <select name="serviceId" className={styles.select} defaultValue={selectedAppointment.services?.id}>
-                                        {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    <label className={styles.label}>Pet *</label>
+                                    <select
+                                        name="petId"
+                                        className={styles.select}
+                                        required
+                                        defaultValue={preSelectedPetId || ""}
+                                        key={preSelectedPetId}
+                                        onChange={(e) => {
+                                            setPreSelectedPetId(e.target.value)
+                                            validateScheduling(selectedDate, selectedServiceId, e.target.value)
+                                        }}
+                                    >
+                                        <option value="" disabled>Selecione...</option>
+                                        {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>Notas</label>
-                                    <textarea name="notes" className={styles.textarea} defaultValue={selectedAppointment.notes || ''} />
+                                    <label className={styles.label}>Serviço *</label>
+                                    <select
+                                        name="serviceId"
+                                        className={styles.select}
+                                        required
+                                        value={selectedServiceId}
+                                        onChange={(e) => {
+                                            setSelectedServiceId(e.target.value)
+                                            validateScheduling(selectedDate, e.target.value, preSelectedPetId || "")
+                                        }}
+                                    >
+                                        <option value="" disabled>Selecione...</option>
+                                        {Object.entries(services.reduce((acc, s) => {
+                                            const cat = s.service_categories?.name || 'Outros'
+                                            if (!acc[cat]) acc[cat] = []
+                                            acc[cat].push(s)
+                                            return acc
+                                        }, {} as Record<string, typeof services>)).map(([category, catServices]) => (
+                                            <optgroup key={category} label={category}>
+                                                {catServices.map(s => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.name} (R$ {s.base_price.toFixed(2)})
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                    {/* Preset Category hidden field if needed for logic, but usually we just need serviceId */}
                                 </div>
-                                <div className={styles.modalActions}>
-                                    <button type="button" className={styles.cancelBtn} onClick={() => setIsEditing(false)}>Cancelar</button>
-                                    <button type="submit" className={styles.submitBtn} disabled={isUpdatePending}>Salvar</button>
+                                <div className={styles.row}>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Data *</label>
+                                        <input
+                                            name="date"
+                                            type="date"
+                                            className={styles.input}
+                                            required
+                                            defaultValue={selectedDate}
+                                            onChange={(e) => {
+                                                setSelectedDate(e.target.value)
+                                                validateScheduling(e.target.value, selectedServiceId, preSelectedPetId || "")
+                                            }}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Hora *</label>
+                                        <input name="time" type="time" className={styles.input} required defaultValue={selectedHourSlot ? `${selectedHourSlot}:00` : ''} />
+                                    </div>
                                 </div>
-                            </form>
-                        ) : (
-                            <div className={styles.detailContent}>
-                                <div className={styles.detailRow}>
-                                    <strong>Pet:</strong> {selectedAppointment.pets?.name} ({selectedAppointment.pets?.species === 'cat' ? 'Gato' : 'Cão'})
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Observações</label>
+                                    <textarea name="notes" className={styles.textarea} rows={3} />
                                 </div>
-                                <div className={styles.detailRow}>
-                                    <strong>Serviço:</strong> {selectedAppointment.services?.name}
-                                </div>
-                                <div className={styles.detailRow}>
-                                    <strong>Valor:</strong> R$ {(selectedAppointment.calculated_price ?? (selectedAppointment.services as any)?.base_price ?? 0).toFixed(2)}
-                                </div>
-                                <div className={styles.detailRow}>
-                                    <strong>Data:</strong> {new Date(selectedAppointment.scheduled_at).toLocaleString('pt-BR')}
-                                </div>
-                                <div className={styles.detailRow}>
-                                    <strong>Status:</strong> {getStatusLabel(selectedAppointment.status)}
-                                </div>
-                                {selectedAppointment.notes && (
-                                    <div className={styles.detailRow}>
-                                        <strong>Notas:</strong> {selectedAppointment.notes}
+
+                                {bookingError && (
+                                    <div style={{ color: '#ef4444', padding: '0.5rem', background: '#fee2e2', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                        ⚠️ {bookingError}
                                     </div>
                                 )}
 
-                                {/* Checklist Section */}
-                                <div className={styles.checklistSection}>
-                                    <h3>Checklist de Atendimento</h3>
-                                    {currentChecklist.map((item, idx) => (
-                                        <div key={idx} className={styles.checklistItem}>
-                                            <input
-                                                type="checkbox"
-                                                checked={item.completed}
-                                                onChange={async (e) => {
-                                                    const newList = [...currentChecklist]
-                                                    newList[idx].completed = e.target.checked
-                                                    newList[idx].completed_at = e.target.checked ? new Date().toISOString() : null
-                                                    setCurrentChecklist(newList)
-                                                    await updateChecklist(selectedAppointment.id, newList)
-                                                    fetchData()
-                                                }}
-                                            />
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#94a3b8' : 'inherit' }}>
-                                                    {item.text}
-                                                </span>
-                                                {item.completed && item.completed_at && (
-                                                    <span style={{ fontSize: '0.75rem', color: '#10b981' }}>
-                                                        Concluído às {new Date(item.completed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className={styles.modalActions}>
+                                    <button type="button" className={styles.cancelBtn} onClick={() => setShowNewModal(false)}>Cancelar</button>
+                                    <button type="submit" className={styles.submitBtn} disabled={isCreatePending || !!bookingError}>Agendar</button>
                                 </div>
-
-                                {/* Preferences Section */}
-                                <div className={styles.preferencesParams}>
-                                    <h3>Preferências do Pet</h3>
-                                    <div className={styles.prefToggle}>
-                                        <label>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedAppointment.pets?.perfume_allowed}
-                                                onChange={async () => {
-                                                    const val = !selectedAppointment.pets?.perfume_allowed
-                                                    await updatePetPreferences(selectedAppointment.pets!.id, { perfume_allowed: val })
-                                                    fetchData()
-                                                }}
-                                            /> Perfume
-                                        </label>
-                                    </div>
-                                    <div className={styles.prefToggle}>
-                                        <label>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedAppointment.pets?.accessories_allowed}
-                                                onChange={async () => {
-                                                    const val = !selectedAppointment.pets?.accessories_allowed
-                                                    await updatePetPreferences(selectedAppointment.pets!.id, { accessories_allowed: val })
-                                                    fetchData()
-                                                }}
-                                            /> Acessórios/Laços
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div className={styles.detailActions}>
-                                    {selectedAppointment.status === 'pending' && (
-                                        <button className={styles.confirmBtn} onClick={async () => {
-                                            setSelectedAppointment({ ...selectedAppointment, status: 'confirmed' })
-                                            await updateAppointmentStatus(selectedAppointment.id, 'confirmed')
-                                            fetchData()
-                                        }}>Confirmar Agendamento</button>
-                                    )}
-                                    <button className={styles.closeBtn} onClick={() => setShowDetailModal(false)}>Fechar</button>
-                                </div>
-                            </div>
-                        )}
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Block Modal */}
-            {showBlockModal && (
-                <div className={styles.modalOverlay} onClick={() => setShowBlockModal(false)}>
-                    <div className={styles.modal} onClick={e => e.stopPropagation()}>
-                        <h2 className={styles.modalTitle}>Novo Bloqueio</h2>
-                        <form action={blockAction}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Motivo</label>
-                                <input name="reason" className={styles.input} required placeholder="Ex: Almoço, Feriado..." />
+                {/* Detail/Edit Modal */}
+                {showDetailModal && selectedAppointment && (
+                    <div className={styles.modalOverlay} onClick={() => setShowDetailModal(false)}>
+                        <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                            <div className={styles.modalHeader}>
+                                <h2 className={styles.modalTitle}>{isEditing ? 'Editar Agendamento' : 'Detalhes do Agendamento'}</h2>
+                                {!isEditing && (
+                                    <div className={styles.modalTools}>
+                                        <button className={styles.editBtnSmall} onClick={() => setIsEditing(true)}>✏️ Editar</button>
+                                        <button className={styles.deleteBtnSmall} onClick={handleDelete}>🗑️ Cancelar</button>
+                                    </div>
+                                )}
                             </div>
-                            <div className={styles.row}>
+
+                            {isEditing ? (
+                                <form action={updateAction}>
+                                    <input type="hidden" name="id" value={selectedAppointment.id} />
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Data</label>
+                                        <input name="date" type="date" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Hora</label>
+                                        <input name="time" type="time" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Serviço</label>
+                                        <select name="serviceId" className={styles.select} defaultValue={selectedAppointment.services?.id}>
+                                            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Notas</label>
+                                        <textarea name="notes" className={styles.textarea} defaultValue={selectedAppointment.notes || ''} />
+                                    </div>
+                                    <div className={styles.modalActions}>
+                                        <button type="button" className={styles.cancelBtn} onClick={() => setIsEditing(false)}>Cancelar</button>
+                                        <button type="submit" className={styles.submitBtn} disabled={isUpdatePending}>Salvar</button>
+                                    </div>
+                                </form>
+                            ) : (
+                                <div className={styles.detailContent}>
+                                    <div className={styles.detailRow}>
+                                        <strong>Pet:</strong> {selectedAppointment.pets?.name} ({selectedAppointment.pets?.species === 'cat' ? 'Gato' : 'Cão'})
+                                    </div>
+                                    <div className={styles.detailRow}>
+                                        <strong>Serviço:</strong> {selectedAppointment.services?.name}
+                                    </div>
+                                    <div className={styles.detailRow}>
+                                        <strong>Valor:</strong> R$ {(selectedAppointment.calculated_price ?? (selectedAppointment.services as any)?.base_price ?? 0).toFixed(2)}
+                                    </div>
+                                    <div className={styles.detailRow}>
+                                        <strong>Data:</strong> {new Date(selectedAppointment.scheduled_at).toLocaleString('pt-BR')}
+                                    </div>
+                                    <div className={styles.detailRow}>
+                                        <strong>Status:</strong> {getStatusLabel(selectedAppointment.status)}
+                                    </div>
+                                    {selectedAppointment.notes && (
+                                        <div className={styles.detailRow}>
+                                            <strong>Notas:</strong> {selectedAppointment.notes}
+                                        </div>
+                                    )}
+
+                                    {/* Checklist Section */}
+                                    <div className={styles.checklistSection}>
+                                        <h3>Checklist de Atendimento</h3>
+                                        {currentChecklist.map((item, idx) => (
+                                            <div key={idx} className={styles.checklistItem}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={item.completed}
+                                                    onChange={async (e) => {
+                                                        const newList = [...currentChecklist]
+                                                        newList[idx].completed = e.target.checked
+                                                        newList[idx].completed_at = e.target.checked ? new Date().toISOString() : null
+                                                        setCurrentChecklist(newList)
+                                                        await updateChecklist(selectedAppointment.id, newList)
+                                                        fetchData()
+                                                    }}
+                                                />
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ textDecoration: item.completed ? 'line-through' : 'none', color: item.completed ? '#94a3b8' : 'inherit' }}>
+                                                        {item.text}
+                                                    </span>
+                                                    {item.completed && item.completed_at && (
+                                                        <span style={{ fontSize: '0.75rem', color: '#10b981' }}>
+                                                            Concluído às {new Date(item.completed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Preferences Section */}
+                                    <div className={styles.preferencesParams}>
+                                        <h3>Preferências do Pet</h3>
+                                        <div className={styles.prefToggle}>
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAppointment.pets?.perfume_allowed}
+                                                    onChange={async () => {
+                                                        const val = !selectedAppointment.pets?.perfume_allowed
+                                                        await updatePetPreferences(selectedAppointment.pets!.id, { perfume_allowed: val })
+                                                        fetchData()
+                                                    }}
+                                                /> Perfume
+                                            </label>
+                                        </div>
+                                        <div className={styles.prefToggle}>
+                                            <label>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedAppointment.pets?.accessories_allowed}
+                                                    onChange={async () => {
+                                                        const val = !selectedAppointment.pets?.accessories_allowed
+                                                        await updatePetPreferences(selectedAppointment.pets!.id, { accessories_allowed: val })
+                                                        fetchData()
+                                                    }}
+                                                /> Acessórios/Laços
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.detailActions}>
+                                        {selectedAppointment.status === 'pending' && (
+                                            <button className={styles.confirmBtn} onClick={async () => {
+                                                setSelectedAppointment({ ...selectedAppointment, status: 'confirmed' })
+                                                await updateAppointmentStatus(selectedAppointment.id, 'confirmed')
+                                                fetchData()
+                                            }}>Confirmar Agendamento</button>
+                                        )}
+                                        <button className={styles.closeBtn} onClick={() => setShowDetailModal(false)}>Fechar</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Block Modal */}
+                {showBlockModal && (
+                    <div className={styles.modalOverlay} onClick={() => setShowBlockModal(false)}>
+                        <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                            <h2 className={styles.modalTitle}>Novo Bloqueio</h2>
+                            <form action={blockAction}>
                                 <div className={styles.formGroup}>
-                                    <label className={styles.label}>Início</label>
-                                    <input name="start_at" type="datetime-local" className={styles.input} required defaultValue={`${selectedDate}T08:00`} />
+                                    <label className={styles.label}>Motivo</label>
+                                    <input name="reason" className={styles.input} required placeholder="Ex: Almoço, Feriado..." />
                                 </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Fim</label>
-                                    <input name="end_at" type="datetime-local" className={styles.input} required defaultValue={`${selectedDate}T18:00`} />
+                                <div className={styles.row}>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Início</label>
+                                        <input name="start_at" type="datetime-local" className={styles.input} required defaultValue={`${selectedDate}T08:00`} />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>Fim</label>
+                                        <input name="end_at" type="datetime-local" className={styles.input} required defaultValue={`${selectedDate}T18:00`} />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
-                                <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: '#e2e8f0' }}>Restrição de Espécie (Opcional)</label>
-                                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
-                                        <input type="checkbox" name="allowed_species[]" value="dog" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐶 Permitir Cães
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
-                                        <input type="checkbox" name="allowed_species[]" value="cat" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐱 Permitir Gatos
-                                    </label>
+                                <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
+                                    <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: '#e2e8f0' }}>Restrição de Espécie (Opcional)</label>
+                                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                                            <input type="checkbox" name="allowed_species[]" value="dog" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐶 Permitir Cães
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                                            <input type="checkbox" name="allowed_species[]" value="cat" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐱 Permitir Gatos
+                                        </label>
+                                    </div>
+                                    <small style={{ display: 'block', marginTop: '0.8rem', color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                        ℹ️ Se ambos estiverem desmarcados, bloqueia TUDO. Se marcar um, APENAS esse será permitido.
+                                    </small>
                                 </div>
-                                <small style={{ display: 'block', marginTop: '0.8rem', color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                                    ℹ️ Se ambos estiverem desmarcados, bloqueia TUDO. Se marcar um, APENAS esse será permitido.
-                                </small>
-                            </div>
 
 
-                            <div className={styles.modalActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={() => setShowBlockModal(false)}>Cancelar</button>
-                                <button type="submit" className={styles.submitBtn} disabled={isBlockPending}>
-                                    {isBlockPending ? 'Bloqueando...' : 'Bloquear'}
-                                </button>
-                            </div>
-                        </form>
+                                <div className={styles.modalActions}>
+                                    <button type="button" className={styles.cancelBtn} onClick={() => setShowBlockModal(false)}>Cancelar</button>
+                                    <button type="submit" className={styles.submitBtn} disabled={isBlockPending}>
+                                        {isBlockPending ? 'Bloqueando...' : 'Bloquear'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div >
                     </div >
-                </div >
-            )
-            }
-        </div >
+                )
+                }
+            </div >
+        </PlanGuard>
     )
 }

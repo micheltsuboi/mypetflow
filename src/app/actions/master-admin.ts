@@ -10,6 +10,7 @@ export interface OrganizationData {
     is_active: boolean
     created_at: string
     total_users: number
+    plan_id?: string
 }
 
 // 1. Fetch Todas as Organizações
@@ -24,6 +25,7 @@ export async function fetchOrganizations(): Promise<OrganizationData[]> {
             subdomain,
             is_active,
             created_at,
+            plan_id,
             profiles ( count )
         `)
         .order('created_at', { ascending: false })
@@ -91,6 +93,7 @@ export async function createTenant(formData: FormData) {
     const adminEmail = formData.get('adminEmail') as string
     const adminPassword = formData.get('adminPassword') as string
     const adminName = formData.get('adminName') as string
+    const planId = formData.get('planId') as string // Novo campo de plano
 
     // 1. Criar Organização
     const { data: org, error: orgError } = await supabaseAdmin
@@ -98,6 +101,7 @@ export async function createTenant(formData: FormData) {
         .insert({
             name: orgName,
             subdomain: subdomain,
+            plan_id: planId || null,
             is_active: true
         })
         .select()
@@ -141,5 +145,24 @@ export async function createTenant(formData: FormData) {
     }
 
     revalidatePath('/master-admin/clientes')
+    return { success: true }
+}
+
+// 4. Alterar o Plano de um Tenant
+export async function changeTenantPlan(orgId: string, planId: string) {
+    const supabaseAdmin = createAdminClient()
+
+    const { error } = await supabaseAdmin
+        .from('organizations')
+        .update({ plan_id: planId || null })
+        .eq('id', orgId)
+
+    if (error) {
+        return { success: false, message: 'Erro ao alterar o plano: ' + error.message }
+    }
+
+    revalidatePath('/master-admin/clientes')
+    // Invalidar cache de todo o app para aplicar a restrição de menu
+    revalidatePath('/', 'layout')
     return { success: true }
 }
