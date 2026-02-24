@@ -19,8 +19,8 @@ export default function CadastroPage() {
                         <Image
                             src="/logo.png"
                             alt="MyPet Flow"
-                            width={180}
-                            height={180}
+                            width={240}
+                            height={100}
                             className={styles.logoImage}
                             priority
                         />

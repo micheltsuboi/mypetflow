@@ -19,7 +19,7 @@ export default function CadastroEmpresaPage() {
                         <Image
                             src="/logo.png"
                             alt="MyPet Flow"
-                            width={100}
+                            width={240}
                             height={100}
                             className={styles.logoImage}
                             priority
