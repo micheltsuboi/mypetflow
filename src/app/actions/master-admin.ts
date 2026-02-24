@@ -134,6 +134,9 @@ export async function createTenant(formData: FormData) {
         })
 
     if (profileError) {
+        // Rollback geral
+        await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+        await supabaseAdmin.from('organizations').delete().eq('id', org.id)
         return { success: false, message: 'Erro ao criar perfil: ' + profileError.message }
     }
 
