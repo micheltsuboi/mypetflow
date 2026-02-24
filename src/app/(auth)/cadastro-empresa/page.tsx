@@ -13,9 +13,8 @@ export default function CadastroEmpresaPage() {
             <div className={styles.gradientOrb2} />
 
             <div className={styles.container}>
-                <div className={styles.card}>
-                    {/* Hero Section */}
-                    <div className={styles.logo}>
+                <div className={styles.registerCard}>
+                    <div className={styles.logoContainer}>
                         <Image
                             src="/logo.png"
                             alt="MyPet Flow"
@@ -26,15 +25,14 @@ export default function CadastroEmpresaPage() {
                         />
                     </div>
 
-                    <h1 className={styles.title} style={{ textAlign: 'center', marginBottom: '0.25rem' }}>
+                    <h1 className={styles.title} style={{ textAlign: 'center', fontSize: '1.75rem', marginBottom: '0.25rem' }}>
                         Parceiro MyPet Flow
                     </h1>
 
-                    <p className={styles.subtitle} style={{ marginBottom: '1.5rem' }}>
-                        Transforme a gestão do seu negócio
+                    <p className={styles.cardSubtitle} style={{ marginBottom: '1.5rem' }}>
+                        A plataforma completa para seu negócio pet
                     </p>
 
-                    {/* Form Section */}
                     <RegisterOwnerForm />
                 </div>
             </div>
