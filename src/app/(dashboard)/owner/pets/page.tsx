@@ -67,6 +67,9 @@ function PetsContent() {
     // Assessment State
     const [petAssessment, setPetAssessment] = useState<any>(null)
 
+    // Plan Features State
+    const [planFeatures, setPlanFeatures] = useState<string[]>([])
+
     // Server Action State
     const [createState, createAction, isCreatePending] = useActionState(createPet, initialState)
     const [updateState, updateAction, isUpdatePending] = useActionState(updatePet, initialState)
@@ -148,11 +151,27 @@ function PetsContent() {
 
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('org_id')
+                .select('org_id, role')
                 .eq('id', user.id)
                 .single()
 
             if (!profile?.org_id) return
+
+            // Fetch Plan Features
+            if (profile.role === 'superadmin') {
+                // Superadmin has all features logically, but let's fetch org just in case or mock all
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'banho_tosa', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios'])
+            } else {
+                const { data: org } = await supabase
+                    .from('organizations')
+                    .select('saas_plans(features)')
+                    .eq('id', profile.org_id)
+                    .maybeSingle()
+
+                if (org?.saas_plans) {
+                    setPlanFeatures((org.saas_plans as any).features || [])
+                }
+            }
 
             // Fetch Pets
             let query = supabase
@@ -668,11 +687,14 @@ function PetsContent() {
 
                             {/* 2. Banho e Tosa */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                <button type="button" onClick={() => toggleAccordion('packages')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🚿 Banho e Tosa / Pacotes</span>
+                                <button type="button" onClick={() => (planFeatures.includes('banho_tosa') || planFeatures.includes('pacotes')) && toggleAccordion('packages')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: (planFeatures.includes('banho_tosa') || planFeatures.includes('pacotes')) ? 'pointer' : 'not-allowed', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center', opacity: (planFeatures.includes('banho_tosa') || planFeatures.includes('pacotes')) ? 1 : 0.6 }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        🚿 Banho e Tosa / Pacotes
+                                        {!(planFeatures.includes('banho_tosa') || planFeatures.includes('pacotes')) && <span style={{ fontSize: '0.75rem', background: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '4px', marginLeft: '0.5rem' }}>🔒 Requer Plano</span>}
+                                    </span>
                                     <span>{accordions.packages ? '−' : '+'}</span>
                                 </button>
-                                {accordions.packages && (
+                                {accordions.packages && (planFeatures.includes('banho_tosa') || planFeatures.includes('pacotes')) && (
                                     <div style={{ padding: '1rem' }}>
                                         {selectedPet ? (
                                             <>
@@ -759,11 +781,14 @@ function PetsContent() {
                             </div>
                             {/* 3. Creche */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                <button type="button" onClick={() => toggleAccordion('creche')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🎾 Agendar Creche</span>
+                                <button type="button" onClick={() => planFeatures.includes('creche') && toggleAccordion('creche')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: planFeatures.includes('creche') ? 'pointer' : 'not-allowed', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center', opacity: planFeatures.includes('creche') ? 1 : 0.6 }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        🎾 Agendar Creche
+                                        {!planFeatures.includes('creche') && <span style={{ fontSize: '0.75rem', background: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '4px', marginLeft: '0.5rem' }}>🔒 Requer Plano</span>}
+                                    </span>
                                     <span>{accordions.creche ? '−' : '+'}</span>
                                 </button>
-                                {accordions.creche && (
+                                {accordions.creche && planFeatures.includes('creche') && (
                                     <div style={{ padding: '1rem' }}>
                                         {selectedPet ? (
                                             <>
@@ -822,11 +847,14 @@ function PetsContent() {
 
                             {/* 4. Hospedagem */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                <button type="button" onClick={() => toggleAccordion('hotel')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🏨 Agendar Hospedagem</span>
+                                <button type="button" onClick={() => planFeatures.includes('hospedagem') && toggleAccordion('hotel')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: planFeatures.includes('hospedagem') ? 'pointer' : 'not-allowed', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center', opacity: planFeatures.includes('hospedagem') ? 1 : 0.6 }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        🏨 Agendar Hospedagem
+                                        {!planFeatures.includes('hospedagem') && <span style={{ fontSize: '0.75rem', background: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '4px', marginLeft: '0.5rem' }}>🔒 Requer Plano</span>}
+                                    </span>
                                     <span>{accordions.hotel ? '−' : '+'}</span>
                                 </button>
-                                {accordions.hotel && (
+                                {accordions.hotel && planFeatures.includes('hospedagem') && (
                                     <div style={{ padding: '1rem' }}>
                                         {selectedPet ? (
                                             <>
@@ -947,11 +975,14 @@ function PetsContent() {
 
                             {/* 6. Produtos Pet Shop */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
-                                <button type="button" onClick={() => toggleAccordion('petshop')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
-                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🛒 Produtos Pet Shop</span>
+                                <button type="button" onClick={() => planFeatures.includes('petshop') && toggleAccordion('petshop')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: planFeatures.includes('petshop') ? 'pointer' : 'not-allowed', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center', opacity: planFeatures.includes('petshop') ? 1 : 0.6 }}>
+                                    <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        🛒 Produtos Pet Shop
+                                        {!planFeatures.includes('petshop') && <span style={{ fontSize: '0.75rem', background: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.5rem', borderRadius: '4px', marginLeft: '0.5rem' }}>🔒 Requer Plano</span>}
+                                    </span>
                                     <span>{accordions.petshop ? '−' : '+'}</span>
                                 </button>
-                                {accordions.petshop && (
+                                {accordions.petshop && planFeatures.includes('petshop') && (
                                     <div style={{ padding: '1rem' }}>
                                         {selectedPet ? (
                                             <>
