@@ -181,12 +181,12 @@ export default function DashboardLayout({
                 <div className={styles.logo}>
                     <Image
                         src="/logo.png"
-                        alt="Sr. Pet Clube"
+                        alt="MyPet Flow"
                         width={48}
                         height={48}
                         className={styles.logoImage}
                     />
-                    <span className={styles.logoText}>Sr. Pet</span>
+                    <span className={styles.logoText}>MyPet Flow</span>
                     <button
                         className={styles.closeMenu}
                         onClick={() => setIsSidebarOpen(false)}

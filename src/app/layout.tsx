@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SR Pet Clube | Sistema de Gestão para Pet Shops",
+  title: "MyPet Flow | Sistema de Gestão para Pet Shops",
   description: "Sistema completo para gestão de Pet Shops, incluindo creche, hotel, banho e tosa.",
   keywords: ["pet shop", "banho e tosa", "hotel pet", "creche pet", "gestão pet shop"],
   icons: {

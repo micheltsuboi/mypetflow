@@ -18,7 +18,7 @@ export default function CadastroEmpresaPage() {
                     <div className={styles.logo}>
                         <Image
                             src="/logo.png"
-                            alt="Sr. Pet Clube"
+                            alt="MyPet Flow"
                             width={100}
                             height={100}
                             className={styles.logoImage}
@@ -27,7 +27,7 @@ export default function CadastroEmpresaPage() {
                     </div>
 
                     <h1 className={styles.title} style={{ textAlign: 'center', marginBottom: '0.25rem' }}>
-                        Parceiro Sr. Pet Clube
+                        Parceiro MyPet Flow
                     </h1>
 
                     <p className={styles.subtitle} style={{ marginBottom: '1.5rem' }}>

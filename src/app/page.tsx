@@ -86,7 +86,7 @@ export default function LoginPage() {
                     <div className={styles.logo}>
                         <Image
                             src="/logo.png"
-                            alt="Sr. Pet Clube"
+                            alt="MyPet Flow"
                             width={100}
                             height={100}
                             className={styles.logoImage}

@@ -18,20 +18,18 @@ export default function CadastroPage() {
                     <div className={styles.logoContainer}>
                         <Image
                             src="/logo.png"
-                            alt="Sr. Pet Clube"
-                            width={220}
-                            height={220}
+                            alt="MyPet Flow"
+                            width={180}
+                            height={180}
                             className={styles.logoImage}
                             priority
                         />
                     </div>
-
-                    <p className={styles.subtitle}>
-                        A Petshop do seu melhor amigo
-                    </p>
-
-                    <p className={styles.description}>
-                        Cadastre-se para agendar banho, tosa, hotel e creche para seu pet.
+                    <h1 className={styles.title} style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+                        MyPet Flow
+                    </h1>
+                    <p className={styles.description} style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        Portal exclusivo para tutores. Crie sua conta e acompanhe as atividades, fotos e agenda do seu pet.
                     </p>
                 </section>
 

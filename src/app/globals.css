@@ -4,16 +4,16 @@
      Baseado na identidade visual do logo
      ================================================ */
 
-  /* Cores principais do logo */
-  --color-navy: #2B4B6F;
-  --color-navy-dark: #1E3650;
-  --color-navy-light: #3D6089;
-  --color-coral: #E8826A;
-  --color-coral-hover: #D6705A;
-  --color-coral-light: #F0A090;
-  --color-sky: #8CB4C9;
-  --color-sky-light: #A8C8D8;
-  --color-sky-dark: #6A9BB5;
+  /* Cores principais do logo (MyPet Flow) */
+  --color-navy: #1B3B5A;
+  --color-navy-dark: #122840;
+  --color-navy-light: #2A5682;
+  --color-coral: #F08C98; /* Pink/Coral do logo */
+  --color-coral-hover: #E0707D;
+  --color-coral-light: #FAD1D6;
+  --color-sky: #00E4CE; /* Ciano do logo */
+  --color-sky-light: #80F2E6;
+  --color-sky-dark: #00B3A1;
 
   /* Cores de suporte */
   --color-cream: #FDF8F5;
@@ -28,23 +28,23 @@
   --color-accent: var(--color-navy);
 
   /* Borders */
-  --border: rgba(140, 180, 201, 0.3);
+  --border: rgba(0, 228, 206, 0.3);
   --bg-input: rgba(13, 27, 42, 0.6);
-  --bg-hover: rgba(140, 180, 201, 0.1);
+  --bg-hover: rgba(0, 228, 206, 0.1);
 
   /* Backgrounds - Tema dark baseado no navy */
   --bg-primary: #0D1B2A;
-  --bg-secondary: #1B2D42;
-  --bg-tertiary: #2B4156;
-  --bg-card: rgba(43, 75, 111, 0.4);
-  --bg-card-hover: rgba(43, 75, 111, 0.6);
+  --bg-secondary: #162638;
+  --bg-tertiary: #1E344B;
+  --bg-card: rgba(27, 59, 90, 0.4);
+  --bg-card-hover: rgba(27, 59, 90, 0.6);
 
-  /* Gradientes baseados na paleta */
-  --gradient-primary: linear-gradient(135deg, #E8826A 0%, #F0A090 100%);
-  --gradient-secondary: linear-gradient(135deg, #8CB4C9 0%, #6A9BB5 100%);
-  --gradient-navy: linear-gradient(135deg, #2B4B6F 0%, #3D6089 100%);
-  --gradient-dark: linear-gradient(180deg, #0D1B2A 0%, #1B2D42 100%);
-  --gradient-coral-navy: linear-gradient(135deg, #E8826A 0%, #2B4B6F 100%);
+  /* Gradientes baseados na paleta (Ciano para Rosa) */
+  --gradient-primary: linear-gradient(135deg, var(--color-sky) 0%, var(--color-coral) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--color-sky-light) 0%, var(--color-sky) 100%);
+  --gradient-navy: linear-gradient(135deg, #1B3B5A 0%, #2A5682 100%);
+  --gradient-dark: linear-gradient(180deg, #0D1B2A 0%, #162638 100%);
+  --gradient-coral-navy: linear-gradient(135deg, var(--color-coral) 0%, var(--color-navy) 100%);
 
   /* Text */
   --text-primary: #FFFFFF;
