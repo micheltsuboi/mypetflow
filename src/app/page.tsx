@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import styles from './page.module.css'
 import LoginForm from '@/components/modules/LoginForm'
+import LandingPage from '@/components/public/LandingPage'
 
 export default async function LoginPage() {
     const headerStack = await headers()
@@ -57,49 +58,6 @@ export default async function LoginPage() {
         }
     }
 
-    return (
-        <main className={styles.main}>
-            {/* Background gradient orbs */}
-            <div className={styles.gradientOrb1} />
-            <div className={styles.gradientOrb2} />
-
-            <div className={styles.container}>
-                <div className={styles.card}>
-                    {/* Logo */}
-                    <div className={styles.logo}>
-                        <Image
-                            src="/logo.png"
-                            alt="MyPet Flow"
-                            width={240}
-                            height={100}
-                            className={styles.logoImage}
-                            priority
-                        />
-                    </div>
-
-                    <p className={styles.subtitle}>Entre na sua conta (v1.1)</p>
-
-                    <Suspense fallback={<div className={styles.spinner} />}>
-                        <LoginForm />
-                    </Suspense>
-
-                    <div className={styles.divider}>
-                        <span>ou</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-                        <Link href="/cadastro" className={styles.backLink}>
-                            Não tem uma conta de tutor? <strong>Cadastre-se aqui</strong>
-                        </Link>
-
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%', margin: '0.5rem 0' }}></div>
-
-                        <Link href="/cadastro-empresa" className={styles.backLink} style={{ color: 'var(--color-sky)' }}>
-                            Tem um Pet Shop? <strong>Cadastre sua empresa</strong>
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        </main>
-    )
+    // Se não for um subdomínio de cliente válido, renderizar a Landing Page
+    return <LandingPage />
 }
