@@ -1,81 +1,59 @@
-'use client'
-
-import { useState } from 'react'
+import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { headers } from 'next/headers'
+import { createAdminClient } from '@/lib/supabase/admin'
 import styles from './page.module.css'
+import LoginForm from '@/components/modules/LoginForm'
 
-export default function LoginPage() {
-    const router = useRouter()
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+export default async function LoginPage() {
+    const headerStack = await headers()
+    const host = headerStack.get('host') || ''
+    const supabaseAdmin = createAdminClient()
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setLoading(true)
-        setError('')
+    // Detectar subdomínio
+    let subdomain = ''
+    if (host.includes('localhost') || host.includes('vercel.app')) {
+        // No local/vercel sem subdomínio específico, não bloqueamos a página principal
+        subdomain = ''
+    } else {
+        subdomain = host.split('.')[0]
+    }
 
-        try {
-            const supabase = createClient()
+    // Se houver um subdomínio, validar se a empresa está ativa
+    if (subdomain && subdomain !== 'www') {
+        const { data: org } = await supabaseAdmin
+            .from('organizations')
+            .select('id, name, is_active')
+            .eq('subdomain', subdomain)
+            .maybeSingle()
 
-            // 1. Sign In
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email,
-                password
-            })
-
-            if (signInError) throw signInError
-
-            // 2. Get User Profile/Role
-            const { data: { user } } = await supabase.auth.getUser()
-
-            if (!user) throw new Error('Erro ao recuperar usuário.')
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single()
-
-            if (!profile) throw new Error('Perfil não encontrado.')
-
-            // 3. Redirect based on Role
-            const role = profile.role
-            console.log('--- LOGIN DEBUG ---')
-            console.log('User ID:', user.id)
-            console.log('Profile Role:', role)
-
-            if (role === 'superadmin') {
-                console.log('Action: Redirecting to /master-admin (Full Refresh)')
-                window.location.href = '/master-admin'
-            } else if (role === 'admin') {
-                console.log('Action: Redirecting to /owner')
-                router.push('/owner')
-            } else if (role === 'staff') {
-                console.log('Action: Redirecting to /staff')
-                router.push('/staff')
-            } else if (role === 'customer') {
-                console.log('Action: Redirecting to /tutor')
-                router.push('/tutor')
-            } else {
-                console.log('Action: Fallback redirect to /owner (Role unknown:', role, ')')
-                router.push('/owner')
-            }
-            console.log('-------------------')
-
-        } catch (error) {
-            console.error('Login error:', error)
-            const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.'
-
-            setError(errorMessage.includes('Invalid login credentials')
-                ? 'Email ou senha incorretos.'
-                : 'Ocorreu um erro ao fazer login.')
-        } finally {
-            setLoading(false)
+        if (org && org.is_active === false) {
+            return (
+                <main className={styles.main}>
+                    <div className={styles.gradientOrb1} />
+                    <div className={styles.gradientOrb2} />
+                    <div className={styles.container}>
+                        <div className={styles.card} style={{ textAlign: 'center' }}>
+                            <div className={styles.logo}>
+                                <Image src="/logo.png" alt="MyPet Flow" width={240} height={100} className={styles.logoImage} priority />
+                            </div>
+                            <h1 className={styles.title} style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>Acesso Suspenso</h1>
+                            <p className={styles.subtitle}>
+                                O acesso para <strong>{org.name}</strong> está temporariamente indisponível.
+                            </p>
+                            <div className={styles.error} style={{ margin: '1.5rem 0', background: 'rgba(232, 130, 106, 0.1)', color: 'var(--color-coral)', border: '1px solid var(--color-coral)' }}>
+                                Para regularizar seu acesso ou obter mais informações, entre em contato com o suporte da MyPet Flow.
+                            </div>
+                            <div className={styles.quickAccess} style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                                <Link href="mailto:contato@mypetflow.com.br" className={styles.textLink} style={{ color: 'var(--color-sky)', textDecoration: 'none', fontWeight: 600 }}>
+                                    contato@mypetflow.com.br
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            )
         }
     }
 
@@ -95,60 +73,15 @@ export default function LoginPage() {
                             width={240}
                             height={100}
                             className={styles.logoImage}
+                            priority
                         />
                     </div>
 
                     <p className={styles.subtitle}>Entre na sua conta (v1.1)</p>
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className={styles.form}>
-                        {error && (
-                            <div className={styles.error}>
-                                {error}
-                            </div>
-                        )}
-
-                        <div className={styles.field}>
-                            <label htmlFor="email" className={styles.label}>Email</label>
-                            <input
-                                id="email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="seu@email.com"
-                                className={styles.input}
-                                autoComplete="email"
-                            />
-                        </div>
-
-                        <div className={styles.field}>
-                            <label htmlFor="password" className={styles.label}>Senha</label>
-                            <input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className={styles.input}
-                                autoComplete="current-password"
-                            />
-                        </div>
-
-                        <button
-                            type="submit"
-                            className={styles.button}
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <>
-                                    <span className={styles.spinner} />
-                                    Entrando...
-                                </>
-                            ) : (
-                                'Entrar'
-                            )}
-                        </button>
-                    </form>
+                    <Suspense fallback={<div className={styles.spinner} />}>
+                        <LoginForm />
+                    </Suspense>
 
                     <div className={styles.divider}>
                         <span>ou</span>
@@ -161,7 +94,7 @@ export default function LoginPage() {
 
                         <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%', margin: '0.5rem 0' }}></div>
 
-                        <Link href="/cadastro-empresa" className={styles.backLink} style={{ color: 'var(--color-sky-blue)' }}>
+                        <Link href="/cadastro-empresa" className={styles.backLink} style={{ color: 'var(--color-sky)' }}>
                             Tem um Pet Shop? <strong>Cadastre sua empresa</strong>
                         </Link>
                     </div>

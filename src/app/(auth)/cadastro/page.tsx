@@ -33,9 +33,38 @@ export default async function CadastroPage({
     // Buscar dados da organização para o branding
     const { data: org } = await supabaseAdmin
         .from('organizations')
-        .select('id, name')
+        .select('id, name, is_active')
         .eq('subdomain', subdomain)
         .maybeSingle()
+
+    // Se a empresa existir mas estiver desativada, bloqueamos o acesso com mensagem amigável
+    if (org && org.is_active === false) {
+        return (
+            <main className={styles.main}>
+                <div className={styles.gradientOrb1} />
+                <div className={styles.gradientOrb2} />
+                <div className={styles.container}>
+                    <div className={styles.registerCard} style={{ textAlign: 'center' }}>
+                        <div className={styles.logoContainer}>
+                            <Image src="/logo.png" alt="MyPet Flow" width={240} height={100} className={styles.logoImage} priority />
+                        </div>
+                        <h1 className={styles.title}>Acesso Suspenso</h1>
+                        <p className={styles.cardSubtitle}>
+                            O acesso para <strong>{org.name}</strong> está temporariamente indisponível.
+                        </p>
+                        <div className={styles.error} style={{ margin: '1.5rem 0', background: 'rgba(232, 130, 106, 0.1)', color: 'var(--color-coral)', border: '1px solid var(--color-coral)' }}>
+                            Para regularizar seu acesso ou obter mais informações, entre em contato com o suporte da MyPet Flow.
+                        </div>
+                        <footer className={styles.loginDivider}>
+                            <Link href="mailto:contato@mypetflow.com.br" className={styles.textLink}>
+                                contato@mypetflow.com.br
+                            </Link>
+                        </footer>
+                    </div>
+                </div>
+            </main>
+        )
+    }
 
     return (
         <main className={styles.main}>

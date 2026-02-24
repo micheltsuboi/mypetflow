@@ -84,13 +84,30 @@ export default function DashboardLayout({
                     .single()
 
                 if (profile) {
+                    // 1. Verificar se o perfil do usuário está ativo
                     if (profile.is_active === false) {
                         await supabase.auth.signOut()
-                        // Use a short timeout to ensure state is cleared
                         setTimeout(() => {
-                            router.push('/?error=Conta%20desativada')
+                            router.push('/?error=Sua%20conta%20está%20desativada.%20Entre%20em%20contato%20com%20o%20administrador.')
                         }, 100)
                         return
+                    }
+
+                    // 2. Verificar se a organização está ativa (Ignorar para Master Admin)
+                    if (profile.org_id && profile.role !== 'superadmin') {
+                        const { data: org } = await supabase
+                            .from('organizations')
+                            .select('is_active')
+                            .eq('id', profile.org_id)
+                            .maybeSingle()
+
+                        if (org && org.is_active === false) {
+                            await supabase.auth.signOut()
+                            setTimeout(() => {
+                                router.push('/?error=O%20acesso%20desta%20empresa%20está%20suspenso.%20Entre%20em%20contato%20com%20a%20MyPet%20Flow.')
+                            }, 100)
+                            return
+                        }
                     }
 
                     setUser({
