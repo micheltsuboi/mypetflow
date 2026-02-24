@@ -1,18 +1,22 @@
-'use client'
-
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './LandingPage.module.css'
+import { fetchPlans } from '@/app/actions/plans'
 
-export default function LandingPage() {
+export default async function LandingPage() {
+    // Busca os planos do banco de dados e filtra apenas os ativos
+    const plansData = await fetchPlans()
+    const activePlans = plansData.filter(p => p.is_active).sort((a, b) => a.price - b.price)
+
     return (
         <main className={styles.main}>
             {/* Navbar */}
             <header className={styles.header}>
                 <div className={styles.container}>
                     <div className={styles.navInner}>
-                        <div className={styles.logo}>
-                            <Image src="/logo.png" alt="MyPet Flow" width={180} height={40} className={styles.logoImage} priority />
+                        <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Image src="/logo.png" alt="MyPet Flow Icon" width={35} height={35} className={styles.logoImage} priority />
+                            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-navy-dark)', letterSpacing: '-0.5px' }}>MyPet<span style={{ color: 'var(--color-coral)' }}>Flow</span></span>
                         </div>
                         <nav className={styles.desktopNav}>
                             <Link href="#modulos">Módulos</Link>
@@ -145,15 +149,36 @@ export default function LandingPage() {
                                 width={500}
                                 height={600}
                             />
-                            {/* Floating WhatsApp Badge */}
-                            <div className={styles.whatsappBadge}>
-                                <div className={styles.waIcon}>
-                                    {/* Simple WA Icon using SVG or emoji */}
-                                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.878-.788-1.47-1.761-1.643-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" /></svg>
+                            <div className={styles.whatsappMockup}>
+                                {/* Chat Header */}
+                                <div className={styles.waHeader}>
+                                    <div className={styles.waHeaderAvatar}>
+                                        <Image src="/logo.png" alt="MyPet Flow" width={30} height={30} />
+                                    </div>
+                                    <div className={styles.waHeaderInfo}>
+                                        <strong>Seu Pet Shop</strong>
+                                        <span>bot</span>
+                                    </div>
                                 </div>
-                                <div className={styles.waText}>
-                                    <strong>Lembrete Automático</strong>
-                                    <span>"O banho do Theo está pronto! 🐶"</span>
+
+                                {/* Chat Body */}
+                                <div className={styles.waBody}>
+                                    <div className={styles.waMessageOut}>
+                                        Oi Maria! O banho do Theo está agendado hoje às 14:00. Podemos confirmar? 🛁
+                                        <span className={styles.waTime}>09:00</span>
+                                    </div>
+                                    <div className={styles.waMessageIn}>
+                                        Oi! Sim, está confirmadíssimo!
+                                        <span className={styles.waTime}>09:05</span>
+                                    </div>
+                                    <div className={styles.waMessageOut}>
+                                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center', marginBottom: '4px' }}>
+                                            <span style={{ fontSize: '1.2rem' }}>🐶</span>
+                                            <span>Foto</span>
+                                        </div>
+                                        O Theo já está pronto, cheiroso e te esperando!
+                                        <span className={styles.waTime}>15:30</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -201,60 +226,54 @@ export default function LandingPage() {
                     </div>
 
                     <div className={styles.pricingGrid}>
-                        {/* Start Plan */}
-                        <div className={styles.pricingCard}>
-                            <h3 className={styles.planName}>Start</h3>
-                            <div className={styles.planPrice}>
-                                <span>R$</span>97<span>/mês</span>
-                            </div>
-                            <ul className={styles.pricingFeatures}>
-                                <li>✓ Até 2 Profissionais</li>
-                                <li>✓ Agenda Completa</li>
-                                <li>✓ Cadastro de Tutores e Pets</li>
-                                <li>✓ Lembretes por WhatsApp (Manual)</li>
-                                <li>✓ Suporte via Chat</li>
-                            </ul>
-                            <Link href="/cadastro-empresa" className={`${styles.pricingBtn} ${styles.btnOutline}`}>
-                                Começar Grátis
-                            </Link>
-                        </div>
+                        {activePlans.length > 0 ? activePlans.map((plan, index) => {
+                            // Define if it is the "Popular" plan (middle one or index 1, usually the 'Crescimento' or Pro)
+                            const isPopular = activePlans.length >= 3 ? index === 1 : index === 0;
 
-                        {/* Pro Plan (Popular) */}
-                        <div className={`${styles.pricingCard} ${styles.popular}`}>
-                            <div className={styles.popularBadge}>O Mais Escolhido</div>
-                            <h3 className={styles.planName}>Crescimento</h3>
-                            <div className={styles.planPrice}>
-                                <span>R$</span>197<span>/mês</span>
+                            return (
+                                <div key={plan.id} className={`${styles.pricingCard} ${isPopular ? styles.popular : ''}`}>
+                                    {isPopular && <div className={styles.popularBadge}>O Mais Escolhido</div>}
+                                    <h3 className={styles.planName}>{plan.name}</h3>
+                                    <div className={styles.planPrice}>
+                                        <span>R$</span>{plan.price}<span>/mês</span>
+                                    </div>
+                                    <ul className={styles.pricingFeatures}>
+                                        {plan.features && plan.features.length > 0 ? (
+                                            plan.features.map(feature => {
+                                                // Humanize feature keys or render as is if they are descriptions
+                                                const featureNames: Record<string, string> = {
+                                                    'agenda': 'Agenda Inteligente',
+                                                    'customers': 'Gestão de Tutores e Pets',
+                                                    'services': 'Catálogo de Serviços',
+                                                    'finance': 'Financeiro Completo',
+                                                    'timeclock': 'Ponto de Funcionários',
+                                                    'creche': 'Creche & Hospedagem',
+                                                    'banho_tosa': 'Banho e Tosa',
+                                                    'pacotes': 'Pacotes Recorrentes',
+                                                    'petshop': 'PDV / Pet Shop',
+                                                    'relatorios': 'Relatórios Avançados',
+                                                    'whatsapp': 'Automação de WhatsApp'
+                                                };
+                                                const displayName = featureNames[feature] || feature;
+                                                return <li key={feature}>✓ {displayName}</li>
+                                            })
+                                        ) : (
+                                            <>
+                                                <li>✓ Todas as funcionalidades base</li>
+                                                <li>✓ Suporte via Chat</li>
+                                            </>
+                                        )}
+                                    </ul>
+                                    <Link href="/cadastro-empresa" className={`${styles.pricingBtn} ${isPopular ? styles.btnSolid : styles.btnOutline}`}>
+                                        {isPopular ? 'Assinar Plano' : 'Começar Grátis'}
+                                    </Link>
+                                </div>
+                            )
+                        }) : (
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#718096', padding: '2rem' }}>
+                                Não há planos disponíveis no momento.
                             </div>
-                            <ul className={styles.pricingFeatures}>
-                                <li>✓ Até 5 Profissionais</li>
-                                <li>✓ Banho e Tosa (Pacotes)</li>
-                                <li>✓ Controle de Caixa (PDV)</li>
-                                <li>✓ WhatsApp 100% Automático</li>
-                                <li>✓ Relatórios Básicos</li>
-                            </ul>
-                            <Link href="/cadastro-empresa" className={`${styles.pricingBtn} ${styles.btnSolid}`}>
-                                Assinar Plano
-                            </Link>
-                        </div>
-
-                        {/* Premium Plan */}
-                        <div className={styles.pricingCard}>
-                            <h3 className={styles.planName}>Múltiplo</h3>
-                            <div className={styles.planPrice}>
-                                <span>R$</span>347<span>/mês</span>
-                            </div>
-                            <ul className={styles.pricingFeatures}>
-                                <li>✓ Profissionais Ilimitados</li>
-                                <li>✓ Creche & Hospedagem</li>
-                                <li>✓ DRE e Financeiro Avançado</li>
-                                <li>✓ Controle de Ponto (Relógio)</li>
-                                <li>✓ Suporte Prioritário</li>
-                            </ul>
-                            <Link href="/cadastro-empresa" className={`${styles.pricingBtn} ${styles.btnOutline}`}>
-                                Falar com Vendas
-                            </Link>
-                        </div>
+                        )}
                     </div>
                 </div>
             </section>
@@ -264,8 +283,12 @@ export default function LandingPage() {
                 <div className={styles.container}>
                     <div className={styles.footerGrid}>
                         <div className={styles.footerBrand}>
-                            <Image src="/logo.png" alt="MyPet Flow" width={180} height={40} style={{ filter: 'brightness(0) invert(1)' }} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem', filter: 'brightness(0) invert(1)' }}>
+                                <Image src="/logo.png" alt="MyPet Flow Icon" width={32} height={32} />
+                                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-navy-dark)', letterSpacing: '-0.5px' }}>MyPet<span style={{ color: 'var(--color-coral)' }}>Flow</span></span>
+                            </div>
                             <p>Transformando a gestão de Pet Shops, Clínicas, Creches e Hospedagens com tecnologia feita para quem ama animais.</p>
+
                             <div className={styles.socialLinks}>
                                 <a href="#" aria-label="Instagram" className={styles.socialIcon}>IG</a>
                                 <a href="#" aria-label="Facebook" className={styles.socialIcon}>FB</a>

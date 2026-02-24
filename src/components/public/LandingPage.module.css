@@ -315,42 +315,106 @@
     display: block;
 }
 
-.whatsappBadge {
+.whatsappMockup {
     position: absolute;
-    bottom: 2rem;
+    bottom: -1rem;
     right: -1rem;
-    background: white;
-    padding: 1rem 1.5rem;
+    width: 250px;
+    background: #E5DDD5;
+    /* WhatsApp chat background */
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
     animation: slideIn 1s ease-out;
 }
 
-.waIcon {
-    width: 40px;
-    height: 40px;
-    background-color: #25D366;
-    /* WhatsApp Green */
+@media (min-width: 640px) {
+    .whatsappMockup {
+        width: 320px;
+        right: -2rem;
+        bottom: -2rem;
+    }
+}
+
+.waHeader {
+    background-color: #075E54;
+    /* WA Dark Green */
     color: white;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.waHeaderAvatar {
+    background: white;
     border-radius: 50%;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    overflow: hidden;
 }
 
-.waText strong {
-    display: block;
-    color: var(--color-navy-dark);
+.waHeaderInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.waHeaderInfo strong {
     font-size: 0.9rem;
+    line-height: 1.1;
 }
 
-.waText span {
-    color: #718096;
-    font-size: 0.8rem;
+.waHeaderInfo span {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.waBody {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+    /* standard wa background pattern */
+    background-size: cover;
+}
+
+.waMessageOut {
+    align-self: flex-start;
+    background-color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border-top-left-radius: 0;
+    font-size: 0.85rem;
+    color: #303030;
+    max-width: 85%;
+    position: relative;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+.waMessageIn {
+    align-self: flex-end;
+    background-color: #DCF8C6;
+    /* WA Light Green */
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border-top-right-radius: 0;
+    font-size: 0.85rem;
+    color: #303030;
+    max-width: 85%;
+    position: relative;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+.waTime {
+    display: block;
+    text-align: right;
+    font-size: 0.65rem;
+    color: rgba(0, 0, 0, 0.45);
+    margin-top: 2px;
 }
 
 .diffContent {
