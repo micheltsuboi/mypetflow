@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './LandingPage.module.css'
 import { fetchPlans } from '@/app/actions/plans'
+import { Droplet, Home, Calendar, Store, PieChart } from 'lucide-react'
 
 export default async function LandingPage() {
     // Busca os planos do banco de dados e filtra apenas os ativos
@@ -50,10 +51,10 @@ export default async function LandingPage() {
                         {/* Decorative Graphic Based on Ref */}
                         <div className={styles.heroGraphics}>
                             <div className={styles.shapeCoral}>
-                                <Image src="https://images.unsplash.com/photo-1537151608804-ea6f112c3f8f?q=80&w=600&auto=format&fit=crop" alt="Dog in Bath" width={300} height={400} className={styles.petImage1} />
+                                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" alt="Dog in Bath" className={styles.petImage1} />
                             </div>
                             <div className={styles.shapeSky}>
-                                <Image src="https://images.unsplash.com/photo-1510771463146-e89e6e86560e?q=80&w=400&auto=format&fit=crop" alt="Dog on Laptop" width={200} height={200} className={styles.petImage2} />
+                                <img src="https://images.unsplash.com/photo-1510771463146-e89e6e86560e?q=80&w=400&auto=format&fit=crop" alt="Dog on Laptop" className={styles.petImage2} />
                             </div>
                             <div className={styles.floatingCard}>
                                 <div className={styles.avatarGroup}>
@@ -82,7 +83,7 @@ export default async function LandingPage() {
                         {/* Module Card 1 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgCoral}`}>
-                                <div className={styles.moduleIcon}>🛁</div>
+                                <div className={styles.moduleIcon}><Droplet size={48} strokeWidth={1.5} color="var(--color-coral)" /></div>
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Banho e Tosa</h3>
@@ -93,7 +94,7 @@ export default async function LandingPage() {
                         {/* Module Card 2 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgSky}`}>
-                                <div className={styles.moduleIcon}>🐾</div>
+                                <div className={styles.moduleIcon}><Home size={48} strokeWidth={1.5} color="var(--color-sky)" /></div>
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Creche & Hospedagem</h3>
@@ -104,7 +105,7 @@ export default async function LandingPage() {
                         {/* Module Card 3 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgNavy}`}>
-                                <div className={styles.moduleIcon}>📅</div>
+                                <div className={styles.moduleIcon}><Calendar size={48} strokeWidth={1.5} color="white" /></div>
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Agenda Inteligente</h3>
@@ -115,7 +116,7 @@ export default async function LandingPage() {
                         {/* Module Card 4 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgCoralLight}`}>
-                                <div className={styles.moduleIcon}>🛍️</div>
+                                <div className={styles.moduleIcon}><Store size={48} strokeWidth={1.5} color="var(--color-coral)" /></div>
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>PDV & Estoque</h3>
@@ -126,7 +127,7 @@ export default async function LandingPage() {
                         {/* Module Card 5 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgSkyLight}`}>
-                                <div className={styles.moduleIcon}>💰</div>
+                                <div className={styles.moduleIcon}><PieChart size={48} strokeWidth={1.5} color="var(--color-sky)" /></div>
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Financeiro Automático</h3>
@@ -142,11 +143,9 @@ export default async function LandingPage() {
                 <div className={styles.container}>
                     <div className={styles.diffGrid}>
                         <div className={styles.diffImageWrapper}>
-                            <Image
+                            <img
                                 src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?q=80&w=800&auto=format&fit=crop"
                                 alt="Dog Working"
-                                width={500}
-                                height={600}
                             />
                             <div className={styles.whatsappMockup}>
                                 {/* Chat Header */}
