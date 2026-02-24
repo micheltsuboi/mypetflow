@@ -13,32 +13,30 @@ export default function CadastroEmpresaPage() {
             <div className={styles.gradientOrb2} />
 
             <div className={styles.container}>
-                {/* Hero Section */}
-                <section className={styles.hero}>
-                    <div className={styles.logoContainer}>
+                <div className={styles.card}>
+                    {/* Hero Section */}
+                    <div className={styles.logo}>
                         <Image
                             src="/logo.png"
                             alt="Sr. Pet Clube"
-                            width={220}
-                            height={220}
+                            width={100}
+                            height={100}
                             className={styles.logoImage}
                             priority
                         />
                     </div>
 
-                    <h1 className={styles.title} style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
+                    <h1 className={styles.title} style={{ textAlign: 'center', marginBottom: '0.25rem' }}>
                         Parceiro Sr. Pet Clube
                     </h1>
 
-                    <p className={styles.description} style={{ maxWidth: '600px', margin: '0 auto' }}>
-                        Transforme a gestão do seu Pet Shop, Clínica Veterinária ou Creche com o sistema mais prático do mercado.
+                    <p className={styles.subtitle} style={{ marginBottom: '1.5rem' }}>
+                        Transforme a gestão do seu negócio
                     </p>
-                </section>
 
-                {/* Form Section */}
-                <section style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                    {/* Form Section */}
                     <RegisterOwnerForm />
-                </section>
+                </div>
             </div>
         </main>
     )
