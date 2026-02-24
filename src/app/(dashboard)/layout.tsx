@@ -58,7 +58,7 @@ export default function DashboardLayout({
 
     const masterAdminNavigation = [
         { name: 'Dashboard', href: '/master-admin', icon: '⚡' },
-        { name: 'Tenants', href: '/master-admin/tenants', icon: '🏢' },
+        { name: 'Clientes', href: '/master-admin/clientes', icon: '🏢' },
         { name: 'Painel Loja', href: '/owner', icon: '🏪' },
     ]
 

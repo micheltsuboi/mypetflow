@@ -3,115 +3,55 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { fetchOrganizations, toggleOrganizationStatus, type OrganizationData } from '@/app/actions/master-admin'
+import { fetchGlobalStats } from '@/app/actions/master-admin'
 import styles from './page.module.css'
 
-interface Analytics {
-    totalShops: number
-    activeShops: number
-    // Campos fictícios provisórios
-    totalRevenue: number
-    totalServices: number
-    growth: number
+interface GlobalStats {
+    organizations: number
+    users: number
+    pets: number
+    appointments: number
+    revenue: number
 }
 
-export default function AdminPage() {
-    const [shops, setShops] = useState<OrganizationData[]>([])
-    const [analytics, setAnalytics] = useState<Analytics | null>(null)
+export default function AdminDashboard() {
+    const [stats, setStats] = useState<GlobalStats | null>(null)
     const [loading, setLoading] = useState(true)
-    const [actionLoading, setActionLoading] = useState<string | null>(null)
     const router = useRouter()
     const supabase = createClient()
-    const [searchTerm, setSearchTerm] = useState('')
-    const [statusFilter, setStatusFilter] = useState<string>('all')
-
-    const loadData = async () => {
-        const data = await fetchOrganizations()
-        setShops(data)
-
-        // Calcular analytics base
-        const total = data.length
-        const active = data.filter(o => o.is_active).length
-
-        setAnalytics({
-            totalShops: total,
-            activeShops: active,
-            totalRevenue: 0, // Implementar query real posteriormente se necessário  
-            totalServices: 0, // Implementar query real posteriormente se necessário
-            growth: 0
-        })
-    }
 
     useEffect(() => {
         const checkAuth = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) {
-                console.log('Master Admin Check: No user found')
                 router.push('/')
                 return
             }
 
-            console.log('Master Admin Check: User authenticated', user.id)
-
-            const { data: profile, error: profileError } = await supabase
+            const { data: profile } = await supabase
                 .from('profiles')
-                .select('role, org_id')
+                .select('role')
                 .eq('id', user.id)
                 .maybeSingle()
 
-            if (profileError) {
-                console.error('Master Admin Check: Database Error', profileError)
-                // Não redirecionar se for apenas erro de rede temporário, talvez tentar recarregar?
-                // Mas por segurança, se não confirmar superadmin, manda pro owner
-                router.push('/owner')
-                return
-            }
-
-            console.log('Master Admin Check: Profile role found:', profile?.role)
-
-            // Apenas superadmins acessam
             if (!profile || profile.role !== 'superadmin') {
-                console.warn('Master Admin Check: Access denied. Profile:', profile)
                 router.push('/owner')
                 return
             }
 
-            await loadData()
+            const data = await fetchGlobalStats()
+            setStats(data)
             setLoading(false)
         }
 
         checkAuth()
     }, [supabase, router])
 
-    const filteredShops = shops.filter(shop => {
-        const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            shop.subdomain.toLowerCase().includes(searchTerm.toLowerCase())
-
-        const activeFilter = statusFilter === 'all'
-            ? true
-            : statusFilter === 'active' ? shop.is_active : !shop.is_active
-
-        return matchesSearch && activeFilter
-    })
-
-    const handleToggleStatus = async (orgId: string, currentStatus: boolean) => {
-        if (!confirm(`Deseja realmente ${currentStatus ? 'desativar' : 'ativar'} esta empresa?`)) return
-
-        setActionLoading(orgId)
-        const res = await toggleOrganizationStatus(orgId, currentStatus)
-        if (res.success) {
-            await loadData() // refresh local state
-        } else {
-            alert(res.message)
-        }
-        setActionLoading(null)
-    }
-
     if (loading) {
         return (
             <div className={styles.loading}>
                 <div className={styles.spinner} />
-                <p>Carregando painel...</p>
+                <p>Carregando dashboard...</p>
             </div>
         )
     }
@@ -119,133 +59,75 @@ export default function AdminPage() {
     return (
         <div className={styles.container}>
             <div className={styles.header}>
-                <div>
-                    <h1 className={styles.title}>🏢 Painel Administrativo</h1>
-                    <p className={styles.subtitle}>Gestão de tenants SaaS</p>
+                <h1 className={styles.title}>⚡ Dashboard Master</h1>
+                <p className={styles.subtitle}>Visão geral de todo o ecossistema MyPet Flow</p>
+            </div>
+
+            <div className={styles.analyticsGrid}>
+                <div className={styles.analyticsCard}>
+                    <div className={styles.cardIcon}>🏢</div>
+                    <div className={styles.cardContent}>
+                        <span className={styles.cardValue}>{stats?.organizations}</span>
+                        <span className={styles.cardLabel}>Tenants (Lojas)</span>
+                    </div>
+                </div>
+
+                <div className={styles.analyticsCard}>
+                    <div className={styles.cardIcon}>👥</div>
+                    <div className={styles.cardContent}>
+                        <span className={styles.cardValue}>{stats?.users}</span>
+                        <span className={styles.cardLabel}>Usuários Totais</span>
+                    </div>
+                </div>
+
+                <div className={styles.analyticsCard}>
+                    <div className={styles.cardIcon}>🐾</div>
+                    <div className={styles.cardContent}>
+                        <span className={styles.cardValue}>{stats?.pets}</span>
+                        <span className={styles.cardLabel}>Pets Cadastrados</span>
+                    </div>
+                </div>
+
+                <div className={styles.analyticsCard}>
+                    <div className={styles.cardIcon}>📅</div>
+                    <div className={styles.cardContent}>
+                        <span className={styles.cardValue}>{stats?.appointments}</span>
+                        <span className={styles.cardLabel}>Agendamentos Realizados</span>
+                    </div>
+                </div>
+
+                <div className={styles.analyticsCard}>
+                    <div className={styles.cardIcon}>💰</div>
+                    <div className={styles.cardContent}>
+                        <span className={styles.cardValue}>R$ {stats?.revenue.toLocaleString()}</span>
+                        <span className={styles.cardLabel}>Receita SaaS (Estimada)</span>
+                    </div>
                 </div>
             </div>
 
-            {/* Analytics Cards */}
-            {analytics && (
-                <div className={styles.analyticsGrid}>
-                    <div className={styles.analyticsCard}>
-                        <div className={styles.cardIcon}>🏪</div>
-                        <div className={styles.cardContent}>
-                            <span className={styles.cardValue}>{analytics.totalShops}</span>
-                            <span className={styles.cardLabel}>Empresas Cadastradas</span>
-                        </div>
-                    </div>
-                    <div className={styles.analyticsCard}>
-                        <div className={styles.cardIcon}>✅</div>
-                        <div className={styles.cardContent}>
-                            <span className={styles.cardValue}>{analytics.activeShops}</span>
-                            <span className={styles.cardLabel}>Ativas</span>
-                        </div>
-                    </div>
-                    {/* Placeholder metrics */}
-                    <div className={styles.analyticsCard}>
-                        <div className={styles.cardIcon}>👥</div>
-                        <div className={styles.cardContent}>
-                            <span className={styles.cardValue}>
-                                {shops.reduce((acc, curr) => acc + curr.total_users, 0)}
-                            </span>
-                            <span className={styles.cardLabel}>Contas Criadas</span>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Filters */}
-            <div className={styles.filters}>
-                <input
-                    type="text"
-                    placeholder="🔍 Buscar empresa..."
-                    className={styles.searchInput}
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <div className={styles.statusFilters}>
-                    <button
-                        className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`}
-                        onClick={() => setStatusFilter('all')}
-                    >
-                        Todas
-                    </button>
-                    <button
-                        className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
-                        onClick={() => setStatusFilter('active')}
-                    >
-                        Ativas
-                    </button>
-                    <button
-                        className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`}
-                        onClick={() => setStatusFilter('inactive')}
-                    >
-                        Inativas
-                    </button>
-                </div>
+            <div className={styles.header} style={{ marginTop: '2rem' }}>
+                <h2 className={styles.title} style={{ fontSize: '1.25rem' }}>🚀 Ações Rápidas</h2>
             </div>
 
-            {/* Shops Table */}
-            <div className={styles.tableContainer}>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>Pet Shop / Empresa</th>
-                            <th>Subdomínio</th>
-                            <th>Status</th>
-                            <th>Usuários</th>
-                            <th>Criado Em</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredShops.map((shop) => (
-                            <tr key={shop.id}>
-                                <td>
-                                    <div className={styles.shopInfo}>
-                                        <span className={styles.shopName}>{shop.name}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span className={styles.location}>{shop.subdomain}.mypetflow.com.br</span>
-                                </td>
-                                <td>
-                                    <span className={`${styles.statusBadge} ${shop.is_active ? styles.active : styles.suspended}`}>
-                                        {shop.is_active ? 'Ativo' : 'Inativo'}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span className={styles.services}>{shop.total_users}</span>
-                                </td>
-                                <td>
-                                    <span className={styles.location}>{new Date(shop.created_at).toLocaleDateString()}</span>
-                                </td>
-                                <td>
-                                    <div className={styles.actions}>
-                                        <button
-                                            className={styles.actionBtn}
-                                            title={shop.is_active ? 'Desativar Empresa' : 'Ativar Empresa'}
-                                            onClick={() => handleToggleStatus(shop.id, shop.is_active)}
-                                            disabled={actionLoading === shop.id}
-                                            style={{ filter: shop.is_active ? 'hue-rotate(150deg)' : 'none' }} // gambiarra CSS pro botao mudar de cor
-                                        >
-                                            {actionLoading === shop.id ? '⏳' : shop.is_active ? '🚫' : '✅'}
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <button
+                    onClick={() => router.push('/master-admin/clientes')}
+                    style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', cursor: 'pointer', textAlign: 'left' }}
+                >
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>👥</div>
+                    <div style={{ fontWeight: 700 }}>Gerenciar Clientes</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ativar, desativar ou cadastrar novas lojas.</div>
+                </button>
 
-            {filteredShops.length === 0 && (
-                <div className={styles.emptyState}>
-                    <span>🔍</span>
-                    <p>Nenhuma empresa encontrada.</p>
-                </div>
-            )}
+                <button
+                    onClick={() => router.push('/owner')}
+                    style={{ padding: '1.5rem', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', color: 'white', cursor: 'pointer', textAlign: 'left' }}
+                >
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🏪</div>
+                    <div style={{ fontWeight: 700 }}>Acessar Unidade Própria</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Ver o painel como dono de loja.</div>
+                </button>
+            </div>
         </div>
     )
 }
