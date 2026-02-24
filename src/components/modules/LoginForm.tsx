@@ -36,35 +36,56 @@ export default function LoginForm() {
 
             if (!user) throw new Error('Erro ao recuperar usuário.')
 
+            // 2. Get User Profile/Role with Organization Subdomain
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('role')
+                .select('role, org_id, organizations(subdomain)')
                 .eq('id', user.id)
                 .single()
 
             if (!profile) throw new Error('Perfil não encontrado.')
 
             const role = profile.role
+            const orgSubdomain = (profile.organizations as any)?.subdomain
+
             console.log('--- LOGIN DEBUG ---')
             console.log('User ID:', user.id)
             console.log('Profile Role:', role)
+            console.log('Org Subdomain:', orgSubdomain)
+
+            // Determinar rota base
+            let targetPath = '/owner'
+            if (role === 'superadmin') targetPath = '/master-admin'
+            else if (role === 'staff') targetPath = '/staff'
+            else if (role === 'customer') targetPath = '/tutor'
+
+            console.log('Target Path:', targetPath)
+
+            // Lógica de Redirecionamento Inteligente de URL
+            const currentHost = window.location.host
+            const isLocalOrVercel = currentHost.includes('localhost') || currentHost.includes('vercel.app')
 
             if (role === 'superadmin') {
-                console.log('Action: Redirecting to /master-admin (Full Refresh)')
-                window.location.href = '/master-admin'
-            } else if (role === 'admin') {
-                console.log('Action: Redirecting to /owner')
-                router.push('/owner')
-            } else if (role === 'staff') {
-                console.log('Action: Redirecting to /staff')
-                router.push('/staff')
-            } else if (role === 'customer') {
-                console.log('Action: Redirecting to /tutor')
-                router.push('/tutor')
+                // Superadmin fica no domínio que estiver (geralmente o principal)
+                window.location.href = targetPath
+            } else if (orgSubdomain) {
+                if (isLocalOrVercel) {
+                    // No Vercel/Local, mantemos o domínio mas passamos o org via query
+                    router.push(`${targetPath}?org=${orgSubdomain}`)
+                } else {
+                    // Em produção, forçamos o subdomínio correto se necessário
+                    const [sub] = currentHost.split('.')
+                    if (sub !== orgSubdomain) {
+                        window.location.href = `https://${orgSubdomain}.mypetflow.com.br${targetPath}`
+                    } else {
+                        router.push(targetPath)
+                    }
+                }
             } else {
-                console.log('Action: Fallback redirect to /owner (Role unknown:', role, ')')
-                router.push('/owner')
+                // Fallback sem organização vinculada (estranho para admin/staff)
+                router.push(targetPath)
             }
+
             console.log('-------------------')
 
         } catch (error) {
