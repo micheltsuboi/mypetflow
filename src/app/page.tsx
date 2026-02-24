@@ -149,9 +149,17 @@ export default function LoginPage() {
                         <span>ou</span>
                     </div>
 
-                    <Link href="/cadastro" className={styles.backLink}>
-                        Não tem uma conta? <strong>Cadastre-se aqui</strong>
-                    </Link>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+                        <Link href="/cadastro" className={styles.backLink}>
+                            Não tem uma conta de tutor? <strong>Cadastre-se aqui</strong>
+                        </Link>
+
+                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%', margin: '0.5rem 0' }}></div>
+
+                        <Link href="/cadastro-empresa" className={styles.backLink} style={{ color: 'var(--color-sky-blue)' }}>
+                            Tem um Pet Shop? <strong>Cadastre sua empresa</strong>
+                        </Link>
+                    </div>
                 </div>
             </div>
         </main>

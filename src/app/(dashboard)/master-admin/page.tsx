@@ -3,109 +3,44 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { fetchOrganizations, toggleOrganizationStatus, type OrganizationData } from '@/app/actions/master-admin'
 import styles from './page.module.css'
-
-interface PetShop {
-    id: string
-    name: string
-    cnpj: string
-    city: string
-    state: string
-    status: 'active' | 'trial' | 'suspended'
-    total_revenue: number
-    total_services: number
-    created_at: string
-}
 
 interface Analytics {
     totalShops: number
     activeShops: number
+    // Campos fictícios provisórios
     totalRevenue: number
     totalServices: number
     growth: number
 }
 
-// Mock data para demonstração
-const mockShops: PetShop[] = [
-    {
-        id: '1',
-        name: 'Sr. Pet Clube',
-        cnpj: '12.345.678/0001-00',
-        city: 'São Paulo',
-        state: 'SP',
-        status: 'active',
-        total_revenue: 45750.00,
-        total_services: 342,
-        created_at: '2024-01-15'
-    },
-    {
-        id: '2',
-        name: 'PetLove Care',
-        cnpj: '98.765.432/0001-00',
-        city: 'Rio de Janeiro',
-        state: 'RJ',
-        status: 'active',
-        total_revenue: 38200.00,
-        total_services: 287,
-        created_at: '2024-03-20'
-    },
-    {
-        id: '3',
-        name: 'Mundo Animal',
-        cnpj: '11.222.333/0001-00',
-        city: 'Belo Horizonte',
-        state: 'MG',
-        status: 'trial',
-        total_revenue: 5400.00,
-        total_services: 45,
-        created_at: '2025-12-01'
-    },
-    {
-        id: '4',
-        name: 'Pet Paradise',
-        cnpj: '44.555.666/0001-00',
-        city: 'Curitiba',
-        state: 'PR',
-        status: 'suspended',
-        total_revenue: 12300.00,
-        total_services: 98,
-        created_at: '2024-06-10'
-    },
-    {
-        id: '5',
-        name: 'Cantinho Pet',
-        cnpj: '77.888.999/0001-00',
-        city: 'Porto Alegre',
-        state: 'RS',
-        status: 'active',
-        total_revenue: 28950.00,
-        total_services: 215,
-        created_at: '2024-08-25'
-    }
-]
-
-const mockAnalytics: Analytics = {
-    totalShops: 127,
-    activeShops: 98,
-    totalRevenue: 2845000.00,
-    totalServices: 18542,
-    growth: 23.5
-}
-
-const statusLabels: Record<string, string> = {
-    active: 'Ativo',
-    trial: 'Trial',
-    suspended: 'Suspenso'
-}
-
 export default function AdminPage() {
-    const [shops, setShops] = useState<PetShop[]>([])
+    const [shops, setShops] = useState<OrganizationData[]>([])
     const [analytics, setAnalytics] = useState<Analytics | null>(null)
     const [loading, setLoading] = useState(true)
+    const [actionLoading, setActionLoading] = useState<string | null>(null)
     const router = useRouter()
     const supabase = createClient()
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState<string>('all')
+
+    const loadData = async () => {
+        const data = await fetchOrganizations()
+        setShops(data)
+
+        // Calcular analytics base
+        const total = data.length
+        const active = data.filter(o => o.is_active).length
+
+        setAnalytics({
+            totalShops: total,
+            activeShops: active,
+            totalRevenue: 0, // Implementar query real posteriormente se necessário  
+            totalServices: 0, // Implementar query real posteriormente se necessário
+            growth: 0
+        })
+    }
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -121,14 +56,14 @@ export default function AdminPage() {
                 .eq('id', user.id)
                 .single()
 
-            // Only SaaS level superadmins (no org_id) can access master admin
-            if (!profile || profile.role !== 'superadmin' || profile.org_id) {
-                router.push('/owner') // Redirect unauthorized users to regular dashboard
+            // Apenas superadmins (que tem null ou sem org específica se configurado) acessam
+            // Para garantir: verifique console de logs pra role 'superadmin'
+            if (!profile || profile.role !== 'superadmin') {
+                router.push('/owner')
                 return
             }
 
-            setShops(mockShops)
-            setAnalytics(mockAnalytics)
+            await loadData()
             setLoading(false)
         }
 
@@ -137,16 +72,26 @@ export default function AdminPage() {
 
     const filteredShops = shops.filter(shop => {
         const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            shop.city.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesStatus = statusFilter === 'all' || shop.status === statusFilter
-        return matchesSearch && matchesStatus
+            shop.subdomain.toLowerCase().includes(searchTerm.toLowerCase())
+
+        const activeFilter = statusFilter === 'all'
+            ? true
+            : statusFilter === 'active' ? shop.is_active : !shop.is_active
+
+        return matchesSearch && activeFilter
     })
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(value)
+    const handleToggleStatus = async (orgId: string, currentStatus: boolean) => {
+        if (!confirm(`Deseja realmente ${currentStatus ? 'desativar' : 'ativar'} esta empresa?`)) return
+
+        setActionLoading(orgId)
+        const res = await toggleOrganizationStatus(orgId, currentStatus)
+        if (res.success) {
+            await loadData() // refresh local state
+        } else {
+            alert(res.message)
+        }
+        setActionLoading(null)
     }
 
     if (loading) {
@@ -174,28 +119,24 @@ export default function AdminPage() {
                         <div className={styles.cardIcon}>🏪</div>
                         <div className={styles.cardContent}>
                             <span className={styles.cardValue}>{analytics.totalShops}</span>
-                            <span className={styles.cardLabel}>Pet Shops</span>
+                            <span className={styles.cardLabel}>Empresas Cadastradas</span>
                         </div>
                     </div>
                     <div className={styles.analyticsCard}>
                         <div className={styles.cardIcon}>✅</div>
                         <div className={styles.cardContent}>
                             <span className={styles.cardValue}>{analytics.activeShops}</span>
-                            <span className={styles.cardLabel}>Ativos</span>
+                            <span className={styles.cardLabel}>Ativas</span>
                         </div>
                     </div>
+                    {/* Placeholder metrics */}
                     <div className={styles.analyticsCard}>
-                        <div className={styles.cardIcon}>💰</div>
+                        <div className={styles.cardIcon}>👥</div>
                         <div className={styles.cardContent}>
-                            <span className={styles.cardValue}>{formatCurrency(analytics.totalRevenue)}</span>
-                            <span className={styles.cardLabel}>Faturamento Total</span>
-                        </div>
-                    </div>
-                    <div className={styles.analyticsCard}>
-                        <div className={styles.cardIcon}>📈</div>
-                        <div className={styles.cardContent}>
-                            <span className={`${styles.cardValue} ${styles.growth}`}>+{analytics.growth}%</span>
-                            <span className={styles.cardLabel}>Crescimento</span>
+                            <span className={styles.cardValue}>
+                                {shops.reduce((acc, curr) => acc + curr.total_users, 0)}
+                            </span>
+                            <span className={styles.cardLabel}>Contas Criadas</span>
                         </div>
                     </div>
                 </div>
@@ -205,7 +146,7 @@ export default function AdminPage() {
             <div className={styles.filters}>
                 <input
                     type="text"
-                    placeholder="🔍 Buscar pet shop..."
+                    placeholder="🔍 Buscar empresa..."
                     className={styles.searchInput}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -215,25 +156,19 @@ export default function AdminPage() {
                         className={`${styles.filterBtn} ${statusFilter === 'all' ? styles.active : ''}`}
                         onClick={() => setStatusFilter('all')}
                     >
-                        Todos
+                        Todas
                     </button>
                     <button
                         className={`${styles.filterBtn} ${statusFilter === 'active' ? styles.active : ''}`}
                         onClick={() => setStatusFilter('active')}
                     >
-                        Ativos
+                        Ativas
                     </button>
                     <button
-                        className={`${styles.filterBtn} ${statusFilter === 'trial' ? styles.active : ''}`}
-                        onClick={() => setStatusFilter('trial')}
+                        className={`${styles.filterBtn} ${statusFilter === 'inactive' ? styles.active : ''}`}
+                        onClick={() => setStatusFilter('inactive')}
                     >
-                        Trial
-                    </button>
-                    <button
-                        className={`${styles.filterBtn} ${statusFilter === 'suspended' ? styles.active : ''}`}
-                        onClick={() => setStatusFilter('suspended')}
-                    >
-                        Suspensos
+                        Inativas
                     </button>
                 </div>
             </div>
@@ -243,11 +178,11 @@ export default function AdminPage() {
                 <table className={styles.table}>
                     <thead>
                         <tr>
-                            <th>Pet Shop</th>
-                            <th>Localização</th>
+                            <th>Pet Shop / Empresa</th>
+                            <th>Subdomínio</th>
                             <th>Status</th>
-                            <th>Faturamento</th>
-                            <th>Serviços</th>
+                            <th>Usuários</th>
+                            <th>Criado Em</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -257,28 +192,33 @@ export default function AdminPage() {
                                 <td>
                                     <div className={styles.shopInfo}>
                                         <span className={styles.shopName}>{shop.name}</span>
-                                        <span className={styles.shopCnpj}>{shop.cnpj}</span>
                                     </div>
                                 </td>
                                 <td>
-                                    <span className={styles.location}>{shop.city}, {shop.state}</span>
+                                    <span className={styles.location}>{shop.subdomain}.srpetclube.com.br</span>
                                 </td>
                                 <td>
-                                    <span className={`${styles.statusBadge} ${styles[shop.status]}`}>
-                                        {statusLabels[shop.status]}
+                                    <span className={`${styles.statusBadge} ${shop.is_active ? styles.active : styles.suspended}`}>
+                                        {shop.is_active ? 'Ativo' : 'Inativo'}
                                     </span>
                                 </td>
                                 <td>
-                                    <span className={styles.revenue}>{formatCurrency(shop.total_revenue)}</span>
+                                    <span className={styles.services}>{shop.total_users}</span>
                                 </td>
                                 <td>
-                                    <span className={styles.services}>{shop.total_services}</span>
+                                    <span className={styles.location}>{new Date(shop.created_at).toLocaleDateString()}</span>
                                 </td>
                                 <td>
                                     <div className={styles.actions}>
-                                        <button className={styles.actionBtn} title="Ver detalhes">👁️</button>
-                                        <button className={styles.actionBtn} title="Editar">✏️</button>
-                                        <button className={styles.actionBtn} title="Configurações">⚙️</button>
+                                        <button
+                                            className={styles.actionBtn}
+                                            title={shop.is_active ? 'Desativar Empresa' : 'Ativar Empresa'}
+                                            onClick={() => handleToggleStatus(shop.id, shop.is_active)}
+                                            disabled={actionLoading === shop.id}
+                                            style={{ filter: shop.is_active ? 'hue-rotate(150deg)' : 'none' }} // gambiarra CSS pro botao mudar de cor
+                                        >
+                                            {actionLoading === shop.id ? '⏳' : shop.is_active ? '🚫' : '✅'}
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -290,7 +230,7 @@ export default function AdminPage() {
             {filteredShops.length === 0 && (
                 <div className={styles.emptyState}>
                     <span>🔍</span>
-                    <p>Nenhum pet shop encontrado</p>
+                    <p>Nenhuma empresa encontrada.</p>
                 </div>
             )}
         </div>
