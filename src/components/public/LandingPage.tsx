@@ -14,9 +14,8 @@ export default async function LandingPage() {
             <header className={styles.header}>
                 <div className={styles.container}>
                     <div className={styles.navInner}>
-                        <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Image src="/logo.png" alt="MyPet Flow Icon" width={35} height={35} className={styles.logoImage} priority />
-                            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-navy-dark)', letterSpacing: '-0.5px' }}>MyPet<span style={{ color: 'var(--color-coral)' }}>Flow</span></span>
+                        <div className={styles.logo}>
+                            <Image src="/LOGO-02.png" alt="MyPet Flow" width={180} height={50} className={styles.logoImage} priority />
                         </div>
                         <nav className={styles.desktopNav}>
                             <Link href="#modulos">Módulos</Link>
@@ -51,10 +50,10 @@ export default async function LandingPage() {
                         {/* Decorative Graphic Based on Ref */}
                         <div className={styles.heroGraphics}>
                             <div className={styles.shapeCoral}>
-                                <Image src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" alt="Dog" width={300} height={400} className={styles.petImage1} />
+                                <Image src="https://images.unsplash.com/photo-1537151608804-ea6f112c3f8f?q=80&w=600&auto=format&fit=crop" alt="Dog in Bath" width={300} height={400} className={styles.petImage1} />
                             </div>
                             <div className={styles.shapeSky}>
-                                <Image src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=400&auto=format&fit=crop" alt="Cat" width={200} height={200} className={styles.petImage2} />
+                                <Image src="https://images.unsplash.com/photo-1510771463146-e89e6e86560e?q=80&w=400&auto=format&fit=crop" alt="Dog on Laptop" width={200} height={200} className={styles.petImage2} />
                             </div>
                             <div className={styles.floatingCard}>
                                 <div className={styles.avatarGroup}>
@@ -144,8 +143,8 @@ export default async function LandingPage() {
                     <div className={styles.diffGrid}>
                         <div className={styles.diffImageWrapper}>
                             <Image
-                                src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?q=80&w=800&auto=format&fit=crop"
-                                alt="Dog Looking at Phone"
+                                src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?q=80&w=800&auto=format&fit=crop"
+                                alt="Dog Working"
                                 width={500}
                                 height={600}
                             />
@@ -283,9 +282,8 @@ export default async function LandingPage() {
                 <div className={styles.container}>
                     <div className={styles.footerGrid}>
                         <div className={styles.footerBrand}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.5rem', filter: 'brightness(0) invert(1)' }}>
-                                <Image src="/logo.png" alt="MyPet Flow Icon" width={32} height={32} />
-                                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-navy-dark)', letterSpacing: '-0.5px' }}>MyPet<span style={{ color: 'var(--color-coral)' }}>Flow</span></span>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <Image src="/LOGO-02.png" alt="MyPet Flow" width={180} height={50} />
                             </div>
                             <p>Transformando a gestão de Pet Shops, Clínicas, Creches e Hospedagens com tecnologia feita para quem ama animais.</p>
 
