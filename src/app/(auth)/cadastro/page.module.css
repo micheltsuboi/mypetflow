@@ -16,7 +16,7 @@
     left: -100px;
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(232, 130, 106, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-coral) 0.2, transparent 70%);
     border-radius: 50%;
     filter: blur(80px);
     pointer-events: none;
@@ -29,7 +29,7 @@
     right: -100px;
     width: 250px;
     height: 250px;
-    background: radial-gradient(circle, rgba(140, 180, 201, 0.2) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-sky) 0.2, transparent 70%);
     border-radius: 50%;
     filter: blur(80px);
     pointer-events: none;
@@ -94,7 +94,7 @@
 .title {
     font-size: 2.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #E8826A 0%, #8CB4C9 100%);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -129,7 +129,7 @@
 .card {
     background: rgba(43, 75, 111, 0.4);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(140, 180, 201, 0.15);
+    border: 1px solid var(--border);
     border-radius: 1rem;
     padding: 2rem;
     text-decoration: none;
@@ -145,8 +145,8 @@
 .card:hover {
     transform: translateY(-5px);
     background: rgba(43, 75, 111, 0.6);
-    border-color: rgba(232, 130, 106, 0.5);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(232, 130, 106, 0.15);
+    border-color: var(--color-primary);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px var(--bg-hover);
 }
 
 .cardIcon {
@@ -177,7 +177,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1.25rem;
-    background: rgba(140, 180, 201, 0.1);
+    background: var(--bg-hover);
     border-radius: 2rem;
     font-size: 0.875rem;
     color: var(--text-secondary);
@@ -248,11 +248,12 @@
         transform: translateY(0);
     }
 }
+
 /* Register Form Styles */
 .registerCard {
-    background: rgba(30, 41, 59, 0.7);
+    background: var(--bg-card);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(140, 180, 201, 0.15);
+    border: 1px solid var(--border);
     border-radius: 1.5rem;
     padding: 2.5rem;
     width: 100%;
@@ -260,20 +261,22 @@
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
     animation: fadeIn 0.8s ease-out;
 }
 
 .cardTitle {
     font-size: 1.75rem;
     font-weight: 700;
-    color: white; /* var(--text-primary) */
+    color: white;
+    /* var(--text-primary) */
     text-align: center;
     margin: 0;
 }
 
 .cardSubtitle {
-    color: #94a3b8; /* var(--text-secondary) */
+    color: #94a3b8;
+    /* var(--text-secondary) */
     text-align: center;
     margin: 0;
     font-size: 0.95rem;
@@ -310,7 +313,7 @@
 }
 
 .input:focus {
-    border-color: #8CB4C9; /* sky-blue */
+    border-color: var(--color-sky);
     background: rgba(0, 0, 0, 0.3);
 }
 
@@ -318,7 +321,7 @@
     margin-top: 0.5rem;
     width: 100%;
     padding: 1rem;
-    background: linear-gradient(135deg, #E8826A, #D66D54);
+    background: var(--gradient-primary);
     color: white;
     border: none;
     border-radius: 0.75rem;
@@ -369,7 +372,7 @@
 }
 
 .textLink {
-    color: #8CB4C9;
+    color: var(--color-sky);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
@@ -377,7 +380,7 @@
 }
 
 .textLink:hover {
-    color: #E8826A;
+    color: var(--color-coral);
     text-decoration: underline;
 }
 

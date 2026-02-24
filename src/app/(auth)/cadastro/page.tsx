@@ -41,7 +41,7 @@ export default function CadastroPage() {
                 <footer className={styles.footer} style={{ marginTop: '1rem' }}>
                     <p>
                         Já tem uma conta?{' '}
-                        <Link href="/" style={{ color: 'var(--color-coral, #E8826A)', fontWeight: 600, textDecoration: 'none' }}>
+                        <Link href="/" style={{ color: 'var(--color-coral)', fontWeight: 600, textDecoration: 'none' }}>
                             Faça Login
                         </Link>
                     </p>

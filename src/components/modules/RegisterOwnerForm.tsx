@@ -48,13 +48,13 @@ export default function RegisterOwnerForm() {
                 <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                     <div className={styles.field} style={{ marginBottom: '1rem' }}>
                         <label className={styles.label}>Nome da Empresa</label>
-                        <input name="orgName" type="text" required placeholder="Sr. Pet Clube" className={styles.input} />
+                        <input name="orgName" type="text" required placeholder="MyPet Flow" className={styles.input} />
                     </div>
 
                     <div className={styles.field}>
                         <label className={styles.label}>Subdomínio Desejado</label>
                         <input name="subdomain" type="text" required placeholder="meupetshop" className={styles.input} />
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>O link do seu cliente será: <strong>nome</strong>.srpetclube.com.br</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>O link do seu cliente será: <strong>nome</strong>.mypetflow.com.br</span>
                     </div>
                 </div>
 
@@ -107,7 +107,7 @@ export default function RegisterOwnerForm() {
 
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%', margin: '0.5rem 0' }}></div>
 
-                <Link href="/cadastro" className={styles.backLink} style={{ color: 'var(--color-sky-blue)' }}>
+                <Link href="/cadastro" className={styles.backLink} style={{ color: 'var(--color-sky)' }}>
                     É um Tutor? <strong>Agende um serviço</strong>
                 </Link>
             </div>

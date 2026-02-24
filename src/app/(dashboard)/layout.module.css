@@ -39,7 +39,7 @@
 .logoText {
     font-size: 1.15rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #E8826A, #8CB4C9);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -83,9 +83,9 @@
 }
 
 .navItem.active {
-    background: linear-gradient(135deg, #2B4B6F, #3D6089);
+    background: var(--gradient-navy);
     color: white;
-    box-shadow: 0 4px 10px rgba(43, 75, 111, 0.3);
+    box-shadow: 0 4px 10px rgba(0, 228, 206, 0.2);
 }
 
 .navIcon {
@@ -113,7 +113,7 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 1rem;
-    background: linear-gradient(135deg, #E8826A, #F0A090);
+    background: var(--gradient-primary);
     border: none;
     border-radius: 0.75rem;
     color: white;
@@ -235,7 +235,7 @@
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #E8826A, #8CB4C9);
+    background: var(--gradient-primary);
     display: flex;
     align-items: center;
     justify-content: center;

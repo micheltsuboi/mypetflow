@@ -15,7 +15,7 @@
     left: -100px;
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(232, 130, 106, 0.25) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-coral) 0.25, transparent 70%);
     border-radius: 50%;
     filter: blur(60px);
     animation: float 8s ease-in-out infinite;
@@ -28,7 +28,7 @@
     right: -100px;
     width: 250px;
     height: 250px;
-    background: radial-gradient(circle, rgba(140, 180, 201, 0.25) 0%, transparent 70%);
+    background: radial-gradient(circle, var(--color-sky) 0.25, transparent 70%);
     border-radius: 50%;
     filter: blur(60px);
     animation: float 10s ease-in-out infinite reverse;
@@ -55,9 +55,9 @@
 }
 
 .card {
-    background: rgba(43, 75, 111, 0.5);
+    background: var(--bg-card);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(140, 180, 201, 0.15);
+    border: 1px solid var(--border);
     border-radius: 1.5rem;
     padding: 2.5rem;
     animation: fadeIn 0.4s ease-out;
@@ -92,7 +92,7 @@
 .title {
     font-size: 1.5rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #E8826A, #8CB4C9);
+    background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -128,7 +128,7 @@
     font-size: 1rem;
     color: var(--text-primary);
     background: rgba(27, 45, 66, 0.8);
-    border: 1px solid rgba(140, 180, 201, 0.2);
+    border: 1px solid var(--border);
     border-radius: 0.75rem;
     outline: none;
     transition: all 0.2s ease;
@@ -137,7 +137,7 @@
 .input:focus {
     border-color: var(--color-coral);
     box-shadow: 0 0 0 3px rgba(232, 130, 106, 0.2);
-    background: rgba(27, 45, 66, 1);
+    background: var(--bg-tertiary);
 }
 
 .input::placeholder {
@@ -153,7 +153,7 @@
     font-size: 1rem;
     font-weight: 600;
     color: white;
-    background: linear-gradient(135deg, #E8826A, #F0A090);
+    background: var(--gradient-primary);
     border: none;
     border-radius: 0.75rem;
     cursor: pointer;
@@ -213,7 +213,7 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: rgba(140, 180, 201, 0.2);
+    background: var(--border);
 }
 
 .divider span {
