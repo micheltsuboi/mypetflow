@@ -21,19 +21,31 @@ export async function registerClient(prevState: RegisterState, formData: FormDat
     }
 
     const supabaseAdmin = createAdminClient()
+    const { headers } = await import('next/headers')
+    const host = (await headers()).get('host') || ''
 
-    // 1. Get Default Organization
-    const { data: orgs } = await supabaseAdmin
-        .from('organizations')
-        .select('id')
-        .limit(1)
-        .single()
-
-    if (!orgs) {
-        return { message: 'Erro de configuração do sistema (Organização não encontrada).', success: false }
+    // Lógica de detecção de subdomínio
+    let subdomain = ''
+    if (host.includes('localhost') || host.includes('vercel.app')) {
+        const { data: firstOrg } = await supabaseAdmin.from('organizations').select('subdomain').limit(1).single()
+        subdomain = firstOrg?.subdomain || ''
+    } else {
+        subdomain = host.split('.')[0]
     }
 
-    const orgId = orgs.id
+    // 1. Buscar a Organização pelo subdomínio extraído
+    const { data: org } = await supabaseAdmin
+        .from('organizations')
+        .select('id')
+        .eq('subdomain', subdomain)
+        .eq('is_active', true)
+        .maybeSingle()
+
+    if (!org) {
+        return { message: 'Loja não encontrada ou link inválido.', success: false }
+    }
+
+    const orgId = org.id
 
     // 2. Create Auth User
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

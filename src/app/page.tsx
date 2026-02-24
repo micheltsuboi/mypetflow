@@ -44,23 +44,28 @@ export default function LoginPage() {
             if (!profile) throw new Error('Perfil não encontrado.')
 
             // 3. Redirect based on Role
-            console.log('Login logic - profile role:', profile.role)
-            switch (profile.role) {
-                case 'superadmin':
-                case 'admin':
-                    console.log('Redirecting to /owner')
-                    router.push('/owner')
-                    break
-                case 'staff':
-                    console.log('Redirecting to /staff')
-                    router.push('/staff')
-                    break
-                case 'customer':
-                    router.push('/tutor') // Adjust if needed
-                    break
-                default:
-                    router.push('/owner') // Fallback
+            const role = profile.role
+            console.log('--- LOGIN DEBUG ---')
+            console.log('User ID:', user.id)
+            console.log('Profile Role:', role)
+
+            if (role === 'superadmin') {
+                console.log('Action: Redirecting to /master-admin (Full Refresh)')
+                window.location.href = '/master-admin'
+            } else if (role === 'admin') {
+                console.log('Action: Redirecting to /owner')
+                router.push('/owner')
+            } else if (role === 'staff') {
+                console.log('Action: Redirecting to /staff')
+                router.push('/staff')
+            } else if (role === 'customer') {
+                console.log('Action: Redirecting to /tutor')
+                router.push('/tutor')
+            } else {
+                console.log('Action: Fallback redirect to /owner (Role unknown:', role, ')')
+                router.push('/owner')
             }
+            console.log('-------------------')
 
         } catch (error) {
             console.error('Login error:', error)
@@ -93,7 +98,7 @@ export default function LoginPage() {
                         />
                     </div>
 
-                    <p className={styles.subtitle}>Entre na sua conta</p>
+                    <p className={styles.subtitle}>Entre na sua conta (v1.1)</p>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} className={styles.form}>

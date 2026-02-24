@@ -46,19 +46,32 @@ export default function AdminPage() {
         const checkAuth = async () => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) {
+                console.log('Master Admin Check: No user found')
                 router.push('/')
                 return
             }
 
-            const { data: profile } = await supabase
+            console.log('Master Admin Check: User authenticated', user.id)
+
+            const { data: profile, error: profileError } = await supabase
                 .from('profiles')
                 .select('role, org_id')
                 .eq('id', user.id)
-                .single()
+                .maybeSingle()
 
-            // Apenas superadmins (que tem null ou sem org específica se configurado) acessam
-            // Para garantir: verifique console de logs pra role 'superadmin'
+            if (profileError) {
+                console.error('Master Admin Check: Database Error', profileError)
+                // Não redirecionar se for apenas erro de rede temporário, talvez tentar recarregar?
+                // Mas por segurança, se não confirmar superadmin, manda pro owner
+                router.push('/owner')
+                return
+            }
+
+            console.log('Master Admin Check: Profile role found:', profile?.role)
+
+            // Apenas superadmins acessam
             if (!profile || profile.role !== 'superadmin') {
+                console.warn('Master Admin Check: Access denied. Profile:', profile)
                 router.push('/owner')
                 return
             }
@@ -195,7 +208,7 @@ export default function AdminPage() {
                                     </div>
                                 </td>
                                 <td>
-                                    <span className={styles.location}>{shop.subdomain}.srpetclube.com.br</span>
+                                    <span className={styles.location}>{shop.subdomain}.mypetflow.com.br</span>
                                 </td>
                                 <td>
                                     <span className={`${styles.statusBadge} ${shop.is_active ? styles.active : styles.suspended}`}>
