@@ -121,12 +121,13 @@ export async function createTenant(formData: FormData) {
         return { success: false, message: 'Erro ao criar usuário admin: ' + authError.message }
     }
 
-    // 3. Criar Perfil do Admin
+    // 3. Criar Perfil do Admin (Usamos upsert caso a trigger do banco já tenha criado o perfil)
     const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .insert({
+        .upsert({
             id: authUser.user.id,
             full_name: adminName,
+            email: adminEmail,
             role: 'admin',
             org_id: org.id,
             is_active: true

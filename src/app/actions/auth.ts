@@ -77,13 +77,14 @@ export async function registerClient(prevState: RegisterState, formData: FormDat
     // Safe way: Upsert or Update.
     const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .update({
+        .upsert({
+            id: newUser.user.id,
             role: 'customer',
             org_id: orgId,
             full_name: name,
+            email: email,
             phone: phone
         })
-        .eq('id', newUser.user.id)
 
     if (profileError) {
         // Cleanup

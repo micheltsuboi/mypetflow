@@ -77,13 +77,14 @@ export async function registerOwner(prevState: RegisterOwnerState, formData: For
     // 4. Atualizar Profile gerado pela trigger: setar como admin vinculado à nova org
     const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .update({
+        .upsert({
+            id: newUser.user.id,
             role: 'admin',
             org_id: newOrg.id,
             full_name: fullName,
+            email: email,
             phone: phone
         })
-        .eq('id', newUser.user.id)
 
     if (profileError) {
         // Rollback
