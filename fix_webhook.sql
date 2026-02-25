@@ -8,7 +8,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_payload JSONB;
-    v_app_url TEXT := 'https://mypetflow.com.br';
+    v_app_url TEXT := 'https://mypetflow.vercel.app';
     v_secret TEXT := 'mypetflow_n8n_secret_2026';
     v_request_id BIGINT;
 BEGIN
