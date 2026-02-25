@@ -57,7 +57,7 @@ export default async function LandingPage() {
                         {/* Decorative Graphic Based on Ref */}
                         <div className={styles.heroGraphics}>
                             <div className={styles.shapeCoral}>
-                                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" alt="Dog in Bath" className={styles.petImage1} />
+                                <img src="/hero-dog-bath.jpg" alt="Border Collie Bath" className={styles.petImage1} />
                             </div>
                             <div className={styles.shapeSky}>
                                 <img src="https://images.unsplash.com/photo-1510771463146-e89e6e86560e?q=80&w=400&auto=format&fit=crop" alt="Dog on Laptop" className={styles.petImage2} />
@@ -150,8 +150,8 @@ export default async function LandingPage() {
                     <div className={styles.diffGrid}>
                         <div className={styles.diffImageWrapper}>
                             <img
-                                src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?q=80&w=800&auto=format&fit=crop"
-                                alt="Dog Working"
+                                src="/wa-dog-phone.jpg"
+                                alt="Pomeranian with Phone"
                             />
                             <div className={styles.whatsappMockup}>
                                 {/* Chat Header */}
