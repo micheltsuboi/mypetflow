@@ -428,9 +428,22 @@
     align-items: center;
     justify-content: center;
     margin-bottom: 1.5rem;
-    padding: 2rem;
     position: relative;
     overflow: hidden;
+}
+
+.moduleImage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s ease;
+}
+
+.moduleCard:hover .moduleImage {
+    transform: scale(1.08);
 }
 
 /* Modern glassmorphism shape */

@@ -89,7 +89,7 @@ export default async function LandingPage() {
                         {/* Module Card 1 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgCoral}`}>
-                                <div className={styles.moduleIcon}><Droplet size={48} strokeWidth={1.5} color="var(--color-coral)" /></div>
+                                <img src="/module-banho.jpg" alt="Banho e Tosa" className={styles.moduleImage} />
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Banho e Tosa</h3>
@@ -100,7 +100,7 @@ export default async function LandingPage() {
                         {/* Module Card 2 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgSky}`}>
-                                <div className={styles.moduleIcon}><Home size={48} strokeWidth={1.5} color="var(--color-sky)" /></div>
+                                <img src="/module-creche.jpg" alt="Creche & Hospedagem" className={styles.moduleImage} />
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Creche & Hospedagem</h3>
@@ -111,7 +111,7 @@ export default async function LandingPage() {
                         {/* Module Card 3 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgNavy}`}>
-                                <div className={styles.moduleIcon}><Calendar size={48} strokeWidth={1.5} color="white" /></div>
+                                <img src="/module-agenda.jpg" alt="Agenda Inteligente" className={styles.moduleImage} />
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Agenda Inteligente</h3>
@@ -122,7 +122,7 @@ export default async function LandingPage() {
                         {/* Module Card 4 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgCoralLight}`}>
-                                <div className={styles.moduleIcon}><Store size={48} strokeWidth={1.5} color="var(--color-coral)" /></div>
+                                <img src="/module-store.jpg" alt="PDV & Estoque" className={styles.moduleImage} />
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>PDV & Estoque</h3>
@@ -133,7 +133,7 @@ export default async function LandingPage() {
                         {/* Module Card 5 */}
                         <div className={styles.moduleCard}>
                             <div className={`${styles.moduleShape} ${styles.bgSkyLight}`}>
-                                <div className={styles.moduleIcon}><PieChart size={48} strokeWidth={1.5} color="var(--color-sky)" /></div>
+                                <img src="/module-finance.jpg" alt="Financeiro Automático" className={styles.moduleImage} />
                             </div>
                             <div className={styles.moduleInfo}>
                                 <h3>Financeiro Automático</h3>
