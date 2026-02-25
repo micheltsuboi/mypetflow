@@ -56,11 +56,9 @@ export default async function LandingPage() {
 
                         {/* Decorative Graphic Based on Ref */}
                         <div className={styles.heroGraphics}>
-                            <div className={styles.shapeCoral}>
-                                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" alt="Dog in Bath" className={styles.petImage1} />
-                            </div>
-                            <div className={styles.shapeSky}>
-                                <img src="https://images.unsplash.com/photo-1510771463146-e89e6e86560e?q=80&w=400&auto=format&fit=crop" alt="Dog on Laptop" className={styles.petImage2} />
+                            <div className={styles.heroPopOut}>
+                                <div className={styles.heroShape}></div>
+                                <img src="/anexo3.png" alt="Happy Pet jumping out" className={styles.heroPopImage} />
                             </div>
                             <div className={styles.floatingCard}>
                                 <div className={styles.avatarGroup}>
@@ -149,10 +147,10 @@ export default async function LandingPage() {
                 <div className={styles.container}>
                     <div className={styles.diffGrid}>
                         <div className={styles.diffImageWrapper}>
-                            <img
-                                src="https://images.unsplash.com/photo-1555685812-4b943f1cb0eb?q=80&w=800&auto=format&fit=crop"
-                                alt="Dog Working"
-                            />
+                            <div className={styles.waPopOut}>
+                                <div className={styles.waShape}></div>
+                                <img src="/anexo4.jpg" alt="Spitz with Phone" className={styles.waPopImage} />
+                            </div>
                             <div className={styles.whatsappMockup}>
                                 {/* Chat Header */}
                                 <div className={styles.waHeader}>
