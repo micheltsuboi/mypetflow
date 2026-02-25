@@ -305,7 +305,12 @@ export default function BookingPage() {
 
             if (!customerData) throw new Error('Dados do tutor não encontrados.')
 
-            const scheduledAt = new Date(`${selectedDate}T${selectedTime}:00-03:00`).toISOString()
+            const scheduledAtString = `${selectedDate}T${selectedTime}:00-03:00`
+            // Validate the date was constructed properly
+            const dateObj = new Date(scheduledAtString)
+            if (isNaN(dateObj.getTime())) throw new Error(`Data/hora inválida: ${scheduledAtString}`)
+
+            const scheduledAt = dateObj.toISOString()
 
             const { error: insertError } = await supabase
                 .from('appointments')
@@ -385,7 +390,7 @@ export default function BookingPage() {
                         </div>
                         <div className={styles.confirmRow}>
                             <span>Data:</span>
-                            <strong>{new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', {
+                            <strong>{new Date(`${selectedDate}T12:00:00`).toLocaleDateString('pt-BR', {
                                 weekday: 'long',
                                 day: '2-digit',
                                 month: 'long'
