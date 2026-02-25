@@ -221,11 +221,11 @@ export async function checkoutCart(checkoutData: CheckoutData) {
             .select('*')
             .eq('org_id', profile.org_id);
 
-        // Coeficiente de desconto global: se houver desconto no total da venda,
-        // o cashback deve ser calculado sobre o valor proporcional de cada item.
+        // Coeficiente de desconto global: se houver desconto no total da venda ou uso de cashback,
+        // o novo cashback deve ser calculado apenas sobre o montante pagar em dinheiro/cartão.
         const totalAfterItemDiscounts = checkoutData.cartItems.reduce((acc, item) => acc + item.total_price, 0);
         const globalDiscountCoefficient = totalAfterItemDiscounts > 0
-            ? (checkoutData.finalTotal + (checkoutData.cashbackUsed || 0)) / totalAfterItemDiscounts
+            ? checkoutData.finalTotal / totalAfterItemDiscounts
             : 1;
 
         for (const item of checkoutData.cartItems) {
