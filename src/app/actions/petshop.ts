@@ -132,6 +132,16 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                     updated_at: new Date().toISOString()
                 })
                 .eq('tutor_id', checkoutData.customerId);
+
+            // 1.1 Registrar histórico de uso
+            await supabase.from('cashback_history').insert({
+                org_id: profile.org_id,
+                tutor_id: checkoutData.customerId,
+                order_id: null,
+                type: 'spend',
+                amount: checkoutData.cashbackUsed,
+                description: `Resgate de cashback na venda`
+            });
         }
 
         // 2. Se status for 'paid', criar Financial Transaction única
@@ -173,6 +183,16 @@ export async function checkoutCart(checkoutData: CheckoutData) {
             .single()
 
         if (orderError) throw orderError
+
+        // Atualizar histórico de uso com o order_id real
+        if (checkoutData.cashbackUsed && checkoutData.cashbackUsed > 0 && checkoutData.customerId) {
+            await supabase
+                .from('cashback_history')
+                .update({ order_id: orderData.id })
+                .eq('order_id', null) // Tentar achar o log recém criado
+                .eq('tutor_id', checkoutData.customerId)
+                .eq('type', 'spend');
+        }
 
         // 4. Inserir Order Items e atualizar Estoque
         const itemsToInsert = checkoutData.cartItems.map(item => ({
@@ -289,6 +309,16 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                         updated_at: new Date().toISOString()
                     })
             }
+
+            // 3. Registrar histórico de acúmulo
+            await supabase.from('cashback_history').insert({
+                org_id: profile.org_id,
+                tutor_id: checkoutData.customerId,
+                order_id: orderData.id,
+                type: 'earn',
+                amount: earnedCashback,
+                description: `Acúmulo de cashback da venda`
+            });
         }
 
         revalidatePath('/owner/petshop')
