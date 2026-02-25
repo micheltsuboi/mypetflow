@@ -605,6 +605,10 @@ export default function PetshopPage() {
                                 </div>
                                 <div className={styles.row}>
                                     <div className={styles.col}>
+                                        <label className={styles.label}>Preço Custo (R$)</label>
+                                        <input className={styles.input} type="number" step="0.01" value={formData.cost_price} onChange={e => setFormData({ ...formData, cost_price: parseFloat(e.target.value) })} />
+                                    </div>
+                                    <div className={styles.col}>
                                         <label className={styles.label}>Preço Venda (R$)</label>
                                         <input className={styles.input} type="number" step="0.01" required value={formData.selling_price} onChange={e => setFormData({ ...formData, selling_price: parseFloat(e.target.value) })} />
                                     </div>
@@ -612,12 +616,26 @@ export default function PetshopPage() {
                                         <label className={styles.label}>Estoque</label>
                                         <input className={styles.input} type="number" required value={formData.stock_quantity} onChange={e => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) })} />
                                     </div>
+                                </div>
+                                <div className={styles.row}>
                                     <div className={styles.col}>
                                         <label className={styles.label}>Categoria</label>
                                         <select className={styles.select} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
                                             {categories.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
                                         </select>
                                     </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Código de Barras</label>
+                                        <input className={styles.input} type="text" value={formData.bar_code} onChange={e => setFormData({ ...formData, bar_code: e.target.value })} />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Validade</label>
+                                        <input className={styles.input} type="date" value={formData.expiration_date} onChange={e => setFormData({ ...formData, expiration_date: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Descrição</label>
+                                    <textarea className={styles.input} rows={3} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                                 </div>
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
                                     <button type="submit" className={styles.submitButton} style={{ width: 'auto' }}>Salvar</button>
