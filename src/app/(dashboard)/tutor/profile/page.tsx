@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
 import ImageUpload from '@/components/ImageUpload'
+import { maskPhone } from '@/utils/masks'
+
 
 interface Profile {
     id: string
@@ -48,8 +50,9 @@ export default function TutorProfilePage() {
                     setProfile(data)
                     setFormData({
                         full_name: data.full_name || '',
-                        phone: data.phone || '',
+                        phone: maskPhone(data.phone || ''),
                         avatar_url: data.avatar_url || null
+
                     })
                 }
             } catch (error) {
@@ -168,8 +171,9 @@ export default function TutorProfilePage() {
                             type="text"
                             placeholder="(00) 00000-0000"
                             value={formData.phone}
-                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                            onChange={e => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                             className={styles.input}
+                            maxLength={15}
                         />
                     </div>
 

@@ -5,11 +5,15 @@ import { registerClient } from '@/app/actions/auth'
 import styles from '@/app/page.module.css'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { maskPhone } from '@/utils/masks'
+
 
 export default function RegisterForm({ orgId }: { orgId?: string }) {
     const [loading, setLoading] = useState(false)
     const [msg, setMsg] = useState('')
     const [isSuccess, setIsSuccess] = useState(false)
+    const [phone, setPhone] = useState('')
+
     const router = useRouter()
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -56,7 +60,16 @@ export default function RegisterForm({ orgId }: { orgId?: string }) {
 
             <div className={styles.field}>
                 <label className={styles.label}>Telefone / WhatsApp</label>
-                <input name="phone" type="tel" required placeholder="(11) 99999-9999" className={styles.input} />
+                <input
+                    name="phone"
+                    type="tel"
+                    required
+                    placeholder="(11) 99999-9999"
+                    className={styles.input}
+                    value={phone}
+                    onChange={(e) => setPhone(maskPhone(e.target.value))}
+                    maxLength={15}
+                />
             </div>
 
             <div className={styles.field}>

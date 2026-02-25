@@ -6,6 +6,8 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 import PlanGuard from '@/components/modules/PlanGuard'
+import { maskPhone } from '@/utils/masks'
+
 
 interface Customer {
     id: string
@@ -33,6 +35,8 @@ export default function TutorsPage() {
     const [showModal, setShowModal] = useState(false)
     const [selectedTutor, setSelectedTutor] = useState<Customer | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [phone, setPhone] = useState('')
+
 
     // Server Action States
     const [createState, createAction, isCreatePending] = useActionState(createTutor, initialState)
@@ -105,13 +109,17 @@ export default function TutorsPage() {
 
     const handleRowClick = (tutor: Customer) => {
         setSelectedTutor(tutor)
+        setPhone(maskPhone(tutor.phone_1 || ''))
         setShowModal(true)
     }
 
+
     const handleNewTutor = () => {
         setSelectedTutor(null)
+        setPhone('')
         setShowModal(true)
     }
+
 
     const handleDelete = async () => {
         if (!selectedTutor) return
@@ -281,7 +289,9 @@ export default function TutorsPage() {
                                         <input
                                             id="phone" name="phone" type="tel" className={styles.input} required
                                             placeholder="(11) 99999-9999"
-                                            defaultValue={selectedTutor?.phone_1 || ''}
+                                            value={phone}
+                                            onChange={(e) => setPhone(maskPhone(e.target.value))}
+                                            maxLength={15}
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
