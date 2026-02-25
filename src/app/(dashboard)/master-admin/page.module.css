@@ -291,12 +291,103 @@
 }
 
 /* Responsive */
+/* Responsive Table Cards for Mobile */
 @media (max-width: 768px) {
     .tableContainer {
-        overflow-x: auto;
+        border: none;
+        background: transparent;
+        overflow-x: visible;
+        padding: 0;
     }
 
-    .table {
-        min-width: 700px;
+    .table,
+    .table tbody,
+    .table tr,
+    .table td {
+        display: block;
+        width: 100%;
     }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tr {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        text-align: right;
+    }
+
+    .table td:first-child {
+        border-top: none;
+        padding-top: 0;
+    }
+
+    .table td:last-child {
+        padding-bottom: 0;
+        justify-content: flex-end;
+        /* Ações à direita ou centro */
+    }
+
+    .table td::before {
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+
+    /* Labels for mobile */
+    .table td:nth-child(1)::before {
+        content: "Pet Shop / Empresa";
+    }
+
+    .table td:nth-child(2)::before {
+        content: "Subdomínio";
+    }
+
+    .table td:nth-child(3)::before {
+        content: "Plano";
+    }
+
+    .table td:nth-child(4)::before {
+        content: "Status";
+    }
+
+    .table td:nth-child(5)::before {
+        content: "Usuários";
+    }
+
+    .table td:nth-child(6)::before {
+        content: "Criado Em";
+    }
+
+    .table td:nth-child(7)::before {
+        content: "Ações";
+        display: none;
+    }
+}
+
+.planBadge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    background: rgba(140, 180, 201, 0.15);
+    color: var(--color-sky, #8CB4C9);
+    border: 1px solid rgba(140, 180, 201, 0.3);
+    letter-spacing: 0.5px;
 }

@@ -140,7 +140,7 @@ export default function ClientesPage() {
                                     <span className={styles.location}>{shop.subdomain}.mypetflow.com.br</span>
                                 </td>
                                 <td>
-                                    <span className={styles.planBadge} style={{ background: 'var(--gradient-primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+                                    <span className={styles.planBadge}>
                                         {shop.plan_name || 'Sem Plano'}
                                     </span>
                                 </td>
