@@ -22,7 +22,7 @@ export default async function LandingPage() {
                 <div className={styles.container}>
                     <div className={styles.navInner}>
                         <div className={styles.logo}>
-                            <Image src="/LOGO-02.png" alt="MyPet Flow" width={180} height={50} className={styles.logoImage} priority />
+                            <Image src="/LOGO-02.png" alt="MyPet Flow" width={300} height={80} style={{ width: '220px', height: 'auto', objectFit: 'contain' }} priority />
                         </div>
                         <nav className={styles.desktopNav}>
                             <Link href="#modulos">Módulos</Link>
@@ -288,7 +288,7 @@ export default async function LandingPage() {
                     <div className={styles.footerGrid}>
                         <div className={styles.footerBrand}>
                             <div style={{ marginBottom: '1.5rem' }}>
-                                <Image src="/LOGO-02.png" alt="MyPet Flow" width={180} height={50} />
+                                <Image src="/LOGO-02.png" alt="MyPet Flow" width={300} height={80} style={{ width: '200px', height: 'auto', objectFit: 'contain' }} />
                             </div>
                             <p>Transformando a gestão de Pet Shops, Clínicas, Creches e Hospedagens com tecnologia feita para quem ama animais.</p>
 
