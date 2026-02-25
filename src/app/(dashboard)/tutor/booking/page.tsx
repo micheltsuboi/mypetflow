@@ -331,7 +331,9 @@ export default function BookingPage() {
             setBookingComplete(true)
         } catch (err: any) {
             console.error('Error creating appointment:', err)
-            setError(err.message || 'Ocorreu um erro ao realizar o agendamento.')
+            const errorDetails = err.message ? err.message : ''
+            const fullError = Object.keys(err).length > 0 ? JSON.stringify(err) : String(err)
+            setError(`Erro ao agendar: ${errorDetails} ${fullError}`)
         } finally {
             setSubmitting(false)
         }
