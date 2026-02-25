@@ -342,6 +342,36 @@ export interface OrderItem {
     created_at: string
 }
 
+// =====================================================
+// Cashback Types
+// =====================================================
+
+/**
+ * Represents the cashback balance for a tutor.
+ */
+export interface Cashback {
+    id: string;
+    tutor_id: string;
+    balance: number;
+    updated_at: string;
+}
+
+/**
+ * Rule that defines how cashback is generated.
+ * type: 'product' or 'category'
+ * target_id: id of the product or category
+ */
+export interface CashbackRule {
+    id: string;
+    org_id: string;
+    type: 'product' | 'category';
+    target_id: string;
+    percent: number; // percentage of the product price to credit as cashback
+    valid_until?: string | null;
+    created_by: string;
+    created_at: string;
+}
+
 export interface ProductFormData {
     name: string
     category: string

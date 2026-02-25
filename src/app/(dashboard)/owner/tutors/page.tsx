@@ -34,7 +34,8 @@ export default function TutorsPage() {
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [selectedTutor, setSelectedTutor] = useState<Customer | null>(null)
-    const [searchTerm, setSearchTerm] = useState('')
+    const [searchTerm, setSearchTerm] = useState('');
+    const [cashbacks, setCashbacks] = useState<Record<string, number>>({});
     const [phone, setPhone] = useState('')
 
 
@@ -72,7 +73,22 @@ export default function TutorsPage() {
             const { data, error } = await query
 
             if (error) throw error
-            if (data) setTutors(data)
+            if (data) {
+                setTutors(data)
+                // Fetch cashbacks for these tutors
+                const tutorIds = data.map(t => t.id)
+                const { data: cbData, error: cbError } = await supabase
+                    .from('cashbacks')
+                    .select('tutor_id, balance')
+                    .in('tutor_id', tutorIds)
+                if (!cbError && cbData) {
+                    const map: Record<string, number> = {}
+                    cbData.forEach((c: any) => {
+                        map[c.tutor_id] = Number(c.balance)
+                    })
+                    setCashbacks(map)
+                }
+            }
         } catch (error) {
             console.error('Erro ao buscar tutores:', error)
         } finally {
