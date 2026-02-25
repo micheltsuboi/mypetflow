@@ -1,0 +1,201 @@
+{
+    "name": "🐾 Pet Flow - Lembrete 24h",
+    "nodes": [
+        {
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "hours",
+                            "hoursInterval": 1
+                        }
+                    ]
+                }
+            },
+            "id": "cron-lembrete",
+            "name": "Cron - A cada 1 hora",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "GET",
+                "url": "https://knwxgwklpbykmnzlbhpk.supabase.co/rest/v1/appointments",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtud3hnd2tscGJ5a21uemxiaHBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkyNDM5NSwiZXhwIjoyMDg3NTAwMzk1fQ.2t1MjHxS9SCbVLB7C0GyuzdQyrDhbmN4W2OEKnVvKMM"
+                        },
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtud3hnd2tscGJ5a21uemxiaHBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkyNDM5NSwiZXhwIjoyMDg3NTAwMzk1fQ.2t1MjHxS9SCbVLB7C0GyuzdQyrDhbmN4W2OEKnVvKMM"
+                        }
+                    ]
+                },
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "select",
+                            "value": "id,scheduled_at,status,pets(name),services(name),customers(name,phone_1)"
+                        },
+                        {
+                            "name": "status",
+                            "value": "in.pending,confirmed"
+                        },
+                        {
+                            "name": "scheduled_at",
+                            "value": "gte.{{ new Date(Date.now() + 23*3600000).toISOString() }}&scheduled_at=lte.{{ new Date(Date.now() + 25*3600000).toISOString() }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "fetch-appointments",
+            "name": "Buscar Agendamentos 24h",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {},
+                    "conditions": [
+                        {
+                            "id": "has-phone",
+                            "leftValue": "={{ $json.customers?.phone_1 }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "string",
+                                "operation": "notEmpty"
+                            }
+                        }
+                    ]
+                }
+            },
+            "id": "if-has-phone",
+            "name": "Tem Telefone?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                760,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const appt = $json;\nconst pet = appt.pets?.name || 'seu pet';\nconst service = appt.services?.name || 'serviço';\nconst scheduledAt = new Date(appt.scheduled_at);\nconst time = scheduledAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });\nconst date = scheduledAt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst phone = (appt.customers?.phone_1 || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🐾 *Lembrete de Agendamento!*\\n\\nOlá! Passando para lembrar que amanhã, *${date}* às *${time}*, o *${pet}* tem horário de *${service}* agendado conosco.\\n\\nTe esperamos! 📅✨`\n  }\n}];"
+            },
+            "id": "montar-lembrete",
+            "name": "Montar Lembrete",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1020,
+                180
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Client-Token",
+                            "value": "945E1301884A1F957BA8EF84"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{ $json.phone }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $json.message }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "zapi-lembrete",
+            "name": "Z-API: Enviar Lembrete",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1280,
+                180
+            ]
+        }
+    ],
+    "connections": {
+        "Cron - A cada 1 hora": {
+            "main": [
+                [
+                    {
+                        "node": "Buscar Agendamentos 24h",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Buscar Agendamentos 24h": {
+            "main": [
+                [
+                    {
+                        "node": "Tem Telefone?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Tem Telefone?": {
+            "main": [
+                [
+                    {
+                        "node": "Montar Lembrete",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Montar Lembrete": {
+            "main": [
+                [
+                    {
+                        "node": "Z-API: Enviar Lembrete",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

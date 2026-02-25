@@ -1,0 +1,130 @@
+{
+    "name": "🐾 Pet Flow - Agendamento Confirmado",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "pet-agendamento",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-agendamento",
+            "name": "Webhook - Agendamento",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "pet-agendamento"
+        },
+        {
+            "parameters": {
+                "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst date = $json.formattedDate || '';\nconst time = $json.formattedTime || '';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `📅 *Agendamento Confirmado!*\\n\\n🐾 Pet: *${pet}*\\n✂️ Serviço: *${service}*\\n📆 Data: *${date}* às *${time}*\\n\\nEstamos te esperando! Qualquer dúvida, é só chamar. 🐶`\n  }\n}];"
+            },
+            "id": "msg-agendamento",
+            "name": "Montar Mensagem",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                500,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Client-Token",
+                            "value": "945E1301884A1F957BA8EF84"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{ $json.phone }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $json.message }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "zapi-agendamento",
+            "name": "Z-API: Enviar Confirmação",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                760,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "ok",
+                "options": {}
+            },
+            "id": "respond",
+            "name": "Respond",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1020,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Agendamento": {
+            "main": [
+                [
+                    {
+                        "node": "Montar Mensagem",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Montar Mensagem": {
+            "main": [
+                [
+                    {
+                        "node": "Z-API: Enviar Confirmação",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Z-API: Enviar Confirmação": {
+            "main": [
+                [
+                    {
+                        "node": "Respond",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
