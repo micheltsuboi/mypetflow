@@ -167,8 +167,11 @@
 }
 
 .ruleMeta {
-    font-size: 0.8rem;
-    color: #64748b;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 .deleteBtn {
@@ -231,18 +234,24 @@
 }
 
 .badgeCategory {
-    background: #e0f2fe;
-    color: #0369a1;
+    background: rgba(0, 180, 216, 0.15);
+    color: #00b4d8;
+    /* Sky Blue */
+    border: 1px solid rgba(0, 180, 216, 0.3);
 }
 
 .badgeProduct {
-    background: #fdf2f8;
-    color: #9d174d;
+    background: rgba(238, 108, 77, 0.15);
+    color: #ee6c4d;
+    /* Coral */
+    border: 1px solid rgba(238, 108, 77, 0.3);
 }
 
 .percentBadge {
-    background: #f0fdf4;
-    color: #166534;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
     font-weight: 700;
 }
 
