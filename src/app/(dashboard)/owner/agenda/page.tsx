@@ -1,8 +1,8 @@
 'use client'
 /* eslint-disable react-hooks/exhaustive-deps */
 
-import { useState, useEffect, useCallback, useActionState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, useActionState, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -98,9 +98,11 @@ function normalizeChecklist(raw: any[] | undefined): { text: string, completed: 
 
 const initialState = { message: '', success: false }
 
-export default function AgendaPage() {
+function AgendaContent() {
     const supabase = createClient()
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const initializedFromURL = useRef(false)
 
     // Data State
     const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -140,6 +142,22 @@ export default function AgendaPage() {
     // Checklist State
     const [currentChecklist, setCurrentChecklist] = useState<any[]>([])
 
+    // URL Params init
+    useEffect(() => {
+        if (!initializedFromURL.current && searchParams) {
+            const mode = searchParams.get('mode')
+            const pId = searchParams.get('petId')
+            const cat = searchParams.get('category')
+
+            if (mode === 'new') {
+                if (pId) setPreSelectedPetId(pId)
+                if (cat) setCategoryFilter(cat)
+                setShowNewModal(true)
+            }
+            initializedFromURL.current = true
+        }
+    }, [searchParams])
+
     // Validation State
     const [bookingError, setBookingError] = useState<string | null>(null)
 
@@ -167,13 +185,15 @@ export default function AgendaPage() {
             if (pets.length === 0) {
                 const { data: p } = await supabase.from('pets').select('id, name, species, breed, customers!inner(name, org_id), perfume_allowed, accessories_allowed, special_care, is_adapted').eq('customers.org_id', profile.org_id).order('name')
                 if (p) setPets(p as any)
-
-                const { data: s } = await supabase
+            }
+            if (services.length === 0) {
+                const { data: s, error: sErr } = await supabase
                     .from('services')
                     .select('id, name, duration_minutes, base_price, category_id, target_species, scheduling_rules, service_categories (id, name, color, icon)')
                     .eq('org_id', profile.org_id)
                     .order('name')
 
+                if (sErr) console.error('[Agenda] Error fetching services:', sErr)
                 if (s) setServices(s as unknown as Service[])
             }
 
@@ -889,7 +909,9 @@ export default function AgendaPage() {
                                     >
                                         <option value="" disabled>Selecione...</option>
                                         {Object.entries(services.reduce((acc, s) => {
-                                            const cat = s.service_categories?.name || 'Outros'
+                                            const sc = (s as any).service_categories
+                                            const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                            const cat = catName || 'Outros'
                                             if (!acc[cat]) acc[cat] = []
                                             acc[cat].push(s)
                                             return acc
@@ -1136,5 +1158,13 @@ export default function AgendaPage() {
                 }
             </div >
         </PlanGuard>
+    )
+}
+
+export default function AgendaPage() {
+    return (
+        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Carregando agenda...</div>}>
+            <AgendaContent />
+        </Suspense>
     )
 }
