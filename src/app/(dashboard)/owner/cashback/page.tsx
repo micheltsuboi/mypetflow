@@ -55,8 +55,8 @@ export default function CashbackManagementPage() {
             setHistory(historyData)
 
             // Calculate Stats
-            const earned = historyData.filter(h => h.type === 'earn').reduce((acc, current) => acc + Number(current.amount), 0)
-            const spent = historyData.filter(h => h.type === 'spend').reduce((acc, current) => acc + Number(current.amount), 0)
+            const earned = historyData?.filter(h => h.type === 'earn').reduce((acc, current) => acc + Number(current.amount), 0) || 0
+            const spent = historyData?.filter(h => h.type === 'spend').reduce((acc, current) => acc + Number(current.amount), 0) || 0
             const currentBalance = balances?.reduce((acc, current) => acc + Number(current.balance), 0) || 0
 
             setStats({

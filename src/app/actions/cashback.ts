@@ -131,7 +131,7 @@ export async function getCashbackHistory(orgId: string) {
         .from('cashback_history')
         .select(`
             *,
-            customers(name)
+            customers!cashback_history_tutor_id_fkey(name)
         `)
         .eq('org_id', orgId)
         .order('created_at', { ascending: false });
