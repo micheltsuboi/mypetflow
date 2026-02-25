@@ -235,15 +235,16 @@ export default function DashboardLayout({
 
             {/* Sidebar */}
             <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
-                <div className={styles.logo}>
+                <div className={styles.logo} style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                     <Image
-                        src="/logo.png"
+                        src="/LOGO-02.png"
                         alt="MyPet Flow"
-                        width={48}
-                        height={48}
+                        width={180}
+                        height={40}
                         className={styles.logoImage}
+                        style={{ objectFit: 'contain', width: '80%', height: 'auto', filter: 'brightness(0) invert(1)' }}
+                        priority
                     />
-                    <span className={styles.logoText}>MyPet Flow</span>
                     <button
                         className={styles.closeMenu}
                         onClick={() => setIsSidebarOpen(false)}
