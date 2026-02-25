@@ -98,16 +98,30 @@ export async function POST(req: NextRequest) {
 
     // 4. Forward to N8N
     try {
-        const n8nResponse = await fetch(`${N8N_BASE_URL}${webhookPath}`, {
+        const n8nUrlObj = new URL(`${N8N_BASE_URL}${webhookPath}`)
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        }
+
+        // If the N8N URL contains Basic Auth credentials, we MUST manually inject them into headers
+        if (n8nUrlObj.username && n8nUrlObj.password) {
+            const encodedAuth = Buffer.from(`${n8nUrlObj.username}:${n8nUrlObj.password}`).toString('base64')
+            headers['Authorization'] = `Basic ${encodedAuth}`
+            // clean url without credentials for fetch 
+            n8nUrlObj.username = ''
+            n8nUrlObj.password = ''
+        }
+
+        const n8nResponse = await fetch(n8nUrlObj.toString(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify(enrichedPayload),
         })
 
         const n8nText = await n8nResponse.text()
         console.log(`[N8N Trigger] Called ${webhookPath} → ${n8nResponse.status}: ${n8nText}`)
 
-        return NextResponse.json({ ok: true, n8nStatus: n8nResponse.status })
+        return NextResponse.json({ ok: true, n8nStatus: n8nResponse.status, n8nText })
     } catch (error) {
         console.error('[N8N Trigger] Error calling N8N:', error)
         return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
