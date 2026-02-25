@@ -198,9 +198,7 @@ export default function DashboardLayout({
     }
 
     // Aplicação da Restrição do PLANO SAAS (Para Owner e Staff)
-    // Se a organização tem um plano definido, limitamos o que pode ser visto.
-    // Se não tiver plano definido (planFeatures empty), no momento vamos assumir acesso total (legacy)
-    // Ou podemos forçar restrição se preferir. Aqui assumiremos permissão caso não haja plano.
+    // Se a organização não tem um plano definido (planFeatures empty), o acesso é bloqueado.
     if ((isOwner || pathname === '/staff') && user?.role !== 'Super Admin') {
         const hasPlanDefined = user?.planFeatures && user.planFeatures.length > 0;
 
@@ -222,8 +220,12 @@ export default function DashboardLayout({
                 if (item.name === 'Pacotes') return planFeat.includes('pacotes')
                 if (item.name === 'Questionário') return planFeat.includes('pets')
                 if (item.name === 'Ponto') return planFeat.includes('ponto')
-                return true; // Fallback para itens não previstos no bloqueio rigoroso
+                return false;
             })
+        } else if (user) {
+            // Se o usuário está logado mas não há plano definido, limpamos a navegação
+            // Exceto uma mensagem indicativa.
+            navigation = [{ name: 'Plano Requerido', href: '#', icon: '🚫' }]
         }
     }
 

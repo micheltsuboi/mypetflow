@@ -97,7 +97,11 @@ export async function createTenant(formData: FormData) {
     const adminEmail = formData.get('adminEmail') as string
     const adminPassword = formData.get('adminPassword') as string
     const adminName = formData.get('adminName') as string
-    const planId = formData.get('planId') as string // Novo campo de plano
+    const planId = formData.get('planId') as string
+
+    if (!planId) {
+        return { success: false, message: 'É obrigatório selecionar um plano de assinatura.' }
+    }
 
     // 1. Criar Organização
     const { data: org, error: orgError } = await supabaseAdmin
@@ -105,7 +109,7 @@ export async function createTenant(formData: FormData) {
         .insert({
             name: orgName,
             subdomain: subdomain,
-            plan_id: planId || null,
+            plan_id: planId,
             is_active: true
         })
         .select()
@@ -156,9 +160,13 @@ export async function createTenant(formData: FormData) {
 export async function changeTenantPlan(orgId: string, planId: string) {
     const supabaseAdmin = createAdminClient()
 
+    if (!planId) {
+        return { success: false, message: 'É obrigatório selecionar um plano.' }
+    }
+
     const { error } = await supabaseAdmin
         .from('organizations')
-        .update({ plan_id: planId || null })
+        .update({ plan_id: planId })
         .eq('id', orgId)
 
     if (error) {
