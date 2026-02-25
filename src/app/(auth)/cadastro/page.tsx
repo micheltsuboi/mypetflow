@@ -22,9 +22,7 @@ export default async function CadastroPage({
 
     if (!subdomain) {
         if (host.includes('localhost') || host.includes('vercel.app')) {
-            // No vercel sem parametro, pegamos a primeira ativa para demonstração
-            const { data: firstOrg } = await supabaseAdmin.from('organizations').select('subdomain').eq('is_active', true).limit(1).single()
-            subdomain = firstOrg?.subdomain || ''
+            subdomain = ''
         } else {
             subdomain = host.split('.')[0]
         }

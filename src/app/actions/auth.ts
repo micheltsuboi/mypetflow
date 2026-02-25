@@ -27,8 +27,8 @@ export async function registerClient(prevState: RegisterState, formData: FormDat
     // Lógica de detecção de subdomínio
     let subdomain = ''
     if (host.includes('localhost') || host.includes('vercel.app')) {
-        const { data: firstOrg } = await supabaseAdmin.from('organizations').select('subdomain').limit(1).single()
-        subdomain = firstOrg?.subdomain || ''
+        // Sem parâmetros ou subdomínio direto = sem fallback, string vazia.
+        subdomain = ''
     } else {
         subdomain = host.split('.')[0]
     }
