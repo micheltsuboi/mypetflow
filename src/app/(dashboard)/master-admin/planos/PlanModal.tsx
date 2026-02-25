@@ -10,6 +10,7 @@ export const MODULES_LIST = [
     { id: 'servicos', label: 'Serviços', icon: '✂️', description: 'Catálogo e preços' },
     { id: 'pacotes', label: 'Pacotes', icon: '📦', description: 'Venda de pacotes' },
     { id: 'petshop', label: 'Petshop', icon: '🛍️', description: 'Ponto de venda (PDV)' },
+    { id: 'cashback', label: 'Fidelidade/Cashback', icon: '💎', description: 'Programa de recompensas' },
     { id: 'financeiro', label: 'Financeiro', icon: '💰', description: 'Caixa e relatórios' },
     { id: 'usuarios', label: 'Usuários', icon: '👥', description: 'Gestão de equipe' },
     { id: 'ponto', label: 'Ponto', icon: '⏰', description: 'Controle de jornada' },

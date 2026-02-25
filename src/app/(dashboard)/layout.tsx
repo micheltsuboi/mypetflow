@@ -189,7 +189,7 @@ export default function DashboardLayout({
             if (item.name === 'Tutores') return perms.includes('tutores')
             if (item.name === 'Pets') return perms.includes('pets')
             if (item.name === 'Petshop') return perms.includes('petshop')
-            if (item.name === 'Fidelidade') return perms.includes('petshop') // Use petshop permission as base
+            if (item.name === 'Fidelidade') return perms.includes('cashback')
             if (item.name === 'Serviços') return perms.includes('servicos')
             if (item.name === 'Questionário') return perms.includes('pets') // Tie access to pets permission
             if (item.name === 'Ponto') return perms.includes('ponto')
@@ -217,7 +217,7 @@ export default function DashboardLayout({
                 if (item.name === 'Tutores') return planFeat.includes('tutores')
                 if (item.name === 'Pets') return planFeat.includes('pets')
                 if (item.name === 'Petshop') return planFeat.includes('petshop')
-                if (item.name === 'Fidelidade') return planFeat.includes('petshop')
+                if (item.name === 'Fidelidade') return planFeat.includes('cashback')
                 if (item.name === 'Serviços') return planFeat.includes('servicos')
                 if (item.name === 'Pacotes') return planFeat.includes('pacotes')
                 if (item.name === 'Questionário') return planFeat.includes('pets')

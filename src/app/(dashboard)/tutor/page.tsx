@@ -63,6 +63,7 @@ export default function TutorPage() {
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
     const [appointment, setAppointment] = useState<CurrentAppointment | null>(null)
     const [timeline, setTimeline] = useState<TimelineEvent[]>([])
+    const [cashbackBalance, setCashbackBalance] = useState<number>(0)
     const [loading, setLoading] = useState(true)
 
     const [elapsedTime, setElapsedTime] = useState('')
@@ -77,7 +78,7 @@ export default function TutorPage() {
             // 1. Get Customer record linked to user
             const { data: customer } = await supabase
                 .from('customers')
-                .select('id')
+                .select('id, org_id')
                 .eq('user_id', user.id)
                 .single()
 
@@ -85,6 +86,15 @@ export default function TutorPage() {
                 setLoading(false)
                 return
             }
+
+            // 1b. Get Cashback Balance
+            const { data: cbData } = await supabase
+                .from('cashbacks')
+                .select('balance')
+                .eq('tutor_id', customer.id)
+                .maybeSingle()
+
+            setCashbackBalance(cbData?.balance || 0)
 
             // 2. Get Pets for this customer
             const { data: petData } = await supabase
@@ -305,6 +315,18 @@ export default function TutorPage() {
                     </select>
                 )}
             </div>
+
+            {/* Cashback Balance Card */}
+            <div className={styles.cashbackCard}>
+                <div className={styles.cashbackLabel}>
+                    <span className={styles.cashbackTitle}>💎 Meu Saldo Fidelidade</span>
+                    <span className={styles.cashbackValue}>
+                        R$ {Number(cashbackBalance).toFixed(2).replace('.', ',')}
+                    </span>
+                </div>
+                <span className={styles.cashbackIcon}>💎</span>
+            </div>
+
 
             {/* Current Status Card */}
             {appointment ? (

@@ -53,6 +53,7 @@ const STAFF_MODULES = [
     { id: 'tutores', label: '👤 Tutores' },
     { id: 'pets', label: '🐾 Pets' },
     { id: 'petshop', label: '🛍️ Petshop' },
+    { id: 'cashback', label: '💎 Fidelidade' },
     { id: 'servicos', label: '📋 Serviços' },
     { id: 'ponto', label: '⏰ Cartão Ponto' }
 ]
