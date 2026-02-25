@@ -91,29 +91,47 @@ export async function checkoutCart(checkoutData: CheckoutData) {
         // 1. Iniciar registro de Order
         let transactionId = null
 
-        // Se houver cashback usado, validar e descontar
+        // Se houver cashback usado, validar e descontar (FIFO)
         if (checkoutData.cashbackUsed && checkoutData.cashbackUsed > 0 && checkoutData.customerId) {
-            const { data: cb, error: cbError } = await supabase
-                .from('cashbacks')
-                .select('id, balance')
+            // Buscar transações válidas e com saldo
+            const { data: transactions, error: txFetchErr } = await supabase
+                .from('cashback_transactions')
+                .select('*')
                 .eq('tutor_id', checkoutData.customerId)
-                .single()
+                .gt('expires_at', new Date().toISOString())
+                .gt('amount', 0)
+                .order('expires_at', { ascending: true }); // Gastar o que vence antes
 
-            if (cbError) throw new Error('Não foi possível verificar o saldo de cashback.')
-            if (Number(cb.balance) < checkoutData.cashbackUsed) {
-                throw new Error('Saldo de cashback insuficiente para esta operação.')
+            if (txFetchErr) throw new Error('Erro ao buscar transações de cashback.');
+
+            let totalAvailable = transactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
+            if (totalAvailable < checkoutData.cashbackUsed) {
+                throw new Error('Saldo de cashback insuficiente ou expirado.');
             }
 
-            // Descontar do saldo
-            const { error: deductError } = await supabase
+            let amountToDeduct = checkoutData.cashbackUsed;
+            for (const tx of transactions) {
+                if (amountToDeduct <= 0) break;
+
+                const deduction = Math.min(Number(tx.amount), amountToDeduct);
+                const { error: updTxErr } = await supabase
+                    .from('cashback_transactions')
+                    .update({ amount: Number(tx.amount) - deduction })
+                    .eq('id', tx.id);
+
+                if (updTxErr) throw updTxErr;
+                amountToDeduct -= deduction;
+            }
+
+            // Atualizar o cache de balance total
+            const newBalance = totalAvailable - checkoutData.cashbackUsed;
+            await supabase
                 .from('cashbacks')
                 .update({
-                    balance: Number(cb.balance) - checkoutData.cashbackUsed,
+                    balance: newBalance,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', cb.id)
-
-            if (deductError) throw deductError
+                .eq('tutor_id', checkoutData.customerId);
         }
 
         // 2. Se status for 'paid', criar Financial Transaction única
@@ -175,13 +193,13 @@ export async function checkoutCart(checkoutData: CheckoutData) {
 
         // Decrementar estoque e calcular acúmulo de cashback
         let earnedCashback = 0
+        let maxValidityMonths = 2 // Default
 
         // Buscar regras de cashback
         const { data: rules } = await supabase
             .from('cashback_rules')
             .select('*')
-            .eq('org_id', profile.org_id)
-            .or('valid_until.is.null,valid_until.gt.' + new Date().toISOString())
+            .eq('org_id', profile.org_id);
 
         for (const item of checkoutData.cartItems) {
             // Decrementar estoque
@@ -212,12 +230,33 @@ export async function checkoutCart(checkoutData: CheckoutData) {
 
                 if (rule) {
                     earnedCashback += (item.total_price * (Number(rule.percent) / 100))
+                    // Usar a maior validade se houver múltiplas regras aplicadas
+                    if (rule.validity_months > maxValidityMonths) {
+                        maxValidityMonths = rule.validity_months
+                    }
                 }
             }
         }
 
-        // Se ganhou cashback, atualizar saldo do tutor
+        // Se ganhou cashback, atualizar saldo do tutor e criar transação
         if (earnedCashback > 0 && checkoutData.customerId) {
+            const expiresAt = new Date();
+            expiresAt.setMonth(expiresAt.getMonth() + maxValidityMonths);
+
+            // 1. Criar registro individual da transação
+            const { error: txErr } = await supabase
+                .from('cashback_transactions')
+                .insert({
+                    tutor_id: checkoutData.customerId,
+                    org_id: profile.org_id,
+                    order_id: orderData.id,
+                    amount: earnedCashback,
+                    original_amount: earnedCashback,
+                    expires_at: expiresAt.toISOString()
+                });
+            if (txErr) throw txErr;
+
+            // 2. Atualizar saldo consolidado (cache)
             const { data: existingCb } = await supabase
                 .from('cashbacks')
                 .select('id, balance')

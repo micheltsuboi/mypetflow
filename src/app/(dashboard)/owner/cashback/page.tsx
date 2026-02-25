@@ -19,7 +19,7 @@ export default function CashbackManagementPage() {
     const [type, setType] = useState<'category' | 'product'>('category')
     const [targetId, setTargetId] = useState('')
     const [percent, setPercent] = useState(5)
-    const [validUntil, setValidUntil] = useState('')
+    const [validityMonths, setValidityMonths] = useState(2)
 
     const categories = ['Alimentação', 'Higiene', 'Brinquedos', 'Farmácia', 'Acessórios']
 
@@ -91,13 +91,13 @@ export default function CashbackManagementPage() {
                 type,
                 target_id: targetId,
                 percent,
-                valid_until: validUntil || null,
+                validity_months: validityMonths,
                 created_by: user.id
             })
 
             setTargetId('')
             setPercent(5)
-            setValidUntil('')
+            setValidityMonths(2)
             fetchData()
             alert('Regra criada com sucesso!')
         } catch (error) {
@@ -192,13 +192,19 @@ export default function CashbackManagementPage() {
                         </div>
 
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>Validade (Opcional)</label>
+                            <label className={styles.label}>Validade do Crédito (Meses)</label>
                             <input
-                                type="date"
+                                type="number"
                                 className={styles.input}
-                                value={validUntil}
-                                onChange={(e) => setValidUntil(e.target.value)}
+                                min="1"
+                                max="24"
+                                value={validityMonths}
+                                onChange={(e) => setValidityMonths(Number(e.target.value))}
+                                required
                             />
+                            <small style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                O cashback gerado hoje expirará em {validityMonths} mês{validityMonths > 1 ? 'es' : ''}.
+                            </small>
                         </div>
 
                         <button className={styles.submitBtn} disabled={isSaving}>
@@ -232,7 +238,7 @@ export default function CashbackManagementPage() {
                                             </div>
                                             <div className={styles.ruleMeta}>
                                                 Cashback: <span className={styles.percentBadge}>{rule.percent}%</span>
-                                                {rule.valid_until && ` • Válido até ${new Date(rule.valid_until).toLocaleDateString('pt-BR')}`}
+                                                {rule.validity_months && ` • Expira em ${rule.validity_months} mês${rule.validity_months > 1 ? 'es' : ''}`}
                                             </div>
                                         </div>
                                         <button

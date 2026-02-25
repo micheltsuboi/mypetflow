@@ -367,8 +367,19 @@ export interface CashbackRule {
     type: 'product' | 'category';
     target_id: string;
     percent: number; // percentage of the product price to credit as cashback
-    valid_until?: string | null;
+    validity_months: number;
     created_by: string;
+    created_at: string;
+}
+
+export interface CashbackTransaction {
+    id: string;
+    tutor_id: string;
+    org_id: string;
+    order_id: string;
+    amount: number;
+    original_amount: number;
+    expires_at: string;
     created_at: string;
 }
 

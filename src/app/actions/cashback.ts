@@ -11,16 +11,26 @@ import { revalidatePath } from 'next/cache';
  */
 export async function getCashbackBalance(tutorId: string) {
     const supabase = await createClient();
+
+    // Calcular saldo apenas de transações não expiradas
     const { data, error } = await supabase
-        .from('cashbacks')
-        .select('balance')
+        .from('cashback_transactions')
+        .select('amount')
         .eq('tutor_id', tutorId)
-        .single();
+        .gt('expires_at', new Date().toISOString())
+        .gt('amount', 0);
+
     if (error) {
         console.error('Error fetching cashback balance:', error);
         return { success: false, balance: 0, error: error.message };
     }
-    return { success: true, balance: data?.balance ?? 0 };
+
+    const balance = data.reduce((acc, curr) => acc + Number(curr.amount), 0);
+
+    // Sincronizar cache de balance (opcional, mas bom para performance em outras telas)
+    await supabase.from('cashbacks').update({ balance }).eq('tutor_id', tutorId);
+
+    return { success: true, balance };
 }
 
 /**
@@ -143,7 +153,7 @@ export async function createCashbackRule(rule: {
     type: 'product' | 'category';
     target_id: string;
     percent: number;
-    valid_until?: string | null;
+    validity_months: number;
     created_by: string;
 }) {
     const supabase = await createClient();
