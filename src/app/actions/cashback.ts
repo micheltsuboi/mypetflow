@@ -160,7 +160,7 @@ export async function createCashbackRule(rule: {
     const { data, error } = await supabase.from('cashback_rules').insert({
         ...rule,
         created_at: new Date().toISOString()
-    }).single();
+    }).select().single();
     if (error) throw error;
     revalidatePath('/owner/cashback');
     return data;
