@@ -39,73 +39,7 @@ export async function getCashbackBalance(tutorId: string) {
     return { success: true, balance };
 }
 
-/**
- * Add cashback to a tutor based on an order.
- * Called after a successful checkout when the user chooses to accumulate cashback.
- */
-export async function addCashbackFromOrder(orderId: string) {
-    const supabase = await createClient();
-    // Fetch order and its items
-    const { data: order, error: orderErr } = await supabase
-        .from('orders')
-        .select('id, tutor_id, total_amount, org_id')
-        .eq('id', orderId)
-        .single();
-    if (orderErr) throw orderErr;
 
-    // Get applicable rules for the tutor's organization
-    const { data: rules, error: rulesErr } = await supabase
-        .from('cashback_rules')
-        .select('type, target_id, percent')
-        .eq('org_id', order.org_id)
-        .gt('valid_until', new Date().toISOString())
-        .or('type.eq.product,type.eq.category');
-    if (rulesErr) throw rulesErr;
-
-    // Calculate total cashback based on rules (simplified: apply percent on total amount)
-    let totalPercent = 0;
-    for (const rule of rules) {
-        totalPercent += Number(rule.percent);
-    }
-    const cashbackAmount = (order.total_amount * totalPercent) / 100;
-
-    if (cashbackAmount <= 0) return { success: true, added: 0 };
-
-    // Upsert cashback record
-    const { data: existing, error: existingErr } = await supabase
-        .from('cashbacks')
-        .select('id, balance')
-        .eq('tutor_id', order.tutor_id)
-        .single();
-
-    if (existingErr && existingErr.code !== 'PGRST116') {
-        // If not a not-found error, rethrow
-        throw existingErr;
-    }
-
-    if (existing) {
-        const { error: updErr } = await supabase
-            .from('cashbacks')
-            .update({
-                balance: Number(existing.balance) + cashbackAmount,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', existing.id);
-        if (updErr) throw updErr;
-    } else {
-        const { error: insErr } = await supabase
-            .from('cashbacks')
-            .insert({
-                tutor_id: order.tutor_id,
-                balance: cashbackAmount,
-                updated_at: new Date().toISOString()
-            });
-        if (insErr) throw insErr;
-    }
-
-    revalidatePath('/owner/tutors');
-    return { success: true, added: cashbackAmount };
-}
 
 /**
  * Apply cashback to an order, reducing the total amount.

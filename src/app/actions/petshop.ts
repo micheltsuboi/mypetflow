@@ -201,6 +201,13 @@ export async function checkoutCart(checkoutData: CheckoutData) {
             .select('*')
             .eq('org_id', profile.org_id);
 
+        // Coeficiente de desconto global: se houver desconto no total da venda,
+        // o cashback deve ser calculado sobre o valor proporcional de cada item.
+        const totalAfterItemDiscounts = checkoutData.cartItems.reduce((acc, item) => acc + item.total_price, 0);
+        const globalDiscountCoefficient = totalAfterItemDiscounts > 0
+            ? (checkoutData.finalTotal + (checkoutData.cashbackUsed || 0)) / totalAfterItemDiscounts
+            : 1;
+
         for (const item of checkoutData.cartItems) {
             // Decrementar estoque
             const newStock = item.stock_quantity - item.quantity;
@@ -229,7 +236,8 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                 }
 
                 if (rule) {
-                    earnedCashback += (item.total_price * (Number(rule.percent) / 100))
+                    const effectiveItemPrice = item.total_price * globalDiscountCoefficient;
+                    earnedCashback += (effectiveItemPrice * (Number(rule.percent) / 100));
                     // Usar a maior validade se houver múltiplas regras aplicadas
                     if (rule.validity_months > maxValidityMonths) {
                         maxValidityMonths = rule.validity_months
