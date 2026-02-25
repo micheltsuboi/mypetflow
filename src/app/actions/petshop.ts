@@ -23,6 +23,7 @@ interface CheckoutData {
     totalDiscount: number
     subtotal: number
     finalTotal: number
+    cashbackUsed?: number // Amount of cashback balance used as discount
 }
 
 export async function searchTutorsForPDV(query: string) {
@@ -90,6 +91,31 @@ export async function checkoutCart(checkoutData: CheckoutData) {
         // 1. Iniciar registro de Order
         let transactionId = null
 
+        // Se houver cashback usado, validar e descontar
+        if (checkoutData.cashbackUsed && checkoutData.cashbackUsed > 0 && checkoutData.customerId) {
+            const { data: cb, error: cbError } = await supabase
+                .from('cashbacks')
+                .select('id, balance')
+                .eq('tutor_id', checkoutData.customerId)
+                .single()
+
+            if (cbError) throw new Error('Não foi possível verificar o saldo de cashback.')
+            if (Number(cb.balance) < checkoutData.cashbackUsed) {
+                throw new Error('Saldo de cashback insuficiente para esta operação.')
+            }
+
+            // Descontar do saldo
+            const { error: deductError } = await supabase
+                .from('cashbacks')
+                .update({
+                    balance: Number(cb.balance) - checkoutData.cashbackUsed,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', cb.id)
+
+            if (deductError) throw deductError
+        }
+
         // 2. Se status for 'paid', criar Financial Transaction única
         if (checkoutData.paymentStatus === 'paid') {
             const { data: txData, error: txError } = await supabase
@@ -99,7 +125,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                     type: 'income',
                     category: 'Venda Caixa/PDV',
                     amount: checkoutData.finalTotal,
-                    description: `Venda balcão - ${checkoutData.cartItems.length} item(ns)`,
+                    description: `Venda balcão - ${checkoutData.cartItems.length} item(ns)${checkoutData.cashbackUsed ? ` (Cashback: R$ ${checkoutData.cashbackUsed.toFixed(2)})` : ''}`,
                     payment_method: checkoutData.paymentMethod,
                     created_by: user.id,
                     date: new Date().toISOString()
@@ -119,7 +145,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                 customer_id: checkoutData.customerId || null,
                 pet_id: checkoutData.petId || null,
                 total_amount: checkoutData.finalTotal,
-                discount_amount: checkoutData.totalDiscount,
+                discount_amount: checkoutData.totalDiscount + (checkoutData.cashbackUsed || 0),
                 payment_status: checkoutData.paymentStatus,
                 payment_method: checkoutData.paymentMethod,
                 financial_transaction_id: transactionId,
@@ -147,20 +173,85 @@ export async function checkoutCart(checkoutData: CheckoutData) {
 
         if (itemsError) throw itemsError
 
-        // Decrementar estoque de cada produto
+        // Decrementar estoque e calcular acúmulo de cashback
+        let earnedCashback = 0
+
+        // Buscar regras de cashback
+        const { data: rules } = await supabase
+            .from('cashback_rules')
+            .select('*')
+            .eq('org_id', profile.org_id)
+            .or('valid_until.is.null,valid_until.gt.' + new Date().toISOString())
+
         for (const item of checkoutData.cartItems) {
-            // Não usamos o update em massa complexo por limitação do supabase-js rest interface. O array tem < 10 items na maioria das vezes
+            // Decrementar estoque
             const newStock = item.stock_quantity - item.quantity;
             await supabase
                 .from('products')
                 .update({ stock_quantity: newStock < 0 ? 0 : newStock })
                 .eq('id', item.product_id)
+
+            // Calcular acúmulo se houver tutor
+            if (checkoutData.customerId && rules && rules.length > 0) {
+                // Tenta achar regra por produto específico
+                let rule = rules.find(r => r.type === 'product' && r.target_id === item.product_id)
+
+                // Se não achar, tenta por categoria (precisamos da categoria do item)
+                if (!rule) {
+                    // Buscar categoria do produto
+                    const { data: prodInfo } = await supabase
+                        .from('products')
+                        .select('category')
+                        .eq('id', item.product_id)
+                        .single()
+
+                    if (prodInfo) {
+                        rule = rules.find(r => r.type === 'category' && r.target_id === prodInfo.category)
+                    }
+                }
+
+                if (rule) {
+                    earnedCashback += (item.total_price * (Number(rule.percent) / 100))
+                }
+            }
+        }
+
+        // Se ganhou cashback, atualizar saldo do tutor
+        if (earnedCashback > 0 && checkoutData.customerId) {
+            const { data: existingCb } = await supabase
+                .from('cashbacks')
+                .select('id, balance')
+                .eq('tutor_id', checkoutData.customerId)
+                .maybeSingle()
+
+            if (existingCb) {
+                await supabase
+                    .from('cashbacks')
+                    .update({
+                        balance: Number(existingCb.balance) + earnedCashback,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingCb.id)
+            } else {
+                await supabase
+                    .from('cashbacks')
+                    .insert({
+                        tutor_id: checkoutData.customerId,
+                        balance: earnedCashback,
+                        updated_at: new Date().toISOString()
+                    })
+            }
         }
 
         revalidatePath('/owner/petshop')
         revalidatePath('/owner/financeiro')
+        revalidatePath('/owner/tutors')
+        revalidatePath('/owner/cashback')
 
-        return { message: 'Venda concluída com sucesso!', success: true }
+        return {
+            message: 'Venda concluída com sucesso!' + (earnedCashback > 0 ? ` Cashback acumulado: R$ ${earnedCashback.toFixed(2)}` : ''),
+            success: true
+        }
     } catch (err: any) {
         console.error('Error during checkout:', err)
         return { message: `Erro ao concluir a venda: ${err.message}`, success: false }

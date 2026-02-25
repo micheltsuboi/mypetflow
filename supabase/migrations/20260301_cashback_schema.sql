@@ -5,7 +5,7 @@ create extension if not exists "uuid-ossp";
 
 create table cashbacks (
     id uuid primary key default uuid_generate_v4(),
-    tutor_id uuid references tutors(id) not null,
+    tutor_id uuid references customers(id) not null,
     balance numeric not null default 0,
     updated_at timestamp with time zone default now()
 );

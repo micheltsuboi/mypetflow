@@ -637,6 +637,42 @@
     cursor: pointer;
 }
 
+.cashbackCheckoutRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(var(--color-navy-rgb), 0.05);
+    border: 1px dashed var(--color-navy);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.cashbackInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.cashbackAction {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cashbackAction input {
+    cursor: pointer;
+}
+
+.discountText {
+    color: #16a34a;
+    font-weight: 600;
+}
+
 @media (max-width: 1024px) {
     .pdvContainer {
         flex-direction: column;

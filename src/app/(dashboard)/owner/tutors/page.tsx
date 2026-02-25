@@ -193,6 +193,7 @@ export default function TutorsPage() {
                                 <th>Contato</th>
                                 <th>Endereço</th>
                                 <th>Portal</th>
+                                <th>Cashback</th>
                                 <th>Desde</th>
                             </tr>
                         </thead>
@@ -240,6 +241,11 @@ export default function TutorsPage() {
                                             <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
                                                 {tutor.user_id ? 'Ativo' : 'Inativo'}
                                             </span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div style={{ fontWeight: 600, color: 'var(--color-navy)' }}>
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cashbacks[tutor.id] || 0)}
                                         </div>
                                     </td>
                                     <td>
