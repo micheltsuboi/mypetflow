@@ -242,7 +242,7 @@ export default function DashboardLayout({
                         width={180}
                         height={40}
                         className={styles.logoImage}
-                        style={{ objectFit: 'contain', width: '80%', height: 'auto', filter: 'brightness(0) invert(1)' }}
+                        style={{ objectFit: 'contain', width: '80%', height: 'auto' }}
                         priority
                     />
                     <button
