@@ -23,6 +23,14 @@ CREATE TABLE IF NOT EXISTS public.cashbacks (
     updated_at timestamp with time zone default now()
 );
 
+-- Ensure org_id exists in cashbacks if table already existed
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cashbacks' AND column_name='org_id') THEN
+        ALTER TABLE public.cashbacks ADD COLUMN org_id UUID REFERENCES public.organizations(id);
+    END IF;
+END $$;
+
 -- 3. Create individual transactions table
 CREATE TABLE IF NOT EXISTS public.cashback_transactions (
     id uuid primary key default uuid_generate_v4(),
@@ -34,6 +42,28 @@ CREATE TABLE IF NOT EXISTS public.cashback_transactions (
     expires_at timestamp with time zone not null,
     created_at timestamp with time zone default now()
 );
+
+-- Ensure org_id and validity_months exists in rules if table already existed
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cashback_rules' AND column_name='org_id') THEN
+        ALTER TABLE public.cashback_rules ADD COLUMN org_id UUID REFERENCES public.organizations(id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cashback_rules' AND column_name='validity_months') THEN
+        ALTER TABLE public.cashback_rules ADD COLUMN validity_months INTEGER NOT NULL DEFAULT 2;
+    END IF;
+
+    -- Drop valid_until if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cashback_rules' AND column_name='valid_until') THEN
+        ALTER TABLE public.cashback_rules DROP COLUMN valid_until;
+    END IF;
+
+    -- Update target_id to TEXT if it's UUID
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cashback_rules' AND column_name='target_id' AND data_type='uuid') THEN
+        ALTER TABLE public.cashback_rules ALTER COLUMN target_id TYPE TEXT;
+    END IF;
+END $$;
 
 -- 4. Indexes
 CREATE INDEX IF NOT EXISTS idx_cashbacks_tutor_id ON public.cashbacks(tutor_id);
