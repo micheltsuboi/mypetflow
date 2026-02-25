@@ -1,3 +1,5 @@
+'use server'
+
 // src/app/actions/cashback.ts
 // Server Actions for Cashback Loyalty
 
@@ -30,7 +32,7 @@ export async function addCashbackFromOrder(orderId: string) {
     // Fetch order and its items
     const { data: order, error: orderErr } = await supabase
         .from('orders')
-        .select('id, tutor_id, total_amount')
+        .select('id, tutor_id, total_amount, org_id')
         .eq('id', orderId)
         .single();
     if (orderErr) throw orderErr;
