@@ -11,6 +11,7 @@ export interface OrganizationData {
     created_at: string
     total_users: number
     plan_id?: string
+    plan_name?: string
 }
 
 // 1. Fetch Todas as Organizações
@@ -26,6 +27,7 @@ export async function fetchOrganizations(): Promise<OrganizationData[]> {
             is_active,
             created_at,
             plan_id,
+            saas_plans ( name ),
             profiles ( count )
         `)
         .order('created_at', { ascending: false })
@@ -43,6 +45,8 @@ export async function fetchOrganizations(): Promise<OrganizationData[]> {
         subdomain: org.subdomain,
         is_active: org.is_active,
         created_at: org.created_at,
+        plan_id: org.plan_id,
+        plan_name: org.saas_plans ? (org.saas_plans as any).name : 'Sem Plano',
         total_users: Array.isArray(org.profiles) ? org.profiles[0]?.count || 0 : 0
     }))
 }

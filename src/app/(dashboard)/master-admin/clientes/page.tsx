@@ -121,6 +121,7 @@ export default function ClientesPage() {
                         <tr>
                             <th>Pet Shop / Empresa</th>
                             <th>Subdomínio</th>
+                            <th>Plano</th>
                             <th>Status</th>
                             <th>Usuários</th>
                             <th>Criado Em</th>
@@ -137,6 +138,11 @@ export default function ClientesPage() {
                                 </td>
                                 <td>
                                     <span className={styles.location}>{shop.subdomain}.mypetflow.com.br</span>
+                                </td>
+                                <td>
+                                    <span className={styles.planBadge} style={{ background: 'var(--gradient-primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+                                        {shop.plan_name || 'Sem Plano'}
+                                    </span>
                                 </td>
                                 <td>
                                     <span className={`${styles.statusBadge} ${shop.is_active ? styles.active : styles.suspended}`}>
