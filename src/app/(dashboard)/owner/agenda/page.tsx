@@ -165,7 +165,7 @@ export default function AgendaPage() {
 
             // Load Metadata
             if (pets.length === 0) {
-                const { data: p } = await supabase.from('pets').select('id, name, species, breed, customers(name), perfume_allowed, accessories_allowed, special_care, is_adapted').order('name')
+                const { data: p } = await supabase.from('pets').select('id, name, species, breed, customers!inner(name, org_id), perfume_allowed, accessories_allowed, special_care, is_adapted').eq('customers.org_id', profile.org_id).order('name')
                 if (p) setPets(p as any)
 
                 const { data: s } = await supabase

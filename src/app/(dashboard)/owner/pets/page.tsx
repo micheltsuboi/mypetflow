@@ -179,8 +179,9 @@ function PetsContent() {
                 .select(`
                     id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url,
-                    customers ( id, name )
+                    customers!inner ( id, name, org_id )
                 `)
+                .eq('customers.org_id', profile.org_id)
                 .order('name')
 
             if (searchTerm) {

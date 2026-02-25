@@ -181,7 +181,8 @@ export default function OwnerDashboard() {
 
                 const { count: petsCount } = await supabase
                     .from('pets')
-                    .select('*', { count: 'exact', head: true })
+                    .select('id, customers!inner(org_id)', { count: 'exact', head: true })
+                    .eq('customers.org_id', profile.org_id)
 
                 // Today's appointments for petsToday list and count
                 const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()

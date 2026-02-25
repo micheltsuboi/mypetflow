@@ -60,12 +60,24 @@ export default function PetshopPage() {
 
     const fetchPets = useCallback(async () => {
         try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('org_id')
+                .eq('id', user.id)
+                .single()
+            if (!profile?.org_id) return
+
             const { data } = await supabase
                 .from('pets')
-                .select('id, name')
+                .select('id, name, customers!inner(org_id)')
                 .eq('is_active', true)
+                .eq('customers.org_id', profile.org_id)
                 .order('name')
-            if (data) setPets(data)
+
+            if (data) setPets(data as any)
         } catch (error) {
             console.error('Erro ao buscar pets:', error)
         }

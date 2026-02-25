@@ -423,9 +423,10 @@ function NewCrecheAppointmentModal({ onClose, onSave }: { onClose: () => void, o
             // Load pets
             const { data: petsData } = await supabase
                 .from('pets')
-                .select('id, name, species, breed, customers(name)')
+                .select('id, name, species, breed, customers!inner(name, org_id)')
+                .eq('customers.org_id', profile.org_id)
                 .order('name')
-            if (petsData) setPets(petsData)
+            if (petsData) setPets(petsData as any)
 
             // Load Creche services only
             const { data: servicesData } = await supabase

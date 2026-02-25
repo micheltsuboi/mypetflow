@@ -101,9 +101,10 @@ export default function BanhoTosaPage() {
             if (pets.length === 0) {
                 const { data: petsData } = await supabase
                     .from('pets')
-                    .select('id, name, species, breed, weight_kg')
+                    .select('id, name, species, breed, weight_kg, customers!inner(org_id)')
+                    .eq('customers.org_id', profile.org_id)
                     .order('name')
-                if (petsData) setPets(petsData)
+                if (petsData) setPets(petsData as any)
             }
 
             if (services.length === 0) {
