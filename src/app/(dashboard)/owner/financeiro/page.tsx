@@ -98,8 +98,8 @@ export default function FinanceiroPage() {
                     .eq('org_id', profile.org_id)
                     .gte('date', fetchStart),
                 supabase
-                    .from('petshop_sales')
-                    .select('id, product_name, total_price, payment_status, created_at, pets ( name )')
+                    .from('orders')
+                    .select('id, total_amount, payment_status, created_at, pets ( name ), order_items(product_name)')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'pending')
                     .order('created_at', { ascending: true })
@@ -234,11 +234,11 @@ export default function FinanceiroPage() {
         }
     }
 
-    const handleConfirmPetshopPayment = async (saleId: string, productName: string, price: number) => {
-        if (confirm(`Confirmar pagamento de R$ ${price.toFixed(2).replace('.', ',')} para ${productName}?`)) {
+    const handleConfirmPetshopPayment = async (orderId: string, description: string, price: number) => {
+        if (confirm(`Confirmar pagamento de R$ ${price.toFixed(2).replace('.', ',')} para ${description}?`)) {
             const paymentMethod = prompt('Qual a forma de pagamento? (pix, cash, credit, debit)', 'pix')
             if (paymentMethod) {
-                const res = await payPetshopSale(saleId, paymentMethod)
+                const res = await payPetshopSale(orderId, paymentMethod)
                 if (res.success) {
                     alert(res.message)
                     fetchFinancials()
@@ -291,7 +291,7 @@ export default function FinanceiroPage() {
         .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
         + extractRecords.pendingSales
             .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
-            .reduce((sum, s) => sum + s.total_price, 0)
+            .reduce((sum, s) => sum + s.total_amount, 0)
 
     const revenueGrowth = previousMonthData.revenue > 0
         ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
@@ -358,10 +358,11 @@ export default function FinanceiroPage() {
                 .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
                 .forEach(sale => {
                     const dateVal = sale.created_at;
+                    const desc = sale.order_items && sale.order_items.length > 0 ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') : 'Venda';
                     rows.push([
-                        `${sale.pets?.name || 'Avulso'} • ${sale.product_name}`,
+                        `${sale.pets?.name || 'Avulso'} • ${desc}`,
                         new Date(dateVal).toLocaleDateString('pt-BR'),
-                        sale.total_price.toFixed(2).replace('.', ','),
+                        sale.total_amount.toFixed(2).replace('.', ','),
                         'Venda Produto'
                     ])
                 })
@@ -429,10 +430,11 @@ export default function FinanceiroPage() {
                 .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
                 .forEach(sale => {
                     const dateVal = sale.created_at;
+                    const desc = sale.order_items && sale.order_items.length > 0 ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') : 'Venda';
                     rows.push([
-                        `${sale.pets?.name || 'Avulso'} • ${sale.product_name}`,
+                        `${sale.pets?.name || 'Avulso'} • ${desc}`,
                         new Date(dateVal).toLocaleDateString('pt-BR'),
-                        formatCurrency(sale.total_price),
+                        formatCurrency(sale.total_amount),
                         'Venda Produto'
                     ])
                 })
@@ -609,25 +611,28 @@ export default function FinanceiroPage() {
                                 {/* Pending Pet Shop Sales list */}
                                 {extractRecords.type === 'pending' && extractRecords.pendingSales
                                     .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
-                                    .map(sale => (
-                                        <div key={sale.id} className={styles.extractItem}>
-                                            <div className={styles.extractInfo}>
-                                                <strong>{sale.pets?.name || 'Cliente Avulso'} • {sale.product_name}</strong>
-                                                <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                    .map(sale => {
+                                        const desc = sale.order_items && sale.order_items.length > 0 ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') : 'Venda';
+                                        return (
+                                            <div key={sale.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>{sale.pets?.name || 'Cliente Avulso'} • {desc}</strong>
+                                                    <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount}>
+                                                        {formatCurrency(sale.total_amount)}
+                                                    </span>
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => handleConfirmPetshopPayment(sale.id, desc, sale.total_amount)}
+                                                    >
+                                                        Confirmar Pago
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className={styles.extractActions}>
-                                                <span className={styles.extractAmount}>
-                                                    {formatCurrency(sale.total_price)}
-                                                </span>
-                                                <button
-                                                    className={styles.confirmPayBtn}
-                                                    onClick={() => handleConfirmPetshopPayment(sale.id, sale.product_name, sale.total_price)}
-                                                >
-                                                    Confirmar Pago
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        )
+                                    })}
 
                                 {/* Transactions list (for Revenue and Expenses) */}
                                 {extractRecords.type !== 'pending' && extractRecords.transactions

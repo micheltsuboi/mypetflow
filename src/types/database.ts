@@ -316,21 +316,30 @@ export interface FinancialTransaction {
     updated_at: string
 }
 
-export interface PetShopSale {
+export interface Order {
     id: string
     org_id: string
+    customer_id: string | null
     pet_id: string | null
+    total_amount: number
+    discount_amount: number
+    payment_status: 'paid' | 'pending'
+    payment_method: string | null
+    financial_transaction_id: string | null
+    created_at: string
+    created_by: string | null
+}
+
+export interface OrderItem {
+    id: string
+    order_id: string
     product_id: string | null
     product_name: string
     quantity: number
     unit_price: number
     total_price: number
     discount_percent: number
-    payment_status: 'pending' | 'paid' | 'partial'
-    payment_method: string | null
-    financial_transaction_id: string | null
     created_at: string
-    updated_at: string
 }
 
 export interface ProductFormData {
