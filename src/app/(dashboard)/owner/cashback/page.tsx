@@ -100,9 +100,9 @@ export default function CashbackManagementPage() {
             setValidityMonths(2)
             fetchData()
             alert('Regra criada com sucesso!')
-        } catch (error) {
+        } catch (error: any) {
             console.error('Erro ao criar regra:', error)
-            alert('Erro ao criar regra de cashback.')
+            alert('Erro ao criar regra de cashback: ' + (error.message || 'Erro desconhecido'))
         } finally {
             setIsSaving(false)
         }

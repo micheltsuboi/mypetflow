@@ -276,6 +276,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                     .from('cashbacks')
                     .insert({
                         tutor_id: checkoutData.customerId,
+                        org_id: profile.org_id,
                         balance: earnedCashback,
                         updated_at: new Date().toISOString()
                     })

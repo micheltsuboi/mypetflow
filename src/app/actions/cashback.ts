@@ -28,7 +28,13 @@ export async function getCashbackBalance(tutorId: string) {
     const balance = data.reduce((acc, curr) => acc + Number(curr.amount), 0);
 
     // Sincronizar cache de balance (opcional, mas bom para performance em outras telas)
-    await supabase.from('cashbacks').update({ balance }).eq('tutor_id', tutorId);
+    // Sincronizar cache de balance (opcional, mas bom para performance em outras telas)
+    // Nota: O update pode falhar se o registro de cache ainda não existir ou RLS bloquear.
+    try {
+        await supabase.from('cashbacks').update({ balance }).eq('tutor_id', tutorId);
+    } catch (e) {
+        console.warn('Could not sync cashback cache:', e);
+    }
 
     return { success: true, balance };
 }
@@ -157,10 +163,11 @@ export async function createCashbackRule(rule: {
     created_by: string;
 }) {
     const supabase = await createClient();
-    const { data, error } = await supabase.from('cashback_rules').insert({
-        ...rule,
-        created_at: new Date().toISOString()
-    }).select().single();
+    const { data, error } = await supabase
+        .from('cashback_rules')
+        .insert(rule)
+        .select()
+        .single();
     if (error) throw error;
     revalidatePath('/owner/cashback');
     return data;
