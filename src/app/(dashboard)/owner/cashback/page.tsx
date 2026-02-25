@@ -3,17 +3,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
-import { getCashbackRules, createCashbackRule, deleteCashbackRule } from '@/app/actions/cashback'
+import { getCashbackRules, createCashbackRule, deleteCashbackRule, getCashbackHistory } from '@/app/actions/cashback'
 import { Product } from '@/types/database'
-import { Trash2, ShieldCheck, Ticket, Users, PlusCircle } from 'lucide-react'
+import { Trash2, ShieldCheck, Ticket, Users, PlusCircle, History, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
 
 export default function CashbackManagementPage() {
     const supabase = createClient()
     const [rules, setRules] = useState<any[]>([])
     const [tutorBalances, setTutorBalances] = useState<any[]>([])
+    const [history, setHistory] = useState<any[]>([])
     const [products, setProducts] = useState<Product[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
+    const [stats, setStats] = useState({ totalEarned: 0, totalSpent: 0, activeBalance: 0 })
 
     // Form state
     const [type, setType] = useState<'category' | 'product'>('category')
@@ -47,6 +49,21 @@ export default function CashbackManagementPage() {
                 .select('balance, updated_at, customers(name, email)')
                 .order('balance', { ascending: false })
             setTutorBalances(balances || [])
+
+            // History
+            const historyData = await getCashbackHistory(profile.org_id)
+            setHistory(historyData)
+
+            // Calculate Stats
+            const earned = historyData.filter(h => h.type === 'earn').reduce((acc, current) => acc + Number(current.amount), 0)
+            const spent = historyData.filter(h => h.type === 'spend').reduce((acc, current) => acc + Number(current.amount), 0)
+            const currentBalance = balances?.reduce((acc, current) => acc + Number(current.balance), 0) || 0
+
+            setStats({
+                totalEarned: earned,
+                totalSpent: spent,
+                activeBalance: currentBalance
+            })
 
             // Products
             const { data: prods } = await supabase
@@ -128,9 +145,37 @@ export default function CashbackManagementPage() {
             <header className={styles.header}>
                 <div>
                     <h1 className={styles.title}>💎 Programa de Fidelidade</h1>
-                    <p className={styles.subtitle}>Gerencie regras de cashback e veja o saldo dos tutores</p>
+                    <p className={styles.subtitle}>Gerencie regras de cashback e veja o desempenho do programa</p>
                 </div>
             </header>
+
+            {/* Stats Cards */}
+            <div className={styles.statsGrid}>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>
+                        <TrendingUp size={16} /> Total Gerado
+                    </div>
+                    <div className={`${styles.statValue} ${styles.statValuePositive}`}>
+                        R$ {stats.totalEarned.toFixed(2).replace('.', ',')}
+                    </div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>
+                        <ArrowDownCircle size={16} /> Total Resgatado
+                    </div>
+                    <div className={`${styles.statValue} ${styles.statValueNegative}`}>
+                        R$ {stats.totalSpent.toFixed(2).replace('.', ',')}
+                    </div>
+                </div>
+                <div className={styles.statCard}>
+                    <div className={styles.statLabel}>
+                        <Wallet size={16} /> Saldo em Aberto
+                    </div>
+                    <div className={styles.statValue}>
+                        R$ {stats.activeBalance.toFixed(2).replace('.', ',')}
+                    </div>
+                </div>
+            </div>
 
             <div className={styles.grid}>
                 {/* Left: Setup Rule */}
@@ -283,11 +328,64 @@ export default function CashbackManagementPage() {
                                                 <div style={{ fontWeight: 600 }}>{item.customers?.name || 'Cliente'}</div>
                                                 <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.customers?.email}</div>
                                             </td>
-                                            <td style={{ color: 'var(--color-navy)', fontWeight: 700, fontSize: '1.1rem' }}>
-                                                R$ {Number(item.balance).toFixed(2).replace('.', ',')}
+                                            <td>
+                                                <span className={styles.balanceValue}>
+                                                    R$ {Number(item.balance).toFixed(2).replace('.', ',')}
+                                                </span>
                                             </td>
                                             <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
                                                 {new Date(item.updated_at).toLocaleString('pt-BR')}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* History Table */}
+            <div className={styles.balanceGrid} style={{ marginTop: '2.5rem' }}>
+                <div className={styles.card}>
+                    <h2 className={styles.cardTitle}>
+                        <History size={20} /> Histórico de Movimentações
+                    </h2>
+                    <div className={styles.tableContainer}>
+                        <table className={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tutor</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>Descrição</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {history.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className={styles.emptyState}>Nenhuma movimentação registrada.</td>
+                                    </tr>
+                                ) : (
+                                    history.map((item) => (
+                                        <tr key={item.id}>
+                                            <td style={{ fontSize: '0.85rem' }}>
+                                                {new Date(item.created_at).toLocaleString('pt-BR')}
+                                            </td>
+                                            <td>{item.customers?.name || 'Cliente'}</td>
+                                            <td>
+                                                <span className={`${styles.historyType} ${item.type === 'earn' ? styles.historyType_earn : styles.historyType_spend}`}>
+                                                    {item.type === 'earn' ? 'ACÚMULO' : 'RESGATE'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={item.type === 'earn' ? styles.historyAmount_earn : styles.historyAmount_spend}>
+                                                    {item.type === 'earn' ? '+' : '-'} R$ {Number(item.amount).toFixed(2).replace('.', ',')}
+                                                </span>
+                                            </td>
+                                            <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                                {item.description}
                                             </td>
                                         </tr>
                                     ))

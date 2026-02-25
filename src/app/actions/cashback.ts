@@ -124,3 +124,18 @@ export async function deleteCashbackRule(ruleId: string) {
     revalidatePath('/owner/cashback');
     return { success: true };
 }
+
+export async function getCashbackHistory(orgId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('cashback_history')
+        .select(`
+            *,
+            customers(name)
+        `)
+        .eq('org_id', orgId)
+        .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+}
+
