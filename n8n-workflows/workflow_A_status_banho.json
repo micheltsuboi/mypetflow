@@ -1,213 +1,217 @@
 {
-    "name": "🐾 Pet Flow - Status de Banho/Serviço",
-    "nodes": [
-        {
-            "parameters": {
-                "httpMethod": "POST",
-                "path": "pet-status",
-                "responseMode": "onReceived",
-                "options": {}
-            },
-            "id": "webhook-pet-status",
-            "name": "Webhook - Pet Status",
-            "type": "n8n-nodes-base.webhook",
-            "typeVersion": 2,
-            "position": [
-                240,
-                300
-            ],
-            "webhookId": "pet-status"
-        },
-        {
-            "parameters": {
-                "dataType": "string",
-                "value": "={{ $json.newStatus ? $json.newStatus.trim().toLowerCase() : \"\" }}",
-                "rules": {
-                    "rules": [
-                        {
-                            "value": "in_progress",
-                            "output": 0
-                        },
-                        {
-                            "value": "done",
-                            "output": 1
-                        }
-                    ]
-                }
-            },
-            "id": "if-status",
-            "name": "Escolher Status: Iniciado ou Finalizado",
-            "type": "n8n-nodes-base.switch",
-            "typeVersion": 1,
-            "position": [
-                500,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "jsCode": "const pet = $json.petName || 'seu pet'; const service = $json.serviceName || 'serviço'; const phone = ($json.tutorPhone || '').replace(/\\D/g, ''); const phone55 = phone.startsWith('55') ? phone : '55' + phone; return [{   json: {     phone: phone55,     message: `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`   } }];"
-            },
-            "id": "msg-in-progress",
-            "name": "Mensagem: Iniciado",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                760,
-                180
-            ]
-        },
-        {
-            "parameters": {
-                "jsCode": "const pet = $json.petName || 'seu pet'; const service = $json.serviceName || 'serviço'; const phone = ($json.tutorPhone || '').replace(/\\D/g, ''); const phone55 = phone.startsWith('55') ? phone : '55' + phone; return [{   json: {     phone: phone55,     message: `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`   } }];"
-            },
-            "id": "msg-done",
-            "name": "Mensagem: Finalizado",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                760,
-                420
-            ]
-        },
-        {
-            "parameters": {
-                "method": "POST",
-                "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
-                "sendHeaders": true,
-                "headerParameters": {
-                    "parameters": [
-                        {
-                            "name": "Content-Type",
-                            "value": "application/json"
-                        },
-                        {
-                            "name": "Client-Token",
-                            "value": "F200243e457104ad79273e20e177311a2S"
-                        }
-                    ]
-                },
-                "sendBody": true,
-                "bodyParameters": {
-                    "parameters": [
-                        {
-                            "name": "phone",
-                            "value": "={{ $json.phone }}"
-                        },
-                        {
-                            "name": "message",
-                            "value": "={{ $json.message }}"
-                        }
-                    ]
-                },
-                "options": {}
-            },
-            "id": "zapi-in-progress",
-            "name": "Z-API: Enviar (Iniciado)",
-            "type": "n8n-nodes-base.httpRequest",
-            "typeVersion": 4.2,
-            "position": [
-                1020,
-                180
-            ]
-        },
-        {
-            "parameters": {
-                "method": "POST",
-                "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
-                "sendHeaders": true,
-                "headerParameters": {
-                    "parameters": [
-                        {
-                            "name": "Content-Type",
-                            "value": "application/json"
-                        },
-                        {
-                            "name": "Client-Token",
-                            "value": "F200243e457104ad79273e20e177311a2S"
-                        }
-                    ]
-                },
-                "sendBody": true,
-                "bodyParameters": {
-                    "parameters": [
-                        {
-                            "name": "phone",
-                            "value": "={{ $json.phone }}"
-                        },
-                        {
-                            "name": "message",
-                            "value": "={{ $json.message }}"
-                        }
-                    ]
-                },
-                "options": {}
-            },
-            "id": "zapi-done",
-            "name": "Z-API: Enviar (Finalizado)",
-            "type": "n8n-nodes-base.httpRequest",
-            "typeVersion": 4.2,
-            "position": [
-                1020,
-                420
-            ]
-        }
-    ],
-    "connections": {
-        "Webhook - Pet Status": {
-            "main": [
-                [
-                    {
-                        "node": "Escolher Status: Iniciado ou Finalizado",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Escolher Status: Iniciado ou Finalizado": {
-            "main": [
-                [
-                    {
-                        "node": "Mensagem: Iniciado",
-                        "type": "main",
-                        "index": 0
-                    }
-                ],
-                [
-                    {
-                        "node": "Mensagem: Finalizado",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Mensagem: Iniciado": {
-            "main": [
-                [
-                    {
-                        "node": "Z-API: Enviar (Iniciado)",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Mensagem: Finalizado": {
-            "main": [
-                [
-                    {
-                        "node": "Z-API: Enviar (Finalizado)",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        }
+  "name": "🐾 Pet Flow - Status de Banho/Serviço",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pet-status",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-pet-status",
+      "name": "Webhook - Pet Status",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "pet-status"
     },
-    "active": false,
-    "settings": {
-        "executionOrder": "v1"
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false
+          },
+          "conditions": [
+            {
+              "id": "8bbdc1e7-d2e1-45f8-8ec0-2fcee62e6d62",
+              "leftValue": "={{ $json.newStatus }}",
+              "rightValue": "in_progress",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-status",
+      "name": "É Iniciado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`\n  }\n}];"
+      },
+      "id": "msg-in-progress",
+      "name": "Mensagem: Iniciado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`\n  }\n}];"
+      },
+      "id": "msg-done",
+      "name": "Mensagem: Finalizado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "F200243e457104ad79273e20e177311a2S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "zapi-in-progress",
+      "name": "Z-API: Enviar (Iniciado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "F200243e457104ad79273e20e177311a2S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "zapi-done",
+      "name": "Z-API: Enviar (Finalizado)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        420
+      ]
     }
+  ],
+  "connections": {
+    "Webhook - Pet Status": {
+      "main": [
+        [
+          {
+            "node": "É Iniciado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Iniciado?": {
+      "main": [
+        [
+          {
+            "node": "Mensagem: Iniciado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem: Finalizado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem: Iniciado": {
+      "main": [
+        [
+          {
+            "node": "Z-API: Enviar (Iniciado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem: Finalizado": {
+      "main": [
+        [
+          {
+            "node": "Z-API: Enviar (Finalizado)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
 }
