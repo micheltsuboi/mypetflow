@@ -2,6 +2,12 @@
     "name": "🐾 Pet Flow - Status de Banho/Serviço",
     "nodes": [
         {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "pet-status",
+                "responseMode": "responseNode",
+                "options": {}
+            },
             "id": "webhook-pet-status",
             "name": "Webhook - Pet Status",
             "type": "n8n-nodes-base.webhook",
@@ -10,36 +16,22 @@
                 240,
                 300
             ],
-            "webhookId": "pet-status",
-            "parameters": {
-                "httpMethod": "POST",
-                "path": "pet-status",
-                "responseMode": "onReceived",
-                "options": {}
-            }
+            "webhookId": "pet-status"
         },
         {
+            "parameters": {
+                "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nconst status = $json.newStatus ? String($json.newStatus).trim().toLowerCase() : \"\";\n\nlet msg = `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`;\nif (status === 'in_progress') {\n  msg = `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`;\n}\n\nreturn [{\n  json: {\n    phone: phone55,\n    message: msg\n  }\n}];"
+            },
             "id": "msg-builder",
             "name": "Gerar Mensagem",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
             "position": [
-                460,
+                500,
                 300
-            ],
-            "parameters": {
-                "jsCode": "\ntry {\n  const newItems = [];\n  for (const item of $input.all()) {\n    const pet = item.json.petName || 'seu pet';\n    const service = item.json.serviceName || 'serviço';\n    const tutorPhone = item.json.tutorPhone || '';\n    const phone = tutorPhone.toString().replace(/\\D/g, '');\n    const phone55 = phone.startsWith('55') ? phone : '55' + phone;\n    const rawStatus = item.json.newStatus || \"\";\n    const status = String(rawStatus).trim().toLowerCase();\n\n    let msg = `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`;\n    if (status === 'in_progress') {\n      msg = `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`;\n    }\n\n    newItems.push({\n      json: {\n        phone: phone55,\n        message: msg,\n        statusLog: status,\n        rawStatus: rawStatus\n      }\n    });\n  }\n  return newItems;\n} catch (e) {\n  return [{ json: { error: e.message } }];\n}\n"
-            }
+            ]
         },
         {
-            "id": "zapi-send",
-            "name": "Z-API: Enviar Whatsapp",
-            "type": "n8n-nodes-base.httpRequest",
-            "typeVersion": 4.2,
-            "position": [
-                680,
-                300
-            ],
             "parameters": {
                 "method": "POST",
                 "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
@@ -70,7 +62,30 @@
                     ]
                 },
                 "options": {}
-            }
+            },
+            "id": "zapi-send",
+            "name": "Z-API: Enviar Whatsapp",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                760,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "ok",
+                "options": {}
+            },
+            "id": "respond",
+            "name": "Respond",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1020,
+                300
+            ]
         }
     ],
     "connections": {
@@ -90,6 +105,17 @@
                 [
                     {
                         "node": "Z-API: Enviar Whatsapp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Z-API: Enviar Whatsapp": {
+            "main": [
+                [
+                    {
+                        "node": "Respond",
                         "type": "main",
                         "index": 0
                     }
