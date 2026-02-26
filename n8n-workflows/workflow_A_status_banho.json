@@ -27,7 +27,7 @@
                     "conditions": [
                         {
                             "id": "cond-in-progress",
-                            "leftValue": "={{ $json.newStatus }}",
+                            "leftValue": "={{ $json.newStatus ? $json.newStatus.trim().toLowerCase() : \"\" }}",
                             "rightValue": "in_progress",
                             "operator": {
                                 "type": "string",

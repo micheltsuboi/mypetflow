@@ -112,6 +112,9 @@ export async function POST(req: NextRequest) {
             n8nUrlObj.password = ''
         }
 
+        console.log(`[N8N Trigger] Calling ${webhookPath} at ${n8nUrlObj.origin}...`)
+        console.log('[N8N Trigger] Sending payload:', JSON.stringify(enrichedPayload, null, 2))
+
         const n8nResponse = await fetch(n8nUrlObj.toString(), {
             method: 'POST',
             headers,
