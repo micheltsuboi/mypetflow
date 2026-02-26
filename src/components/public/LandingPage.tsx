@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './LandingPage.module.css'
 import { fetchPlans } from '@/app/actions/plans'
-import { Droplet, Home, Calendar, Store, PieChart } from 'lucide-react'
+import { Droplet, Home, Calendar, Store, PieChart, Check } from 'lucide-react'
 
 export default async function LandingPage() {
     // Busca os planos do banco de dados e filtra apenas os ativos
@@ -238,12 +238,11 @@ export default async function LandingPage() {
                                     {isPopular && <div className={styles.popularBadge}>O Mais Escolhido</div>}
                                     <h3 className={styles.planName}>{plan.name}</h3>
                                     <div className={styles.planPrice}>
-                                        <span>R$</span>{plan.price}<span>/mês</span>
+                                        <span>R$</span>{plan.price}<span className={styles.period}>/mês</span>
                                     </div>
                                     <ul className={styles.pricingFeatures}>
                                         {plan.features && plan.features.length > 0 ? (
                                             plan.features.map(feature => {
-                                                // Humanize feature keys or render as is if they are descriptions
                                                 const featureNames: Record<string, string> = {
                                                     'agenda': 'Agenda Inteligente',
                                                     'customers': 'Gestão de Tutores e Pets',
@@ -258,12 +257,17 @@ export default async function LandingPage() {
                                                     'whatsapp': 'Automação de WhatsApp'
                                                 };
                                                 const displayName = featureNames[feature] || feature;
-                                                return <li key={feature}>✓ {displayName}</li>
+                                                return (
+                                                    <li key={feature}>
+                                                        <Check size={18} />
+                                                        <span>{displayName}</span>
+                                                    </li>
+                                                )
                                             })
                                         ) : (
                                             <>
-                                                <li>✓ Todas as funcionalidades base</li>
-                                                <li>✓ Suporte via Chat</li>
+                                                <li><Check size={18} /> <span>Todas as funcionalidades base</span></li>
+                                                <li><Check size={18} /> <span>Suporte via Chat</span></li>
                                             </>
                                         )}
                                     </ul>
