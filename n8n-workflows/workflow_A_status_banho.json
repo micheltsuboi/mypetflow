@@ -46,7 +46,7 @@
         },
         {
             "parameters": {
-                "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`\n  }\n}];"
+                "jsCode": "const pet = $json.petName || 'seu pet'; const service = $json.serviceName || 'serviço'; const phone = ($json.tutorPhone || '').replace(/\\D/g, ''); const phone55 = phone.startsWith('55') ? phone : '55' + phone; return [{   json: {     phone: phone55,     message: `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`   } }];"
             },
             "id": "msg-in-progress",
             "name": "Mensagem: Iniciado",
@@ -59,7 +59,7 @@
         },
         {
             "parameters": {
-                "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`\n  }\n}];"
+                "jsCode": "const pet = $json.petName || 'seu pet'; const service = $json.serviceName || 'serviço'; const phone = ($json.tutorPhone || '').replace(/\\D/g, ''); const phone55 = phone.startsWith('55') ? phone : '55' + phone; return [{   json: {     phone: phone55,     message: `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`   } }];"
             },
             "id": "msg-done",
             "name": "Mensagem: Finalizado",
