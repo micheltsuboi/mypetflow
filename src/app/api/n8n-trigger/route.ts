@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     // 3. Decide which N8N webhook to call based on the event
     let webhookPath: string | null = null
 
-    if (type === 'INSERT' && newStatus === 'pending') {
+    if (type === 'INSERT' && (newStatus === 'pending' || newStatus === 'confirmed')) {
         // New booking created
         webhookPath = '/webhook/pet-agendamento'
     } else if (type === 'UPDATE') {
