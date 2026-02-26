@@ -20,29 +20,25 @@
         },
         {
             "parameters": {
-                "conditions": {
-                    "options": {
-                        "caseSensitive": false
-                    },
-                    "conditions": [
+                "dataType": "string",
+                "value": "={{ $json.newStatus ? $json.newStatus.trim().toLowerCase() : \"\" }}",
+                "rules": {
+                    "rules": [
                         {
-                            "id": "cond-in-progress",
-                            "leftValue": "={{ $json.newStatus ? $json.newStatus.trim().toLowerCase() : \"\" }}",
-                            "rightValue": "in_progress",
-                            "operator": {
-                                "type": "string",
-                                "operation": "equals"
-                            }
+                            "value": "in_progress",
+                            "output": 0
+                        },
+                        {
+                            "value": "done",
+                            "output": 1
                         }
-                    ],
-                    "combinator": "and"
-                },
-                "options": {}
+                    ]
+                }
             },
             "id": "if-status",
-            "name": "In Progress ou Done?",
-            "type": "n8n-nodes-base.if",
-            "typeVersion": 2,
+            "name": "Escolher Status: Iniciado ou Finalizado",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 1,
             "position": [
                 500,
                 300
@@ -50,7 +46,7 @@
         },
         {
             "parameters": {
-                "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🛁 Olá! O *${service}* do *${pet}* acabou de começar! Assim que ele estiver pronto, te avisamos aqui. 🐾`\n  }\n}];"
+                "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`\n  }\n}];"
             },
             "id": "msg-in-progress",
             "name": "Mensagem: Iniciado",

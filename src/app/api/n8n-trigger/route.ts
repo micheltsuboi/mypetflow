@@ -79,16 +79,19 @@ export async function POST(req: NextRequest) {
     let webhookPath: string | null = null
 
     if (type === 'INSERT' && (newStatus === 'pending' || newStatus === 'confirmed')) {
-        // New booking created
         webhookPath = '/webhook/pet-agendamento'
     } else if (type === 'UPDATE') {
-        if (newStatus === 'in_progress' && oldStatus !== 'in_progress') {
-            // Bath / service started
+        const isStatusChange = newStatus !== oldStatus
+
+        if (isStatusChange && newStatus === 'in_progress') {
             webhookPath = '/webhook/pet-status'
-        } else if (newStatus === 'done' && oldStatus !== 'done') {
-            // Service finished
+        } else if (isStatusChange && newStatus === 'done') {
             webhookPath = '/webhook/pet-status'
         }
+    }
+
+    if (webhookPath) {
+        console.log(`[N8N Trigger] Event detected: ${type} status ${oldStatus} -> ${newStatus}. Calling ${webhookPath}`)
     }
 
     if (!webhookPath || !tutorPhone) {
