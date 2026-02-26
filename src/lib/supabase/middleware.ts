@@ -31,10 +31,6 @@ export async function updateSession(request: NextRequest) {
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
     // Rotas públicas - não requerem autenticação
     const publicPaths = ['/', '/cadastro', '/cadastro-empresa', '/auth', '/tutor', '/login', '/admin', '/api']
     const isPublicPath = publicPaths.some(path =>
@@ -42,8 +38,16 @@ export async function updateSession(request: NextRequest) {
         request.nextUrl.pathname.startsWith(path + '/')
     )
 
+    if (isPublicPath) {
+        return supabaseResponse
+    }
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+
     // Redireciona para login se não autenticado em rota protegida
-    if (!user && !isPublicPath) {
+    if (!user) {
         const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)
