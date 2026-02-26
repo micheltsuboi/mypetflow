@@ -235,7 +235,7 @@ export default async function LandingPage() {
 
                             return (
                                 <div key={plan.id} className={`${styles.pricingCard} ${isPopular ? styles.popular : ''}`}>
-                                    {isPopular && <div className={styles.popularBadge}>O Mais Escolhido</div>}
+                                    {isPopular && <div className={styles.popularBadge}>Mais Escolhido</div>}
                                     <h3 className={styles.planName}>{plan.name}</h3>
                                     <div className={styles.planPrice}>
                                         <span>R$</span>{plan.price}<span className={styles.period}>/mês</span>
@@ -244,19 +244,21 @@ export default async function LandingPage() {
                                         {plan.features && plan.features.length > 0 ? (
                                             plan.features.map(feature => {
                                                 const featureNames: Record<string, string> = {
-                                                    'agenda': 'Agenda Inteligente',
-                                                    'customers': 'Gestão de Tutores e Pets',
-                                                    'services': 'Catálogo de Serviços',
-                                                    'finance': 'Financeiro Completo',
-                                                    'timeclock': 'Ponto de Funcionários',
-                                                    'creche': 'Creche & Hospedagem',
-                                                    'banho_tosa': 'Banho e Tosa',
-                                                    'pacotes': 'Pacotes Recorrentes',
-                                                    'petshop': 'PDV / Pet Shop',
-                                                    'relatorios': 'Relatórios Avançados',
+                                                    'agenda': 'Agenda inteligente',
+                                                    'customers': 'Gestão de tutores e pets',
+                                                    'services': 'Catálogo de serviços',
+                                                    'finance': 'Financeiro completo',
+                                                    'timeclock': 'Ponto de funcionários',
+                                                    'creche': 'Creche & hospedagem',
+                                                    'banho_tosa': 'Banho e tosa',
+                                                    'pacotes': 'Pacotes recorrentes',
+                                                    'petshop': 'PDV / Pet shop',
+                                                    'relatorios': 'Relatórios avançados',
                                                     'whatsapp': 'Automação de WhatsApp'
                                                 };
-                                                const displayName = featureNames[feature] || feature;
+                                                let displayName = featureNames[feature] || feature;
+                                                // Garantir que a primeira letra seja sempre maiúscula
+                                                displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
                                                 return (
                                                     <li key={feature}>
                                                         <Check size={18} />

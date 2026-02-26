@@ -764,7 +764,8 @@
     flex-direction: column;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; */
+    /* Removido para permitir que o badge flutue */
 }
 
 .pricingCard::before {
@@ -776,6 +777,7 @@
     height: 4px;
     background: transparent;
     transition: background 0.3s ease;
+    border-radius: 32px 32px 0 0;
 }
 
 .pricingCard:hover {
@@ -808,18 +810,19 @@
 
 .popularBadge {
     position: absolute;
-    top: 24px;
-    right: -35px;
-    transform: rotate(45deg);
-    background: var(--color-coral);
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gradient-primary);
     color: white;
-    padding: 0.5rem 3rem;
-    font-size: 0.7rem;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 20px rgba(240, 140, 152, 0.4);
     white-space: nowrap;
+    border-radius: var(--radius-full);
 }
 
 .planName {
