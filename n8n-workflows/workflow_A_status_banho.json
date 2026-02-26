@@ -2,12 +2,6 @@
   "name": "🐾 Pet Flow - Status de Banho/Serviço",
   "nodes": [
     {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "pet-status",
-        "responseMode": "onReceived",
-        "options": {}
-      },
       "id": "webhook-pet-status",
       "name": "Webhook - Pet Status",
       "type": "n8n-nodes-base.webhook",
@@ -16,65 +10,36 @@
         240,
         300
       ],
-      "webhookId": "pet-status"
+      "webhookId": "pet-status",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pet-status",
+        "responseMode": "onReceived",
+        "options": {}
+      }
     },
     {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": false
-          },
-          "conditions": [
-            {
-              "id": "8bbdc1e7-d2e1-45f8-8ec0-2fcee62e6d62",
-              "leftValue": "={{ $json.newStatus }}",
-              "rightValue": "in_progress",
-              "operator": {
-                "type": "string",
-                "operation": "contains"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "if-status",
-      "name": "É Iniciado?",
-      "type": "n8n-nodes-base.if",
+      "id": "msg-builder",
+      "name": "Gerar Mensagem",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        500,
+        460,
         300
-      ]
-    },
-    {
+      ],
       "parameters": {
-        "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`\n  }\n}];"
-      },
-      "id": "msg-in-progress",
-      "name": "Mensagem: Iniciado",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        760,
-        180
-      ]
+        "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nconst status = $json.newStatus ? String($json.newStatus).trim().toLowerCase() : \"\";\n\nlet msg = `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`;\nif (status === 'in_progress') {\n  msg = `🛁 Olá! O *${service}* do *${pet}* acabou de INICIAR! Assim que ele estiver pronto, te avisamos aqui. 🐾`;\n}\n\nreturn [{\n  json: {\n    phone: phone55,\n    message: msg,\n    statusLog: status\n  }\n}];"
+      }
     },
     {
-      "parameters": {
-        "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `✅ *${pet}* está pronto! O *${service}* foi concluído com sucesso. Pode vir buscar ele! 🐶❤️`\n  }\n}];"
-      },
-      "id": "msg-done",
-      "name": "Mensagem: Finalizado",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "zapi-send",
+      "name": "Z-API: Enviar Whatsapp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        760,
-        420
-      ]
-    },
-    {
+        680,
+        300
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
@@ -105,56 +70,7 @@
           ]
         },
         "options": {}
-      },
-      "id": "zapi-in-progress",
-      "name": "Z-API: Enviar (Iniciado)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1020,
-        180
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Client-Token",
-              "value": "F200243e457104ad79273e20e177311a2S"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "phone",
-              "value": "={{ $json.phone }}"
-            },
-            {
-              "name": "message",
-              "value": "={{ $json.message }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "zapi-done",
-      "name": "Z-API: Enviar (Finalizado)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1020,
-        420
-      ]
+      }
     }
   ],
   "connections": {
@@ -162,47 +78,18 @@
       "main": [
         [
           {
-            "node": "É Iniciado?",
+            "node": "Gerar Mensagem",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "É Iniciado?": {
+    "Gerar Mensagem": {
       "main": [
         [
           {
-            "node": "Mensagem: Iniciado",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Mensagem: Finalizado",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mensagem: Iniciado": {
-      "main": [
-        [
-          {
-            "node": "Z-API: Enviar (Iniciado)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Mensagem: Finalizado": {
-      "main": [
-        [
-          {
-            "node": "Z-API: Enviar (Finalizado)",
+            "node": "Z-API: Enviar Whatsapp",
             "type": "main",
             "index": 0
           }
