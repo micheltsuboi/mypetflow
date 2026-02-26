@@ -17,7 +17,10 @@ export async function checkInAppointment(appointmentId: string) {
 
         const { error } = await supabase
             .from('appointments')
-            .update({ actual_check_in: new Date().toISOString() })
+            .update({
+                actual_check_in: new Date().toISOString(),
+                status: 'in_progress'
+            })
             .eq('id', appointmentId)
 
         if (error) {
