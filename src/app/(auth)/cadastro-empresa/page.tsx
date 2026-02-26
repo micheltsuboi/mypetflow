@@ -5,8 +5,9 @@ import styles from '@/app/(auth)/cadastro/page.module.css'
 import RegisterOwnerForm from '@/components/modules/RegisterOwnerForm'
 import Link from 'next/link'
 
-export default async function CadastroEmpresaPage() {
+export default async function CadastroEmpresaPage({ searchParams }: { searchParams: Promise<{ planId?: string }> }) {
     const headerStack = await headers()
+    const { planId } = await searchParams
     const host = headerStack.get('host') || ''
     const supabaseAdmin = createAdminClient()
 
@@ -83,7 +84,7 @@ export default async function CadastroEmpresaPage() {
                         A plataforma completa para seu negócio pet
                     </p>
 
-                    <RegisterOwnerForm />
+                    <RegisterOwnerForm preSelectedPlanId={planId} />
                 </div>
             </div>
         </main>

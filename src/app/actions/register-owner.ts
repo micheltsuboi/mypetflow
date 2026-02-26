@@ -14,9 +14,10 @@ export async function registerOwner(prevState: RegisterOwnerState, formData: For
     const email = formData.get('email') as string
     const phone = formData.get('phone') as string
     const password = formData.get('password') as string
+    const planId = formData.get('planId') as string
 
-    if (!orgName || !subdomain || !fullName || !email || !password || !phone) {
-        return { message: 'Todos os campos são obrigatórios.', success: false }
+    if (!orgName || !subdomain || !fullName || !email || !password || !phone || !planId) {
+        return { message: 'Todos os campos são obrigatórios, incluindo o plano.', success: false }
     }
 
     // Normalizar subdomínio: minúsculas, sem espaços, sem caracteres especiais
@@ -45,6 +46,7 @@ export async function registerOwner(prevState: RegisterOwnerState, formData: For
         .insert({
             name: orgName,
             subdomain: subdomain,
+            plan_id: planId,
             is_active: true
         })
         .select()

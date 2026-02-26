@@ -1,20 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { registerOwner } from '@/app/actions/register-owner'
+import { fetchPlans } from '@/app/actions/plans'
 import styles from '@/app/page.module.css'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { maskPhone } from '@/utils/masks'
 
+interface SaasPlan {
+    id: string
+    name: string
+    price: number
+}
 
-export default function RegisterOwnerForm() {
+export default function RegisterOwnerForm({ preSelectedPlanId }: { preSelectedPlanId?: string }) {
     const [loading, setLoading] = useState(false)
     const [msg, setMsg] = useState('')
     const [isSuccess, setIsSuccess] = useState(false)
     const [phone, setPhone] = useState('')
+    const [plans, setPlans] = useState<SaasPlan[]>([])
+    const [selectedPlanId, setSelectedPlanId] = useState(preSelectedPlanId || '')
 
     const router = useRouter()
+
+    useEffect(() => {
+        const loadPlans = async () => {
+            const data = await fetchPlans()
+            const active = data.filter(p => p.is_active)
+            setPlans(active as SaasPlan[])
+            // If we don't have a preSelectedPlanId or if it's invalid, 
+            // select the first one if available
+            if (!preSelectedPlanId && active.length > 0) {
+                setSelectedPlanId(active[0].id)
+            } else if (preSelectedPlanId) {
+                setSelectedPlanId(preSelectedPlanId)
+            }
+        }
+        loadPlans()
+    }, [preSelectedPlanId])
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -50,6 +74,24 @@ export default function RegisterOwnerForm() {
             <form onSubmit={handleSubmit} className={styles.form}>
                 {/* Dados da Empresa */}
                 <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div className={styles.field} style={{ marginBottom: '1rem' }}>
+                        <label className={styles.label}>Plano Selecionado *</label>
+                        <select
+                            name="planId"
+                            required
+                            className={styles.input}
+                            value={selectedPlanId}
+                            onChange={(e) => setSelectedPlanId(e.target.value)}
+                        >
+                            <option value="">Selecione um plano...</option>
+                            {plans.map(plan => (
+                                <option key={plan.id} value={plan.id}>
+                                    {plan.name} - R$ {plan.price.toFixed(2)}/mês
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div className={styles.field} style={{ marginBottom: '1rem' }}>
                         <label className={styles.label}>Nome da Empresa</label>
                         <input name="orgName" type="text" required placeholder="MyPet Flow" className={styles.input} />
@@ -97,7 +139,7 @@ export default function RegisterOwnerForm() {
 
                 {msg && <div className={styles.error}>{msg}</div>}
 
-                <button type="submit" className={styles.button} disabled={loading} style={{ marginTop: '0.5rem' }}>
+                <button type="submit" className={styles.button} disabled={loading} style={{ marginTop: '1rem' }}>
                     {loading ? (
                         <>
                             <span className={styles.spinner} />
@@ -127,3 +169,4 @@ export default function RegisterOwnerForm() {
         </>
     )
 }
+

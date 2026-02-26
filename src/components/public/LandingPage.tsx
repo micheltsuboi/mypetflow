@@ -30,7 +30,6 @@ export default async function LandingPage() {
                             <Link href="#planos">Planos</Link>
                         </nav>
                         <div className={styles.authButtons}>
-                            <Link href="/cadastro" className={styles.loginBtn}>Entrar (Tutor)</Link>
                             <Link href="/cadastro-empresa" className={styles.signupBtn}>Cadastrar Empresa</Link>
                         </div>
                     </div>
@@ -268,7 +267,7 @@ export default async function LandingPage() {
                                             </>
                                         )}
                                     </ul>
-                                    <Link href="/cadastro-empresa" className={`${styles.pricingBtn} ${isPopular ? styles.btnSolid : styles.btnOutline}`}>
+                                    <Link href={`/cadastro-empresa?planId=${plan.id}`} className={`${styles.pricingBtn} ${isPopular ? styles.btnSolid : styles.btnOutline}`}>
                                         {isPopular ? 'Assinar Plano' : 'Começar Grátis'}
                                     </Link>
                                 </div>
