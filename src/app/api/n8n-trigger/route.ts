@@ -84,14 +84,14 @@ export async function POST(req: NextRequest) {
         const isStatusChange = newStatus !== oldStatus
 
         if (isStatusChange && newStatus === 'in_progress') {
-            webhookPath = '/webhook/pet-status'
+            webhookPath = '/webhook-test/pet-status'
         } else if (isStatusChange && newStatus === 'done') {
-            webhookPath = '/webhook/pet-status'
+            webhookPath = '/webhook-test/pet-status'
         }
     }
 
     if (webhookPath) {
-        console.log(`[N8N Trigger] Event detected: ${type} status ${oldStatus} -> ${newStatus}. Calling ${webhookPath}`)
+        console.log(`[N8N Trigger TEST MODE] Event detected: ${type} status ${oldStatus} -> ${newStatus}. Calling ${webhookPath}`)
     }
 
     if (!webhookPath || !tutorPhone) {
