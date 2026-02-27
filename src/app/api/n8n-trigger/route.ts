@@ -84,9 +84,9 @@ export async function POST(req: NextRequest) {
         const isStatusChange = newStatus !== oldStatus
 
         if (isStatusChange && newStatus === 'in_progress') {
-            webhookPath = '/webhook-test/pet-status'
+            webhookPath = '/webhook/pet-status'
         } else if (isStatusChange && newStatus === 'done') {
-            webhookPath = '/webhook-test/pet-status'
+            webhookPath = '/webhook/pet-status'
         }
     }
 
