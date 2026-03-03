@@ -19,10 +19,11 @@ import {
     createScheduleBlock,
     deleteScheduleBlock
 } from '@/app/actions/schedule'
-import { format } from 'date-fns'
+import { getVeterinarians, startConsultation } from '@/app/actions/veterinary'
+import ConsultationModal from '@/components/modules/ConsultationModal'
 import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
-import { getVeterinarians } from '@/app/actions/veterinary'
+import { format } from 'date-fns'
 
 interface Customer {
     name: string
@@ -139,6 +140,8 @@ function AgendaContent() {
     const [preSelectedServiceId, setPreSelectedServiceId] = useState<string | null>(null)
     const [selectedServiceId, setSelectedServiceId] = useState<string>('')
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+    const [selectedConsultation, setSelectedConsultation] = useState<any | null>(null)
+    const [showConsultationModal, setShowConsultationModal] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
 
     // Checklist State
@@ -569,6 +572,24 @@ function AgendaContent() {
                     )}
                     {appt.actual_check_in && !appt.actual_check_out && (
                         <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkout') }}>Saída ⬅️</button>
+                    )}
+                    {(isVet || (serviceCategory as any)?.name === 'Clínica Veterinária') && (
+                        <button
+                            className={styles.actionBtn}
+                            style={{ background: 'var(--primary)', color: 'white' }}
+                            onClick={async (e) => {
+                                e.stopPropagation();
+                                const res = await startConsultation(appt.id);
+                                if (res.success) {
+                                    setSelectedConsultation(res.data);
+                                    setShowConsultationModal(true);
+                                } else {
+                                    alert(res.message);
+                                }
+                            }}
+                        >
+                            🩺 Consulta
+                        </button>
                     )}
                     <button className={styles.detailBtn} onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}>Detalhes</button>
                 </div>
@@ -1185,6 +1206,16 @@ function AgendaContent() {
                     </div >
                 )
                 }
+                {showConsultationModal && selectedConsultation && (
+                    <ConsultationModal
+                        consultation={selectedConsultation}
+                        onClose={() => {
+                            setShowConsultationModal(false)
+                            fetchData()
+                        }}
+                        onSave={() => fetchData()}
+                    />
+                )}
             </div >
         </PlanGuard>
     )

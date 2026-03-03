@@ -597,3 +597,174 @@ export async function deleteVetExam(id: string) {
         return { success: false, message: 'Erro ao remover exame.' }
     }
 }
+
+// ==========================================
+// VET DASHBOARD / LISTING
+// ==========================================
+
+export async function getVetDashboardAppointments() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data: profile } = await supabase.from('profiles').select('org_id, role').eq('id', user.id).single()
+        if (!profile?.org_id) return []
+
+        // Fetch category ID for Clínica Veterinária
+        const { data: category } = await supabase.from('service_categories').select('id').eq('name', 'Clínica Veterinária').single()
+        if (!category) return []
+
+        let query = supabase
+            .from('appointments')
+            .select(`
+                *,
+                pets (id, name, species, breed, customers (name)),
+                services (id, name, base_price)
+            `)
+            .eq('service_category_id', category.id)
+            .eq('org_id', profile.org_id)
+            .neq('status', 'cancelled')
+            .order('scheduled_at', { ascending: true })
+
+        const { data, error } = await query
+        if (error) throw error
+
+        // Also fetch any existing consultations for these appointments to know which ones are "Iniciadas"
+        const apptIds = data?.map(d => d.id) || []
+        const { data: consultations } = await supabase
+            .from('vet_consultations')
+            .select('id, appointment_id')
+            .in('appointment_id', apptIds)
+
+        const apptsWithConsultation = data?.map(appt => ({
+            ...appt,
+            has_consultation: consultations?.some(c => c.appointment_id === appt.id),
+            consultation_id: consultations?.find(c => c.appointment_id === appt.id)?.id
+        }))
+
+        return apptsWithConsultation || []
+    } catch (error) {
+        console.error('Error fetching vet dashboard appointments:', error)
+        return []
+    }
+}
+
+export async function autosaveVetConsultation(id: string, field: string, value: any) {
+    try {
+        const supabase = await createClient()
+        const { error } = await supabase
+            .from('vet_consultations')
+            .update({ [field]: value, updated_at: new Date().toISOString() })
+            .eq('id', id)
+
+        if (error) throw error
+        return { success: true }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
+export async function startConsultation(appointmentId: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        // Fetch appointment details
+        const { data: appt, error: apptError } = await supabase
+            .from('appointments')
+            .select(`
+                *,
+                pets (id, name),
+                services (id, name, base_price)
+            `)
+            .eq('id', appointmentId)
+            .single()
+
+        if (apptError || !appt) return { success: false, message: 'Agendamento não encontrado' }
+
+        // Fetch organization
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        if (!profile?.org_id) return { success: false, message: 'Organização não encontrada' }
+
+        // Fetch current veterinarian account for this user
+        const { data: vet } = await supabase
+            .from('veterinarians')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
+
+        // Check if consultation record already exists for this appointment
+        const { data: existing } = await supabase
+            .from('vet_consultations')
+            .select('*')
+            .eq('appointment_id', appointmentId)
+            .maybeSingle()
+
+        if (existing) {
+            return { success: true, data: existing }
+        }
+
+        // Create new consultation record
+        const { data: newConsultation, error: insertError } = await supabase
+            .from('vet_consultations')
+            .insert({
+                org_id: profile.org_id,
+                pet_id: appt.pet_id,
+                veterinarian_id: vet?.id || null,
+                appointment_id: appointmentId,
+                consultation_date: appt.scheduled_at,
+                reason: appt.notes || appt.services?.name,
+                consultation_fee: appt.final_price || appt.calculated_price || 0,
+                payment_status: appt.payment_status || 'pending',
+                payment_method: appt.payment_method || 'cash',
+                created_by: user.id
+            })
+            .select()
+            .single()
+
+        if (insertError) throw insertError
+
+        // Update appointment status to in_progress if it was confirmed/pending
+        if (appt.status !== 'in_progress' && appt.status !== 'done') {
+            await supabase.from('appointments').update({ status: 'in_progress', actual_check_in: new Date().toISOString() }).eq('id', appointmentId)
+        }
+
+        return { success: true, data: newConsultation }
+    } catch (error: any) {
+        console.error('Error starting consultation:', error)
+        return { success: false, message: error.message }
+    }
+}
+
+export async function createBlankConsultation(petId: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
+
+        const { data: vet } = await supabase.from('veterinarians').select('id').eq('user_id', user.id).single()
+
+        const { data, error } = await supabase
+            .from('vet_consultations')
+            .insert({
+                org_id: profile.org_id,
+                pet_id: petId,
+                veterinarian_id: vet?.id || null,
+                consultation_date: new Date().toISOString(),
+                payment_status: 'pending',
+                created_by: user.id
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+        return { success: true, data }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}

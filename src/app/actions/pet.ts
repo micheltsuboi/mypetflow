@@ -234,46 +234,35 @@ export async function createPetByTutor(prevState: CreatePetState, formData: Form
     return { message: 'Seu pet foi cadastrado com sucesso!', success: true }
 }
 
-export async function togglePetAdaptation(petId: string, isAdapted: boolean) {
+export async function getHotelHistory(petId: string) {
     const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+            id, scheduled_at, status, 
+            services!inner(name, category)
+        `)
+        .eq('pet_id', petId)
+        .eq('services.category', 'Hospedagem')
+        .order('scheduled_at', { ascending: false })
 
-    // Auth Check
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { message: 'Não autorizado.', success: false }
+    if (error) return { success: false, message: error.message }
+    return { success: true, data }
+}
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+export async function getCrecheHistory(petId: string) {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+            id, scheduled_at, status, 
+            services!inner(name, category)
+        `)
+        .eq('pet_id', petId)
+        .eq('services.category', 'Creche')
+        .order('scheduled_at', { ascending: false })
 
-    if (!profile || !['superadmin', 'admin', 'staff'].includes(profile.role)) {
-        return { message: 'Permissão negada.', success: false }
-    }
-
-    const supabaseAdmin = createAdminClient()
-
-    // Verify pet exists
-    const { data: pet } = await supabaseAdmin
-        .from('pets')
-        .select('id')
-        .eq('id', petId)
-        .single()
-
-    if (!pet) return { message: 'Pet não encontrado.', success: false }
-
-    const { error } = await supabaseAdmin
-        .from('pets')
-        .update({ is_adapted: isAdapted })
-        .eq('id', petId)
-
-    if (error) {
-        return { message: `Erro ao atualizar adaptação: ${error.message}`, success: false }
-    }
-
-    revalidatePath('/owner/pets')
-    revalidatePath('/tutor/booking')
-
-    return { message: 'Status de adaptação atualizado!', success: true }
+    if (error) return { success: false, message: error.message }
+    return { success: true, data }
 }
 
