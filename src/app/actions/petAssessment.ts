@@ -122,11 +122,16 @@ export async function createAssessmentQuestion(formData: FormData) {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('org_id, role')
+            .select('org_id, role, permissions')
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role)) {
+        if (!profile) return { success: false, message: 'Perfil não encontrado' }
+
+        const isStaff = profile.role === 'staff'
+        const hasPermission = isStaff ? ((profile.permissions as string[]) || []).includes('assessment') : true
+
+        if (!profile?.org_id || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role) || !hasPermission) {
             return { success: false, message: 'Sem autorização ou organização não encontrada' }
         }
 
@@ -184,11 +189,16 @@ export async function updateAssessmentQuestion(id: string, formData: FormData) {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('org_id, role')
+            .select('org_id, role, permissions')
             .eq('id', user.id)
             .single()
 
-        if (!profile?.org_id || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role)) {
+        if (!profile) return { success: false, message: 'Perfil não encontrado' }
+
+        const isStaff = profile.role === 'staff'
+        const hasPermission = isStaff ? ((profile.permissions as string[]) || []).includes('assessment') : true
+
+        if (!profile?.org_id || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role) || !hasPermission) {
             return { success: false, message: 'Sem autorização' }
         }
 
@@ -244,11 +254,16 @@ export async function toggleAssessmentQuestionStatus(id: string, currentStatus: 
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, permissions')
             .eq('id', user.id)
             .single()
 
-        if (!profile || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role)) {
+        if (!profile) return { success: false, message: 'Perfil não encontrado' }
+
+        const isStaff = profile.role === 'staff'
+        const hasPermission = isStaff ? ((profile.permissions as string[]) || []).includes('assessment') : true
+
+        if (!profile || !['admin', 'owner', 'staff', 'superadmin'].includes(profile.role) || !hasPermission) {
             return { success: false, message: 'Sem autorização' }
         }
 

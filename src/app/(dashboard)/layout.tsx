@@ -198,7 +198,7 @@ export default function DashboardLayout({
             if (item.name === 'Fidelidade') return perms.includes('cashback')
             if (item.name === 'Serviços') return perms.includes('servicos')
             if (item.name === 'Clínica Vet') return perms.includes('clinica_vet')
-            if (item.name === 'Questionário') return perms.includes('pets') // Tie access to pets permission
+            if (item.name === 'Questionário') return perms.includes('assessment')
             if (item.name === 'Consultas') return perms.includes('clinica_vet')
             if (item.name === 'Ponto') return perms.includes('ponto')
             return false // Hide everything else (such as Usuários, Financeiro)

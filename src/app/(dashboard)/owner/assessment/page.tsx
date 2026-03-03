@@ -10,11 +10,14 @@ import {
     AssessmentQuestion
 } from '@/app/actions/petAssessment'
 import styles from './page.module.css'
-import { Plus, Edit2, Power, PowerOff } from 'lucide-react'
+import { Plus, Edit2, Power, PowerOff, ShieldAlert } from 'lucide-react'
+import PlanGuard from '@/components/modules/PlanGuard'
+import Link from 'next/link'
 
 export default function AssessmentManagementPage() {
     const [questions, setQuestions] = useState<AssessmentQuestion[]>([])
     const [loading, setLoading] = useState(true)
+    const [unauthorized, setUnauthorized] = useState(false)
     const [orgId, setOrgId] = useState<string | null>(null)
 
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -35,11 +38,20 @@ export default function AssessmentManagementPage() {
             if (user) {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('org_id')
+                    .select('org_id, role, permissions')
                     .eq('id', user.id)
                     .single()
 
                 if (profile?.org_id) {
+                    const isStaff = profile.role === 'staff'
+                    const hasAccess = isStaff ? ((profile.permissions as string[]) || []).includes('assessment') : true
+
+                    if (!hasAccess) {
+                        setUnauthorized(true)
+                        setLoading(false)
+                        return
+                    }
+
                     setOrgId(profile.org_id)
                     const data = await getAssessmentQuestions(profile.org_id)
                     setQuestions(data)
@@ -165,110 +177,128 @@ export default function AssessmentManagementPage() {
 
     if (loading) return <div className={styles.container}>Carregando perguntas...</div>
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Gerenciar Questionário</h1>
-                <button className={styles.addButton} onClick={() => handleOpenModal()}>
-                    <Plus size={18} />
-                    Nova Pergunta
-                </button>
+    if (unauthorized) {
+        return (
+            <div className={styles.container} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+                <ShieldAlert size={64} color="var(--destructive)" />
+                <h2 style={{ marginTop: '1.5rem', fontSize: '1.5rem' }}>Acesso Negado</h2>
+                <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', textAlign: 'center' }}>
+                    Você não tem permissão para acessar o gerenciamento de questionários.<br />
+                    Solicite acesso ao administrador da sua organização.
+                </p>
+                <Link href="/owner" className={styles.addButton} style={{ marginTop: '2rem', textDecoration: 'none' }}>
+                    Voltar para Home
+                </Link>
             </div>
+        )
+    }
 
-            {(Object.keys(categories) as Array<keyof typeof categories>).map(catKey => (
-                <div key={catKey} className={styles.categoryGroup}>
-                    <h2 className={styles.categoryTitle}>{categories[catKey]}</h2>
-                    {renderQuestionsList(catKey)}
+    return (
+        <PlanGuard requiredModule="pets">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <h1 className={styles.title}>Gerenciar Questionário</h1>
+                    <button className={styles.addButton} onClick={() => handleOpenModal()}>
+                        <Plus size={18} />
+                        Nova Pergunta
+                    </button>
                 </div>
-            ))}
 
-            {isModalOpen && (
-                <div className={styles.modalOverlay}>
-                    <div className={styles.modal}>
-                        <h2 className={styles.modalTitle}>
-                            {editingQuestion ? 'Editar Pergunta' : 'Nova Pergunta'}
-                        </h2>
-
-                        {formError && <div className={styles.errorMessage}>{formError}</div>}
-
-                        <form onSubmit={handleSubmit}>
-                            <div className={styles.formGroup}>
-                                <label>Categoria</label>
-                                <select name="category" className={styles.select} defaultValue={editingQuestion?.category || 'social'} required>
-                                    <option value="social">Socialização e Comportamento</option>
-                                    <option value="routine">Rotina e Adaptação</option>
-                                    <option value="health">Saúde e Restrições</option>
-                                    <option value="care">Cuidados Específicos</option>
-                                </select>
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label>Pergunta</label>
-                                <input
-                                    type="text"
-                                    name="question_text"
-                                    className={styles.input}
-                                    defaultValue={editingQuestion?.question_text}
-                                    required
-                                    placeholder="Ex: Possui rotina organizada?"
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label>Tipo de Resposta</label>
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                        <input type="radio" name="question_type" value="boolean" defaultChecked={!editingQuestion || editingQuestion.question_type === 'boolean'} required />
-                                        Sim / Não
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                        <input type="radio" name="question_type" value="text" defaultChecked={editingQuestion?.question_type === 'text'} />
-                                        Texto Livre
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                        <input type="radio" name="question_type" value="select" defaultChecked={editingQuestion?.question_type === 'select'} />
-                                        Seleção
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label>Opções (Apenas para tipo Seleção)</label>
-                                <input
-                                    type="text"
-                                    name="options"
-                                    className={styles.input}
-                                    defaultValue={editingQuestion?.options ? (Array.isArray(editingQuestion.options) ? editingQuestion.options.join(',') : '') : ''}
-                                    placeholder="Ex: calmo, nervoso, tem medo"
-                                />
-                                <span className={styles.helperText}>Separe as opções por vírgula.</span>
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label>Ordem de Exibição</label>
-                                <input
-                                    type="number"
-                                    name="order_index"
-                                    className={styles.input}
-                                    defaultValue={editingQuestion?.order_index || 10}
-                                    required
-                                    min={0}
-                                />
-                                <span className={styles.helperText}>Define a ordem desta pergunta na categoria (números menores aparecem primeiro).</span>
-                            </div>
-
-                            <div className={styles.modalActions}>
-                                <button type="button" className={styles.cancelBtn} onClick={handleCloseModal} disabled={formLoading}>
-                                    Cancelar
-                                </button>
-                                <button type="submit" className={styles.submitBtn} disabled={formLoading}>
-                                    {formLoading ? 'Salvando...' : 'Salvar'}
-                                </button>
-                            </div>
-                        </form>
+                {(Object.keys(categories) as Array<keyof typeof categories>).map(catKey => (
+                    <div key={catKey} className={styles.categoryGroup}>
+                        <h2 className={styles.categoryTitle}>{categories[catKey]}</h2>
+                        {renderQuestionsList(catKey)}
                     </div>
-                </div>
-            )}
-        </div>
+                ))}
+
+                {isModalOpen && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modal}>
+                            <h2 className={styles.modalTitle}>
+                                {editingQuestion ? 'Editar Pergunta' : 'Nova Pergunta'}
+                            </h2>
+
+                            {formError && <div className={styles.errorMessage}>{formError}</div>}
+
+                            <form onSubmit={handleSubmit}>
+                                <div className={styles.formGroup}>
+                                    <label>Categoria</label>
+                                    <select name="category" className={styles.select} defaultValue={editingQuestion?.category || 'social'} required>
+                                        <option value="social">Socialização e Comportamento</option>
+                                        <option value="routine">Rotina e Adaptação</option>
+                                        <option value="health">Saúde e Restrições</option>
+                                        <option value="care">Cuidados Específicos</option>
+                                    </select>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Pergunta</label>
+                                    <input
+                                        type="text"
+                                        name="question_text"
+                                        className={styles.input}
+                                        defaultValue={editingQuestion?.question_text}
+                                        required
+                                        placeholder="Ex: Possui rotina organizada?"
+                                    />
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Tipo de Resposta</label>
+                                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <input type="radio" name="question_type" value="boolean" defaultChecked={!editingQuestion || editingQuestion.question_type === 'boolean'} required />
+                                            Sim / Não
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <input type="radio" name="question_type" value="text" defaultChecked={editingQuestion?.question_type === 'text'} />
+                                            Texto Livre
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <input type="radio" name="question_type" value="select" defaultChecked={editingQuestion?.question_type === 'select'} />
+                                            Seleção
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Opções (Apenas para tipo Seleção)</label>
+                                    <input
+                                        type="text"
+                                        name="options"
+                                        className={styles.input}
+                                        defaultValue={editingQuestion?.options ? (Array.isArray(editingQuestion.options) ? editingQuestion.options.join(',') : '') : ''}
+                                        placeholder="Ex: calmo, nervoso, tem medo"
+                                    />
+                                    <span className={styles.helperText}>Separe as opções por vírgula.</span>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Ordem de Exibição</label>
+                                    <input
+                                        type="number"
+                                        name="order_index"
+                                        className={styles.input}
+                                        defaultValue={editingQuestion?.order_index || 10}
+                                        required
+                                        min={0}
+                                    />
+                                    <span className={styles.helperText}>Define a ordem desta pergunta na categoria (números menores aparecem primeiro).</span>
+                                </div>
+
+                                <div className={styles.modalActions}>
+                                    <button type="button" className={styles.cancelBtn} onClick={handleCloseModal} disabled={formLoading}>
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" className={styles.submitBtn} disabled={formLoading}>
+                                        {formLoading ? 'Salvando...' : 'Salvar'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </PlanGuard>
     )
 }

@@ -56,6 +56,7 @@ const STAFF_MODULES = [
     { id: 'cashback', label: '💎 Fidelidade' },
     { id: 'servicos', label: '📋 Serviços' },
     { id: 'ponto', label: '⏰ Cartão Ponto' },
+    { id: 'assessment', label: '📝 Questionário' },
     { id: 'clinica_vet', label: '🩺 Clínica Vet' }
 ]
 
