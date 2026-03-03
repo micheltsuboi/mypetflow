@@ -127,7 +127,7 @@ export default function DashboardLayout({
                         name: profile.full_name || user.email?.split('@')[0] || 'Usuário',
                         role: profile.role === 'superadmin' ? 'Super Admin' :
                             profile.role === 'admin' ? 'Administrador' :
-                                profile.role === 'staff' ? 'Staff' :
+                                profile.role === 'staff' ? ((profile.permissions || []).includes('clinica_vet') ? 'Médico Veterinário' : 'Staff') :
                                     profile.role === 'customer' ? 'Tutor' : 'Usuário',
                         org_id: profile.org_id,
                         avatar_url: profile.avatar_url,
@@ -167,7 +167,7 @@ export default function DashboardLayout({
     } else if (user?.role === 'Administrador' && isOwner) {
         console.log('Layout: Using Owner Navigation')
         navigation = ownerNavigation
-    } else if (user?.role === 'Staff' && (isOwner || pathname === '/staff')) {
+    } else if ((user?.role === 'Staff' || user?.role === 'Médico Veterinário') && (isOwner || pathname === '/staff')) {
         console.log('Layout: Using Staff Navigation')
         // Staff might access some /owner pages (like agenda) but should see staff menu
         navigation = staffNavigation
@@ -179,7 +179,7 @@ export default function DashboardLayout({
 
     // Extra safety: Filter out 'Usuários' for Staff, and apply granular permissions
     // Apply this AFTER determining the base navigation array
-    if (user?.role === 'Staff' || !user) {
+    if (user?.role === 'Staff' || user?.role === 'Médico Veterinário' || !user) {
         const perms = user?.permissions || []
         navigation = navigation.filter((item: any) => {
             if (item.name === 'Dashboard') return true

@@ -12,6 +12,7 @@ export async function createVaccine(formData: FormData) {
         const expiry_date = formData.get('expiry_date') as string
         const application_date = formData.get('application_date') as string | null
         const batch_number = formData.get('batch_number') as string | null
+        const veterinarian_id = formData.get('veterinarian_id') as string | null
 
         if (!pet_id || !name || !expiry_date) {
             return { success: false, message: 'Campos obrigatórios faltando.' }
@@ -24,7 +25,8 @@ export async function createVaccine(formData: FormData) {
                 name,
                 expiry_date,
                 application_date: application_date || null,
-                batch_number: batch_number || null
+                batch_number: batch_number || null,
+                veterinarian_id: veterinarian_id || null
             })
 
         if (error) {

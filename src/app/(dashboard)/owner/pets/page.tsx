@@ -71,6 +71,7 @@ function PetsContent() {
     const [vetRecords, setVetRecords] = useState<any[]>([])
     const [examTypes, setExamTypes] = useState<any[]>([])
     const [vetExams, setVetExams] = useState<any[]>([])
+    const [currentVet, setCurrentVet] = useState<any>(null)
     const [isVetLoading, setIsVetLoading] = useState(false)
 
     // Assessment State
@@ -285,6 +286,20 @@ function PetsContent() {
             getVeterinarians().then(setVeterinarians)
         }
     }, [selectedPet, accordions.medical, accordions.exams, accordions.vaccines, veterinarians.length])
+
+    // Find current logged in vet
+    useEffect(() => {
+        const findVet = async () => {
+            if (veterinarians.length > 0) {
+                const { data: { user } } = await supabase.auth.getUser()
+                if (user) {
+                    const vetAccount = veterinarians.find(v => v.user_id === user.id)
+                    if (vetAccount) setCurrentVet(vetAccount)
+                }
+            }
+        }
+        findVet()
+    }, [veterinarians, supabase.auth])
 
     useEffect(() => {
         fetchData()
@@ -651,7 +666,7 @@ function PetsContent() {
                                                             <input type="hidden" name="pet_id" value={selectedPet.id} />
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário</label>
-                                                                <select name="veterinarian_id" className={styles.select}>
+                                                                <select name="veterinarian_id" className={styles.select} defaultValue={currentVet?.id || ""}>
                                                                     <option value="">Selecione...</option>
                                                                     {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                                                                 </select>
@@ -666,7 +681,7 @@ function PetsContent() {
                                                             </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Base (R$)</label>
-                                                                <input type="number" step="0.01" name="consultation_fee" defaultValue="0" className={styles.input} />
+                                                                <input type="number" step="0.01" name="consultation_fee" defaultValue={currentVet?.consultation_base_price || "0"} key={currentVet?.id || 'none'} className={styles.input} />
                                                             </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Desconto (%)</label>
@@ -713,6 +728,13 @@ function PetsContent() {
                                                             } else alert(res.message)
                                                         }} id="recordForm" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                             <input type="hidden" name="pet_id" value={selectedPet.id} />
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário Responsável</label>
+                                                                <select name="veterinarian_id" className={styles.select} defaultValue={currentVet?.id || ""}>
+                                                                    <option value="">Selecione...</option>
+                                                                    {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                                </select>
+                                                            </div>
                                                             <input name="title" required placeholder="Título (ex: Retorno dermatológico)" className={styles.input} />
                                                             <textarea name="content" required placeholder="Anotações clínicas..." className={styles.textarea} style={{ minHeight: '80px' }}></textarea>
                                                             <button type="submit" className={styles.addButton} style={{ alignSelf: 'flex-start' }}>Adicionar Prontuário</button>
@@ -773,6 +795,13 @@ function PetsContent() {
                                                         <div>
                                                             <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>Validade *</label>
                                                             <input name="expiry_date" type="date" required className={styles.input} />
+                                                        </div>
+                                                        <div style={{ gridColumn: '1 / -1' }}>
+                                                            <label style={{ display: 'block', fontSize: '0.8rem', marginBottom: '0.25rem', color: 'var(--text-secondary)' }}>Veterinário Responsável</label>
+                                                            <select name="veterinarian_id" className={styles.select} defaultValue={currentVet?.id || ""}>
+                                                                <option value="">Selecione...</option>
+                                                                {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                            </select>
                                                         </div>
                                                         <div style={{ gridColumn: '1 / -1' }}>
                                                             <button type="submit" className={styles.submitButton} style={{ width: '100%' }}>Adicionar Vacina</button>
@@ -861,7 +890,7 @@ function PetsContent() {
                                                             </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário / Solicitante</label>
-                                                                <select name="veterinarian_id" className={styles.select}>
+                                                                <select name="veterinarian_id" className={styles.select} defaultValue={currentVet?.id || ""}>
                                                                     <option value="">Nenhum/Externo</option>
                                                                     {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                                                                 </select>

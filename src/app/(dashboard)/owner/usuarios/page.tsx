@@ -55,7 +55,8 @@ const STAFF_MODULES = [
     { id: 'petshop', label: '🛍️ Petshop' },
     { id: 'cashback', label: '💎 Fidelidade' },
     { id: 'servicos', label: '📋 Serviços' },
-    { id: 'ponto', label: '⏰ Cartão Ponto' }
+    { id: 'ponto', label: '⏰ Cartão Ponto' },
+    { id: 'clinica_vet', label: '🩺 Clínica Vet' }
 ]
 
 const initialState = {
