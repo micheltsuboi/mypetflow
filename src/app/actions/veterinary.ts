@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 // ==========================================
@@ -56,23 +57,71 @@ export async function createVeterinarian(formData: FormData) {
         const email = formData.get('email') as string || null
         const consultation_base_price = parseFloat(formData.get('consultation_base_price') as string || '0')
         const is_active = formData.get('is_active') === 'on' || formData.get('is_active') === 'true'
+        const password = formData.get('password') as string || null
 
         if (!name || !crmv) return { success: false, message: 'Nome e CRMV são obrigatórios.' }
 
-        const { error } = await supabase
-            .from('veterinarians')
-            .insert({
-                org_id: profile.org_id,
-                name,
-                crmv,
-                specialty,
-                phone,
+        let authUserId = null;
+
+        // Create login if password is provided
+        if (password && email) {
+            const supabaseAdmin = createAdminClient()
+            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
                 email,
-                consultation_base_price,
-                is_active
+                password,
+                email_confirm: true,
+                user_metadata: { full_name: name }
             })
 
-        if (error) throw error
+            if (createError) {
+                return { success: false, message: `Erro ao criar login: ${createError.message}` }
+            }
+
+            if (newUser?.user) {
+                authUserId = newUser.user.id
+                // Upsert profile for the new user (role: staff, permissions: clinica_vet)
+                await supabaseAdmin.from('profiles').upsert({
+                    id: authUserId,
+                    email: email,
+                    full_name: name,
+                    role: 'staff',
+                    org_id: profile.org_id,
+                    permissions: ['clinica_vet', 'pets'], // basic permissions for vet
+                    is_active: true
+                })
+            }
+        } else if (password && !email) {
+            return { success: false, message: 'Para criar login é necessário fornecer um email.' }
+        }
+
+        const insertData: any = {
+            org_id: profile.org_id,
+            name,
+            crmv,
+            specialty,
+            phone,
+            email,
+            consultation_base_price,
+            is_active
+        }
+
+        // Only add user_id if we created one, handling the migration column
+        if (authUserId) {
+            insertData.user_id = authUserId
+        }
+
+        const { error } = await supabase
+            .from('veterinarians')
+            .insert(insertData)
+
+        if (error) {
+            // Delete the auth user if veterinarian creation fails
+            if (authUserId) {
+                const supabaseAdmin = createAdminClient()
+                await supabaseAdmin.auth.admin.deleteUser(authUserId)
+            }
+            throw error
+        }
 
         revalidatePath('/owner/veterinary')
         return { success: true, message: 'Veterinário cadastrado com sucesso.' }

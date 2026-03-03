@@ -21,7 +21,7 @@ export default function VeterinaryPage() {
 
     // Forms
     const [vetForm, setVetForm] = useState({
-        name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true
+        name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true, password: '', createLogin: false
     })
 
     const [examForm, setExamForm] = useState({
@@ -59,6 +59,9 @@ export default function VeterinaryPage() {
         formData.append('email', vetForm.email)
         formData.append('consultation_base_price', vetForm.consultation_base_price.toString())
         formData.append('is_active', vetForm.is_active ? 'true' : 'false')
+        if (vetForm.createLogin && vetForm.password) {
+            formData.append('password', vetForm.password)
+        }
 
         const res = selectedVet ? await updateVeterinarian(formData) : await createVeterinarian(formData)
 
@@ -107,7 +110,7 @@ export default function VeterinaryPage() {
                 {activeTab === 'vets' ? (
                     <button className={styles.addButton} onClick={() => {
                         setSelectedVet(null)
-                        setVetForm({ name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true })
+                        setVetForm({ name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true, password: '', createLogin: false })
                         setIsVetModalOpen(true)
                     }}>
                         ➕ Novo Veterinário
@@ -159,7 +162,9 @@ export default function VeterinaryPage() {
                                     phone: vet.phone || '',
                                     email: vet.email || '',
                                     consultation_base_price: vet.consultation_base_price,
-                                    is_active: vet.is_active
+                                    is_active: vet.is_active,
+                                    password: '',
+                                    createLogin: false
                                 })
                                 setIsVetModalOpen(true)
                             }}>Editar</button>
@@ -231,14 +236,31 @@ export default function VeterinaryPage() {
                                     <input type="number" step="0.01" min="0" required className={styles.input} value={vetForm.consultation_base_price} onChange={e => setVetForm({ ...vetForm, consultation_base_price: parseFloat(e.target.value) })} />
                                 </div>
                             </div>
-                            <div className={styles.formGroup}>
+
+                            {!selectedVet && (
+                                <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)', marginBottom: '0.5rem', fontWeight: 600 }}>
+                                        <input type="checkbox" checked={vetForm.createLogin} onChange={e => setVetForm({ ...vetForm, createLogin: e.target.checked })} />
+                                        Criar / Habilitar Acesso ao Sistema (Login)
+                                    </label>
+                                    {vetForm.createLogin && (
+                                        <div style={{ marginTop: '0.5rem' }}>
+                                            <label className={styles.label}>Senha de Acesso *</label>
+                                            <input type="password" required={vetForm.createLogin} className={styles.input} value={vetForm.password} onChange={e => setVetForm({ ...vetForm, password: e.target.value })} placeholder="Senha para o veterinário logar" />
+                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>O email acima será usado como login do sistema.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)' }}>
                                     <input type="checkbox" checked={vetForm.is_active} onChange={e => setVetForm({ ...vetForm, is_active: e.target.checked })} />
                                     Profissional Ativo (Aparece nas listagens)
                                 </label>
                             </div>
 
-                            <button type="submit" className={styles.submitButton}>Salvar Profissional</button>
+                            <button type="submit" className={styles.submitButton} style={{ marginTop: '1.5rem' }}>Salvar Profissional</button>
                         </form>
                     </div>
                 </div>
