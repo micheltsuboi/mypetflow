@@ -51,6 +51,75 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
         onClose()
     }
 
+    const handleGeneratePDF = async () => {
+        try {
+            const { jsPDF } = await import('jspdf')
+            const doc = new jsPDF()
+
+            let petName = consultation.pets?.name
+            let tutorName = consultation.pets?.customers?.name || consultation.pets?.customer?.name
+
+            if (!petName || !tutorName) {
+                const { createClient } = await import('@/lib/supabase/client')
+                const supabase = createClient()
+                const { data: pet } = await supabase
+                    .from('pets')
+                    .select('name, customers(name)')
+                    .eq('id', formData.pet_id || consultation.pet_id)
+                    .single()
+
+                if (pet) {
+                    petName = pet.name
+                    tutorName = Array.isArray(pet.customers) ? pet.customers[0]?.name : (pet.customers as any)?.name
+                }
+            }
+
+            petName = petName || 'Desconhecido'
+            tutorName = tutorName || 'Desconhecido'
+
+            const dateStr = formData.consultation_date
+                ? new Date(formData.consultation_date).toLocaleDateString('pt-BR')
+                : new Date().toLocaleDateString('pt-BR')
+
+            const vet = vets.find(v => v.id === formData.veterinarian_id) || consultation.veterinarians
+            const vetName = vet?.name || 'Veterinário não especificado'
+            const vetCrmv = vet?.crmv || 'CRMV não especificado'
+
+            doc.setFontSize(18)
+            doc.setFont('helvetica', 'bold')
+            doc.text('RECEITUÁRIO VETERINÁRIO', 105, 20, { align: 'center' })
+
+            doc.setFontSize(12)
+            doc.setFont('helvetica', 'normal')
+            doc.text(`Tutor(a): ${tutorName}`, 20, 40)
+            doc.text(`Paciente: ${petName}`, 20, 50)
+            doc.text(`Data: ${dateStr}`, 150, 40)
+
+            doc.setLineWidth(0.5)
+            doc.line(20, 55, 190, 55)
+
+            doc.setFontSize(11)
+            doc.setFont('helvetica', 'bold')
+            doc.text('Prescrição:', 20, 65)
+
+            doc.setFont('helvetica', 'normal')
+            const prescriptionText = formData.prescription || 'Nenhuma prescrição informada.'
+            const splitText = doc.splitTextToSize(prescriptionText, 170)
+            doc.text(splitText, 20, 75)
+
+            const pageHeight = doc.internal.pageSize.height
+            doc.line(60, pageHeight - 40, 150, pageHeight - 40)
+            doc.setFontSize(10)
+            doc.text(`${vetName}`, 105, pageHeight - 35, { align: 'center' })
+            doc.text(`CRMV: ${vetCrmv}`, 105, pageHeight - 30, { align: 'center' })
+
+            doc.save(`Receita_${petName.replace(/\s+/g, '_')}_${dateStr.replace(/\//g, '-')}.pdf`)
+        } catch (error) {
+            console.error('Erro ao gerar PDF:', error)
+            alert('Erro ao gerar PDF. Tente novamente.')
+        }
+    }
+
     return (
         <div className={styles.overlay} onClick={onClose}>
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
@@ -131,7 +200,12 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label>Prescrição Médica / Receita</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                            <label style={{ margin: 0 }}>Prescrição Médica / Receita</label>
+                            <button className={styles.actionBtn} style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }} onClick={handleGeneratePDF}>
+                                🖨️ Gerar PDF
+                            </button>
+                        </div>
                         <textarea
                             value={formData.prescription || ''}
                             onChange={(e) => handleFieldChange('prescription', e.target.value)}
