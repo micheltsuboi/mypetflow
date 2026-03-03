@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import styles from './ConsultationModal.module.css'
-import { autosaveVetConsultation, getVeterinarians } from '@/app/actions/veterinary'
+import { autosaveVetConsultation, getVeterinarians, finishVetConsultation } from '@/app/actions/veterinary'
 
 interface ConsultationModalProps {
     consultation: any
@@ -35,6 +35,20 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
             }
             setSaving(false)
         }, 1000)
+    }
+
+    const handleFinish = async () => {
+        if (consultation.appointment_id) {
+            setSaving(true)
+            const res = await finishVetConsultation(consultation.appointment_id)
+            setSaving(false)
+            if (!res.success) {
+                alert(res.message)
+                return
+            }
+        }
+        onSave?.()
+        onClose()
     }
 
     return (
@@ -187,7 +201,10 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
 
                 <div className={styles.footer}>
                     <p className={styles.hint}>Os dados são salvos automaticamente conforme você digita. ☁️</p>
-                    <button className={styles.finishBtn} onClick={() => { onSave?.(); onClose(); }}>Finalizar e Fechar</button>
+                    <div className={styles.footerBtns}>
+                        <button className={styles.saveBtn} onClick={onClose}>Salvar e Sair</button>
+                        <button className={styles.finishBtn} onClick={handleFinish}>Finalizar Consulta</button>
+                    </div>
                 </div>
             </div>
         </div>

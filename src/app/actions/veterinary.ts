@@ -738,6 +738,25 @@ export async function startConsultation(appointmentId: string) {
     }
 }
 
+export async function finishVetConsultation(appointmentId: string) {
+    try {
+        const supabase = await createClient()
+        const { error } = await supabase
+            .from('appointments')
+            .update({
+                status: 'done',
+                actual_check_out: new Date().toISOString()
+            })
+            .eq('id', appointmentId)
+
+        if (error) throw error
+        return { success: true, message: 'Consulta finalizada com sucesso!' }
+    } catch (error: any) {
+        console.error('Error finishing consultation:', error)
+        return { success: false, message: error.message }
+    }
+}
+
 export async function createBlankConsultation(petId: string) {
     try {
         const supabase = await createClient()
