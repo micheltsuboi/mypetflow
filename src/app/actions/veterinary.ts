@@ -327,6 +327,23 @@ export async function updateConsultationPayment(id: string, obj: { payment_statu
     }
 }
 
+export async function deleteVetConsultation(id: string) {
+    try {
+        const supabase = await createClient()
+        const { error } = await supabase
+            .from('vet_consultations')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+        revalidatePath('/owner/pets')
+        return { success: true, message: 'Consulta excluída com sucesso.' }
+    } catch (error: any) {
+        return { success: false, message: error.message || 'Erro ao excluir consulta.' }
+    }
+}
+
+
 
 // ==========================================
 // VET RECORDS (Prontuários)

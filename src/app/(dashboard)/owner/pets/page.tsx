@@ -12,7 +12,7 @@ import { getPetAssessment } from '@/app/actions/petAssessment'
 import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
 import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import { createVaccine, deleteVaccine, getPetVaccines } from '@/app/actions/vaccine'
-import { getVeterinarians, getVetConsultations, createVetConsultation, updateVetConsultation, getVetRecords, createVetRecord, getVetExamTypes, getVetExams, createVetExam, deleteVetExam, updateConsultationPayment, updateExamPayment } from '@/app/actions/veterinary'
+import { getVeterinarians, getVetConsultations, createVetConsultation, updateVetConsultation, deleteVetConsultation, getVetRecords, createVetRecord, getVetExamTypes, getVetExams, createVetExam, deleteVetExam, updateConsultationPayment, updateExamPayment } from '@/app/actions/veterinary'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import ImageUpload from '@/components/ImageUpload'
 import PlanGuard from '@/components/modules/PlanGuard'
@@ -103,7 +103,7 @@ function PetsContent() {
     }
 
     // Accordion State
-    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
+    const [accordions, setAccordions] = useState({ details: false, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
 
     const toggleAccordion = async (key: keyof typeof accordions) => {
         setAccordions(prev => {
@@ -781,6 +781,20 @@ function PetsContent() {
                                                                                 Pagar
                                                                             </button>
                                                                         )}
+                                                                        <button
+                                                                            className={styles.submitButton}
+                                                                            style={{ padding: '4px 12px', fontSize: '0.75rem', height: 'auto', background: '#EF4444', border: 'none', color: 'white' }}
+                                                                            onClick={async () => {
+                                                                                if (confirm('Tem certeza que deseja excluir esta consulta? Isso também excluirá registros financeiros vinculados.')) {
+                                                                                    const res = await deleteVetConsultation(c.id)
+                                                                                    if (res.success) {
+                                                                                        getVetConsultations(selectedPet.id).then(setVetConsultations)
+                                                                                    } else alert(res.message)
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            Excluir
+                                                                        </button>
                                                                     </div>
                                                                 </div>
                                                                 <p style={{ margin: '0', fontSize: '0.85rem' }}><strong>Motivo:</strong> {c.reason || '-'} | <strong>Pagamento:</strong> {c.payment_method === 'cash' ? 'Dinheiro' : c.payment_method === 'credit' ? 'Crédito' : c.payment_method === 'debit' ? 'Débito' : 'PIX'}</p>
