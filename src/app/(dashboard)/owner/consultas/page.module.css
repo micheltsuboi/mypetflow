@@ -21,8 +21,38 @@
 .toolbar {
     margin-bottom: 2rem;
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     align-items: center;
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.filterTabs {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-tertiary);
+    padding: 0.3rem;
+    border-radius: 10px;
+}
+
+.filterTab {
+    padding: 0.5rem 1.2rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.filterTab.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .searchBar {

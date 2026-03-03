@@ -90,6 +90,9 @@ export default function DashboardLayout({
                     .single()
 
                 if (profile) {
+                    const permissions = profile.permissions || []
+                    const isVetExpert = permissions.includes('clinica_vet')
+
                     // 1. Verificar se o perfil do usuário está ativo
                     if (profile.is_active === false) {
                         await supabase.auth.signOut()
@@ -129,11 +132,11 @@ export default function DashboardLayout({
                         name: profile.full_name || user.email?.split('@')[0] || 'Usuário',
                         role: profile.role === 'superadmin' ? 'Super Admin' :
                             profile.role === 'admin' ? 'Administrador' :
-                                profile.role === 'staff' ? ((profile.permissions || []).includes('clinica_vet') ? 'Médico Veterinário' : 'Staff') :
+                                profile.role === 'staff' ? (isVetExpert ? 'Médico Veterinário' : 'Staff') :
                                     profile.role === 'customer' ? 'Tutor' : 'Usuário',
                         org_id: profile.org_id,
                         avatar_url: profile.avatar_url,
-                        permissions: profile.permissions || [],
+                        permissions: permissions,
                         planFeatures
                     })
                 }

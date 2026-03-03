@@ -43,7 +43,34 @@ export default function ConsultasPage() {
         const petName = appt.pets?.name?.toLowerCase() || ''
         const ownerName = appt.pets?.customers?.name?.toLowerCase() || ''
         const search = searchTerm.toLowerCase()
-        return petName.includes(search) || ownerName.includes(search)
+        const matchesSearch = petName.includes(search) || ownerName.includes(search)
+
+        if (!matchesSearch) return false
+
+        const apptDate = new Date(appt.scheduled_at)
+        const now = new Date()
+
+        if (filter === 'day') {
+            return apptDate.toDateString() === now.toDateString()
+        }
+
+        if (filter === 'week') {
+            const startOfWeek = new Date(now)
+            startOfWeek.setDate(now.getDate() - now.getDay())
+            startOfWeek.setHours(0, 0, 0, 0)
+
+            const endOfWeek = new Date(startOfWeek)
+            endOfWeek.setDate(startOfWeek.getDate() + 6)
+            endOfWeek.setHours(23, 59, 59, 999)
+
+            return apptDate >= startOfWeek && apptDate <= endOfWeek
+        }
+
+        if (filter === 'month') {
+            return apptDate.getMonth() === now.getMonth() && apptDate.getFullYear() === now.getFullYear()
+        }
+
+        return true
     })
 
     return (
@@ -57,6 +84,26 @@ export default function ConsultasPage() {
                 </div>
 
                 <div className={styles.toolbar}>
+                    <div className={styles.filterTabs}>
+                        <button
+                            className={`${styles.filterTab} ${filter === 'day' ? styles.active : ''}`}
+                            onClick={() => setFilter('day')}
+                        >
+                            Hoje
+                        </button>
+                        <button
+                            className={`${styles.filterTab} ${filter === 'week' ? styles.active : ''}`}
+                            onClick={() => setFilter('week')}
+                        >
+                            Semana
+                        </button>
+                        <button
+                            className={`${styles.filterTab} ${filter === 'month' ? styles.active : ''}`}
+                            onClick={() => setFilter('month')}
+                        >
+                            Mês
+                        </button>
+                    </div>
                     <div className={styles.searchBar}>
                         <input
                             type="text"
