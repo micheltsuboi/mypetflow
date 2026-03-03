@@ -226,6 +226,12 @@ function PetsContent() {
             if (customersData) setCustomers(customersData)
             if (packagesData) setAvailablePackages(packagesData)
 
+            // Optimize Veterinary: fetch list and current vet once
+            const vetsData = await getVeterinarians()
+            setVeterinarians(vetsData)
+            const currentVetAccount = vetsData.find(v => v.user_id === user.id)
+            if (currentVetAccount) setCurrentVet(currentVetAccount)
+
         } catch (error) {
             console.error('Erro ao buscar dados:', error)
         } finally {
@@ -276,31 +282,14 @@ function PetsContent() {
         if (accordions.medical) {
             getVetConsultations(selectedPet.id).then(setVetConsultations)
             getVetRecords(selectedPet.id).then(setVetRecords)
-            getVeterinarians().then(setVeterinarians)
         }
         if (accordions.exams) {
             getVetExams(selectedPet.id).then(setVetExams)
             getVetExamTypes().then(setExamTypes)
-            getVeterinarians().then(setVeterinarians)
-        }
-        if (accordions.vaccines && veterinarians.length === 0) {
-            getVeterinarians().then(setVeterinarians)
         }
     }, [selectedPet, accordions.medical, accordions.exams, accordions.vaccines, veterinarians.length])
 
-    // Find current logged in vet
-    useEffect(() => {
-        const findVet = async () => {
-            if (veterinarians.length > 0) {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (user) {
-                    const vetAccount = veterinarians.find(v => v.user_id === user.id)
-                    if (vetAccount) setCurrentVet(vetAccount)
-                }
-            }
-        }
-        findVet()
-    }, [veterinarians, supabase.auth])
+
 
     useEffect(() => {
         fetchData()
@@ -657,7 +646,7 @@ function PetsContent() {
                                                     <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
                                                         <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>{editingConsultation ? 'Editar Consulta' : 'Nova Consulta'}</h4>
                                                         <form
-                                                            key={editingConsultation?.id || 'new'}
+                                                            key={editingConsultation?.id || currentVet?.id || 'new'}
                                                             action={async (formData) => {
                                                                 const res = editingConsultation ? await updateVetConsultation(formData) : await createVetConsultation(formData)
                                                                 if (res.success) {
