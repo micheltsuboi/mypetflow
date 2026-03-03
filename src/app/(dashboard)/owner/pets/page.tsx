@@ -359,6 +359,12 @@ function PetsContent() {
         setShowModal(true)
     }
 
+    useEffect(() => {
+        if (showModal) {
+            setAccordions({ details: false, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
+        }
+    }, [showModal])
+
     const handleNewPet = () => {
         setSelectedPet(null)
         setPetAssessment(null)
