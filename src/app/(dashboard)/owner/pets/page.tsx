@@ -12,7 +12,7 @@ import { getPetAssessment } from '@/app/actions/petAssessment'
 import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
 import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import { createVaccine, deleteVaccine, getPetVaccines } from '@/app/actions/vaccine'
-import { getVeterinarians, getVetConsultations, createVetConsultation, getVetRecords, createVetRecord, getVetExamTypes, getVetExams, createVetExam, deleteVetExam, updateConsultationPayment, updateExamPayment } from '@/app/actions/veterinary'
+import { getVeterinarians, getVetConsultations, createVetConsultation, updateVetConsultation, getVetRecords, createVetRecord, getVetExamTypes, getVetExams, createVetExam, deleteVetExam, updateConsultationPayment, updateExamPayment } from '@/app/actions/veterinary'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import ImageUpload from '@/components/ImageUpload'
 import PlanGuard from '@/components/modules/PlanGuard'
@@ -73,6 +73,7 @@ function PetsContent() {
     const [vetExams, setVetExams] = useState<any[]>([])
     const [currentVet, setCurrentVet] = useState<any>(null)
     const [isVetLoading, setIsVetLoading] = useState(false)
+    const [editingConsultation, setEditingConsultation] = useState<any>(null)
 
     // Assessment State
     const [petAssessment, setPetAssessment] = useState<any>(null)
@@ -654,48 +655,51 @@ function PetsContent() {
                                                 <>
                                                     {/* Consultations Form */}
                                                     <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
-                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Nova Consulta</h4>
+                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>{editingConsultation ? 'Editar Consulta' : 'Nova Consulta'}</h4>
                                                         <form action={async (formData) => {
-                                                            const res = await createVetConsultation(formData)
+                                                            const res = editingConsultation ? await updateVetConsultation(formData) : await createVetConsultation(formData)
                                                             if (res.success) {
                                                                 alert(res.message)
                                                                 getVetConsultations(selectedPet.id).then(setVetConsultations)
+                                                                setEditingConsultation(null)
                                                                     ; (document.getElementById('consultationForm') as HTMLFormElement)?.reset()
                                                             } else alert(res.message)
                                                         }} id="consultationForm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                             <input type="hidden" name="pet_id" value={selectedPet.id} />
+                                                            {editingConsultation && <input type="hidden" name="id" value={editingConsultation.id} />}
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário</label>
-                                                                <select name="veterinarian_id" className={styles.select} defaultValue={currentVet?.id || ""}>
+                                                                <select name="veterinarian_id" className={styles.select} defaultValue={editingConsultation?.veterinarian_id || currentVet?.id || ""}>
                                                                     <option value="">Selecione...</option>
                                                                     {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                                                                 </select>
                                                             </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Data</label>
-                                                                <input type="date" name="consultation_date" required className={styles.input} defaultValue={new Date().toISOString().split('T')[0]} />
+                                                                <input type="date" name="consultation_date" required className={styles.input} defaultValue={editingConsultation ? editingConsultation.consultation_date.split('T')[0] : new Date().toISOString().split('T')[0]} />
                                                             </div>
                                                             <div style={{ gridColumn: '1 / -1' }}>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Motivo / Sintomas</label>
-                                                                <input name="reason" className={styles.input} />
+                                                                <input name="reason" className={styles.input} defaultValue={editingConsultation?.reason || ''} />
                                                             </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Base (R$)</label>
-                                                                <input type="number" step="0.01" name="consultation_fee" defaultValue={currentVet?.consultation_base_price || "0"} key={currentVet?.id || 'none'} className={styles.input} />
+                                                                <input type="number" step="0.01" name="consultation_fee" defaultValue={editingConsultation?.consultation_fee || currentVet?.consultation_base_price || "0"} key={editingConsultation?.id || currentVet?.id || 'none'} className={styles.input} />
                                                             </div>
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Desconto (%)</label>
-                                                                <input type="number" step="0.01" name="discount_percent" defaultValue="0" className={styles.input} />
+                                                                <input type="number" step="0.01" name="discount_percent" defaultValue={editingConsultation?.discount_percent || "0"} className={styles.input} />
                                                             </div>
                                                             <div style={{ gridColumn: '1 / -1' }}>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status Pagamento</label>
-                                                                <select name="payment_status" className={styles.select}>
+                                                                <select name="payment_status" className={styles.select} defaultValue={editingConsultation?.payment_status || 'pending'}>
                                                                     <option value="pending">Pendente (A Receber)</option>
                                                                     <option value="paid">Pago</option>
                                                                 </select>
                                                             </div>
-                                                            <div style={{ gridColumn: '1 / -1' }}>
-                                                                <button type="submit" className={styles.submitButton}>Salvar Consulta</button>
+                                                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.5rem' }}>
+                                                                <button type="submit" className={styles.submitButton}>{editingConsultation ? 'Salvar Alterações' : 'Salvar Consulta'}</button>
+                                                                {editingConsultation && <button type="button" className={styles.cancelBtn} onClick={() => setEditingConsultation(null)}>Cancelar Edição</button>}
                                                             </div>
                                                         </form>
                                                     </div>
@@ -707,9 +711,31 @@ function PetsContent() {
                                                             <div key={c.id} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                                                     <strong style={{ fontSize: '0.9rem' }}>{new Date(c.consultation_date).toLocaleDateString()} - {c.veterinarians?.name || 'Veterinário não especificado'}</strong>
-                                                                    <span style={{ fontSize: '0.8rem', color: c.payment_status === 'paid' ? '#10B981' : '#F59E0B' }}>
-                                                                        {c.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
-                                                                    </span>
+                                                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                                        <span style={{ fontSize: '0.8rem', color: c.payment_status === 'paid' ? '#10B981' : '#F59E0B', fontWeight: 'bold' }}>
+                                                                            {c.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
+                                                                        </span>
+                                                                        <button
+                                                                            className={styles.pills}
+                                                                            style={{ padding: '2px 8px', fontSize: '0.7rem' }}
+                                                                            onClick={() => setEditingConsultation(c)}
+                                                                        >
+                                                                            Editar
+                                                                        </button>
+                                                                        {c.payment_status === 'pending' && (
+                                                                            <button
+                                                                                className={styles.pills}
+                                                                                style={{ padding: '2px 8px', fontSize: '0.7rem', background: 'var(--success)', color: 'white' }}
+                                                                                onClick={async () => {
+                                                                                    const res = await updateConsultationPayment(c.id, { payment_status: 'paid' })
+                                                                                    if (res.success) getVetConsultations(selectedPet.id).then(setVetConsultations)
+                                                                                    else alert(res.message)
+                                                                                }}
+                                                                            >
+                                                                                Pagar
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                                 <p style={{ margin: '0', fontSize: '0.85rem' }}>Motivo: {c.reason || '-'}</p>
                                                             </div>
@@ -729,10 +755,14 @@ function PetsContent() {
                                                         }} id="recordForm" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                             <input type="hidden" name="pet_id" value={selectedPet.id} />
                                                             <div>
-                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário Responsável</label>
-                                                                <select name="veterinarian_id" className={styles.select} defaultValue={currentVet?.id || ""}>
-                                                                    <option value="">Selecione...</option>
-                                                                    {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Vicular à Consulta (Opcional)</label>
+                                                                <select name="consultation_id" className={styles.select}>
+                                                                    <option value="">Nenhuma</option>
+                                                                    {vetConsultations.map(c => (
+                                                                        <option key={c.id} value={c.id}>
+                                                                            {new Date(c.consultation_date).toLocaleDateString()} - {c.reason?.substring(0, 20)}...
+                                                                        </option>
+                                                                    ))}
                                                                 </select>
                                                             </div>
                                                             <input name="title" required placeholder="Título (ex: Retorno dermatológico)" className={styles.input} />

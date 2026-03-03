@@ -264,6 +264,48 @@ export async function createVetConsultation(formData: FormData) {
     }
 }
 
+export async function updateVetConsultation(formData: FormData) {
+    try {
+        const supabase = await createClient()
+        const id = formData.get('id') as string
+        if (!id) return { success: false, message: 'ID não informado' }
+
+        const veterinarian_id = formData.get('veterinarian_id') as string || null
+        const consultation_date = formData.get('consultation_date') as string
+        const reason = formData.get('reason') as string || null
+        const diagnosis = formData.get('diagnosis') as string || null
+        const treatment = formData.get('treatment') as string || null
+        const prescription = formData.get('prescription') as string || null
+        const notes = formData.get('notes') as string || null
+        const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
+        const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
+        const payment_status = formData.get('payment_status') as string
+
+        const { error } = await supabase
+            .from('vet_consultations')
+            .update({
+                veterinarian_id,
+                consultation_date,
+                reason,
+                diagnosis,
+                treatment,
+                prescription,
+                notes,
+                consultation_fee,
+                discount_percent,
+                payment_status
+            })
+            .eq('id', id)
+
+        if (error) throw error
+
+        revalidatePath('/owner/pets')
+        return { success: true, message: 'Consulta atualizada com sucesso.' }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
 export async function updateConsultationPayment(id: string, obj: { payment_status: 'paid' | 'pending' }) {
     try {
         const supabase = await createClient()
@@ -318,6 +360,7 @@ export async function createVetRecord(formData: FormData) {
 
         const pet_id = formData.get('pet_id') as string
         const veterinarian_id = formData.get('veterinarian_id') as string || null
+        const consultation_id = formData.get('consultation_id') as string || null
         const record_date = formData.get('record_date') as string || new Date().toISOString()
         const title = formData.get('title') as string
         const content = formData.get('content') as string
@@ -330,6 +373,7 @@ export async function createVetRecord(formData: FormData) {
                 org_id: profile?.org_id,
                 pet_id,
                 veterinarian_id,
+                consultation_id,
                 record_date,
                 title,
                 content,
