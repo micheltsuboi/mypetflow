@@ -697,9 +697,39 @@ function PetsContent() {
                                                                     <option value="paid">Pago</option>
                                                                 </select>
                                                             </div>
-                                                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.5rem' }}>
-                                                                <button type="submit" className={styles.submitButton}>{editingConsultation ? 'Salvar Alterações' : 'Salvar Consulta'}</button>
-                                                                {editingConsultation && <button type="button" className={styles.cancelBtn} onClick={() => setEditingConsultation(null)}>Cancelar Edição</button>}
+
+                                                            {/* Embedded Record Fields */}
+                                                            <div style={{ gridColumn: '1 / -1', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                                                                <h5 style={{ margin: '0 0 1rem 0', color: 'var(--primary)' }}>Prontuário / Detalhes Clínicos</h5>
+                                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
+                                                                    <div>
+                                                                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Diagnóstico / Resumo</label>
+                                                                        <input name="diagnosis" className={styles.input} defaultValue={editingConsultation?.diagnosis || ''} placeholder="Ex: Otite bilateral, Suspeita de alergia..." />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Tratamento / Conduta</label>
+                                                                        <textarea name="treatment" className={styles.textarea} style={{ minHeight: '60px' }} defaultValue={editingConsultation?.treatment || ''} placeholder="Procedimentos realizados em consultório..." />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Prescrição / Receita</label>
+                                                                        <textarea name="prescription" className={styles.textarea} style={{ minHeight: '80px' }} defaultValue={editingConsultation?.prescription || ''} placeholder="Medicamentos, dosagens e horários..." />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Observações Adicionais</label>
+                                                                        <textarea name="notes" className={styles.textarea} style={{ minHeight: '60px' }} defaultValue={editingConsultation?.notes || ''} />
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                                                                <button type="submit" className={styles.submitButton} style={{ flex: 1 }}>
+                                                                    {editingConsultation ? '✓ Salvar Alterações' : '+ Registrar Consulta e Prontuário'}
+                                                                </button>
+                                                                {editingConsultation && (
+                                                                    <button type="button" className={styles.cancelBtn} onClick={() => setEditingConsultation(null)}>
+                                                                        Cancelar
+                                                                    </button>
+                                                                )}
                                                             </div>
                                                         </form>
                                                     </div>
@@ -712,20 +742,20 @@ function PetsContent() {
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                                                     <strong style={{ fontSize: '0.9rem' }}>{new Date(c.consultation_date).toLocaleDateString()} - {c.veterinarians?.name || 'Veterinário não especificado'}</strong>
                                                                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                                        <span style={{ fontSize: '0.8rem', color: c.payment_status === 'paid' ? '#10B981' : '#F59E0B', fontWeight: 'bold' }}>
+                                                                        <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', borderRadius: '4px', background: c.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: c.payment_status === 'paid' ? '#10B981' : '#F59E0B', fontWeight: 'bold' }}>
                                                                             {c.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
                                                                         </span>
                                                                         <button
-                                                                            className={styles.pills}
-                                                                            style={{ padding: '2px 8px', fontSize: '0.7rem' }}
+                                                                            className={styles.submitButton}
+                                                                            style={{ padding: '4px 12px', fontSize: '0.75rem', height: 'auto', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                                                             onClick={() => setEditingConsultation(c)}
                                                                         >
                                                                             Editar
                                                                         </button>
                                                                         {c.payment_status === 'pending' && (
                                                                             <button
-                                                                                className={styles.pills}
-                                                                                style={{ padding: '2px 8px', fontSize: '0.7rem', background: 'var(--success)', color: 'white' }}
+                                                                                className={styles.submitButton}
+                                                                                style={{ padding: '4px 12px', fontSize: '0.75rem', height: 'auto' }}
                                                                                 onClick={async () => {
                                                                                     const res = await updateConsultationPayment(c.id, { payment_status: 'paid' })
                                                                                     if (res.success) getVetConsultations(selectedPet.id).then(setVetConsultations)
@@ -737,14 +767,24 @@ function PetsContent() {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                <p style={{ margin: '0', fontSize: '0.85rem' }}>Motivo: {c.reason || '-'}</p>
+                                                                <p style={{ margin: '0', fontSize: '0.85rem' }}><strong>Motivo:</strong> {c.reason || '-'}</p>
+                                                                {c.diagnosis && <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}><strong>Diagnóstico:</strong> {c.diagnosis}</p>}
+                                                                {c.prescription && (
+                                                                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: '4px', borderLeft: '3px solid var(--primary)' }}>
+                                                                        <p style={{ margin: '0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}><strong>💊 Prescrição:</strong></p>
+                                                                        <p style={{ margin: '0', fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>{c.prescription}</p>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
 
+                                                    {/* Separate Prontuários (now optional or for history) */}
+                                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>Anotações Avulsas / Outros Registros</h4>
+
                                                     {/* Records Form */}
                                                     <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '8px' }}>
-                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Novo Prontuário</h4>
+                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Novo Registro Avulso</h4>
                                                         <form action={async (formData) => {
                                                             const res = await createVetRecord(formData)
                                                             if (res.success) {
@@ -755,7 +795,7 @@ function PetsContent() {
                                                         }} id="recordForm" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                                             <input type="hidden" name="pet_id" value={selectedPet.id} />
                                                             <div>
-                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Vicular à Consulta (Opcional)</label>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Vincular à Consulta (Opcional)</label>
                                                                 <select name="consultation_id" className={styles.select}>
                                                                     <option value="">Nenhuma</option>
                                                                     {vetConsultations.map(c => (
@@ -767,7 +807,7 @@ function PetsContent() {
                                                             </div>
                                                             <input name="title" required placeholder="Título (ex: Retorno dermatológico)" className={styles.input} />
                                                             <textarea name="content" required placeholder="Anotações clínicas..." className={styles.textarea} style={{ minHeight: '80px' }}></textarea>
-                                                            <button type="submit" className={styles.addButton} style={{ alignSelf: 'flex-start' }}>Adicionar Prontuário</button>
+                                                            <button type="submit" className={styles.submitButton} style={{ alignSelf: 'flex-start' }}>Adicionar Registro</button>
                                                         </form>
                                                     </div>
 
