@@ -514,6 +514,7 @@ function AgendaContent() {
 
         const petName = appt.pets?.name || 'Pet Desconhecido'
         const ownerName = appt.pets?.customers?.name || 'Cliente'
+        const categoryName = Array.isArray(serviceCategory) ? serviceCategory[0]?.name : serviceCategory?.name
 
         return (
             <div
@@ -567,13 +568,13 @@ function AgendaContent() {
                 />
 
                 <div className={styles.quickActions}>
-                    {!appt.actual_check_in && (
+                    {!appt.actual_check_in && categoryName !== 'Clínica Veterinária' && (
                         <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkin') }}>Entrada ➡️</button>
                     )}
-                    {appt.actual_check_in && !appt.actual_check_out && (
+                    {appt.actual_check_in && !appt.actual_check_out && categoryName !== 'Clínica Veterinária' && (
                         <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkout') }}>Saída ⬅️</button>
                     )}
-                    {(isVet || (serviceCategory as any)?.name === 'Clínica Veterinária') && (
+                    {(isVet || categoryName === 'Clínica Veterinária') && (
                         <button
                             className={styles.actionBtn}
                             style={{ background: 'var(--primary)', color: 'white' }}

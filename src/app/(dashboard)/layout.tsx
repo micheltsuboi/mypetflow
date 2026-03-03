@@ -196,6 +196,7 @@ export default function DashboardLayout({
             if (item.name === 'Serviços') return perms.includes('servicos')
             if (item.name === 'Clínica Vet') return perms.includes('clinica_vet')
             if (item.name === 'Questionário') return perms.includes('pets') // Tie access to pets permission
+            if (item.name === 'Consultas') return perms.includes('clinica_vet')
             if (item.name === 'Ponto') return perms.includes('ponto')
             return false // Hide everything else (such as Usuários, Financeiro)
         })
