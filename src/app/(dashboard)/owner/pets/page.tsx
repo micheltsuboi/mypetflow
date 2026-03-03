@@ -656,15 +656,20 @@ function PetsContent() {
                                                     {/* Consultations Form */}
                                                     <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
                                                         <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>{editingConsultation ? 'Editar Consulta' : 'Nova Consulta'}</h4>
-                                                        <form action={async (formData) => {
-                                                            const res = editingConsultation ? await updateVetConsultation(formData) : await createVetConsultation(formData)
-                                                            if (res.success) {
-                                                                alert(res.message)
-                                                                getVetConsultations(selectedPet.id).then(setVetConsultations)
-                                                                setEditingConsultation(null)
-                                                                    ; (document.getElementById('consultationForm') as HTMLFormElement)?.reset()
-                                                            } else alert(res.message)
-                                                        }} id="consultationForm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                        <form
+                                                            key={editingConsultation?.id || 'new'}
+                                                            action={async (formData) => {
+                                                                const res = editingConsultation ? await updateVetConsultation(formData) : await createVetConsultation(formData)
+                                                                if (res.success) {
+                                                                    alert(res.message)
+                                                                    getVetConsultations(selectedPet.id).then(setVetConsultations)
+                                                                    setEditingConsultation(null)
+                                                                        ; (document.getElementById('consultationForm') as HTMLFormElement)?.reset()
+                                                                } else alert(res.message)
+                                                            }}
+                                                            id="consultationForm"
+                                                            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}
+                                                        >
                                                             <input type="hidden" name="pet_id" value={selectedPet.id} />
                                                             {editingConsultation && <input type="hidden" name="id" value={editingConsultation.id} />}
                                                             <div>
@@ -690,11 +695,20 @@ function PetsContent() {
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Desconto (%)</label>
                                                                 <input type="number" step="0.01" name="discount_percent" defaultValue={editingConsultation?.discount_percent || "0"} className={styles.input} />
                                                             </div>
-                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                            <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status Pagamento</label>
                                                                 <select name="payment_status" className={styles.select} defaultValue={editingConsultation?.payment_status || 'pending'}>
                                                                     <option value="pending">Pendente (A Receber)</option>
                                                                     <option value="paid">Pago</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Forma de Pagamento</label>
+                                                                <select name="payment_method" className={styles.select} defaultValue={editingConsultation?.payment_method || 'cash'}>
+                                                                    <option value="cash">Dinheiro</option>
+                                                                    <option value="credit">Cartão de Crédito</option>
+                                                                    <option value="debit">Cartão de Débito</option>
+                                                                    <option value="pix">PIX</option>
                                                                 </select>
                                                             </div>
 
@@ -748,7 +762,10 @@ function PetsContent() {
                                                                         <button
                                                                             className={styles.submitButton}
                                                                             style={{ padding: '4px 12px', fontSize: '0.75rem', height: 'auto', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                                                                            onClick={() => setEditingConsultation(c)}
+                                                                            onClick={() => {
+                                                                                setEditingConsultation(c)
+                                                                                document.getElementById('consultationForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                                                                            }}
                                                                         >
                                                                             Editar
                                                                         </button>
@@ -756,10 +773,9 @@ function PetsContent() {
                                                                             <button
                                                                                 className={styles.submitButton}
                                                                                 style={{ padding: '4px 12px', fontSize: '0.75rem', height: 'auto' }}
-                                                                                onClick={async () => {
-                                                                                    const res = await updateConsultationPayment(c.id, { payment_status: 'paid' })
-                                                                                    if (res.success) getVetConsultations(selectedPet.id).then(setVetConsultations)
-                                                                                    else alert(res.message)
+                                                                                onClick={() => {
+                                                                                    setEditingConsultation({ ...c, payment_status: 'paid' })
+                                                                                    document.getElementById('consultationForm')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                                                                                 }}
                                                                             >
                                                                                 Pagar
@@ -767,7 +783,7 @@ function PetsContent() {
                                                                         )}
                                                                     </div>
                                                                 </div>
-                                                                <p style={{ margin: '0', fontSize: '0.85rem' }}><strong>Motivo:</strong> {c.reason || '-'}</p>
+                                                                <p style={{ margin: '0', fontSize: '0.85rem' }}><strong>Motivo:</strong> {c.reason || '-'} | <strong>Pagamento:</strong> {c.payment_method === 'cash' ? 'Dinheiro' : c.payment_method === 'credit' ? 'Crédito' : c.payment_method === 'debit' ? 'Débito' : 'PIX'}</p>
                                                                 {c.diagnosis && <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}><strong>Diagnóstico:</strong> {c.diagnosis}</p>}
                                                                 {c.prescription && (
                                                                     <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: '4px', borderLeft: '3px solid var(--primary)' }}>
@@ -984,12 +1000,21 @@ function PetsContent() {
                                                             <div>
                                                                 <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status Pagamento</label>
                                                                 <select name="payment_status" className={styles.select}>
-                                                                    <option value="pending">Pendente (A Receber)</option>
+                                                                    <option value="pending">Pendente</option>
                                                                     <option value="paid">Pago</option>
                                                                 </select>
                                                             </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Forma de Pagamento</label>
+                                                                <select name="payment_method" className={styles.select}>
+                                                                    <option value="cash">Dinheiro</option>
+                                                                    <option value="credit">Cartão de Crédito</option>
+                                                                    <option value="debit">Cartão de Débito</option>
+                                                                    <option value="pix">PIX</option>
+                                                                </select>
+                                                            </div>
                                                             <div style={{ gridColumn: '1 / -1' }}>
-                                                                <button type="submit" className={styles.submitButton}>Salvar Exame</button>
+                                                                <button type="submit" className={styles.submitButton} style={{ width: '100%' }}>Registrar Exame</button>
                                                             </div>
                                                         </form>
                                                     </div>

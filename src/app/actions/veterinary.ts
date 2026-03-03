@@ -217,6 +217,7 @@ export async function createVetConsultation(formData: FormData) {
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
         const payment_status = formData.get('payment_status') as string || 'pending'
+        const payment_method = formData.get('payment_method') as string || 'cash'
 
         if (!pet_id) return { success: false, message: 'Pet não informado.' }
 
@@ -235,6 +236,7 @@ export async function createVetConsultation(formData: FormData) {
                 consultation_fee,
                 discount_percent,
                 payment_status,
+                payment_method,
                 created_by: user.id
             })
 
@@ -250,7 +252,8 @@ export async function createVetConsultation(formData: FormData) {
                 type: 'income',
                 category: 'Consulta Veterinária',
                 amount: finalTotal,
-                description: `Consulta Vet - Pet: ${pet_id}`,
+                description: `Consulta Vet (${payment_method}) - Pet: ${pet_id}`,
+                payment_method,
                 created_by: user.id,
                 date: new Date().toISOString()
             });
@@ -280,6 +283,7 @@ export async function updateVetConsultation(formData: FormData) {
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
         const payment_status = formData.get('payment_status') as string
+        const payment_method = formData.get('payment_method') as string
 
         const { error } = await supabase
             .from('vet_consultations')
@@ -293,7 +297,8 @@ export async function updateVetConsultation(formData: FormData) {
                 notes,
                 consultation_fee,
                 discount_percent,
-                payment_status
+                payment_status,
+                payment_method
             })
             .eq('id', id)
 
@@ -499,6 +504,7 @@ export async function createVetExam(formData: FormData) {
         const price = parseFloat(formData.get('price') as string || '0')
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
         const payment_status = formData.get('payment_status') as string || 'pending'
+        const payment_method = formData.get('payment_method') as string || 'cash'
 
         // Handle file upload manually before coming here, or here if simple
         const file_url = formData.get('file_url') as string || null
@@ -519,6 +525,7 @@ export async function createVetExam(formData: FormData) {
                 price,
                 discount_percent,
                 payment_status,
+                payment_method,
                 created_by: user.id
             })
 
@@ -531,7 +538,8 @@ export async function createVetExam(formData: FormData) {
                 type: 'income',
                 category: 'Exame Veterinário',
                 amount: finalTotal,
-                description: `Exame (${exam_type_name}) - Pet: ${pet_id}`,
+                description: `Exame (${exam_type_name}) [${payment_method}] - Pet: ${pet_id}`,
+                payment_method,
                 created_by: user.id,
                 date: new Date().toISOString()
             });
