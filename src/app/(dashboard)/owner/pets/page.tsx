@@ -330,7 +330,7 @@ function PetsContent() {
             const pet = pets.find(p => p.id === openPetId)
             if (pet) {
                 setSelectedPet(pet)
-                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false }) // Open packages when returning from agenda
+                setAccordions({ details: false, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
                 setShowModal(true)
                 setShowModal(true)
                 // Clean URL
@@ -354,7 +354,7 @@ function PetsContent() {
 
     const handleRowClick = async (pet: Pet) => {
         setSelectedPet(pet)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
+        setAccordions({ details: false, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
 
         // Eagerly fetch assessment BEFORE showing modal
         try {
@@ -373,7 +373,7 @@ function PetsContent() {
     const handleNewPet = () => {
         setSelectedPet(null)
         setPetAssessment(null)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
+        setAccordions({ details: false, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
         setShowModal(true)
     }
 
