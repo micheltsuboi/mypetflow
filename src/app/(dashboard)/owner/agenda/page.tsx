@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns'
 import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
+import { getVeterinarians } from '@/app/actions/veterinary'
 
 interface Customer {
     name: string
@@ -125,6 +126,7 @@ function AgendaContent() {
     const [searchTerm, setSearchTerm] = useState('')
 
     const [categoryFilter, setCategoryFilter] = useState<string>('')
+    const [isVet, setIsVet] = useState(false)
 
     // Modal State
     const [showNewModal, setShowNewModal] = useState(false)
@@ -178,8 +180,18 @@ function AgendaContent() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+            const { data: profile } = await supabase.from('profiles').select('org_id, role').eq('id', user.id).single()
             if (!profile?.org_id) return
+
+            // Check if vet
+            const vets = await getVeterinarians()
+            const currentVetAccount = vets.find((v: any) => v.user_id === user.id)
+            const isUserVet = !!currentVetAccount
+            setIsVet(isUserVet)
+
+            if (isUserVet) {
+                setCategoryFilter('Clínica Veterinária')
+            }
 
             // Load Metadata
             if (pets.length === 0) {
@@ -259,7 +271,17 @@ function AgendaContent() {
                 .neq('status', 'cancelled')
 
             if (error) console.error(error)
-            if (appts) setAppointments(appts as unknown as Appointment[])
+
+            let filteredAppts = appts as unknown as Appointment[]
+            if (isUserVet) {
+                // Filter only Consultas
+                filteredAppts = filteredAppts.filter(a => {
+                    const sc = (a.services as any)?.service_categories
+                    const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                    return catName === 'Clínica Veterinária'
+                })
+            }
+            if (appts) setAppointments(filteredAppts)
 
         } catch (error) {
             console.error('Error fetching data:', error)
@@ -817,7 +839,7 @@ function AgendaContent() {
                         </select>
                         <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
                             <button className={styles.actionButton} style={{ flex: 1 }} onClick={() => handleNewAppointment()}>+ Agendar</button>
-                            <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>
+                            {!isVet && <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
                         </div>
                     </div>
                 </div>
@@ -841,6 +863,10 @@ function AgendaContent() {
                         <div className={styles.legendItem}>
                             <div className={styles.legendColor} style={{ backgroundColor: '#10B981' }} />
                             <span>Creche</span>
+                        </div>
+                        <div className={styles.legendItem}>
+                            <div className={styles.legendColor} style={{ backgroundColor: '#8B5CF6' }} />
+                            <span>Consulta Vet</span>
                         </div>
                     </div>
 
@@ -912,6 +938,9 @@ function AgendaContent() {
                                             const sc = (s as any).service_categories
                                             const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
                                             const cat = catName || 'Outros'
+
+                                            if (isVet && cat !== 'Clínica Veterinária') return acc
+
                                             if (!acc[cat]) acc[cat] = []
                                             acc[cat].push(s)
                                             return acc
