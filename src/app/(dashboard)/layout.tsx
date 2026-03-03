@@ -53,6 +53,7 @@ export default function DashboardLayout({
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
+        { name: 'Clínica Vet', href: '/owner/veterinary', icon: '🩺' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
@@ -191,6 +192,7 @@ export default function DashboardLayout({
             if (item.name === 'Petshop') return perms.includes('petshop')
             if (item.name === 'Fidelidade') return perms.includes('cashback')
             if (item.name === 'Serviços') return perms.includes('servicos')
+            if (item.name === 'Clínica Vet') return perms.includes('clinica_vet')
             if (item.name === 'Questionário') return perms.includes('pets') // Tie access to pets permission
             if (item.name === 'Ponto') return perms.includes('ponto')
             return false // Hide everything else (such as Usuários, Financeiro)
@@ -218,6 +220,7 @@ export default function DashboardLayout({
                 if (item.name === 'Fidelidade') return planFeat.includes('cashback')
                 if (item.name === 'Serviços') return planFeat.includes('servicos')
                 if (item.name === 'Pacotes') return planFeat.includes('pacotes')
+                if (item.name === 'Clínica Vet') return planFeat.includes('clinica_vet')
                 if (item.name === 'Questionário') return planFeat.includes('pets')
                 if (item.name === 'Ponto') return planFeat.includes('ponto')
                 return false;

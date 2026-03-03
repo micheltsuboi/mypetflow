@@ -284,6 +284,7 @@ export interface Vaccine {
     manufacturer: string
     description?: string
     target_animals: string[] // e.g. ['Cão', 'Gato']
+    veterinarian_id?: string
     created_at: string
     updated_at: string
 }
@@ -393,4 +394,83 @@ export interface ProductFormData {
     image_url?: string | null
     bar_code?: string
     description?: string
+}
+
+// =====================================================
+// Veterinary Module Types
+// =====================================================
+
+export interface Veterinarian {
+    id: string
+    org_id: string
+    name: string
+    crmv: string
+    specialty?: string
+    phone?: string
+    email?: string
+    consultation_base_price: number
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+export interface VetConsultation {
+    id: string
+    org_id: string
+    pet_id: string
+    veterinarian_id?: string
+    consultation_date: string
+    reason?: string
+    diagnosis?: string
+    treatment?: string
+    prescription?: string
+    notes?: string
+    consultation_fee: number
+    discount_percent: number
+    payment_status: 'pending' | 'paid'
+    created_by?: string
+    created_at: string
+    updated_at: string
+}
+
+export interface VetRecord {
+    id: string
+    org_id: string
+    pet_id: string
+    veterinarian_id?: string
+    record_date: string
+    title: string
+    content: string
+    created_by?: string
+    created_at: string
+    updated_at: string
+}
+
+export interface VetExamType {
+    id: string
+    org_id: string
+    name: string
+    description?: string
+    base_price: number
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+export interface VetExam {
+    id: string
+    org_id: string
+    pet_id: string
+    veterinarian_id?: string
+    exam_type_id?: string
+    exam_type_name: string
+    exam_date: string
+    result_notes?: string
+    file_url?: string
+    price: number
+    discount_percent: number
+    payment_status: 'pending' | 'paid'
+    created_by?: string
+    created_at: string
+    updated_at: string
 }

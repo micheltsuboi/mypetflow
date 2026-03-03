@@ -12,6 +12,7 @@ import { getPetAssessment } from '@/app/actions/petAssessment'
 import { getPetAppointmentsByCategory as getPetAppointments } from '@/app/actions/appointment'
 import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import { createVaccine, deleteVaccine, getPetVaccines } from '@/app/actions/vaccine'
+import { getVeterinarians, getVetConsultations, createVetConsultation, getVetRecords, createVetRecord, getVetExamTypes, getVetExams, createVetExam, deleteVetExam, updateConsultationPayment, updateExamPayment } from '@/app/actions/veterinary'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import ImageUpload from '@/components/ImageUpload'
 import PlanGuard from '@/components/modules/PlanGuard'
@@ -64,6 +65,14 @@ function PetsContent() {
     const [vaccines, setVaccines] = useState<any[]>([])
     const [isVaccineLoading, setIsVaccineLoading] = useState(false)
 
+    // Veterinary State
+    const [veterinarians, setVeterinarians] = useState<any[]>([])
+    const [vetConsultations, setVetConsultations] = useState<any[]>([])
+    const [vetRecords, setVetRecords] = useState<any[]>([])
+    const [examTypes, setExamTypes] = useState<any[]>([])
+    const [vetExams, setVetExams] = useState<any[]>([])
+    const [isVetLoading, setIsVetLoading] = useState(false)
+
     // Assessment State
     const [petAssessment, setPetAssessment] = useState<any>(null)
 
@@ -92,7 +101,7 @@ function PetsContent() {
     }
 
     // Accordion State
-    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false })
+    const [accordions, setAccordions] = useState({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
 
     const toggleAccordion = async (key: keyof typeof accordions) => {
         setAccordions(prev => {
@@ -258,6 +267,25 @@ function PetsContent() {
         }
     }, [selectedPet, accordions.creche, accordions.hotel, accordions.petshop])
 
+    // Veterinary Data Fetching
+    useEffect(() => {
+        if (!selectedPet) return
+
+        if (accordions.medical) {
+            getVetConsultations(selectedPet.id).then(setVetConsultations)
+            getVetRecords(selectedPet.id).then(setVetRecords)
+            getVeterinarians().then(setVeterinarians)
+        }
+        if (accordions.exams) {
+            getVetExams(selectedPet.id).then(setVetExams)
+            getVetExamTypes().then(setExamTypes)
+            getVeterinarians().then(setVeterinarians)
+        }
+        if (accordions.vaccines && veterinarians.length === 0) {
+            getVeterinarians().then(setVeterinarians)
+        }
+    }, [selectedPet, accordions.medical, accordions.exams, accordions.vaccines, veterinarians.length])
+
     useEffect(() => {
         fetchData()
     }, [fetchData])
@@ -286,7 +314,7 @@ function PetsContent() {
             const pet = pets.find(p => p.id === openPetId)
             if (pet) {
                 setSelectedPet(pet)
-                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false }) // Open packages when returning from agenda
+                setAccordions({ details: true, packages: true, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false }) // Open packages when returning from agenda
                 setShowModal(true)
                 setShowModal(true)
                 // Clean URL
@@ -310,7 +338,7 @@ function PetsContent() {
 
     const handleRowClick = async (pet: Pet) => {
         setSelectedPet(pet)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
 
         // Eagerly fetch assessment BEFORE showing modal
         try {
@@ -329,7 +357,7 @@ function PetsContent() {
     const handleNewPet = () => {
         setSelectedPet(null)
         setPetAssessment(null)
-        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false })
+        setAccordions({ details: true, packages: false, creche: false, hotel: false, assessment: false, vaccines: false, petshop: false, medical: false, exams: false })
         setShowModal(true)
     }
 
@@ -598,6 +626,116 @@ function PetsContent() {
                                 )}
                             </div>
 
+                            {/* 1.0 FICHA MÉDICA (VETERINÁRIA) */}
+                            {planFeatures.includes('clinica_vet') && (
+                                <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                    <button type="button" onClick={() => toggleAccordion('medical')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                        <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🩺 Ficha Médica (Consultas e Prontuários)</span>
+                                        <span>{accordions.medical ? '−' : '+'}</span>
+                                    </button>
+                                    {accordions.medical && (
+                                        <div style={{ padding: '1rem' }}>
+                                            {!selectedPet ? <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Salve o pet primeiro.</div> : (
+                                                <>
+                                                    {/* Consultations Form */}
+                                                    <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Nova Consulta</h4>
+                                                        <form action={async (formData) => {
+                                                            const res = await createVetConsultation(formData)
+                                                            if (res.success) {
+                                                                alert(res.message)
+                                                                getVetConsultations(selectedPet.id).then(setVetConsultations)
+                                                                    ; (document.getElementById('consultationForm') as HTMLFormElement)?.reset()
+                                                            } else alert(res.message)
+                                                        }} id="consultationForm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                            <input type="hidden" name="pet_id" value={selectedPet.id} />
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário</label>
+                                                                <select name="veterinarian_id" className={styles.select}>
+                                                                    <option value="">Selecione...</option>
+                                                                    {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Data</label>
+                                                                <input type="date" name="consultation_date" required className={styles.input} defaultValue={new Date().toISOString().split('T')[0]} />
+                                                            </div>
+                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Motivo / Sintomas</label>
+                                                                <input name="reason" className={styles.input} />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor Base (R$)</label>
+                                                                <input type="number" step="0.01" name="consultation_fee" defaultValue="0" className={styles.input} />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Desconto (%)</label>
+                                                                <input type="number" step="0.01" name="discount_percent" defaultValue="0" className={styles.input} />
+                                                            </div>
+                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status Pagamento</label>
+                                                                <select name="payment_status" className={styles.select}>
+                                                                    <option value="pending">Pendente (A Receber)</option>
+                                                                    <option value="paid">Pago</option>
+                                                                </select>
+                                                            </div>
+                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                                <button type="submit" className={styles.submitButton}>Salvar Consulta</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+
+                                                    {/* Consultations List */}
+                                                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Histórico de Consultas</h4>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '2rem' }}>
+                                                        {vetConsultations.length === 0 ? <p style={{ fontSize: '0.85rem' }}>Nenhuma consulta.</p> : vetConsultations.map(c => (
+                                                            <div key={c.id} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                                    <strong style={{ fontSize: '0.9rem' }}>{new Date(c.consultation_date).toLocaleDateString()} - {c.veterinarians?.name || 'Veterinário não especificado'}</strong>
+                                                                    <span style={{ fontSize: '0.8rem', color: c.payment_status === 'paid' ? '#10B981' : '#F59E0B' }}>
+                                                                        {c.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
+                                                                    </span>
+                                                                </div>
+                                                                <p style={{ margin: '0', fontSize: '0.85rem' }}>Motivo: {c.reason || '-'}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* Records Form */}
+                                                    <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Novo Prontuário</h4>
+                                                        <form action={async (formData) => {
+                                                            const res = await createVetRecord(formData)
+                                                            if (res.success) {
+                                                                alert(res.message)
+                                                                getVetRecords(selectedPet.id).then(setVetRecords)
+                                                                    ; (document.getElementById('recordForm') as HTMLFormElement)?.reset()
+                                                            } else alert(res.message)
+                                                        }} id="recordForm" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                            <input type="hidden" name="pet_id" value={selectedPet.id} />
+                                                            <input name="title" required placeholder="Título (ex: Retorno dermatológico)" className={styles.input} />
+                                                            <textarea name="content" required placeholder="Anotações clínicas..." className={styles.textarea} style={{ minHeight: '80px' }}></textarea>
+                                                            <button type="submit" className={styles.addButton} style={{ alignSelf: 'flex-start' }}>Adicionar Prontuário</button>
+                                                        </form>
+                                                    </div>
+
+                                                    {/* Records List */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {vetRecords.map(r => (
+                                                            <div key={r.id} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                                                                <strong style={{ fontSize: '0.9rem', display: 'block', marginBottom: '0.25rem' }}>{r.title}</strong>
+                                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(r.record_date).toLocaleDateString()}</span>
+                                                                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{r.content}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* 1.1 VACINAS */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
                                 <button type="button" onClick={() => toggleAccordion('vaccines')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
@@ -685,6 +823,115 @@ function PetsContent() {
                                     </div>
                                 )}
                             </div>
+
+                            {/* 1.2 EXAMES VETERINÁRIOS */}
+                            {planFeatures.includes('clinica_vet') && (
+                                <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
+                                    <button type="button" onClick={() => toggleAccordion('exams')} style={{ width: '100%', padding: '1rem', display: 'flex', justifyContent: 'space-between', background: 'var(--bg-secondary)', border: 'none', cursor: 'pointer', fontWeight: '600', color: 'var(--text-primary)', borderRadius: '8px', alignItems: 'center' }}>
+                                        <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>🔬 Exames (Uploads e Resultados)</span>
+                                        <span>{accordions.exams ? '−' : '+'}</span>
+                                    </button>
+                                    {accordions.exams && (
+                                        <div style={{ padding: '1rem' }}>
+                                            {!selectedPet ? <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Salve o pet primeiro.</div> : (
+                                                <>
+                                                    {/* Create Exam Form */}
+                                                    <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem' }}>Registrar Exame</h4>
+                                                        <form action={async (formData) => {
+                                                            const res = await createVetExam(formData)
+                                                            if (res.success) {
+                                                                alert(res.message)
+                                                                getVetExams(selectedPet.id).then(setVetExams)
+                                                                    ; (document.getElementById('examForm') as HTMLFormElement)?.reset()
+                                                            } else alert(res.message)
+                                                        }} id="examForm" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                                            <input type="hidden" name="pet_id" value={selectedPet.id} />
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Tipo de Exame *</label>
+                                                                <select name="exam_type_id" required className={styles.select} onChange={(e) => {
+                                                                    const opt = e.target.options[e.target.selectedIndex];
+                                                                    const hiddenInput = document.getElementById('exam_type_name_input') as HTMLInputElement;
+                                                                    if (hiddenInput) hiddenInput.value = opt.text;
+                                                                }}>
+                                                                    <option value="">Selecione...</option>
+                                                                    {examTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                                </select>
+                                                                <input type="hidden" name="exam_type_name" id="exam_type_name_input" />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Veterinário / Solicitante</label>
+                                                                <select name="veterinarian_id" className={styles.select}>
+                                                                    <option value="">Nenhum/Externo</option>
+                                                                    {veterinarians.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Data do Exame</label>
+                                                                <input type="date" name="exam_date" required className={styles.input} defaultValue={new Date().toISOString().split('T')[0]} />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Valor (R$)</label>
+                                                                <input type="number" step="0.01" name="price" defaultValue="0" className={styles.input} />
+                                                            </div>
+                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Resultados / Laudo (Texto)</label>
+                                                                <textarea name="result_notes" className={styles.textarea} style={{ minHeight: '60px' }}></textarea>
+                                                            </div>
+                                                            <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Anexar Arquivo do Exame (Opcional - Em breve upload direto)</label>
+                                                                <input type="text" name="file_url" placeholder="URL do arquivo ou link do Google Drive/PDF" className={styles.input} />
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Status Pagamento</label>
+                                                                <select name="payment_status" className={styles.select}>
+                                                                    <option value="pending">Pendente (A Receber)</option>
+                                                                    <option value="paid">Pago</option>
+                                                                </select>
+                                                            </div>
+                                                            <div style={{ gridColumn: '1 / -1' }}>
+                                                                <button type="submit" className={styles.submitButton}>Salvar Exame</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+
+                                                    {/* Exams List */}
+                                                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Exames Realizados</h4>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                        {vetExams.length === 0 ? <p style={{ fontSize: '0.85rem' }}>Nenhum exame.</p> : vetExams.map(e => (
+                                                            <div key={e.id} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '6px' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                                                                    <strong style={{ fontSize: '0.9rem' }}>{e.exam_type_name}</strong>
+                                                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{new Date(e.exam_date).toLocaleDateString()}</span>
+                                                                </div>
+                                                                <div style={{ fontSize: '0.8rem', color: e.payment_status === 'paid' ? '#10B981' : '#F59E0B', marginBottom: '0.5rem' }}>
+                                                                    Status: {e.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
+                                                                </div>
+                                                                {e.result_notes && <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', whiteSpace: 'pre-wrap' }}>{e.result_notes}</p>}
+
+                                                                {e.file_url && (
+                                                                    <a href={e.file_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', color: 'var(--primary)', textDecoration: 'underline', display: 'inline-block', marginTop: '0.25rem' }}>
+                                                                        Ver Arquivo Anexo
+                                                                    </a>
+                                                                )}
+
+                                                                <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem', display: 'flex', gap: '1rem' }}>
+                                                                    <button type="button" onClick={async () => {
+                                                                        if (confirm('Excluir este exame?')) {
+                                                                            await deleteVetExam(e.id)
+                                                                            getVetExams(selectedPet.id).then(setVetExams)
+                                                                        }
+                                                                    }} style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: '0.8rem', cursor: 'pointer' }}>Excluir</button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* 2. Banho e Tosa */}
                             <div className={styles.accordionItem} style={{ borderBottom: '1px solid var(--border)', marginBottom: '0.5rem' }}>
