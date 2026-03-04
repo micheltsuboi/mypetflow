@@ -13,6 +13,8 @@ export default function ConsultasPage() {
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'day' | 'week' | 'month'>('month')
     const [searchTerm, setSearchTerm] = useState('')
+    const [userRole, setUserRole] = useState<string | null>(null)
+    const [currentVet, setCurrentVet] = useState<any>(null)
 
     // Modal State
     const [selectedConsultation, setSelectedConsultation] = useState<any | null>(null)
@@ -20,6 +22,18 @@ export default function ConsultasPage() {
 
     const fetchData = useCallback(async () => {
         setLoading(true)
+        const { createClient } = await import('@/lib/supabase/client')
+        const supabase = createClient()
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+            if (profile) setUserRole(profile.role)
+
+            const { data: vet } = await supabase.from('veterinarians').select('id').eq('user_id', user.id).maybeSingle()
+            if (vet) setCurrentVet(vet)
+        }
+
         const data = await getVetDashboardAppointments()
         setAppointments(data)
         setLoading(false)
@@ -72,6 +86,8 @@ export default function ConsultasPage() {
 
         return true
     })
+
+    const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
     return (
         <PlanGuard requiredModule="clinica_vet">
@@ -150,15 +166,17 @@ export default function ConsultasPage() {
                                                 className={styles.openBtn}
                                                 onClick={() => handleStartConsultation(appt.id)}
                                             >
-                                                📝 Abrir Prontuário
+                                                {isReadOnly ? '👁️ Ver Prontuário' : '📝 Abrir Prontuário'}
                                             </button>
                                         ) : (
-                                            <button
-                                                className={styles.startBtn}
-                                                onClick={() => handleStartConsultation(appt.id)}
-                                            >
-                                                🚀 Iniciar Consulta
-                                            </button>
+                                            !isReadOnly && (
+                                                <button
+                                                    className={styles.startBtn}
+                                                    onClick={() => handleStartConsultation(appt.id)}
+                                                >
+                                                    🚀 Iniciar Consulta
+                                                </button>
+                                            )
                                         )}
                                     </div>
                                 </div>
@@ -170,6 +188,7 @@ export default function ConsultasPage() {
                 {showModal && selectedConsultation && (
                     <ConsultationModal
                         consultation={selectedConsultation}
+                        readOnly={isReadOnly}
                         onClose={() => {
                             setShowModal(false)
                             fetchData()

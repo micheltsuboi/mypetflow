@@ -8,9 +8,10 @@ interface ConsultationModalProps {
     consultation: any
     onClose: () => void
     onSave?: () => void
+    readOnly?: boolean
 }
 
-export default function ConsultationModal({ consultation, onClose, onSave }: ConsultationModalProps) {
+export default function ConsultationModal({ consultation, onClose, onSave, readOnly = false }: ConsultationModalProps) {
     const [formData, setFormData] = useState(consultation)
     const [vets, setVets] = useState<any[]>([])
     const [saving, setSaving] = useState(false)
@@ -22,6 +23,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
     }, [])
 
     const handleFieldChange = (field: string, value: any) => {
+        if (readOnly) return;
         setFormData((prev: any) => ({ ...prev, [field]: value }))
 
         // Autosave logic
@@ -38,6 +40,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
     }
 
     const handleFinish = async () => {
+        if (readOnly) return;
         if (consultation.appointment_id) {
             setSaving(true)
             const res = await finishVetConsultation(consultation.appointment_id)
@@ -125,17 +128,19 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
             <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
                     <div className={styles.headerInfo}>
-                        <h2>🩺 Prontuário de Atendimento</h2>
+                        <h2>🩺 Prontuário de Atendimento {readOnly && '(Somente Leitura)'}</h2>
                         <span className={styles.petName}>Pet: {consultation.pets?.name || 'Carregando...'}</span>
                     </div>
                     <div className={styles.headerActions}>
-                        <div className={styles.statusInfo}>
-                            {saving ? (
-                                <span className={styles.saving}>☁️ Salvando...</span>
-                            ) : lastSaved ? (
-                                <span className={styles.saved}>✓ Salvo às {lastSaved.toLocaleTimeString('pt-BR')}</span>
-                            ) : null}
-                        </div>
+                        {!readOnly && (
+                            <div className={styles.statusInfo}>
+                                {saving ? (
+                                    <span className={styles.saving}>☁️ Salvando...</span>
+                                ) : lastSaved ? (
+                                    <span className={styles.saved}>✓ Salvo às {lastSaved.toLocaleTimeString('pt-BR')}</span>
+                                ) : null}
+                            </div>
+                        )}
                         <button className={styles.closeBtn} onClick={onClose}>×</button>
                     </div>
                 </div>
@@ -148,6 +153,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 value={formData.veterinarian_id || ''}
                                 onChange={(e) => handleFieldChange('veterinarian_id', e.target.value)}
                                 className={styles.select}
+                                disabled={readOnly}
                             >
                                 <option value="">Selecione...</option>
                                 {vets.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
@@ -160,6 +166,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 value={formData.consultation_date?.split('T')[0] || ''}
                                 onChange={(e) => handleFieldChange('consultation_date', e.target.value)}
                                 className={styles.input}
+                                disabled={readOnly}
                             />
                         </div>
                     </div>
@@ -172,6 +179,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                             onChange={(e) => handleFieldChange('reason', e.target.value)}
                             className={styles.input}
                             placeholder="Ex: Vômitos, check-up anual, coceira..."
+                            disabled={readOnly}
                         />
                     </div>
 
@@ -184,6 +192,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 className={styles.textarea}
                                 style={{ minHeight: '100px' }}
                                 placeholder="Descreva os achados e a conclusão clínica..."
+                                disabled={readOnly}
                             />
                         </div>
 
@@ -195,6 +204,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 className={styles.textarea}
                                 style={{ minHeight: '100px' }}
                                 placeholder="Quais procedimentos foram realizados hoje?"
+                                disabled={readOnly}
                             />
                         </div>
                     </div>
@@ -212,6 +222,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                             className={styles.textarea}
                             style={{ minHeight: '150px', borderColor: 'var(--primary)', borderWidth: '2px' }}
                             placeholder="Liste os medicamentos, dosagens e horários..."
+                            disabled={readOnly}
                         />
                     </div>
 
@@ -222,6 +233,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                             onChange={(e) => handleFieldChange('notes', e.target.value)}
                             className={styles.textarea}
                             style={{ minHeight: '80px' }}
+                            disabled={readOnly}
                         />
                     </div>
 
@@ -234,6 +246,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 value={formData.consultation_fee || 0}
                                 onChange={(e) => handleFieldChange('consultation_fee', parseFloat(e.target.value))}
                                 className={styles.input}
+                                disabled={readOnly}
                             />
                         </div>
                         <div className={styles.formGroup}>
@@ -244,6 +257,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 value={formData.discount_percent || 0}
                                 onChange={(e) => handleFieldChange('discount_percent', parseFloat(e.target.value))}
                                 className={styles.input}
+                                disabled={readOnly}
                             />
                         </div>
                         <div className={styles.formGroup}>
@@ -252,6 +266,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 value={formData.payment_status || 'pending'}
                                 onChange={(e) => handleFieldChange('payment_status', e.target.value)}
                                 className={styles.select}
+                                disabled={readOnly}
                             >
                                 <option value="pending">Pendente</option>
                                 <option value="paid">Pago</option>
@@ -263,6 +278,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                                 value={formData.payment_method || 'pix'}
                                 onChange={(e) => handleFieldChange('payment_method', e.target.value)}
                                 className={styles.select}
+                                disabled={readOnly}
                             >
                                 <option value="pix">PIX</option>
                                 <option value="cash">Dinheiro</option>
@@ -274,10 +290,10 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
                 </div>
 
                 <div className={styles.footer}>
-                    <p className={styles.hint}>Os dados são salvos automaticamente conforme você digita. ☁️</p>
+                    {!readOnly && <p className={styles.hint}>Os dados são salvos automaticamente conforme você digita. ☁️</p>}
                     <div className={styles.footerBtns}>
-                        <button className={styles.saveBtn} onClick={onClose}>Salvar e Sair</button>
-                        <button className={styles.finishBtn} onClick={handleFinish}>Finalizar Consulta</button>
+                        <button className={styles.saveBtn} onClick={onClose}>{readOnly ? 'Fechar' : 'Salvar e Sair'}</button>
+                        {!readOnly && <button className={styles.finishBtn} onClick={handleFinish}>Finalizar Consulta</button>}
                     </div>
                 </div>
             </div>

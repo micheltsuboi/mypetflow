@@ -81,6 +81,7 @@ function PetsContent() {
     const [currentVet, setCurrentVet] = useState<any>(null)
     const [showConsultationModal, setShowConsultationModal] = useState(false)
     const [activeConsultation, setActiveConsultation] = useState<any | null>(null)
+    const [userRole, setUserRole] = useState<string | null>(null)
 
     // Other State
     const [availablePackages, setAvailablePackages] = useState<any[]>([])
@@ -91,6 +92,8 @@ function PetsContent() {
     const [crecheHistory, setCrecheHistory] = useState<any[]>([])
     const [petshopHistory, setPetshopHistory] = useState<any[]>([])
     const [petAssessment, setPetAssessment] = useState<any>(null)
+
+    const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
     // Accordion State
     const [accordions, setAccordions] = useState({
@@ -204,7 +207,11 @@ function PetsContent() {
             const vetsData = await getVeterinarians()
             setVeterinarians(vetsData)
             const currentVetAccount = vetsData.find(v => (v as any).user_id === user.id)
-            if (currentVetAccount) setCurrentVet(currentVetAccount)
+            if (currentVetAccount) {
+                setCurrentVet(currentVetAccount)
+            }
+
+            if (profile) setUserRole(profile.role)
 
         } catch (error) {
             console.error('Erro ao buscar dados:', error)
@@ -436,14 +443,16 @@ function PetsContent() {
                                         <div className={styles.accordionContent}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
                                                 <h4 style={{ margin: 0 }}>Histórico de Atendimentos</h4>
-                                                <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={async () => {
-                                                    if (!selectedPet) return
-                                                    const res = await createBlankConsultation(selectedPet.id)
-                                                    if (res.success) {
-                                                        setActiveConsultation(res.data)
-                                                        setShowConsultationModal(true)
-                                                    }
-                                                }}>+ Nova Consulta</button>
+                                                {!isReadOnly && (
+                                                    <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={async () => {
+                                                        if (!selectedPet) return
+                                                        const res = await createBlankConsultation(selectedPet.id)
+                                                        if (res.success) {
+                                                            setActiveConsultation(res.data)
+                                                            setShowConsultationModal(true)
+                                                        }
+                                                    }}>+ Nova Consulta</button>
+                                                )}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {vetConsultations.length === 0 ? <p>Nenhuma consulta registrada.</p> : vetConsultations.map(c => (
@@ -623,6 +632,7 @@ function PetsContent() {
             {showConsultationModal && activeConsultation && (
                 <ConsultationModal
                     consultation={activeConsultation}
+                    readOnly={isReadOnly}
                     onClose={() => {
                         setShowConsultationModal(false);
                         if (selectedPet) getVetConsultations(selectedPet.id).then(setVetConsultations);
