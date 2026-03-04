@@ -110,7 +110,7 @@ export default function ConsultationModal({ consultation, onClose, onSave }: Con
             const pageHeight = doc.internal.pageSize.height
             doc.line(60, pageHeight - 40, 150, pageHeight - 40)
             doc.setFontSize(10)
-            doc.text(`${vetName}`, 105, pageHeight - 35, { align: 'center' })
+            doc.text(`Dr(a). ${vetName}`, 105, pageHeight - 35, { align: 'center' })
             doc.text(`CRMV: ${vetCrmv}`, 105, pageHeight - 30, { align: 'center' })
 
             doc.save(`Receita_${petName.replace(/\s+/g, '_')}_${dateStr.replace(/\//g, '-')}.pdf`)
