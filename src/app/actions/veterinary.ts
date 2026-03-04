@@ -625,7 +625,17 @@ export async function getVetDashboardAppointments() {
             .eq('service_category_id', category.id)
             .eq('org_id', profile.org_id)
             .neq('status', 'cancelled')
-            .order('scheduled_at', { ascending: true })
+
+        // Limiting date bounds to decrease query payload and improve DB speed
+        const now = new Date()
+        const cutOffPast = new Date(now)
+        cutOffPast.setDate(now.getDate() - 45)
+        const cutOffFuture = new Date(now)
+        cutOffFuture.setDate(now.getDate() + 45)
+
+        query = query.gte('scheduled_at', cutOffPast.toISOString())
+        query = query.lte('scheduled_at', cutOffFuture.toISOString())
+        query = query.order('scheduled_at', { ascending: true })
 
         const { data, error } = await query
         if (error) throw error
