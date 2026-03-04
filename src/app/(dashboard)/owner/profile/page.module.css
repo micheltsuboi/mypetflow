@@ -18,11 +18,12 @@
 }
 
 .card {
-    background: white;
-    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
     padding: 2rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .form {
@@ -60,25 +61,27 @@
 }
 
 .input {
+    width: 100%;
     padding: 0.75rem;
-    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    border: 1px solid #334155;
     border-radius: 8px;
+    color: white;
     font-size: 1rem;
-    background: white;
-    color: var(--text-primary);
     transition: all 0.2s;
 }
 
 .input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .input.disabled {
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text-secondary);
     cursor: not-allowed;
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .buttonGroup {
@@ -89,19 +92,20 @@
 }
 
 .saveButton {
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--coral) 100%);
     color: white;
     border: none;
     padding: 0.75rem 1.5rem;
     border-radius: 8px;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 .saveButton:hover {
-    filter: brightness(0.9);
+    filter: brightness(1.1);
+    box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.3);
 }
 
 .saveButton:disabled {
