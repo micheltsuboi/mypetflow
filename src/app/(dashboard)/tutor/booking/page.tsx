@@ -25,6 +25,7 @@ interface Service {
     name: string
     base_price: number
     category: string
+    category_id: string
     target_species?: 'dog' | 'cat' | 'both'
 }
 
@@ -86,7 +87,7 @@ export default function BookingPage() {
             if (customer.org_id) {
                 const { data: serviceData } = await supabase
                     .from('services')
-                    .select('id, name, base_price, target_species, service_categories(name)')
+                    .select('id, name, base_price, target_species, category_id, service_categories(name)')
                     .eq('org_id', customer.org_id)
                     .eq('is_active', true)
 
@@ -96,6 +97,7 @@ export default function BookingPage() {
                         name: s.name,
                         base_price: s.base_price,
                         target_species: s.target_species,
+                        category_id: s.category_id,
                         category: s.service_categories?.name || 'Outros'
                     }))
                     setServices(formatted)
@@ -165,15 +167,26 @@ export default function BookingPage() {
                 })
 
                 if (conflictingBlock) {
-                    // Check if block allows this species
-                    if (conflictingBlock.allowed_species && conflictingBlock.allowed_species.length > 0) {
-                        if (conflictingBlock.allowed_species.includes(petSpecies)) {
-                            isBlocked = false // Allowed!
-                        } else {
-                            isBlocked = true // Species not allowed
+                    // 1. Check blocked categories
+                    const blockCats = conflictingBlock.blocked_categories || []
+                    if (blockCats.length > 0) {
+                        if (blockCats.includes(service.category_id)) {
+                            isBlocked = true
                         }
-                    } else {
-                        isBlocked = true // Blocked for everyone (null/empty allowed_species)
+                    }
+
+                    // 2. Check allowed species (only if not already blocked by category)
+                    if (!isBlocked) {
+                        // If blocked_categories is empty, it's a general block logic
+                        if (blockCats.length === 0) {
+                            if (conflictingBlock.allowed_species && conflictingBlock.allowed_species.length > 0) {
+                                if (!conflictingBlock.allowed_species.includes(petSpecies)) {
+                                    isBlocked = true // Species not allowed
+                                }
+                            } else {
+                                isBlocked = true // Blocked for everyone (null/empty allowed_species AND null blocked_categories)
+                            }
+                        }
                     }
                 }
             }

@@ -38,13 +38,12 @@ export async function createScheduleBlock(prevState: any, formData: FormData): P
         const end_at = formData.get('end_at') as string
 
         // Allowed Species Logic
-        // Frontend uses name="allowed_species[]", so we must fetch that exactly.
         const allowedSpeciesRaw = formData.getAll('allowed_species[]') as string[]
-
-        // If NO allowed_species provided, it means it's a FULL BLOCK (default behavior).
-        // If allowed_species provided, checking logic applies.
         let allowed_species: string[] | null = allowedSpeciesRaw.length > 0 ? allowedSpeciesRaw : null
 
+        // Blocked Categories Logic
+        const blockedCategoriesRaw = formData.getAll('blocked_categories[]') as string[]
+        let blocked_categories: string[] | null = blockedCategoriesRaw.length > 0 ? blockedCategoriesRaw : null
 
         if (!reason || !start_at || !end_at) {
             return { message: 'Preencha todos os campos.', success: false }
@@ -65,7 +64,7 @@ export async function createScheduleBlock(prevState: any, formData: FormData): P
         const finalStart = formatTS(start_at)
         const finalEnd = formatTS(end_at)
 
-        console.log('[CreateScheduleBlock] Executing for Org:', profile.org_id, 'Dates:', { finalStart, finalEnd }, 'Allowed:', allowed_species)
+        console.log('[CreateScheduleBlock] Executing for Org:', profile.org_id, 'Dates:', { finalStart, finalEnd }, 'Allowed:', allowed_species, 'Blocked Cats:', blocked_categories)
 
         const { error } = await supabase.from('schedule_blocks').insert({
             org_id: profile.org_id,
@@ -73,6 +72,7 @@ export async function createScheduleBlock(prevState: any, formData: FormData): P
             end_at: finalEnd,
             reason,
             allowed_species,
+            blocked_categories,
             created_by: user.id
         })
 

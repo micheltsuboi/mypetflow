@@ -87,6 +87,7 @@ interface ScheduleBlock {
     end_at: string
     reason: string
     allowed_species?: string[] | null
+    blocked_categories?: string[] | null
 }
 
 function normalizeChecklist(raw: any[] | undefined): { text: string, completed: boolean, completed_at: string | null }[] {
@@ -111,6 +112,7 @@ function AgendaContent() {
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([])
     const [pets, setPets] = useState<Pet[]>([])
     const [services, setServices] = useState<Service[]>([])
+    const [categories, setCategories] = useState<ServiceCategory[]>([])
 
     // UI State
     const [todayStr] = useState(() => {
@@ -209,7 +211,24 @@ function AgendaContent() {
                     .order('name')
 
                 if (sErr) console.error('[Agenda] Error fetching services:', sErr)
-                if (s) setServices(s as unknown as Service[])
+                if (s) {
+                    setServices(s as unknown as Service[])
+
+                    // Extract unique categories from services
+                    const cats: ServiceCategory[] = []
+                    const seen = new Set()
+                    s.forEach((item: any) => {
+                        const sc = item.service_categories
+                        if (sc && !seen.has(sc.id || sc[0]?.id)) {
+                            const catObj = Array.isArray(sc) ? sc[0] : sc
+                            if (catObj) {
+                                seen.add(catObj.id)
+                                cats.push(catObj)
+                            }
+                        }
+                    })
+                    setCategories(cats)
+                }
             }
 
             // Calculate Date Range based on viewMode
@@ -386,17 +405,30 @@ function AgendaContent() {
                 })
 
                 if (conflictingBlock) {
-                    // Check allowed species
-                    if (conflictingBlock.allowed_species && conflictingBlock.allowed_species.length > 0) {
-                        if (!conflictingBlock.allowed_species.includes(petSpecies)) {
-                            const allowed = conflictingBlock.allowed_species.map((s: string) => s === 'dog' ? 'Cães' : 'Gatos').join(' e ')
-                            setBookingError(`Horário reservado exclusivamente para ${allowed}.`)
+                    // 1. Check blocked categories
+                    const blockCats = conflictingBlock.blocked_categories || []
+                    if (blockCats.length > 0) {
+                        const svcCatId = svc.category_id || (svc.service_categories as any)?.id
+                        if (blockCats.includes(svcCatId)) {
+                            setBookingError(`Este serviço (${categoryName}) está bloqueado para este horário: ${conflictingBlock.reason}`)
                             return false
                         }
-                    } else {
-                        // General block (no species allowance)
-                        setBookingError(`Horário bloqueado: ${conflictingBlock.reason}`)
-                        return false
+                    }
+
+                    // 2. Check allowed species (if it's a global block or species-specific)
+                    // If blocked_categories is empty, it's a general time block
+                    if (blockCats.length === 0) {
+                        if (conflictingBlock.allowed_species && conflictingBlock.allowed_species.length > 0) {
+                            if (!conflictingBlock.allowed_species.includes(petSpecies)) {
+                                const allowed = conflictingBlock.allowed_species.map((s: string) => s === 'dog' ? 'Cães' : 'Gatos').join(' e ')
+                                setBookingError(`Horário reservado exclusivamente para ${allowed}.`)
+                                return false
+                            }
+                        } else {
+                            // General block (no species/category restriction = blocks EVERYTHING)
+                            setBookingError(`Horário bloqueado: ${conflictingBlock.reason}`)
+                            return false
+                        }
                     }
                 }
             }
@@ -1182,7 +1214,7 @@ function AgendaContent() {
 
                                 <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
                                     <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: '#e2e8f0' }}>Restrição de Espécie (Opcional)</label>
-                                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
                                             <input type="checkbox" name="allowed_species[]" value="dog" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐶 Permitir Cães
                                         </label>
@@ -1190,8 +1222,19 @@ function AgendaContent() {
                                             <input type="checkbox" name="allowed_species[]" value="cat" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐱 Permitir Gatos
                                         </label>
                                     </div>
-                                    <small style={{ display: 'block', marginTop: '0.8rem', color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                                        ℹ️ Se ambos estiverem desmarcados, bloqueia TUDO. Se marcar um, APENAS esse será permitido.
+
+                                    <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: '#e2e8f0' }}>Bloquear Categorias Específicas (Opcional)</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                                        {categories.map(cat => (
+                                            <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                                                <input type="checkbox" name="blocked_categories[]" value={cat.id} style={{ accentColor: '#ef4444', width: '16px', height: '16px' }} />
+                                                {cat.icon} {cat.name}
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    <small style={{ display: 'block', marginTop: '1rem', color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                        ℹ️ Se nada for selecionado acima, bloqueia TUDO. Se selecionar categorias, bloqueia APENAS elas.
                                     </small>
                                 </div>
 
