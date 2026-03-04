@@ -113,6 +113,7 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
     const photo_url = formData.get('photo_url') as string
     const isAdapted = formData.get('is_adapted') === 'on'
 
+
     const supabaseAdmin = createAdminClient()
 
     // Update
@@ -140,6 +141,7 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
     }
 
     revalidatePath('/owner/pets')
+    revalidatePath('/tutor/avaliacoes')
     return { message: 'Pet atualizado com sucesso!', success: true }
 }
 

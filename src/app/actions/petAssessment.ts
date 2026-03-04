@@ -378,6 +378,8 @@ export async function createPetAssessment(petId: string, formData: FormData) {
 
         revalidatePath('/owner/pets')
         revalidatePath('/tutor/pets')
+        revalidatePath('/owner/pets')
+        revalidatePath('/tutor/avaliacoes')
         return { success: true, message: 'Avaliação salva com sucesso!' }
     } catch (error) {
         console.error('Unexpected error:', error)

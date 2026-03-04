@@ -13,6 +13,7 @@ import {
     getCrecheHistory
 } from '@/app/actions/pet'
 import { getPetAssessment } from '@/app/actions/petAssessment'
+import PetAssessmentForm from '@/components/PetAssessmentForm'
 import { getPetPackagesWithUsage, sellPackageToPet } from '@/app/actions/package'
 import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import {
@@ -53,6 +54,13 @@ interface Pet {
 }
 
 function PetsContent() {
+    // The provided snippet for console.log seems to be intended for the `updatePet` action function,
+    // which is imported from '@/app/actions/pet'. Placing it directly here with `formData`
+    // would result in a syntax error as `formData` is not defined in this scope.
+    // If you wish to debug the `updatePet` action, please add the console.log inside the `updatePet`
+    // function definition in `app/actions/pet.ts`.
+    // For now, I will skip adding the console.log as it would break the current file.
+
     const supabase = createClient()
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -117,7 +125,7 @@ function PetsContent() {
 
         const isOpen = !accordions[key]
         if (isOpen && selectedPet) {
-            if (key === 'assessment' && !petAssessment) {
+            if (key === 'assessment') {
                 getPetAssessment(selectedPet.id).then(setPetAssessment)
             }
             if (key === 'packages') {
@@ -452,6 +460,29 @@ function PetsContent() {
                                     )}
                                 </div>
                             )}
+
+                            {/* AVALIAÇÃO */}
+                            <div className={styles.accordionItem}>
+                                <button type="button" onClick={() => toggleAccordion('assessment')} className={styles.accordionHeader}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <span>📋 Avaliação Comportamental</span>
+                                        {petAssessment && <span style={{ fontSize: '0.75rem', background: 'var(--success)', color: 'white', padding: '1px 6px', borderRadius: '4px' }}>FEITA</span>}
+                                    </div>
+                                    <span>{accordions.assessment ? '−' : '+'}</span>
+                                </button>
+                                {accordions.assessment && (
+                                    <div className={styles.accordionContent}>
+                                        <PetAssessmentForm
+                                            petId={selectedPet!.id}
+                                            existingData={petAssessment}
+                                            onSuccess={() => {
+                                                getPetAssessment(selectedPet!.id).then(setPetAssessment)
+                                                alert('Avaliação salva com sucesso!')
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
 
                             {/* PACOTES */}
                             {planFeatures.includes('pacotes') && (
