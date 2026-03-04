@@ -86,11 +86,20 @@ export default function BookingPage() {
             if (customer.org_id) {
                 const { data: serviceData } = await supabase
                     .from('services')
-                    .select('id, name, base_price, category, target_species')
+                    .select('id, name, base_price, target_species, service_categories(name)')
                     .eq('org_id', customer.org_id)
                     .eq('is_active', true)
 
-                if (serviceData) setServices(serviceData)
+                if (serviceData) {
+                    const formatted = serviceData.map((s: any) => ({
+                        id: s.id,
+                        name: s.name,
+                        base_price: s.base_price,
+                        target_species: s.target_species,
+                        category: s.service_categories?.name || 'Outros'
+                    }))
+                    setServices(formatted)
+                }
             }
 
         } catch (error) {
