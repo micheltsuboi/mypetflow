@@ -68,6 +68,8 @@ export default function TutorsPage() {
 
             if (searchTerm) {
                 query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_1.ilike.%${searchTerm}%`)
+            } else {
+                query = query.limit(50)
             }
 
             const { data, error } = await query

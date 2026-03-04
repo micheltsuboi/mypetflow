@@ -74,34 +74,44 @@ export default function HistoryPage() {
                 .select('id, name')
                 .eq('customer_id', customer.id)
 
-            if (petData) setPets(petData)
+            if (petData) {
+                setPets(petData)
 
-            // 3. Get Appointments
-            let query = supabase
-                .from('appointments')
-                .select('id, scheduled_at, status, pet_id, final_price, calculated_price, services(name, category), pets(name)')
-                .order('scheduled_at', { ascending: false })
+                // 3. Get Appointments
+                let query = supabase
+                    .from('appointments')
+                    .select('id, scheduled_at, status, pet_id, final_price, calculated_price, services(name, category), pets(name)')
+                    .order('scheduled_at', { ascending: false })
 
-            if (selectedPetId !== 'all') {
-                query = query.eq('pet_id', selectedPetId)
-            }
-
-            const { data: apptData, error } = await query
-
-            if (error) throw error
-
-            if (apptData) {
-                let filtered = apptData as unknown as Appointment[]
-                if (activeCategory !== 'all') {
-                    filtered = filtered.filter(a => {
-                        const cat = a.services?.category
-                        if (activeCategory === 'banho') {
-                            return ['banho', 'tosa', 'banho_tosa', 'combo'].includes(cat || '')
-                        }
-                        return cat === activeCategory
-                    })
+                if (selectedPetId !== 'all') {
+                    query = query.eq('pet_id', selectedPetId)
+                } else if (petData.length > 0) {
+                    const petIds = petData.map(p => p.id)
+                    query = query.in('pet_id', petIds)
+                } else {
+                    // No pets, so no appointments
+                    setAppointments([])
+                    setLoading(false)
+                    return
                 }
-                setAppointments(filtered)
+
+                const { data: apptData, error } = await query
+
+                if (error) throw error
+
+                if (apptData) {
+                    let filtered = apptData as unknown as Appointment[]
+                    if (activeCategory !== 'all') {
+                        filtered = filtered.filter(a => {
+                            const cat = a.services?.category
+                            if (activeCategory === 'banho') {
+                                return ['banho', 'tosa', 'banho_tosa', 'combo'].includes(cat || '')
+                            }
+                            return cat === activeCategory
+                        })
+                    }
+                    setAppointments(filtered)
+                }
             }
         } catch (error) {
             console.error('Error fetching history:', error)
