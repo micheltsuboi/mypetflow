@@ -842,7 +842,15 @@ export async function createVetAlert({
 
         if (error) throw error
 
-        // 2. Trigger N8N Webhook directly for Tutor Notification
+        // 2. Revalidate Relevant Paths
+        revalidatePath('/owner/consultas')
+        revalidatePath('/owner/pets')
+        if (appointmentId) {
+            revalidatePath('/owner/banho-tosa')
+            revalidatePath('/owner/creche')
+        }
+
+        // 3. Trigger N8N Webhook directly for Tutor Notification
         try {
             const n8nBaseUrl = process.env.N8N_BASE_URL
             if (n8nBaseUrl) {
