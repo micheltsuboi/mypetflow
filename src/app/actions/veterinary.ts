@@ -853,7 +853,8 @@ export async function createVetAlert({
         // 3. Trigger N8N Webhook directly for Tutor Notification
         try {
             const n8nBaseUrl = process.env.N8N_BASE_URL
-            console.log('N8N DEBUG: Base URL is:', n8nBaseUrl)
+            console.log('N8N TRIGGER: Iniciando processo. URL base:', n8nBaseUrl)
+
             if (n8nBaseUrl) {
                 const petName = pet?.name || 'seu pet'
                 const tutorName = (pet?.customers as any)?.name || 'Cliente'
@@ -861,24 +862,14 @@ export async function createVetAlert({
                 phone = phone.replace(/\D/g, '')
                 if (phone && !phone.startsWith('55')) phone = '55' + phone
 
-                // Format message suggesting scheduling
                 const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
 
-                const n8nUrlObj = new URL(`${n8nBaseUrl}/webhook/vet-alert`)
-                const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+                const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
+                console.log('N8N TRIGGER: URL Completa:', fullUrl)
 
-                if (n8nUrlObj.username && n8nUrlObj.password) {
-                    const encodedAuth = btoa(`${n8nUrlObj.username}:${n8nUrlObj.password}`)
-                    headers['Authorization'] = `Basic ${encodedAuth}`
-                    n8nUrlObj.username = ''
-                    n8nUrlObj.password = ''
-                }
-
-                // Await the fetch so Next.js doesn't kill the function early
-                console.log('Disparando Webhook N8N para:', n8nUrlObj.toString())
-                const n8nRes = await fetch(n8nUrlObj.toString(), {
+                const n8nRes = await fetch(fullUrl, {
                     method: 'POST',
-                    headers,
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         phone: phone,
                         message: message,
@@ -887,11 +878,12 @@ export async function createVetAlert({
                         type: 'vet_alert_suggestion'
                     })
                 })
-                console.log('Resposta N8N Status:', n8nRes.status)
+                console.log('N8N TRIGGER: Resposta N8N Status:', n8nRes.status)
+            } else {
+                console.log('N8N TRIGGER: N8N_BASE_URL não está definida!')
             }
-        } catch (n8nError) {
-            console.error('Falha ao acionar webhook n8n:', n8nError)
-            // non-blocking for DB insertion
+        } catch (n8nError: any) {
+            console.error('N8N TRIGGER: Falha fatal no disparo:', n8nError.message)
         }
 
         revalidatePath('/owner/consultas') // Refresh vet dashboard

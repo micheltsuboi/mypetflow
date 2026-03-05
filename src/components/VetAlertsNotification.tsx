@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react'
 import { getPendingVetAlerts, updateVetAlertStatus } from '@/app/actions/veterinary'
 
 export default function VetAlertsNotification() {
-    console.log('VET DASH: Componente VetAlertsNotification montando...')
     const [alerts, setAlerts] = useState<any[]>([])
 
     const [loading, setLoading] = useState(true)
@@ -43,10 +42,9 @@ export default function VetAlertsNotification() {
         }
     }
 
-    // Modificamos para mostrar sempre o botão de alerta (mesmo 0) para teste de visibilidade
-    // if (alerts.length === 0 && !loading) {
-    //    return null
-    // }
+    if (alerts.length === 0 && !loading) {
+        return null
+    }
 
     return (
         <div style={{

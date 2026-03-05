@@ -141,8 +141,16 @@ export default function BanhoTosaPage() {
     const handleCheckIn = async (appointmentId: string) => {
         const result = await checkInAppointment(appointmentId)
         if (result.success) {
-            alert(result.message)
-            fetchBanhoTosaData()
+            // Refetch data
+            await fetchBanhoTosaData()
+
+            // Find the updated appointment and open it
+            // We need to fetch again to get the most fresh data from state
+            setAppointments(prev => {
+                const updated = prev.find(a => a.id === appointmentId)
+                if (updated) setSelectedAppointment(updated)
+                return prev
+            })
         } else {
             alert(result.message)
         }

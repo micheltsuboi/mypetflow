@@ -104,8 +104,15 @@ export default function CrechePage() {
     const handleCheckIn = async (appointmentId: string) => {
         const result = await checkInAppointment(appointmentId)
         if (result.success) {
-            alert(result.message)
-            fetchCrecheData()
+            // Refetch data
+            await fetchCrecheData()
+
+            // Find the updated appointment and open it
+            setAppointments(prev => {
+                const updated = prev.find(a => a.id === appointmentId)
+                if (updated) setSelectedAppointment(updated)
+                return prev
+            })
         } else {
             alert(result.message)
         }
