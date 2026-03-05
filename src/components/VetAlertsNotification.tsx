@@ -10,12 +10,12 @@ export default function VetAlertsNotification() {
 
     const fetchAlerts = async () => {
         try {
-            setLoading(true)
+            console.log('VET DASH: Iniciando busca de alertas no frontend...')
             const data = await getPendingVetAlerts()
-            console.log('CLIENT: Alertas recebidos no component:', data?.length)
+            console.log('VET DASH: Resposta recebida:', data)
             setAlerts(data || [])
         } catch (error) {
-            console.error('Erro ao buscar alertas:', error)
+            console.error('VET DASH: Erro ao buscar alertas no component:', error)
         } finally {
             setLoading(false)
         }
@@ -38,8 +38,12 @@ export default function VetAlertsNotification() {
         }
     }
 
-    if (loading && alerts.length === 0) return null
-    if (alerts.length === 0) return null
+    // Modificamos para não retornar null enquanto carrega, para debug
+    // if (loading && alerts.length === 0) return null
+    if (alerts.length === 0 && !loading) {
+        console.log('VET DASH: Nenhum alerta pendente para mostrar.')
+        return null
+    }
 
     return (
         <div style={{

@@ -902,24 +902,45 @@ export async function getPendingVetAlerts() {
 
         const adminSupabase = await createAdminClient()
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-        if (!profile?.org_id) return []
+
+        if (!profile?.org_id) {
+            console.log('VET DASH: User profile missing org_id for user', user.id)
+            return []
+        }
+
+        console.log('VET DASH: Fetching pending alerts for org', profile.org_id)
 
         const { data, error } = await adminSupabase
             .from('vet_alerts')
             .select(`
                 id, observation, status, created_at,
-                pets ( id, name, species, breed, customers(name) )
+                pets (
+                    id, name, species, breed,
+                    customers ( name )
+                )
             `)
             .eq('org_id', profile.org_id)
             .eq('status', 'pending')
             .order('created_at', { ascending: false })
 
         if (error) {
-            console.error("Erro Supabase ao buscar alertas vet:", error)
-            throw error
+            console.error("VET DASH: Erro crítico na busca de alertas:", error)
+            // Tenta busca ultra-simples se a complexa falhar
+            const { data: simpleData } = await adminSupabase
+                .from('vet_alerts')
+                .select('id, observation, status, created_at')
+                .eq('org_id', profile.org_id)
+                .eq('status', 'pending')
+
+            if (simpleData && simpleData.length > 0) {
+                console.log('VET DASH: Busca simples funcionou, retornando dados parciais.')
+                return simpleData as any[]
+            }
+            return []
         }
-        console.log('Alertas encontrados:', data?.length)
-        return data || []
+
+        console.log(`VET DASH: Found ${data?.length || 0} pending alerts`)
+        return (data as any[]) || []
     } catch (error) {
         console.error('Error fetching pending vet alerts:', error)
         return []
