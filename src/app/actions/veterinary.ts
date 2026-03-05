@@ -797,3 +797,132 @@ export async function createBlankConsultation(petId: string) {
         return { success: false, message: error.message }
     }
 }
+
+// ==========================================
+// VET ALERTS (Integração Operacional)
+// ==========================================
+
+export async function createVetAlert({
+    petId,
+    appointmentId,
+    observation
+}: {
+    petId: string,
+    appointmentId?: string,
+    observation: string
+}) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase.from('profiles').select('org_id, full_name').eq('id', user.id).single()
+        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
+
+        // Fetch Pet Details for Notification
+        const { data: pet } = await supabase
+            .from('pets')
+            .select('name, customers(name, phone)')
+            .eq('id', petId)
+            .single()
+
+        // 1. Insert alert in database
+        const { data: alert, error } = await supabase
+            .from('vet_alerts')
+            .insert({
+                org_id: profile.org_id,
+                pet_id: petId,
+                appointment_id: appointmentId || null,
+                observation,
+                status: 'pending',
+                created_by: user.id
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+
+        // 2. Trigger N8N Webhook for Tutor Notification
+        try {
+            const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/n8n-trigger`
+            const petName = pet?.name || 'seu pet'
+            const tutorName = (pet?.customers as any)?.name || 'Cliente'
+            const phone = (pet?.customers as any)?.phone || ''
+
+            // Format message suggesting scheduling
+            const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+
+            // Fire and forget triggering the n8n backend endpoint we already possess
+            fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    path: '/webhook/send-whatsapp',
+                    method: 'POST',
+                    payload: {
+                        phone: phone,
+                        message: message,
+                        tenant_id: profile.org_id,
+                        pet_name: petName,
+                        type: 'vet_alert_suggestion'
+                    }
+                })
+            }).catch(e => console.error('Erro silent ao disparar n8n trigger para Vet Alert:', e))
+        } catch (n8nError) {
+            console.error('Falha ao acionar webhook n8n:', n8nError)
+            // non-blocking for DB insertion
+        }
+
+        revalidatePath('/owner/consultas') // Refresh vet dashboard
+        return { success: true, message: 'Alerta enviado para a equipe veterinária!', data: alert }
+
+    } catch (error: any) {
+        console.error('Error creating vet alert:', error)
+        return { success: false, message: error.message }
+    }
+}
+
+export async function getPendingVetAlerts() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        if (!profile?.org_id) return []
+
+        const { data, error } = await supabase
+            .from('vet_alerts')
+            .select(`
+                id, observation, status, created_at,
+                pets ( id, name, species, breed, customers(name) ),
+                creator:created_by (full_name)
+            `)
+            .eq('org_id', profile.org_id)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return data || []
+    } catch (error) {
+        console.error('Error fetching pending vet alerts:', error)
+        return []
+    }
+}
+
+export async function updateVetAlertStatus(alertId: string, status: 'pending' | 'read' | 'scheduled') {
+    try {
+        const supabase = await createClient()
+        const { error } = await supabase
+            .from('vet_alerts')
+            .update({ status, updated_at: new Date().toISOString() })
+            .eq('id', alertId)
+
+        if (error) throw error
+
+        revalidatePath('/owner/consultas')
+        return { success: true, message: 'Status do alerta atualizado!' }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { updateAppointmentStatus, updateChecklist, updatePetPreferences } from '@/app/actions/appointment'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import { uploadReportPhoto, saveDailyReport, getDailyReport } from '@/app/actions/dailyReport'
+import { createVetAlert } from '@/app/actions/veterinary'
 
 interface ChecklistItem {
     text: string
@@ -51,6 +52,11 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
     const [perfumeAllowed, setPerfumeAllowed] = useState(appointment.pets?.perfume_allowed ?? true)
     const [accessoriesAllowed, setAccessoriesAllowed] = useState(appointment.pets?.accessories_allowed ?? true)
     const [savingChecklist, setSavingChecklist] = useState(false)
+
+    // Vet Alert State
+    const [vetAlertText, setVetAlertText] = useState('')
+    const [alertSent, setAlertSent] = useState(false)
+    const [sendingAlert, setSendingAlert] = useState(false)
 
     // Photo State
     const [photos, setPhotos] = useState<string[]>([])
@@ -157,6 +163,27 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
             onClose()
         } else {
             alert(res.message)
+        }
+    }
+
+    const handleSendVetAlert = async () => {
+        if (!vetAlertText.trim()) return
+        setSendingAlert(true)
+        try {
+            const res = await createVetAlert({
+                petId: appointment.pet_id,
+                appointmentId: appointment.id,
+                observation: vetAlertText.trim()
+            })
+            if (res.success) {
+                setAlertSent(true)
+            } else {
+                alert(res.message)
+            }
+        } catch (err: any) {
+            alert(err.message || 'Erro ao comunicar com veterinário.')
+        } finally {
+            setSendingAlert(false)
         }
     }
 
@@ -310,6 +337,66 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                                 </div>
                             ))}
                         </div>
+                    </section>
+
+                    {/* Vet Alert Section */}
+                    <section style={{
+                        background: 'rgba(239, 68, 68, 0.05)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '12px',
+                        padding: '1.25rem'
+                    }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                            <span style={{ fontSize: '1.5rem' }}>🚨</span>
+                            <div>
+                                <h3 style={{ color: '#fca5a5', fontSize: '1rem', margin: 0, fontWeight: 700 }}>Alerta Médico (Opcional)</h3>
+                                <p style={{ margin: '0.25rem 0 0', color: '#cbd5e1', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                                    Notou algo incomum no pet? (Otite, carrapato, feridas, nódulos). Envie um alerta direto para a equipe veterinária analisar.
+                                </p>
+                            </div>
+                        </div>
+
+                        {alertSent ? (
+                            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', padding: '1rem', borderRadius: '8px', color: '#34d399', textAlign: 'center', fontWeight: 'bold' }}>
+                                ✅ Alerta enviado com sucesso para os veterinários!
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <textarea
+                                    value={vetAlertText}
+                                    onChange={(e) => setVetAlertText(e.target.value)}
+                                    placeholder="Ex: Encontrei muita secreção na orelha esquerda e o pet reclamou de dor ao tocar."
+                                    rows={3}
+                                    disabled={sendingAlert}
+                                    style={{
+                                        width: '100%', padding: '0.75rem', borderRadius: '8px',
+                                        background: 'rgba(15, 23, 42, 0.6)', border: '1px solid #475569',
+                                        color: 'white', resize: 'vertical', fontFamily: 'inherit'
+                                    }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button
+                                        onClick={handleSendVetAlert}
+                                        disabled={!vetAlertText.trim() || sendingAlert}
+                                        style={{
+                                            padding: '0.75rem 1.5rem',
+                                            background: !vetAlertText.trim() || sendingAlert ? '#475569' : '#ef4444',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontWeight: 600,
+                                            cursor: !vetAlertText.trim() || sendingAlert ? 'not-allowed' : 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            transition: 'background 0.2s'
+                                        }}
+                                    >
+                                        {sendingAlert ? '⏳ Enviando...' : '🩺 Enviar para Veterinário'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </section>
 
                 </div>
