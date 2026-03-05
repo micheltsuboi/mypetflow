@@ -857,42 +857,40 @@ export async function createVetAlert({
 
             if (n8nBaseUrl) {
                 const petName = pet?.name || 'seu pet'
+                console.log('VET ALERT N8N DEBUG: Pet data:', JSON.stringify(pet, null, 2))
+
                 const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
                 const tutorName = (customerData as any)?.name || 'Cliente'
-                let phone = (customerData as any)?.phone || ''
+                const phoneRaw = (customerData as any)?.phone || ''
 
-                console.log('N8N DEBUG: Raw phone from DB:', phone)
-
-                phone = phone.replace(/\D/g, '')
+                let phone = phoneRaw.toString().replace(/\D/g, '')
                 if (phone && !phone.startsWith('55')) phone = '55' + phone
 
-                if (!phone) {
-                    console.warn('N8N TRIGGER: Abortando disparo, telefone do tutor está vazio.')
-                    return { success: true, message: 'Alerta criado, mas tutor não possui telefone cadastrado.' }
-                }
+                if (phone && phone.length >= 8) {
+                    const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
 
-                const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+                    const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
+                    console.log('N8N TRIGGER: Disparando para:', fullUrl, 'com tutorPhone:', phone)
 
-                const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
-                console.log('N8N TRIGGER: URL Completa:', fullUrl)
-
-                const n8nRes = await fetch(fullUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tutorPhone: phone,
-                        message: message,
-                        tenant_id: profile.org_id,
-                        pet_name: petName,
-                        type: 'vet_alert_suggestion'
+                    await fetch(fullUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tutorPhone: phone,
+                            message: message,
+                            tenant_id: profile.org_id,
+                            pet_name: petName,
+                            type: 'vet_alert_suggestion'
+                        })
                     })
-                })
-                console.log('N8N TRIGGER: Resposta N8N Status:', n8nRes.status)
+                } else {
+                    console.warn('N8N TRIGGER: Telefone ausente ou inválido no banco.')
+                }
             } else {
                 console.log('N8N TRIGGER: N8N_BASE_URL não está definida!')
             }
         } catch (n8nError: any) {
-            console.error('N8N TRIGGER: Falha fatal no disparo:', n8nError.message)
+            console.error('N8N TRIGGER: Falha fatal no disparo do n8n:', n8nError.message)
         }
 
         revalidatePath('/owner/consultas') // Refresh vet dashboard
