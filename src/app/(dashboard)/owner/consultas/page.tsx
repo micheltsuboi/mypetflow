@@ -27,15 +27,19 @@ export default function ConsultasPage() {
 
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-            if (profile) setUserRole(profile.role)
+            const profilePromise = supabase.from('profiles').select('role').eq('id', user.id).single()
+            const vetPromise = supabase.from('veterinarians').select('id').eq('user_id', user.id).maybeSingle()
+            const apptsPromise = getVetDashboardAppointments()
 
-            const { data: vet } = await supabase.from('veterinarians').select('id').eq('user_id', user.id).maybeSingle()
-            if (vet) setCurrentVet(vet)
+            const [profileRes, vetRes, data] = await Promise.all([profilePromise, vetPromise, apptsPromise])
+
+            if (profileRes.data) setUserRole(profileRes.data.role)
+            if (vetRes.data) setCurrentVet(vetRes.data)
+
+            setAppointments(data)
+        } else {
+            setAppointments([])
         }
-
-        const data = await getVetDashboardAppointments()
-        setAppointments(data)
         setLoading(false)
     }, [])
 

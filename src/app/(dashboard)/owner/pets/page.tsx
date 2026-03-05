@@ -134,6 +134,19 @@ function PetsContent() {
             if (key === 'packages') {
                 getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
             }
+            if (key === 'creche') {
+                getCrecheHistory(selectedPet.id).then((r: any) => setCrecheHistory(r.data || []))
+            }
+            if (key === 'hotel') {
+                getHotelHistory(selectedPet.id).then((r: any) => setHotelHistory(r.data || []))
+            }
+            if (key === 'petshop') {
+                getPetshopHistory(selectedPet.id).then((r: any) => setPetshopHistory(r.data || []))
+            }
+            if (key === 'medical') {
+                getVetConsultations(selectedPet.id).then(setVetConsultations)
+                getVetRecords(selectedPet.id).then(setVetRecords)
+            }
         }
     }
 
@@ -151,67 +164,43 @@ function PetsContent() {
 
             if (!profile?.org_id) return
 
-            // Fetch Plan Features
-            if (profile.role === 'superadmin') {
-                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet'])
-            } else {
-                const { data: org } = await supabase
-                    .from('organizations')
-                    .select('saas_plans(features)')
-                    .eq('id', profile.org_id)
-                    .maybeSingle()
+            // Resolvendo de forma paralela usando Promise.all para melhorar a performance da listagem
+            const featuresPromise = profile.role === 'superadmin' ? Promise.resolve().then(() => {
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet']);
+            }) : supabase.from('organizations').select('saas_plans(features)').eq('id', profile.org_id).maybeSingle().then(({ data: org }) => {
+                if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || []);
+            });
 
-                if (org?.saas_plans) {
-                    setPlanFeatures((org.saas_plans as any).features || [])
-                }
-            }
-
-            // Fetch Pets
-            let query = supabase
-                .from('pets')
-                .select(`
+            // Constrói a query dos Pets
+            let query = supabase.from('pets').select(`
                     id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
                     customers!inner ( id, name, org_id )
-                `)
-                .eq('customers.org_id', profile.org_id)
-                .order('name')
+                `).eq('customers.org_id', profile.org_id).order('name')
+            if (searchTerm) query = query.or(`name.ilike.%${searchTerm}%,breed.ilike.%${searchTerm}%`)
+            else query = query.limit(50)
 
-            if (searchTerm) {
-                query = query.or(`name.ilike.%${searchTerm}%,breed.ilike.%${searchTerm}%`)
-            } else {
-                query = query.limit(50)
-            }
+            const petsPromise = query.then(({ data: petsData }) => {
+                if (petsData) setPets(petsData as unknown as Pet[])
+            })
 
-            const { data: petsData } = await query
-            if (petsData) setPets(petsData as unknown as Pet[])
+            const customersPromise = supabase.from('customers').select('id, name').eq('org_id', profile.org_id).order('name').then(({ data: customersData }) => {
+                if (customersData) setCustomers(customersData)
+            })
 
-            // Fetch Customers
-            const { data: customersData } = await supabase
-                .from('customers')
-                .select('id, name')
-                .eq('org_id', profile.org_id)
-                .order('name')
-            if (customersData) setCustomers(customersData)
+            const packagesPromise = supabase.from('service_packages').select('id, name, total_price, description').eq('org_id', profile.org_id).eq('is_active', true).order('total_price').then(({ data: packagesData }) => {
+                if (packagesData) setAvailablePackages(packagesData)
+            })
 
-            // Fetch Packages
-            const { data: packagesData } = await supabase
-                .from('service_packages')
-                .select('id, name, total_price, description')
-                .eq('org_id', profile.org_id)
-                .eq('is_active', true)
-                .order('total_price')
-            if (packagesData) setAvailablePackages(packagesData)
-
-            // Veterinary Data
-            const vetsData = await getVeterinarians()
-            setVeterinarians(vetsData)
-            const currentVetAccount = vetsData.find(v => (v as any).user_id === user.id)
-            if (currentVetAccount) {
-                setCurrentVet(currentVetAccount)
-            }
+            const vetsPromise = getVeterinarians().then(vetsData => {
+                setVeterinarians(vetsData)
+                const currentVetAccount = vetsData.find(v => (v as any).user_id === user.id)
+                if (currentVetAccount) setCurrentVet(currentVetAccount)
+            })
 
             if (profile) setUserRole(profile.role)
+
+            await Promise.all([featuresPromise, petsPromise, customersPromise, packagesPromise, vetsPromise])
 
         } catch (error) {
             console.error('Erro ao buscar dados:', error)
@@ -223,16 +212,6 @@ function PetsContent() {
     useEffect(() => {
         fetchData()
     }, [fetchData])
-
-    useEffect(() => {
-        if (selectedPet) {
-            getVetConsultations(selectedPet.id).then(setVetConsultations)
-            getVetRecords(selectedPet.id).then(setVetRecords)
-            getHotelHistory(selectedPet.id).then((r: any) => setHotelHistory(r.data || []))
-            getCrecheHistory(selectedPet.id).then((r: any) => setCrecheHistory(r.data || []))
-            getPetshopHistory(selectedPet.id).then((r: any) => setPetshopHistory(r.data || []))
-        }
-    }, [selectedPet])
 
     const handleSelectPet = useCallback(async (pet: Pet) => {
         setSelectedPet(pet)

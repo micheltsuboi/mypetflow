@@ -109,52 +109,95 @@ export default function OwnerDashboard() {
                 const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
                 const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString()
 
-                // Current month appointments (paid and unpaid)
-                const { data: currentMonthAppts } = await supabase
+                // Promise 1: Current month appointments (paid and unpaid)
+                const currentMonthApptsPromise = supabase
                     .from('appointments')
-                    .select(`
-                        id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
-                        pets ( name ),
-                        services ( name, service_categories ( name ) )
-                    `)
+                    .select('id, final_price, calculated_price, payment_status, scheduled_at, paid_at, pets ( name ), services ( name, service_categories ( name ) )')
                     .eq('org_id', profile.org_id)
                     .gte('scheduled_at', startOfCurrentMonth)
 
-                // Previous month paid appointments (for growth)
-                const { data: prevMonthAppts } = await supabase
+                // Promise 2: Previous month paid appointments (for growth)
+                const prevMonthApptsPromise = supabase
                     .from('appointments')
                     .select('final_price, calculated_price, payment_status')
                     .eq('org_id', profile.org_id)
                     .gte('scheduled_at', startOfPreviousMonth)
                     .lte('scheduled_at', endOfPreviousMonth)
 
-                const paidAppts = (currentMonthAppts || []).filter(a => a.payment_status === 'paid')
-                const pendingAppts = (currentMonthAppts || []).filter(a => a.payment_status !== 'paid')
-
-                const currentRevenue = paidAppts
-                    .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-
-                const pendingPayments = pendingAppts
-                    .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-
-                const prevRevenue = (prevMonthAppts || [])
-                    .filter(a => a.payment_status === 'paid')
-                    .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-
-                const growth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : 0
-
-                // 3. Fetch all financial transactions (income and expenses) for the month
-                const { data: transactions } = await supabase
+                // Promise 3: Fetch all financial transactions (income and expenses) for the month
+                const transactionsPromise = supabase
                     .from('financial_transactions')
                     .select('*')
                     .eq('org_id', profile.org_id)
                     .gte('date', startOfCurrentMonth)
 
-                const incomeTxs = (transactions || []).filter(t => t.type === 'income')
-                const expenseTxs = (transactions || []).filter(t => t.type === 'expense')
+                // Promise 4: Fetch Operational Stats (Tutors Count)
+                const tutorsCountPromise = supabase
+                    .from('customers')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('org_id', profile.org_id)
 
-                const productRevenue = incomeTxs.reduce((sum, t) => sum + t.amount, 0)
-                const expenses = expenseTxs.reduce((sum, t) => sum + t.amount, 0)
+                // Promise 5: Fetch Pets Count
+                const petsCountPromise = supabase
+                    .from('pets')
+                    .select('id, customers!inner(org_id)', { count: 'exact', head: true })
+                    .eq('customers.org_id', profile.org_id)
+
+                // Promise 6: Today's appointments for petsToday list and count
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+                const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
+
+                const apptsPromise = supabase
+                    .from('appointments')
+                    .select('id, scheduled_at, status, check_in_date, check_out_date, pets ( id, name, breed, species, customers ( name ) ), services ( name, service_categories ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    // Match today's single-day spots OR multi-day checking where today is inside the range
+                    .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
+                    .neq('status', 'cancelled')
+                    .order('scheduled_at', { ascending: true })
+
+                // Execute all promises in parallel
+                const [
+                    { data: currentMonthAppts },
+                    { data: prevMonthAppts },
+                    { data: transactions },
+                    { count: tutorsCount },
+                    { count: petsCount },
+                    { data: appts, error: apptError }
+                ] = await Promise.all([
+                    currentMonthApptsPromise,
+                    prevMonthApptsPromise,
+                    transactionsPromise,
+                    tutorsCountPromise,
+                    petsCountPromise,
+                    apptsPromise
+                ])
+
+                if (apptError) {
+                    console.error("Error fetching owner appointments:", apptError)
+                }
+
+                // Process financial data after all promises resolved
+                const paidAppts = (currentMonthAppts || []).filter((a: any) => a.payment_status === 'paid')
+                const pendingAppts = (currentMonthAppts || []).filter((a: any) => a.payment_status !== 'paid')
+
+                const currentRevenue = paidAppts
+                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+
+                const pendingPayments = pendingAppts
+                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+
+                const prevRevenue = (prevMonthAppts || [])
+                    .filter((a: any) => a.payment_status === 'paid')
+                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+
+                const growth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : 0
+
+                const incomeTxs = (transactions || []).filter((t: any) => t.type === 'income')
+                const expenseTxs = (transactions || []).filter((t: any) => t.type === 'expense')
+
+                const productRevenue = incomeTxs.reduce((sum: number, t: Record<string, any>) => sum + t.amount, 0)
+                const expenses = expenseTxs.reduce((sum: number, t: Record<string, any>) => sum + t.amount, 0)
 
                 const totalRevenue = currentRevenue + productRevenue
 
@@ -168,41 +211,10 @@ export default function OwnerDashboard() {
 
                 // Store records for extract
                 setExtractRecords({
-                    type: null, // Keep null until a card is clicked
+                    type: null,
                     appointments: currentMonthAppts || [],
                     transactions: transactions || []
                 })
-
-                // 2. Fetch Operational Stats
-                const { count: tutorsCount } = await supabase
-                    .from('customers')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('org_id', profile.org_id)
-
-                const { count: petsCount } = await supabase
-                    .from('pets')
-                    .select('id, customers!inner(org_id)', { count: 'exact', head: true })
-                    .eq('customers.org_id', profile.org_id)
-
-                // Today's appointments for petsToday list and count
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-                const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
-                const { data: appts, error: apptError } = await supabase
-                    .from('appointments')
-                    .select(`
-                        id, scheduled_at, status, check_in_date, check_out_date,
-                        pets ( id, name, breed, species, customers ( name ) ),
-                        services ( name, service_categories ( name ) )
-                    `)
-                    .eq('org_id', profile.org_id)
-                    // Match today's single-day spots OR multi-day checking where today is inside the range
-                    .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
-                    .neq('status', 'cancelled')
-                    .order('scheduled_at', { ascending: true })
-
-                if (apptError) {
-                    console.error("Error fetching owner appointments:", apptError)
-                }
 
                 let mappedPets: PetToday[] = []
                 if (appts) {

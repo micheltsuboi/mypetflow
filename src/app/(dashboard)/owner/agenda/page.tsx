@@ -188,63 +188,18 @@ function AgendaContent() {
             const { data: profile } = await supabase.from('profiles').select('org_id, role').eq('id', user.id).single()
             if (!profile?.org_id) return
 
-            // Check if vet
-            const vets = await getVeterinarians()
-            const currentVetAccount = vets.find((v: any) => v.user_id === user.id)
-            const isUserVet = !!currentVetAccount
-            setIsVet(isUserVet)
-
-            if (isUserVet) {
-                setCategoryFilter('Clínica Veterinária')
-            }
-
-            // Load Metadata
-            if (pets.length === 0) {
-                const { data: p } = await supabase.from('pets').select('id, name, species, breed, customers!inner(name, org_id), perfume_allowed, accessories_allowed, special_care, is_adapted').eq('customers.org_id', profile.org_id).order('name')
-                if (p) setPets(p as any)
-            }
-            if (services.length === 0) {
-                const { data: s, error: sErr } = await supabase
-                    .from('services')
-                    .select('id, name, duration_minutes, base_price, category_id, target_species, scheduling_rules, service_categories (id, name, color, icon)')
-                    .eq('org_id', profile.org_id)
-                    .order('name')
-
-                if (sErr) console.error('[Agenda] Error fetching services:', sErr)
-                if (s) {
-                    setServices(s as unknown as Service[])
-
-                    // Extract unique categories from services
-                    const cats: ServiceCategory[] = []
-                    const seen = new Set()
-                    s.forEach((item: any) => {
-                        const sc = item.service_categories
-                        if (sc && !seen.has(sc.id || sc[0]?.id)) {
-                            const catObj = Array.isArray(sc) ? sc[0] : sc
-                            if (catObj) {
-                                seen.add(catObj.id)
-                                cats.push(catObj)
-                            }
-                        }
-                    })
-                    setCategories(cats)
-                }
-            }
-
             // Calculate Date Range based on viewMode
-            // Create local date objects to avoid UTC shifting issues
             const [y, m, d] = selectedDate.split('-').map(Number)
-            let start = new Date(y, m - 1, d) // 00:00:00 Local Time
-            let end = new Date(y, m - 1, d)   // 00:00:00 Local Time
+            let start = new Date(y, m - 1, d)
+            let end = new Date(y, m - 1, d)
 
             if (viewMode === 'day') {
                 end.setHours(23, 59, 59)
             } else if (viewMode === 'week') {
-                const day = start.getDay() // Local day
-                const diff = start.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
-                start.setDate(diff) // Set local date to Monday
-                // Set end to Sunday
-                end = new Date(start) // Copy Monday
+                const day = start.getDay()
+                const diff = start.getDate() - day + (day === 0 ? -6 : 1)
+                start.setDate(diff)
+                end = new Date(start)
                 end.setDate(start.getDate() + 6)
                 end.setHours(23, 59, 59)
             } else {
@@ -255,55 +210,75 @@ function AgendaContent() {
 
             const startDateStr = start.toISOString()
             const endDateStr = end.toISOString()
-
-            // Fetch Blocks
-            const { data: blks } = await supabase
-                .from('schedule_blocks')
-                .select('*')
-                .eq('org_id', profile.org_id)
-                .lt('start_at', endDateStr)
-                .gt('end_at', startDateStr)
-
-            if (blks) setBlocks(blks)
-
-            // Fetch Appointments - Updated for multiday support
             const startDayStr = startDateStr.split('T')[0]
             const endDayStr = endDateStr.split('T')[0]
 
-            const { data: appts, error } = await supabase
-                .from('appointments')
-                .select(`
+            // Preparar todas as promises para executar em paralelo
+            const vetsPromise = getVeterinarians()
+
+            const petsPromise = pets.length === 0
+                ? supabase.from('pets').select('id, name, species, breed, customers!inner(name, org_id), perfume_allowed, accessories_allowed, special_care, is_adapted').eq('customers.org_id', profile.org_id).order('name')
+                : Promise.resolve({ data: null })
+
+            const servicesPromise = services.length === 0
+                ? supabase.from('services').select('id, name, duration_minutes, base_price, category_id, target_species, scheduling_rules, service_categories (id, name, color, icon)').eq('org_id', profile.org_id).order('name')
+                : Promise.resolve({ data: null, error: null })
+
+            const blocksPromise = supabase.from('schedule_blocks').select('*').eq('org_id', profile.org_id).lt('start_at', endDateStr).gt('end_at', startDateStr)
+
+            const apptsPromise = supabase.from('appointments').select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
-                    calculated_price,
-                    final_price, discount_percent, payment_status, payment_method,
-                    actual_check_in, actual_check_out,
-                    check_in_date, check_out_date,
-                    pets ( 
-                        name, species, breed, 
-                        perfume_allowed, accessories_allowed, special_care, is_adapted,
-                        customers ( name )
-                    ),
-                    services ( 
-                        name, duration_minutes, base_price, category_id,
-                        service_categories ( name, color, icon )
-                    )
-                `)
-                .eq('org_id', profile.org_id)
-                .or(`and(scheduled_at.gte.${startDateStr},scheduled_at.lte.${endDateStr}),and(check_in_date.lte.${endDayStr},check_out_date.gte.${startDayStr})`)
-                .neq('status', 'cancelled')
+                    calculated_price, final_price, discount_percent, payment_status, payment_method,
+                    actual_check_in, actual_check_out, check_in_date, check_out_date,
+                    pets ( name, species, breed, perfume_allowed, accessories_allowed, special_care, is_adapted, customers ( name )),
+                    services ( name, duration_minutes, base_price, category_id, service_categories ( name, color, icon ))
+                `).eq('org_id', profile.org_id).or(`and(scheduled_at.gte.${startDateStr},scheduled_at.lte.${endDateStr}),and(check_in_date.lte.${endDayStr},check_out_date.gte.${startDayStr})`).neq('status', 'cancelled')
 
-            if (error) console.error(error)
+            // Aguardar todas de uma vez
+            const [vetsRes, petsRes, servicesRes, blocksRes, apptsRes] = await Promise.all([
+                vetsPromise, petsPromise, servicesPromise, blocksPromise, apptsPromise
+            ])
 
-            let filteredAppts = appts as unknown as Appointment[]
-            if (isUserVet) {
-                // Filter only Consultas
-                filteredAppts = filteredAppts.filter(a => {
-                    const sc = (a.services as any)?.service_categories
-                    const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
-                    return catName === 'Clínica Veterinária'
+            // Processar resultados
+            const currentVetAccount = vetsRes.find((v: any) => v.user_id === user.id)
+            const isUserVet = !!currentVetAccount
+            setIsVet(isUserVet)
+            if (isUserVet) setCategoryFilter('Clínica Veterinária')
+
+            if (petsRes.data) setPets(petsRes.data as any)
+
+            if (servicesRes.error) console.error('[Agenda] Error fetching services:', servicesRes.error)
+            if (servicesRes.data) {
+                setServices(servicesRes.data as unknown as Service[])
+                const cats: ServiceCategory[] = []
+                const seen = new Set()
+                servicesRes.data.forEach((item: any) => {
+                    const sc = item.service_categories
+                    if (sc && !seen.has(sc.id || sc[0]?.id)) {
+                        const catObj = Array.isArray(sc) ? sc[0] : sc
+                        if (catObj) {
+                            seen.add(catObj.id)
+                            cats.push(catObj)
+                        }
+                    }
                 })
+                setCategories(cats)
             }
-            if (appts) setAppointments(filteredAppts)
+
+            if (blocksRes.data) setBlocks(blocksRes.data)
+
+            if (apptsRes.error) console.error(apptsRes.error)
+            if (apptsRes.data) {
+                let filteredAppts = apptsRes.data as unknown as Appointment[]
+                if (isUserVet) {
+                    filteredAppts = filteredAppts.filter(a => {
+                        const sc = (a.services as any)?.service_categories
+                        const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                        return catName === 'Clínica Veterinária'
+                    })
+                }
+                setAppointments(filteredAppts)
+            }
 
         } catch (error) {
             console.error('Error fetching data:', error)
