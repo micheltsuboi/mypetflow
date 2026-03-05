@@ -25,7 +25,8 @@ import {
     getVetRecords,
     createVetRecord,
     startConsultation,
-    createBlankConsultation
+    createBlankConsultation,
+    getVetAlertsByPet
 } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import ImageUpload from '@/components/ImageUpload'
@@ -73,6 +74,7 @@ function PetsContent() {
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
+    const [vetAlertsForPet, setVetAlertsForPet] = useState<any[]>([])
 
     // Veterinary State
     const [vetConsultations, setVetConsultations] = useState<any[]>([])
@@ -105,7 +107,8 @@ function PetsContent() {
         vaccines: false,
         petshop: false,
         medical: false,
-        exams: false
+        exams: false,
+        vetAlerts: false
     })
 
     const calculateAge = (birthDate?: string) => {
@@ -146,6 +149,9 @@ function PetsContent() {
             if (key === 'medical') {
                 getVetConsultations(selectedPet.id).then(setVetConsultations)
                 getVetRecords(selectedPet.id).then(setVetRecords)
+            }
+            if (key === 'vetAlerts') {
+                getVetAlertsByPet(selectedPet.id).then(setVetAlertsForPet)
             }
         }
     }
@@ -218,7 +224,7 @@ function PetsContent() {
         setAccordions({
             details: false, packages: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false
+            medical: false, exams: false, vetAlerts: false
         })
         setPetAssessment(null)
         setShowModal(true)
@@ -230,7 +236,7 @@ function PetsContent() {
         setAccordions({
             details: true, packages: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false
+            medical: false, exams: false, vetAlerts: false
         })
         setShowModal(true)
     }
@@ -563,6 +569,34 @@ function PetsContent() {
                                     )}
                                 </div>
                             )}
+
+                            {/* ALERTAS VETERINÁRIOS */}
+                            <div className={styles.accordionItem}>
+                                <button type="button" onClick={() => toggleAccordion('vetAlerts' as any)} className={styles.accordionHeader}>
+                                    <span>🚨 Alertas Veterinários</span>
+                                    <span>{accordions.vetAlerts ? '−' : '+'}</span>
+                                </button>
+                                {accordions.vetAlerts && (
+                                    <div className={styles.accordionContent}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            {vetAlertsForPet.length === 0 ? <p>Nenhum alerta registrado.</p> : vetAlertsForPet.map((alert: any) => (
+                                                <div key={alert.id} style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', borderLeft: `4px solid ${alert.status === 'pending' ? '#EF4444' : '#10B981'}` }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                        <div style={{ fontWeight: 600 }}>Alerta #{alert.id.slice(0, 8)}</div>
+                                                        <div style={{ fontWeight: 600, color: alert.status === 'pending' ? '#EF4444' : '#10B981' }}>
+                                                            {alert.status === 'pending' ? 'Pendente' : alert.status === 'scheduled' ? 'Agendado' : 'Lido'}
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{alert.observation}</div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                                        <div>{new Date(alert.created_at).toLocaleDateString()} as {new Date(alert.created_at).toLocaleTimeString()}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* PETSHOP */}
                             {planFeatures.includes('petshop') && (

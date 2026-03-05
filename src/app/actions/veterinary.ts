@@ -922,6 +922,45 @@ export async function getPendingVetAlerts() {
     }
 }
 
+export async function getVetAlertsByPet(petId: string) {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('vet_alerts')
+            .select(`
+                id, observation, status, created_at,
+                pets ( id, name, species, breed, customers(name) )
+            `)
+            .eq('pet_id', petId)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return data || []
+    } catch (error) {
+        console.error('Error fetching vet alerts by pet:', error)
+        return []
+    }
+}
+
+export async function getVetAlertsByAppointment(appointmentId: string) {
+    try {
+        const supabase = await createClient()
+        const { data, error } = await supabase
+            .from('vet_alerts')
+            .select(`
+                id, observation, status, created_at
+            `)
+            .eq('appointment_id', appointmentId)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return data || []
+    } catch (error) {
+        console.error('Error fetching vet alerts by appt:', error)
+        return []
+    }
+}
+
 export async function updateVetAlertStatus(alertId: string, status: 'pending' | 'read' | 'scheduled') {
     try {
         const supabase = await createClient()
