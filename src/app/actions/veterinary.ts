@@ -871,7 +871,7 @@ export async function createVetAlert({
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        phone: phone,
+                        tutorPhone: phone,
                         message: message,
                         tenant_id: profile.org_id,
                         pet_name: petName,
