@@ -857,10 +857,19 @@ export async function createVetAlert({
 
             if (n8nBaseUrl) {
                 const petName = pet?.name || 'seu pet'
-                const tutorName = (pet?.customers as any)?.name || 'Cliente'
-                let phone = (pet?.customers as any)?.phone || ''
+                const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
+                const tutorName = (customerData as any)?.name || 'Cliente'
+                let phone = (customerData as any)?.phone || ''
+
+                console.log('N8N DEBUG: Raw phone from DB:', phone)
+
                 phone = phone.replace(/\D/g, '')
                 if (phone && !phone.startsWith('55')) phone = '55' + phone
+
+                if (!phone) {
+                    console.warn('N8N TRIGGER: Abortando disparo, telefone do tutor está vazio.')
+                    return { success: true, message: 'Alerta criado, mas tutor não possui telefone cadastrado.' }
+                }
 
                 const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
 
