@@ -7,7 +7,6 @@ import ConsultationModal from '@/components/modules/ConsultationModal'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import VetAlertsNotification from '@/components/VetAlertsNotification'
 
 export default function ConsultasPage() {
     const [appointments, setAppointments] = useState<any[]>([])
@@ -202,9 +201,6 @@ export default function ConsultasPage() {
                     />
                 )}
             </div>
-
-            {/* Injeta o componente de notificação flutuante de Alertas */}
-            <VetAlertsNotification />
         </PlanGuard>
     )
 }

@@ -8,6 +8,7 @@ import styles from './layout.module.css'
 import { createClient } from '@/lib/supabase/client'
 import Notifications from '@/components/Notifications'
 import PetRegistrationModal from '@/components/modules/PetRegistrationModal'
+import VetAlertsNotification from '@/components/VetAlertsNotification'
 
 export default function DashboardLayout({
     children,
@@ -355,6 +356,8 @@ export default function DashboardLayout({
                 <div className={styles.content}>
                     {children}
                 </div>
+                {/* Alertas Veterinários em Tempo Real */}
+                <VetAlertsNotification />
             </main>
 
             {showPetModal && (

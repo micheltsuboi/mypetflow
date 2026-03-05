@@ -853,6 +853,7 @@ export async function createVetAlert({
         // 3. Trigger N8N Webhook directly for Tutor Notification
         try {
             const n8nBaseUrl = process.env.N8N_BASE_URL
+            console.log('N8N DEBUG: Base URL is:', n8nBaseUrl)
             if (n8nBaseUrl) {
                 const petName = pet?.name || 'seu pet'
                 const tutorName = (pet?.customers as any)?.name || 'Cliente'

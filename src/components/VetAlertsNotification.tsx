@@ -1,10 +1,15 @@
 'use client'
 
+console.log('VET DASH: Arquivo VetAlertsNotification.tsx carregado!')
+
+
 import { useState, useEffect } from 'react'
 import { getPendingVetAlerts, updateVetAlertStatus } from '@/app/actions/veterinary'
 
 export default function VetAlertsNotification() {
+    console.log('VET DASH: Componente VetAlertsNotification montando...')
     const [alerts, setAlerts] = useState<any[]>([])
+
     const [loading, setLoading] = useState(true)
     const [isOpen, setIsOpen] = useState(false)
 
@@ -38,12 +43,10 @@ export default function VetAlertsNotification() {
         }
     }
 
-    // Modificamos para não retornar null enquanto carrega, para debug
-    // if (loading && alerts.length === 0) return null
-    if (alerts.length === 0 && !loading) {
-        console.log('VET DASH: Nenhum alerta pendente para mostrar.')
-        return null
-    }
+    // Modificamos para mostrar sempre o botão de alerta (mesmo 0) para teste de visibilidade
+    // if (alerts.length === 0 && !loading) {
+    //    return null
+    // }
 
     return (
         <div style={{
