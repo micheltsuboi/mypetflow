@@ -580,11 +580,10 @@ function PetsContent() {
                                     <div className={styles.accordionContent}>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                             {vetAlertsForPet.length === 0 ? <p>Nenhum alerta registrado.</p> : vetAlertsForPet.map((alert: any) => (
-                                                <div key={alert.id} style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', borderLeft: `4px solid ${alert.status === 'pending' ? '#EF4444' : '#10B981'}` }}>
+                                                <div key={alert.id} style={{ padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', borderLeft: `6px solid ${alert.status === 'pending' ? '#EF4444' : '#10B981'}` }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                                        <div style={{ fontWeight: 600 }}>Alerta #{alert.id.slice(0, 8)}</div>
-                                                        <div style={{ fontWeight: 600, color: alert.status === 'pending' ? '#EF4444' : '#10B981' }}>
-                                                            {alert.status === 'pending' ? 'Pendente' : alert.status === 'scheduled' ? 'Agendado' : 'Lido'}
+                                                        <div style={{ fontWeight: 800, color: alert.status === 'pending' ? '#EF4444' : '#10B981', fontSize: '0.9rem' }}>
+                                                            {alert.status === 'pending' ? '⚠️ AGUARDANDO VETERINÁRIO' : alert.status === 'scheduled' ? '📅 EM ATENDIMENTO' : '✅ LIDO'}
                                                         </div>
                                                     </div>
                                                     <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{alert.observation}</div>

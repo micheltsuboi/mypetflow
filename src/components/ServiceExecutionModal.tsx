@@ -368,8 +368,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                                 <h4 style={{ color: '#f87171', fontSize: '0.9rem', margin: 0 }}>Alertas Já Enviados neste serviço:</h4>
                                 {existingAlerts.map(alert => (
                                     <div key={alert.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
-                                        <div style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>"{alert.observation}"</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>Status: {alert.status === 'pending' ? 'Pendente' : alert.status === 'scheduled' ? 'Agendado' : 'Lido'}</div>
+                                        <div style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 600 }}>{alert.status === 'pending' ? '⚠️ Aguardando Veterinário' : '✅ Respondido'}</div>
+                                        <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '4px' }}>"{alert.observation}"</div>
                                     </div>
                                 ))}
                             </div>

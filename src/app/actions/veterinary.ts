@@ -866,7 +866,8 @@ export async function createVetAlert({
                 }
 
                 // Await the fetch so Next.js doesn't kill the function early
-                await fetch(n8nUrlObj.toString(), {
+                console.log('Disparando Webhook N8N para:', n8nUrlObj.toString())
+                const n8nRes = await fetch(n8nUrlObj.toString(), {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({
@@ -876,7 +877,8 @@ export async function createVetAlert({
                         pet_name: petName,
                         type: 'vet_alert_suggestion'
                     })
-                }).catch(e => console.error('Erro silent ao disparar n8n trigger para Vet Alert:', e))
+                })
+                console.log('Resposta N8N Status:', n8nRes.status)
             }
         } catch (n8nError) {
             console.error('Falha ao acionar webhook n8n:', n8nError)
@@ -899,6 +901,7 @@ export async function getPendingVetAlerts() {
         if (!user) return []
 
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        console.log('Buscando Alertas para Org:', profile?.org_id, 'User:', user.id)
         if (!profile?.org_id) return []
 
         const { data, error } = await supabase
@@ -912,9 +915,10 @@ export async function getPendingVetAlerts() {
             .order('created_at', { ascending: false })
 
         if (error) {
-            console.error("Supabase error fetched pending vet alerts: ", error)
+            console.error("Erro Supabase ao buscar alertas vet:", error)
             throw error
         }
+        console.log('Alertas encontrados:', data?.length)
         return data || []
     } catch (error) {
         console.error('Error fetching pending vet alerts:', error)

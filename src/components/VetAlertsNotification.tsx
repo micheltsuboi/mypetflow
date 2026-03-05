@@ -12,6 +12,7 @@ export default function VetAlertsNotification() {
         try {
             setLoading(true)
             const data = await getPendingVetAlerts()
+            console.log('CLIENT: Alertas recebidos no component:', data?.length)
             setAlerts(data || [])
         } catch (error) {
             console.error('Erro ao buscar alertas:', error)
@@ -23,8 +24,8 @@ export default function VetAlertsNotification() {
     useEffect(() => {
         fetchAlerts()
 
-        // Polling para checar novos alertas a cada 60s
-        const interval = setInterval(fetchAlerts, 60000)
+        // Polling para checar novos alertas a cada 15s
+        const interval = setInterval(fetchAlerts, 15000)
         return () => clearInterval(interval)
     }, [])
 
@@ -129,10 +130,14 @@ export default function VetAlertsNotification() {
                         {alerts.map(alert => (
                             <div key={alert.id} style={{
                                 background: 'rgba(239, 68, 68, 0.05)',
-                                border: '1px solid rgba(239, 68, 68, 0.2)',
                                 borderRadius: '12px',
-                                padding: '16px'
+                                padding: '16px',
+                                borderLeft: '6px solid #ef4444'
                             }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <h4 style={{ margin: 0, color: '#f87171', fontSize: '1rem', fontWeight: 700 }}>⚠️ Alerta de Saúde</h4>
+                                    <span style={{ fontSize: '0.75rem', background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>AGUARDANDO ATENDIMENTO</span>
+                                </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                                     <span style={{ fontSize: '1.5rem' }}>{alert.pets?.species === 'cat' ? '🐱' : '🐶'}</span>
                                     <div>
