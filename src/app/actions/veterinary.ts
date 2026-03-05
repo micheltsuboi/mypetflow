@@ -900,11 +900,11 @@ export async function getPendingVetAlerts() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return []
 
+        const adminSupabase = await createAdminClient()
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-        console.log('Buscando Alertas para Org:', profile?.org_id, 'User:', user.id)
         if (!profile?.org_id) return []
 
-        const { data, error } = await supabase
+        const { data, error } = await adminSupabase
             .from('vet_alerts')
             .select(`
                 id, observation, status, created_at,
