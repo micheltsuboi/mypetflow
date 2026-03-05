@@ -865,8 +865,8 @@ export async function createVetAlert({
                     n8nUrlObj.password = ''
                 }
 
-                // Fire and forget direct to n8n
-                fetch(n8nUrlObj.toString(), {
+                // Await the fetch so Next.js doesn't kill the function early
+                await fetch(n8nUrlObj.toString(), {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({
@@ -905,14 +905,16 @@ export async function getPendingVetAlerts() {
             .from('vet_alerts')
             .select(`
                 id, observation, status, created_at,
-                pets ( id, name, species, breed, customers(name) ),
-                creator:created_by (full_name)
+                pets ( id, name, species, breed, customers(name) )
             `)
             .eq('org_id', profile.org_id)
             .eq('status', 'pending')
             .order('created_at', { ascending: false })
 
-        if (error) throw error
+        if (error) {
+            console.error("Supabase error fetched pending vet alerts: ", error)
+            throw error
+        }
         return data || []
     } catch (error) {
         console.error('Error fetching pending vet alerts:', error)

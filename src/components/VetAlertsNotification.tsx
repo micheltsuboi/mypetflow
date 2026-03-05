@@ -156,7 +156,7 @@ export default function VetAlertsNotification() {
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span style={{ color: '#64748b', fontSize: '0.75rem' }}>
-                                        Enviado por: {alert.creator?.full_name?.split(' ')[0]}
+                                        Enviado por: Equipe Operacional
                                     </span>
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         <button
