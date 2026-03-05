@@ -842,32 +842,42 @@ export async function createVetAlert({
 
         if (error) throw error
 
-        // 2. Trigger N8N Webhook for Tutor Notification
+        // 2. Trigger N8N Webhook directly for Tutor Notification
         try {
-            const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}/api/n8n-trigger`
-            const petName = pet?.name || 'seu pet'
-            const tutorName = (pet?.customers as any)?.name || 'Cliente'
-            const phone = (pet?.customers as any)?.phone || ''
+            const n8nBaseUrl = process.env.N8N_BASE_URL
+            if (n8nBaseUrl) {
+                const petName = pet?.name || 'seu pet'
+                const tutorName = (pet?.customers as any)?.name || 'Cliente'
+                let phone = (pet?.customers as any)?.phone || ''
+                phone = phone.replace(/\D/g, '')
+                if (phone && !phone.startsWith('55')) phone = '55' + phone
 
-            // Format message suggesting scheduling
-            const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+                // Format message suggesting scheduling
+                const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
 
-            // Fire and forget triggering the n8n backend endpoint we already possess
-            fetch(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    path: '/webhook/send-whatsapp',
+                const n8nUrlObj = new URL(`${n8nBaseUrl}/webhook/vet-alert`)
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+
+                if (n8nUrlObj.username && n8nUrlObj.password) {
+                    const encodedAuth = btoa(`${n8nUrlObj.username}:${n8nUrlObj.password}`)
+                    headers['Authorization'] = `Basic ${encodedAuth}`
+                    n8nUrlObj.username = ''
+                    n8nUrlObj.password = ''
+                }
+
+                // Fire and forget direct to n8n
+                fetch(n8nUrlObj.toString(), {
                     method: 'POST',
-                    payload: {
+                    headers,
+                    body: JSON.stringify({
                         phone: phone,
                         message: message,
                         tenant_id: profile.org_id,
                         pet_name: petName,
                         type: 'vet_alert_suggestion'
-                    }
-                })
-            }).catch(e => console.error('Erro silent ao disparar n8n trigger para Vet Alert:', e))
+                    })
+                }).catch(e => console.error('Erro silent ao disparar n8n trigger para Vet Alert:', e))
+            }
         } catch (n8nError) {
             console.error('Falha ao acionar webhook n8n:', n8nError)
             // non-blocking for DB insertion

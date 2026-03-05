@@ -1,0 +1,128 @@
+{
+    "name": "🐾 Pet Flow - Alerta Veterinário",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "vet-alert",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "e5f8f877-e2f0-4fc7-bff4-20ec938d21b0",
+            "name": "Webhook - Vet Alert",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                352
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const body = $json.body || $json;\nconst phone = (body.phone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{ json: { phone: phone55, message: body.message } }];"
+            },
+            "id": "f1a8c3d0-c3d3-48b4-8db6-e8838fc890f6",
+            "name": "Mensagem Formatada",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                512,
+                352
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Client-Token",
+                            "value": "F200243e457104ad79273e20e177311a2S"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{ $json.phone }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $json.message }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "54a32f6a-e8d1-41db-859a-1cce8a6e87a2",
+            "name": "Z-API: Enviar Alerta",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                768,
+                352
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "ok",
+                "options": {}
+            },
+            "id": "72fb8b28-1b08-46fb-a0e2-63ea81fa11ec",
+            "name": "Respond",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1024,
+                352
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Vet Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Mensagem Formatada",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mensagem Formatada": {
+            "main": [
+                [
+                    {
+                        "node": "Z-API: Enviar Alerta",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Z-API: Enviar Alerta": {
+            "main": [
+                [
+                    {
+                        "node": "Respond",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}
