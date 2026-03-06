@@ -820,11 +820,15 @@ export async function createVetAlert({
         if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
 
         // Fetch Pet Details for Notification
-        const { data: pet } = await supabase
+        const { data: pet, error: petError } = await supabase
             .from('pets')
-            .select('name, customers(name, phone)')
+            .select('name, customers(name, phone_1)')
             .eq('id', petId)
             .single()
+
+        if (petError) {
+            console.error('VET ALERT: Erro silencioso ao buscar pet:', petError)
+        }
 
         // 1. Insert alert in database
         const { data: alert, error } = await supabase
@@ -861,7 +865,7 @@ export async function createVetAlert({
 
                 const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
                 const tutorName = (customerData as any)?.name || 'Cliente'
-                const phoneRaw = (customerData as any)?.phone || ''
+                const phoneRaw = (customerData as any)?.phone_1 || ''
 
                 let phone = phoneRaw.toString().replace(/\D/g, '')
                 if (phone && !phone.startsWith('55')) phone = '55' + phone
