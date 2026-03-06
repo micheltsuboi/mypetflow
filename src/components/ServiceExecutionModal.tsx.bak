@@ -5,8 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { updateAppointmentStatus, updateChecklist, updatePetPreferences } from '@/app/actions/appointment'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import { uploadReportPhoto, saveDailyReport, getDailyReport } from '@/app/actions/dailyReport'
-import { createVetAlert, getVetAlertsByAppointment, saveVetAlertObservation } from '@/app/actions/veterinary'
-import { useRef } from 'react'
+import { createVetAlert, getVetAlertsByAppointment } from '@/app/actions/veterinary'
 
 interface ChecklistItem {
     text: string
@@ -58,22 +57,11 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
     const [vetAlertText, setVetAlertText] = useState('')
     const [alertSent, setAlertSent] = useState(false)
     const [sendingAlert, setSendingAlert] = useState(false)
-    const [tutorAlertSent, setTutorAlertSent] = useState(false)
-    const [sendingTutorAlert, setSendingTutorAlert] = useState(false)
     const [existingAlerts, setExistingAlerts] = useState<any[]>([])
-    const [autosavingAlert, setAutosavingAlert] = useState(false)
-    const [lastAlertSaved, setLastAlertSaved] = useState<Date | null>(null)
-    const autosaveAlertTimer = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
         if (appointment.id) {
-            getVetAlertsByAppointment(appointment.id).then(alerts => {
-                setExistingAlerts(alerts)
-                if (alerts && alerts.length > 0) {
-                    setVetAlertText(alerts[0].observation)
-                    setAlertSent(true)
-                }
-            })
+            getVetAlertsByAppointment(appointment.id).then(setExistingAlerts)
         }
     }, [appointment.id])
 
@@ -185,52 +173,24 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         }
     }
 
-    const handleVetAlertChange = (value: string) => {
-        setVetAlertText(value)
-        setAlertSent(false)
-        setTutorAlertSent(false)
-
-        if (autosaveAlertTimer.current) clearTimeout(autosaveAlertTimer.current)
-
-        setAutosavingAlert(true)
-        autosaveAlertTimer.current = setTimeout(async () => {
-            const res = await saveVetAlertObservation(appointment.id, appointment.pet_id, value)
-            if (res.success) {
-                setLastAlertSaved(new Date())
-            }
-            setAutosavingAlert(false)
-        }, 1500)
-    }
-
-    const handleSendVetAlert = async (notifyTutor: boolean = false) => {
+    const handleSendVetAlert = async () => {
         if (!vetAlertText.trim()) return
-
-        if (notifyTutor) setSendingTutorAlert(true)
-        else setSendingAlert(true)
-
+        setSendingAlert(true)
         try {
             const res = await createVetAlert({
                 petId: appointment.pet_id,
                 appointmentId: appointment.id,
-                observation: vetAlertText.trim(),
-                notifyTutor
+                observation: vetAlertText.trim()
             })
             if (res.success) {
-                if (notifyTutor) {
-                    setTutorAlertSent(true)
-                    setAlertSent(true) // If tutor is notified, vet is also alerted by DB
-                } else {
-                    setAlertSent(true)
-                }
-                onSave() // Refresh parent to show alert status if needed
+                setAlertSent(true)
             } else {
                 alert(res.message)
             }
         } catch (err: any) {
-            alert(err.message || 'Erro ao comunicar alerta.')
+            alert(err.message || 'Erro ao comunicar com veterinário.')
         } finally {
             setSendingAlert(false)
-            setSendingTutorAlert(false)
         }
     }
 
@@ -395,17 +355,10 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                     }}>
                         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
                             <span style={{ fontSize: '1.5rem' }}>🚨</span>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <h3 style={{ color: '#fca5a5', fontSize: '1rem', margin: 0, fontWeight: 700 }}>Alerta Médico (Opcional)</h3>
-                                    {autosavingAlert ? (
-                                        <span style={{ fontSize: '0.7rem', color: '#60a5fa' }}>☁️ Salvando...</span>
-                                    ) : lastAlertSaved ? (
-                                        <span style={{ fontSize: '0.7rem', color: '#34d399' }}>✓ Salvo</span>
-                                    ) : null}
-                                </div>
+                            <div>
+                                <h3 style={{ color: '#fca5a5', fontSize: '1rem', margin: 0, fontWeight: 700 }}>Alerta Médico (Opcional)</h3>
                                 <p style={{ margin: '0.25rem 0 0', color: '#cbd5e1', fontSize: '0.85rem', lineHeight: 1.4 }}>
-                                    Notou algo incomum no pet? (Otite, carrapato, feridas, nódulos). As informações são salvas automaticamente.
+                                    Notou algo incomum no pet? (Otite, carrapato, feridas, nódulos). Envie um alerta direto para a equipe veterinária analisar.
                                 </p>
                             </div>
                         </div>
@@ -430,56 +383,35 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <textarea
                                     value={vetAlertText}
-                                    onChange={(e) => handleVetAlertChange(e.target.value)}
+                                    onChange={(e) => setVetAlertText(e.target.value)}
                                     placeholder="Ex: Encontrei muita secreção na orelha esquerda e o pet reclamou de dor ao tocar."
                                     rows={3}
-                                    disabled={sendingAlert || sendingTutorAlert}
+                                    disabled={sendingAlert}
                                     style={{
                                         width: '100%', padding: '0.75rem', borderRadius: '8px',
                                         background: 'rgba(15, 23, 42, 0.6)', border: '1px solid #475569',
                                         color: 'white', resize: 'vertical', fontFamily: 'inherit'
                                     }}
                                 />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                     <button
-                                        onClick={() => handleSendVetAlert(true)}
-                                        disabled={!vetAlertText.trim() || sendingTutorAlert || tutorAlertSent}
+                                        onClick={handleSendVetAlert}
+                                        disabled={!vetAlertText.trim() || sendingAlert}
                                         style={{
-                                            flex: 1, padding: '0.75rem',
-                                            background: tutorAlertSent ? '#059669' : (!vetAlertText.trim() || sendingTutorAlert ? '#475569' : '#25d366'),
+                                            padding: '0.75rem 1.5rem',
+                                            background: !vetAlertText.trim() || sendingAlert ? '#475569' : '#ef4444',
                                             color: 'white',
                                             border: 'none',
                                             borderRadius: '8px',
                                             fontWeight: 600,
-                                            cursor: !vetAlertText.trim() || sendingTutorAlert || tutorAlertSent ? 'not-allowed' : 'pointer',
+                                            cursor: !vetAlertText.trim() || sendingAlert ? 'not-allowed' : 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            justifyContent: 'center',
                                             gap: '0.5rem',
-                                            transition: 'all 0.2s'
+                                            transition: 'background 0.2s'
                                         }}
                                     >
-                                        {sendingTutorAlert ? '⏳ Enviando...' : (tutorAlertSent ? '✅ Tutor Alertado' : '💬 Alertar Tutor')}
-                                    </button>
-                                    <button
-                                        onClick={() => handleSendVetAlert(false)}
-                                        disabled={!vetAlertText.trim() || sendingAlert || alertSent}
-                                        style={{
-                                            flex: 1, padding: '0.75rem',
-                                            background: alertSent ? '#059669' : (!vetAlertText.trim() || sendingAlert ? '#475569' : '#ef4444'),
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            cursor: !vetAlertText.trim() || sendingAlert || alertSent ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.5rem',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {sendingAlert ? '⏳ Enviando...' : (alertSent ? '✅ Vet Alertado' : '🩺 Alertar Vet')}
+                                        {sendingAlert ? '⏳ Enviando...' : '🩺 Enviar para Veterinário'}
                                     </button>
                                 </div>
                             </div>

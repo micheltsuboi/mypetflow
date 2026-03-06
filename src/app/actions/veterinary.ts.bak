@@ -805,13 +805,11 @@ export async function createBlankConsultation(petId: string) {
 export async function createVetAlert({
     petId,
     appointmentId,
-    observation,
-    notifyTutor = true
+    observation
 }: {
     petId: string,
     appointmentId?: string,
-    observation: string,
-    notifyTutor?: boolean
+    observation: string
 }) {
     try {
         const supabase = await createClient()
@@ -832,50 +830,21 @@ export async function createVetAlert({
             console.error('VET ALERT: Erro silencioso ao buscar pet:', petError)
         }
 
-        // 1. Check if an alert already exists for this appointment
-        let alert;
-        if (appointmentId) {
-            const { data: existing } = await supabase
-                .from('vet_alerts')
-                .select('*')
-                .eq('appointment_id', appointmentId)
-                .maybeSingle()
+        // 1. Insert alert in database
+        const { data: alert, error } = await supabase
+            .from('vet_alerts')
+            .insert({
+                org_id: profile.org_id,
+                pet_id: petId,
+                appointment_id: appointmentId || null,
+                observation,
+                status: 'pending',
+                created_by: user.id
+            })
+            .select()
+            .single()
 
-            if (existing) {
-                const { data: updated, error: updateError } = await supabase
-                    .from('vet_alerts')
-                    .update({
-                        observation,
-                        status: 'pending',
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', existing.id)
-                    .select()
-                    .single()
-
-                if (updateError) throw updateError
-                alert = updated
-            }
-        }
-
-        if (!alert) {
-            // 2. Insert alert in database
-            const { data: inserted, error } = await supabase
-                .from('vet_alerts')
-                .insert({
-                    org_id: profile.org_id,
-                    pet_id: petId,
-                    appointment_id: appointmentId || null,
-                    observation,
-                    status: 'pending',
-                    created_by: user.id
-                })
-                .select()
-                .single()
-
-            if (error) throw error
-            alert = inserted
-        }
+        if (error) throw error
 
         // 2. Revalidate Relevant Paths
         revalidatePath('/owner/consultas')
@@ -885,53 +854,51 @@ export async function createVetAlert({
             revalidatePath('/owner/creche')
         }
 
-        // 3. Trigger N8N Webhook directly for Tutor Notification (Conditional)
-        if (notifyTutor) {
-            try {
-                const n8nBaseUrl = process.env.N8N_BASE_URL
-                console.log('N8N TRIGGER: Iniciando processo. URL base:', n8nBaseUrl)
+        // 3. Trigger N8N Webhook directly for Tutor Notification
+        try {
+            const n8nBaseUrl = process.env.N8N_BASE_URL
+            console.log('N8N TRIGGER: Iniciando processo. URL base:', n8nBaseUrl)
 
-                if (n8nBaseUrl) {
-                    const petName = pet?.name || 'seu pet'
-                    console.log('VET ALERT N8N DEBUG: Pet data:', JSON.stringify(pet, null, 2))
+            if (n8nBaseUrl) {
+                const petName = pet?.name || 'seu pet'
+                console.log('VET ALERT N8N DEBUG: Pet data:', JSON.stringify(pet, null, 2))
 
-                    const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
-                    const tutorName = (customerData as any)?.name || 'Cliente'
-                    const phoneRaw = (customerData as any)?.phone_1 || ''
+                const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
+                const tutorName = (customerData as any)?.name || 'Cliente'
+                const phoneRaw = (customerData as any)?.phone_1 || ''
 
-                    let phone = phoneRaw.toString().replace(/\D/g, '')
-                    if (phone && !phone.startsWith('55')) phone = '55' + phone
+                let phone = phoneRaw.toString().replace(/\D/g, '')
+                if (phone && !phone.startsWith('55')) phone = '55' + phone
 
-                    if (phone && phone.length >= 8) {
-                        const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+                if (phone && phone.length >= 8) {
+                    const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
 
-                        const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
-                        console.log('N8N TRIGGER: Disparando para:', fullUrl, 'com tutorPhone:', phone)
+                    const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
+                    console.log('N8N TRIGGER: Disparando para:', fullUrl, 'com tutorPhone:', phone)
 
-                        await fetch(fullUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                tutorPhone: phone,
-                                message: message,
-                                tenant_id: profile.org_id,
-                                pet_name: petName,
-                                type: 'vet_alert_suggestion'
-                            })
+                    await fetch(fullUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            tutorPhone: phone,
+                            message: message,
+                            tenant_id: profile.org_id,
+                            pet_name: petName,
+                            type: 'vet_alert_suggestion'
                         })
-                    } else {
-                        console.warn('N8N TRIGGER: Telefone ausente ou inválido no banco.')
-                    }
+                    })
                 } else {
-                    console.log('N8N TRIGGER: N8N_BASE_URL não está definida!')
+                    console.warn('N8N TRIGGER: Telefone ausente ou inválido no banco.')
                 }
-            } catch (n8nError: any) {
-                console.error('N8N TRIGGER: Falha fatal no disparo do n8n:', n8nError.message)
+            } else {
+                console.log('N8N TRIGGER: N8N_BASE_URL não está definida!')
             }
+        } catch (n8nError: any) {
+            console.error('N8N TRIGGER: Falha fatal no disparo do n8n:', n8nError.message)
         }
 
         revalidatePath('/owner/consultas') // Refresh vet dashboard
-        return { success: true, message: notifyTutor ? 'Alerta enviado para a equipe e tutor!' : 'Alerta salvo e enviado para a equipe veterinária!', data: alert }
+        return { success: true, message: 'Alerta enviado para a equipe veterinária!', data: alert }
 
     } catch (error: any) {
         console.error('Error creating vet alert:', error)
@@ -1044,48 +1011,6 @@ export async function updateVetAlertStatus(alertId: string, status: 'pending' | 
         revalidatePath('/owner/consultas')
         return { success: true, message: 'Status do alerta atualizado!' }
     } catch (error: any) {
-        return { success: false, message: error.message }
-    }
-}
-
-export async function saveVetAlertObservation(appointmentId: string, petId: string, observation: string) {
-    try {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return { success: false, message: 'Não autorizado' }
-
-        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
-
-        const { data: existing } = await supabase
-            .from('vet_alerts')
-            .select('id')
-            .eq('appointment_id', appointmentId)
-            .maybeSingle()
-
-        if (existing) {
-            const { error } = await supabase
-                .from('vet_alerts')
-                .update({ observation, updated_at: new Date().toISOString() })
-                .eq('id', existing.id)
-            if (error) throw error
-        } else {
-            const { error } = await supabase
-                .from('vet_alerts')
-                .insert({
-                    org_id: profile.org_id,
-                    pet_id: petId,
-                    appointment_id: appointmentId,
-                    observation,
-                    status: 'pending',
-                    created_by: user.id
-                })
-            if (error) throw error
-        }
-
-        return { success: true }
-    } catch (error: any) {
-        console.error('Error autosaving vet alert:', error)
         return { success: false, message: error.message }
     }
 }
