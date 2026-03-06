@@ -242,6 +242,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                         <BodyMap
                             initialData={formData.body_map_data || []}
                             readOnly={readOnly}
+                            species={consultation.pets?.species}
                             onChange={(data) => handleFieldChange('body_map_data', data)}
                         />
                     </div>

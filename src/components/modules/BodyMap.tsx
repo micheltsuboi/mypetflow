@@ -12,10 +12,11 @@ export interface BodyMapPin {
 interface BodyMapProps {
     initialData: BodyMapPin[]
     readOnly?: boolean
+    species?: string
     onChange?: (data: BodyMapPin[]) => void
 }
 
-export default function BodyMap({ initialData, readOnly = false, onChange }: BodyMapProps) {
+export default function BodyMap({ initialData, readOnly = false, species = 'Cachorro', onChange }: BodyMapProps) {
     const [pins, setPins] = useState<BodyMapPin[]>(initialData || [])
     const [selectedPinId, setSelectedPinId] = useState<string | null>(null)
     const [noteDraft, setNoteDraft] = useState('')
@@ -128,33 +129,27 @@ export default function BodyMap({ initialData, readOnly = false, onChange }: Bod
                     cursor: readOnly ? 'default' : 'crosshair'
                 }}
             >
-                {/* Pet Schematic SVG */}
-                <svg viewBox="0 0 300 400" style={{ width: '100%', height: '100%', opacity: 0.6, pointerEvents: 'none' }}>
-                    <defs>
-                        <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" stopColor="#475569" />
-                            <stop offset="100%" stopColor="#334155" />
-                        </linearGradient>
-                    </defs>
-                    <g stroke="#94a3b8" strokeWidth="2" fill="url(#bodyGradient)">
-                        {/* Ears */}
-                        <path d="M110 90 Q90 50 120 40 Q130 70 140 80 Z" />
-                        <path d="M190 90 Q210 50 180 40 Q170 70 160 80 Z" />
-                        {/* Head */}
-                        <circle cx="150" cy="100" r="40" />
-                        {/* Body */}
-                        <ellipse cx="150" cy="220" rx="60" ry="100" />
-                        {/* Front Legs */}
-                        <rect x="80" y="140" width="25" height="70" rx="10" />
-                        <rect x="195" y="140" width="25" height="70" rx="10" />
-                        {/* Back Legs */}
-                        <rect x="75" y="250" width="25" height="80" rx="10" />
-                        <rect x="200" y="250" width="25" height="80" rx="10" />
-                        {/* Tail */}
-                        <path d="M150 310 Q140 370 160 380" fill="none" strokeWidth="15" strokeLinecap="round" />
-                    </g>
-                    <text x="150" y="30" fill="#64748b" fontSize="12" textAnchor="middle" fontWeight="bold">VISTA SUPERIOR</text>
-                </svg>
+                {/* Custom Body Map Image based on species */}
+                <div style={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '1rem',
+                    background: 'white' // To match the white background of the provided images
+                }}>
+                    <img
+                        src={(species.toLowerCase().includes('gato') || species.toLowerCase().includes('felin')) ? '/body-map-cat.png' : '/body-map-dog.png'}
+                        alt={`Mapeamento Visual - ${species}`}
+                        style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            pointerEvents: 'none' // Let clicks pass through to the container
+                        }}
+                    />
+                </div>
 
                 {/* Pins */}
                 {pins.map(pin => (
