@@ -136,8 +136,7 @@ export default function BodyMap({ initialData, readOnly = false, species = 'Cach
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '1rem',
-                    background: 'white' // To match the white background of the provided images
+                    padding: '1rem'
                 }}>
                     <img
                         src={(species.toLowerCase().includes('gato') || species.toLowerCase().includes('felin')) ? '/body-map-cat.png' : '/body-map-dog.png'}
