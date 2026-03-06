@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import Notifications from '@/components/Notifications'
 import PetRegistrationModal from '@/components/modules/PetRegistrationModal'
 import VetAlertsNotification from '@/components/VetAlertsNotification'
+import FooterCredits from '@/components/FooterCredits'
 
 export default function DashboardLayout({
     children,
@@ -355,6 +356,9 @@ export default function DashboardLayout({
 
                 <div className={styles.content}>
                     {children}
+                    <div style={{ marginTop: '3rem', borderTop: '1px solid rgba(140, 180, 201, 0.1)' }}>
+                        <FooterCredits />
+                    </div>
                 </div>
                 {/* Alertas Veterinários em Tempo Real */}
                 <VetAlertsNotification />
