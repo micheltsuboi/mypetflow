@@ -6,6 +6,9 @@ export async function updateSession(request: NextRequest) {
         request,
     })
 
+    const isLocal = request.nextUrl.hostname.includes('localhost') || request.nextUrl.hostname.includes('vercel.app')
+    const cookieDomain = isLocal ? undefined : '.mypetflow.com.br'
+
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,9 +22,11 @@ export async function updateSession(request: NextRequest) {
                     supabaseResponse = NextResponse.next({
                         request,
                     })
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        supabaseResponse.cookies.set(name, value, options)
-                    )
+                    cookiesToSet.forEach(({ name, value, options }) => {
+                        const finalOptions = { ...options }
+                        if (cookieDomain) finalOptions.domain = cookieDomain
+                        supabaseResponse.cookies.set(name, value, finalOptions)
+                    })
                 },
             },
         }
