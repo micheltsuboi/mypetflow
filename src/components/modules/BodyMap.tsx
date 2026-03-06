@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import Image from 'next/image'
 
 export interface BodyMapPin {
     id: string
@@ -138,9 +139,11 @@ export default function BodyMap({ initialData, readOnly = false, species = 'Cach
                     justifyContent: 'center',
                     padding: '1rem'
                 }}>
-                    <img
-                        src={(species.toLowerCase().includes('gato') || species.toLowerCase().includes('felin')) ? '/body-map-cat.png' : '/body-map-dog.png'}
+                    <Image
+                        src={(species?.toLowerCase().includes('gato') || species?.toLowerCase().includes('felin')) ? '/body-map-cat.png' : '/body-map-dog.png'}
                         alt={`Mapeamento Visual - ${species}`}
+                        width={400}
+                        height={533}
                         style={{
                             maxWidth: '100%',
                             maxHeight: '100%',

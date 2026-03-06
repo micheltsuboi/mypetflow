@@ -273,8 +273,8 @@ export default function OwnerDashboard() {
             if (error) throw error
 
             alert('Pagamento confirmado com sucesso!')
-            // Refresh data
-            window.location.reload()
+            router.refresh()
+            setIsExtractModalOpen(false)
         } catch (error) {
             console.error('Erro ao confirmar pagamento:', error)
             alert('Erro ao confirmar pagamento.')
@@ -293,7 +293,8 @@ export default function OwnerDashboard() {
             if (error) throw error
 
             alert('Transação excluída com sucesso!')
-            window.location.reload()
+            router.refresh()
+            setIsExtractModalOpen(false)
         } catch (error) {
             console.error('Erro ao excluir transação:', error)
             alert('Erro ao excluir transação.')

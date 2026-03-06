@@ -21,6 +21,9 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
 
     useEffect(() => {
         getVeterinarians().then(setVets)
+        return () => {
+            if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+        }
     }, [])
 
     const handleFieldChange = (field: string, value: any) => {
