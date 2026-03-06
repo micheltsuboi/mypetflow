@@ -122,8 +122,8 @@ export default function BodyMap({ initialData, readOnly = false, species = 'Cach
                     maxWidth: '400px',
                     margin: '0 auto',
                     aspectRatio: '3/4',
-                    background: 'rgba(15, 23, 42, 0.4)',
-                    border: '1px solid rgba(140, 180, 201, 0.2)',
+                    background: '#0a0a0a',
+                    border: '1px solid rgba(140, 180, 201, 0.3)',
                     borderRadius: '12px',
                     overflow: 'hidden',
                     cursor: readOnly ? 'default' : 'crosshair'
