@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import styles from './ConsultationModal.module.css'
 import { autosaveVetConsultation, getVeterinarians, finishVetConsultation } from '@/app/actions/veterinary'
+import BodyMap from './BodyMap'
 
 interface ConsultationModalProps {
     consultation: any
@@ -234,6 +235,14 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                             className={styles.textarea}
                             style={{ minHeight: '80px' }}
                             disabled={readOnly}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <BodyMap
+                            initialData={formData.body_map_data || []}
+                            readOnly={readOnly}
+                            onChange={(data) => handleFieldChange('body_map_data', data)}
                         />
                     </div>
 
