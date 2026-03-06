@@ -101,7 +101,7 @@ export default function BodyMap({ initialData, readOnly = false, species = 'Cach
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', fontFamily: 'inherit' }}>
             <div style={{ marginBottom: '0.5rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#e2e8f0', margin: '0 0 0.5rem 0' }}>
                     Mapeamento Visual (Body Map)
@@ -236,7 +236,8 @@ export default function BodyMap({ initialData, readOnly = false, species = 'Cach
                                                 padding: '8px',
                                                 borderRadius: '4px',
                                                 fontSize: '0.85rem',
-                                                resize: 'vertical'
+                                                resize: 'vertical',
+                                                fontFamily: 'inherit'
                                             }}
                                         />
                                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>

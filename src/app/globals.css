@@ -8,10 +8,12 @@
   --color-navy: #1B3B5A;
   --color-navy-dark: #122840;
   --color-navy-light: #2A5682;
-  --color-coral: #F08C98; /* Pink/Coral do logo */
+  --color-coral: #F08C98;
+  /* Pink/Coral do logo */
   --color-coral-hover: #E0707D;
   --color-coral-light: #FAD1D6;
-  --color-sky: #00E4CE; /* Ciano do logo */
+  --color-sky: #00E4CE;
+  /* Ciano do logo */
   --color-sky-light: #80F2E6;
   --color-sky-dark: #00B3A1;
 
@@ -99,7 +101,7 @@
 }
 
 html {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-montserrat), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
