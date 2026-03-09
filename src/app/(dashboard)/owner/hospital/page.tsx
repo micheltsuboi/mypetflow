@@ -369,7 +369,7 @@ export default function HospitalDashboard() {
 
                                                 <div className="p-4 pt-4 flex flex-col flex-1 gap-4 relative z-20">
                                                     <div className="flex items-center gap-4">
-                                                        <div style={{ width: '56px', height: '56px', position: 'relative', flexShrink: 0 }}>
+                                                        <div style={{ width: '56px', height: '56px', position: 'relative', flexShrink: 0, overflow: 'hidden', borderRadius: '9999px' }}>
                                                             {pet.photo_url ? (
                                                                 <img
                                                                     src={pet.photo_url}
