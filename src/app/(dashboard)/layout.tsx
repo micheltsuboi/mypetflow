@@ -39,6 +39,8 @@ export default function DashboardLayout({
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
+        { name: 'Clínica Vet', href: '/owner/veterinary', icon: '🛠️' },
+        { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
         { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
     ]
@@ -57,6 +59,7 @@ export default function DashboardLayout({
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
         { name: 'Clínica Vet', href: '/owner/veterinary', icon: '🛠️' },
+        { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
         { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
@@ -200,6 +203,7 @@ export default function DashboardLayout({
             if (item.name === 'Fidelidade') return perms.includes('cashback')
             if (item.name === 'Serviços') return perms.includes('servicos')
             if (item.name === 'Clínica Vet') return perms.includes('clinica_vet')
+            if (item.name === 'Hospital') return perms.includes('hospital')
             if (item.name === 'Questionário') return perms.includes('assessment')
             if (item.name === 'Consultas') return perms.includes('clinica_vet')
             if (item.name === 'Ponto') return perms.includes('ponto')
@@ -229,6 +233,7 @@ export default function DashboardLayout({
                 if (item.name === 'Serviços') return planFeat.includes('servicos')
                 if (item.name === 'Pacotes') return planFeat.includes('pacotes')
                 if (item.name === 'Clínica Vet') return planFeat.includes('clinica_vet')
+                if (item.name === 'Hospital') return planFeat.includes('hospital')
                 if (item.name === 'Consultas') return planFeat.includes('clinica_vet')
                 if (item.name === 'Questionário') return planFeat.includes('pets')
                 if (item.name === 'Ponto') return planFeat.includes('ponto')
