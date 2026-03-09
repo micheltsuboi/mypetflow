@@ -29,6 +29,8 @@ import {
     getVetAlertsByPet
 } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
+import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
+import InternmentRecordModal from '@/components/InternmentRecordModal'
 import ImageUpload from '@/components/ImageUpload'
 import PlanGuard from '@/components/modules/PlanGuard'
 
@@ -93,6 +95,10 @@ function PetsContent() {
     const [hotelHistory, setHotelHistory] = useState<any[]>([])
     const [crecheHistory, setCrecheHistory] = useState<any[]>([])
     const [petshopHistory, setPetshopHistory] = useState<any[]>([])
+    const [hospitalHistory, setHospitalHistory] = useState<any[]>([])
+    const [showHospitalModal, setShowHospitalModal] = useState(false)
+    const [activeAdmission, setActiveAdmission] = useState<any | null>(null)
+    const [admissionMeds, setAdmissionMeds] = useState<any[]>([])
     const [petAssessment, setPetAssessment] = useState<any>(null)
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
@@ -108,7 +114,8 @@ function PetsContent() {
         petshop: false,
         medical: false,
         exams: false,
-        vetAlerts: false
+        vetAlerts: false,
+        hospital: false
     })
 
     const calculateAge = (birthDate?: string) => {
@@ -152,6 +159,9 @@ function PetsContent() {
             }
             if (key === 'vetAlerts') {
                 getVetAlertsByPet(selectedPet.id).then(setVetAlertsForPet)
+            }
+            if (key === 'hospital' as any) {
+                getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
             }
         }
     }
@@ -224,7 +234,7 @@ function PetsContent() {
         setAccordions({
             details: false, packages: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false, vetAlerts: false
+            medical: false, exams: false, vetAlerts: false, hospital: false
         })
         setPetAssessment(null)
         setShowModal(true)
@@ -236,7 +246,7 @@ function PetsContent() {
         setAccordions({
             details: true, packages: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false, vetAlerts: false
+            medical: false, exams: false, vetAlerts: false, hospital: false
         })
         setShowModal(true)
     }
@@ -455,6 +465,46 @@ function PetsContent() {
                                 </div>
                             )}
 
+                            
+                            {/* HOSPITAL (INTERNAMENTO) */}
+                            {planFeatures.includes('clinica_vet') && (
+                                <div className={styles.accordionItem}>
+                                    <button type="button" onClick={() => toggleAccordion('hospital' as any)} className={styles.accordionHeader}>
+                                        <span>🏥 Histórico de Internamento</span>
+                                        <span>{(accordions as any).hospital ? '−' : '+'}</span>
+                                    </button>
+                                    {(accordions as any).hospital && (
+                                        <div className={styles.accordionContent}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {hospitalHistory.length === 0 ? <p>Nenhuma internação registrada no histórico.</p> : hospitalHistory.map((adm: any) => (
+                                                    <div key={adm.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <strong>Entrada: {new Date(adm.admitted_at).toLocaleDateString()}</strong>
+                                                                <br />
+                                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Leito: {adm.hospital_beds?.name} - {adm.hospital_beds?.hospital_wards?.name}</span>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '12px', background: adm.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.2)', color: adm.status === 'active' ? '#10B981' : '#94a3b8' }}>
+                                                                    {adm.status === 'active' ? 'INTERNADO' : 'ALTA ' + (adm.discharged_at ? new Date(adm.discharged_at).toLocaleDateString() : '')}
+                                                                </span>
+                                                                <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={async () => {
+                                                                    const meds = await getAllAdmissionMedications(adm.id);
+                                                                    setAdmissionMeds(meds);
+                                                                    setActiveAdmission(adm);
+                                                                    setShowHospitalModal(true);
+                                                                }}>Prontuário</button>
+                                                            </div>
+                                                        </div>
+                                                        <p style={{ fontSize: '0.85rem', margin: '0.25rem 0', marginTop: '10px' }}><strong>Motivo:</strong> {adm.reason}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* AVALIAÇÃO */}
                             <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('assessment')} className={styles.accordionHeader}>
@@ -641,6 +691,20 @@ function PetsContent() {
                 </div>
             )}
 
+
+            {showHospitalModal && activeAdmission && (
+                <InternmentRecordModal
+                    admission={activeAdmission}
+                    activeMedications={admissionMeds}
+                    onClose={() => setShowHospitalModal(false)}
+                    onSuccess={() => {
+                        // just reload meds possibly? read-only preferred here for discharged
+                        if (activeAdmission.status === 'active') {
+                            getAllAdmissionMedications(activeAdmission.id).then(setAdmissionMeds);
+                        }
+                    }}
+                />
+            )}
             {showConsultationModal && activeConsultation && (
                 <ConsultationModal
                     consultation={activeConsultation}

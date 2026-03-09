@@ -392,3 +392,30 @@ export async function addHospitalObservation(formData: FormData) {
         return { success: false, message: 'Erro ao salvar.' }
     }
 }
+
+export async function getPetAdmissionsHistory(petId: string) {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+        .from('hospital_admissions')
+        .select(`
+            *,
+            pets (*, customers (name)),
+            hospital_beds (name, hospital_wards(name))
+        `)
+        .eq('pet_id', petId)
+        .order('admitted_at', { ascending: false })
+
+    if (error) console.error('getPetAdmissionsHistory', error)
+    return data || []
+}
+
+export async function getAllAdmissionMedications(admissionId: string) {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('hospital_medications')
+        .select('*')
+        .eq('admission_id', admissionId)
+        .order('created_at', { ascending: true })
+
+    return data || []
+}
