@@ -266,10 +266,19 @@ export default function HospitalDashboard() {
                                                     position: 'relative'
                                                 }}
                                             >
-                                                {/* Stripe Lateral de Destaque */}
-                                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: severityColors[adm.severity], opacity: 0.6 }}></div>
+                                                {/* Stripe Lateral de Destaque - Com Bordas Arredondadas */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    left: 0,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: '5px',
+                                                    backgroundColor: severityColors[adm.severity],
+                                                    opacity: 0.8,
+                                                    borderRadius: '16px 0 0 16px' // Forçamos o arredondamento para casar com o Card
+                                                }}></div>
 
-                                                <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)', backgroundColor: 'rgba(22, 38, 56, 0.8)', paddingLeft: '1rem' }}>
+                                                <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)', backgroundColor: 'rgba(22, 38, 56, 0.8)', paddingLeft: '1.25rem', position: 'relative', zIndex: 1 }}>
                                                     <span className="font-bold text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{bed.name}</span>
                                                     <select
                                                         value={adm.severity}
