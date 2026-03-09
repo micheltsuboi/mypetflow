@@ -143,7 +143,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                                         <input
                                                             type="text"
                                                             className="input"
-                                                            style={{ fontSize: '0.75rem', padding: '8px' }}
+                                                            style={{ fontSize: '0.75rem', padding: '8px', fontFamily: 'var(--font-montserrat)' }}
                                                             placeholder="Como o pet reagiu? Alguma nota?"
                                                             value={applyNotes[m.id] || ''}
                                                             onChange={(e) => setApplyNotes(prev => ({ ...prev, [m.id]: e.target.value }))}
@@ -189,14 +189,14 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                 ) : (
                                     <>
                                         <div className="flex justify-between items-center mb-6">
-                                            <h3 className="text-coral" style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'rgba(240, 140, 152, 0.2)', fontSize: '0.75rem', color: '#fff' }}>＋</span>
+                                            <h3 className="text-coral" style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-montserrat)' }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'rgba(240, 140, 152, 0.2)', fontSize: '0.75rem', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>＋</span>
                                                 Nova Prescrição Médica
                                             </h3>
                                             <button
                                                 onClick={() => setShowPrescriptionForm(false)}
                                                 className="text-muted"
-                                                style={{ fontSize: '0.75rem', textDecoration: 'underline', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                                                style={{ fontSize: '0.75rem', textDecoration: 'underline', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)' }}
                                             >
                                                 Cancelar
                                             </button>
@@ -204,24 +204,24 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                         <form onSubmit={handlePrescribe} className="flex flex-col gap-4">
                                             <div className="flex gap-4" style={{ flexWrap: 'wrap' }}>
                                                 <div style={{ flex: 2, minWidth: '200px' }}>
-                                                    <label className="label text-sm">Medicamento</label>
-                                                    <input type="text" name="name" required className="input" placeholder="Ex: Dipirona gotas" />
+                                                    <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Medicamento</label>
+                                                    <input type="text" name="name" required className="input" placeholder="Ex: Dipirona gotas" style={{ fontFamily: 'var(--font-montserrat)' }} />
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: '150px' }}>
-                                                    <label className="label text-sm">Dose e Via</label>
-                                                    <input type="text" name="dosage" required className="input" placeholder="Ex: 5 gotas VO" />
+                                                    <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Dose e Via</label>
+                                                    <input type="text" name="dosage" required className="input" placeholder="Ex: 5 gotas VO" style={{ fontFamily: 'var(--font-montserrat)' }} />
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: '100px' }}>
-                                                    <label className="label text-sm">Intervalo (h)</label>
-                                                    <input type="number" name="frequencyHours" required min="1" className="input" placeholder="Ex: 8" />
+                                                    <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Intervalo (h)</label>
+                                                    <input type="number" name="frequencyHours" required min="1" className="input" placeholder="Ex: 8" style={{ fontFamily: 'var(--font-montserrat)' }} />
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="label text-sm">Recomendações e Observações Livres</label>
-                                                <textarea name="notes" className="input" style={{ resize: 'none', padding: '12px' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
+                                                <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Recomendações e Observações Livres</label>
+                                                <textarea name="notes" className="input" style={{ resize: 'none', padding: '12px', fontFamily: 'var(--font-montserrat)' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
                                             </div>
                                             <div className="flex justify-center mt-2" style={{ justifyContent: 'flex-end' }}>
-                                                <button type="submit" disabled={loading} className="btn btn-primary text-sm" style={{ padding: '12px 32px' }}>
+                                                <button type="submit" disabled={loading} className="btn btn-primary text-sm" style={{ padding: '12px 32px', fontFamily: 'var(--font-montserrat)' }}>
                                                     {loading ? '...' : 'Salvar Prescrição'}
                                                 </button>
                                             </div>
@@ -248,16 +248,16 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                             <div key={log.id} className="flex flex-col gap-2" style={{ padding: '1rem', backgroundColor: 'rgba(30, 52, 75, 0.4)', borderRadius: '12px', border: '1px solid transparent', transition: 'all 0.2s' }}>
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-sky font-bold" style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{new Date(log.applied_at).toLocaleString('pt-BR')}</span>
-                                                        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem' }}>{log.hospital_medications?.name}</span>
-                                                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>({log.hospital_medications?.dosage})</span>
+                                                        <span className="text-sky font-bold" style={{ fontFamily: 'var(--font-montserrat)', fontSize: '0.75rem' }}>{new Date(log.applied_at).toLocaleString('pt-BR')}</span>
+                                                        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem', fontFamily: 'var(--font-montserrat)' }}>{log.hospital_medications?.name}</span>
+                                                        <span className="text-muted" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-montserrat)' }}>({log.hospital_medications?.dosage})</span>
                                                     </div>
-                                                    <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>
+                                                    <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, fontFamily: 'var(--font-montserrat)' }}>
                                                         por {log.profiles?.full_name || 'Usuário'}
                                                     </div>
                                                 </div>
                                                 {log.notes && (
-                                                    <div className="text-secondary" style={{ marginTop: '4px', padding: '8px', backgroundColor: 'rgba(18, 40, 64, 0.4)', borderRadius: '4px', fontSize: '0.75rem', borderLeft: '2px solid var(--color-coral)', fontStyle: 'italic' }}>
+                                                    <div className="text-secondary" style={{ marginTop: '4px', padding: '8px', backgroundColor: 'rgba(18, 40, 64, 0.4)', borderRadius: '4px', fontSize: '0.75rem', borderLeft: '2px solid var(--color-coral)', fontStyle: 'italic', fontFamily: 'var(--font-montserrat)' }}>
                                                         "{log.notes}"
                                                     </div>
                                                 )}
@@ -272,7 +272,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                     {activeTab === 'observations' && (
                         <div className="flex flex-col gap-6" style={{ height: '100%' }}>
                             <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(140, 180, 201, 0.1)' }}>
-                                <label className="text-coral font-bold text-sm" style={{ display: 'block', marginBottom: '1rem' }}>Evolução Clínica / Notas de Observação</label>
+                                <label className="text-coral font-bold text-sm" style={{ display: 'block', marginBottom: '1rem', fontFamily: 'var(--font-montserrat)' }}>Evolução Clínica / Notas de Observação</label>
                                 <form onSubmit={handleAddObservation} className="flex flex-col gap-4">
                                     <textarea
                                         name="observation"

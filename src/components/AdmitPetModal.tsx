@@ -61,46 +61,46 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div>
-                        <label className="label">Indicar Paciente</label>
-                        <select name="petId" required className="input glass">
+                        <label className="label" style={{ fontFamily: 'var(--font-montserrat)' }}>Indicar Paciente</label>
+                        <select name="petId" required className="input glass" style={{ fontFamily: 'var(--font-montserrat)' }}>
                             <option value="">Selecione um pet...</option>
                             {pets.map(p => (
-                                <option key={p.id} value={p.id} className="text-navy">{p.name} ({p.species}) - Tutor: {p.customers?.name}</option>
+                                <option key={p.id} value={p.id} className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>{p.name} ({p.species}) - Tutor: {p.customers?.name}</option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <label className="label">Serviço / Faturamento Base</label>
-                        <select name="serviceId" required className="input glass">
+                        <label className="label" style={{ fontFamily: 'var(--font-montserrat)' }}>Serviço / Faturamento Base</label>
+                        <select name="serviceId" required className="input glass" style={{ fontFamily: 'var(--font-montserrat)' }}>
                             <option value="">Selecione a Tabela de Preço...</option>
                             {services.map(s => (
-                                <option key={s.id} value={s.id} className="text-navy">{s.name} - R$ {s.base_price?.toFixed(2)}</option>
+                                <option key={s.id} value={s.id} className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>{s.name} - R$ {s.base_price?.toFixed(2)}</option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <label className="label">Motivo do Internamento / Sintomas</label>
-                        <textarea name="reason" required rows={2} className="input glass" placeholder="Descreva o que houve..." />
+                        <label className="label" style={{ fontFamily: 'var(--font-montserrat)' }}>Motivo do Internamento / Sintomas</label>
+                        <textarea name="reason" required rows={2} className="input glass" style={{ resize: 'none', fontFamily: 'var(--font-montserrat)' }} placeholder="Descreva o que houve..." />
                     </div>
 
                     <div>
-                        <label className="label">Gravidade Clínica Atual</label>
-                        <select name="severity" required className="input glass">
-                            <option value="low" className="text-navy">🟢 Baixo / Apenas Observação</option>
-                            <option value="medium" className="text-navy">🟡 Médio / Cuidados Regulares</option>
-                            <option value="high" className="text-navy">🟠 Alto / Atenção Constante</option>
-                            <option value="critical" className="text-navy">🔴 Crítico / Risco Iminente</option>
+                        <label className="label" style={{ fontFamily: 'var(--font-montserrat)' }}>Gravidade Clínica Atual</label>
+                        <select name="severity" required className="input glass" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                            <option value="low" className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>🟢 Baixo / Apenas Observação</option>
+                            <option value="medium" className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>🟡 Médio / Cuidados Regulares</option>
+                            <option value="high" className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>🟠 Alto / Atenção Constante</option>
+                            <option value="critical" className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>🔴 Crítico / Risco Iminente</option>
                         </select>
                     </div>
 
                     <div>
-                        <label className="label">Veterinário Responsável</label>
-                        <select name="veterinarianId" className="input glass">
-                            <option value="" className="text-navy">(Opcional / Plantonista Atual)</option>
+                        <label className="label" style={{ fontFamily: 'var(--font-montserrat)' }}>Veterinário Responsável</label>
+                        <select name="veterinarianId" className="input glass" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                            <option value="" className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>(Opcional / Plantonista Atual)</option>
                             {vets.map(v => (
-                                <option key={v.id} value={v.id} className="text-navy">{v.name}</option>
+                                <option key={v.id} value={v.id} className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>{v.name}</option>
                             ))}
                         </select>
                     </div>
