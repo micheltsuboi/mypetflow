@@ -369,19 +369,21 @@ export default function HospitalDashboard() {
 
                                                 <div className="p-4 pt-4 flex flex-col flex-1 gap-4 relative z-20">
                                                     <div className="flex items-center gap-4">
-                                                        <div style={{ width: '56px', height: '56px', position: 'relative', flexShrink: 0, overflow: 'hidden', borderRadius: '9999px' }}>
-                                                            {pet.photo_url ? (
-                                                                <img
-                                                                    src={pet.photo_url}
-                                                                    alt={pet.name}
-                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '9999px', border: '2px solid rgba(255,255,255,0.1)', padding: '2px' }}
-                                                                />
-                                                            ) : (
-                                                                <div style={{ width: '100%', height: '100%', borderRadius: '9999px', backgroundColor: 'rgba(42, 86, 130, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
-                                                                    {pet.species === 'cat' ? '🐱' : '🐶'}
-                                                                </div>
-                                                            )}
-                                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-navy-dark flex items-center justify-center text-[10px] border border-white/20">
+                                                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                                                            <div style={{ width: '56px', height: '56px', borderRadius: '9999px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)' }}>
+                                                                {pet.photo_url ? (
+                                                                    <img
+                                                                        src={pet.photo_url}
+                                                                        alt={pet.name}
+                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', padding: '2px' }}
+                                                                    />
+                                                                ) : (
+                                                                    <div style={{ width: '100%', height: '100%', backgroundColor: 'rgba(42, 86, 130, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                                                                        {pet.species === 'cat' ? '🐱' : '🐶'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-navy-dark flex items-center justify-center text-[10px] border border-white/20 z-10">
                                                                 {pet.species === 'dog' ? '🦴' : '🐟'}
                                                             </div>
                                                         </div>
