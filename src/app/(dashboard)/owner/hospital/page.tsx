@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, dischargePet, getAdmissionMedications } from '@/app/actions/hospital'
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
-import PrescribeMedicationModal from '@/components/PrescribeMedicationModal'
+import InternmentRecordModal from '@/components/InternmentRecordModal'
 
 export default function HospitalDashboard() {
     const [wards, setWards] = useState<any[]>([])
@@ -23,7 +23,7 @@ export default function HospitalDashboard() {
 
     // Modals
     const [showAdmitModal, setShowAdmitModal] = useState<string | null>(null) // bed_id
-    const [showPrescribeModal, setShowPrescribeModal] = useState<any | null>(null) // admission
+    const [showRecordModal, setShowRecordModal] = useState<any | null>(null) // admission
 
     const loadData = async () => {
         setLoading(true)
@@ -260,8 +260,8 @@ export default function HospitalDashboard() {
                                                 </div>
 
                                                 <div className="flex p-2 gap-1 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                    <button className="flex-1 btn btn-outline" style={{ padding: '6px', fontSize: '11px' }} onClick={() => setShowPrescribeModal(adm)}>
-                                                        💊 Medicações
+                                                    <button className="flex-1 btn btn-outline" style={{ padding: '6px', fontSize: '11px' }} onClick={() => setShowRecordModal(adm)}>
+                                                        🩺 Prontuário
                                                     </button>
                                                     {nextMeds.length > 0 && (
                                                         <button className="flex-1 btn btn-primary" style={{ padding: '6px', fontSize: '11px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
@@ -293,11 +293,11 @@ export default function HospitalDashboard() {
                 />
             )}
 
-            {showPrescribeModal && (
-                <PrescribeMedicationModal
-                    admission={showPrescribeModal}
-                    medications={medications[showPrescribeModal.id] || []}
-                    onClose={() => setShowPrescribeModal(null)}
+            {showRecordModal && (
+                <InternmentRecordModal
+                    admission={showRecordModal}
+                    activeMedications={medications[showRecordModal.id] || []}
+                    onClose={() => setShowRecordModal(null)}
                     onSuccess={() => {
                         loadData()
                     }}

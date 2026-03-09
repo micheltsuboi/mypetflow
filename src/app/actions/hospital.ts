@@ -334,3 +334,58 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
         return { success: false, message: 'Erro.' }
     }
 }
+
+export async function getMedicationLogs(admissionId: string) {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('hospital_medication_logs')
+        .select(`
+            id,
+            applied_at,
+            notes,
+            hospital_medications (name, dosage),
+            profiles:applied_by (full_name)
+        `)
+        .eq('admission_id', admissionId)
+        .order('applied_at', { ascending: false })
+    return data || []
+}
+
+export async function getHospitalObservations(admissionId: string) {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('hospital_observations')
+        .select(`
+            id,
+            observation,
+            created_at,
+            profiles:created_by (full_name)
+        `)
+        .eq('admission_id', admissionId)
+        .order('created_at', { ascending: false })
+    return data || []
+}
+
+export async function addHospitalObservation(formData: FormData) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado.' }
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+
+        const admissionId = formData.get('admissionId') as string
+        const observation = formData.get('observation') as string
+
+        const { error } = await supabase.from('hospital_observations').insert({
+            org_id: profile!.org_id,
+            admission_id: admissionId,
+            observation,
+            created_by: user.id
+        })
+
+        if (error) throw error
+        return { success: true, message: 'Observação salva com sucesso.' }
+    } catch {
+        return { success: false, message: 'Erro ao salvar.' }
+    }
+}
