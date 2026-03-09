@@ -24,7 +24,7 @@ export default function DischargeModal({ admission, onClose, onSuccess }: Discha
     const numDiarias = Math.max(1, Math.ceil(diffDaysRaw))
 
     const serviceName = admission.services?.name || 'Internamento Padrão'
-    const servicePrice = admission.services?.price || 0
+    const servicePrice = admission.services?.base_price || 0
     const totalSemDesconto = numDiarias * servicePrice
 
     const getDiscountAmount = () => {

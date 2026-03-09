@@ -52,7 +52,7 @@ export async function getActiveAdmissions() {
             pets ( name, species, breed, weight_kg, customers ( name ) ),
             veterinarians ( name ),
             hospital_beds ( ward_id, name ),
-            services ( id, name, price )
+            services ( id, name, base_price )
         `)
         .eq('org_id', profile.org_id)
         .eq('status', 'active')

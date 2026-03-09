@@ -75,7 +75,7 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
                         <select name="serviceId" required className="input glass">
                             <option value="">Selecione a Tabela de Preço...</option>
                             {services.map(s => (
-                                <option key={s.id} value={s.id} className="text-navy">{s.name} - R$ {s.price?.toFixed(2)}</option>
+                                <option key={s.id} value={s.id} className="text-navy">{s.name} - R$ {s.base_price?.toFixed(2)}</option>
                             ))}
                         </select>
                     </div>
