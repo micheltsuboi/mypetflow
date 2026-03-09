@@ -27,22 +27,35 @@ export default function HospitalDashboard() {
 
     const loadData = async () => {
         setLoading(true)
-        const [wData, bData, aData] = await Promise.all([
-            getHospitalWards(),
-            getHospitalBeds(),
-            getActiveAdmissions()
-        ])
-        setWards(wData)
-        setBeds(bData)
-        setAdmissions(aData)
+        try {
+            const [wData, bData, aData] = await Promise.all([
+                getHospitalWards(),
+                getHospitalBeds(),
+                getActiveAdmissions()
+            ])
 
-        // Load meds for active admissions
-        const medsObj: Record<string, any[]> = {}
-        for (const adm of aData) {
-            medsObj[adm.id] = await getAdmissionMedications(adm.id)
+            setWards(wData)
+            setBeds(bData)
+            setAdmissions(aData)
+
+            // Optimize: Fetch all medications in parallel
+            const medsPromises = aData.map(async (adm) => ({
+                id: adm.id,
+                meds: await getAdmissionMedications(adm.id)
+            }))
+
+            const medsResults = await Promise.all(medsPromises)
+            const medsObj: Record<string, any[]> = {}
+            medsResults.forEach(res => {
+                medsObj[res.id] = res.meds
+            })
+
+            setMedications(medsObj)
+        } catch (error) {
+            console.error('Error loading hospital data:', error)
+        } finally {
+            setLoading(false)
         }
-        setMedications(medsObj)
-        setLoading(false)
     }
 
     useEffect(() => {
@@ -137,18 +150,18 @@ export default function HospitalDashboard() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-3 gap-6 mb-8">
-                <div className="card glass text-center">
-                    <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Pacientes Internados</span>
-                    <span className="text-3xl font-bold text-coral">{totalInternados}</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div className="card glass text-center p-8 transition-all hover:scale-[1.02] border-navy-light" style={{ borderBottom: '4px solid var(--color-coral)' }}>
+                    <span className="text-xs font-bold text-muted uppercase tracking-[0.2em] block mb-3" style={{ fontFamily: 'var(--font-montserrat)' }}>Pacientes Internados</span>
+                    <span className="text-4xl font-black text-coral" style={{ fontFamily: 'var(--font-montserrat)' }}>{totalInternados}</span>
                 </div>
-                <div className="card glass text-center">
-                    <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Quadros Críticos (UTI)</span>
-                    <span className="text-3xl font-bold" style={{ color: 'var(--status-canceled)' }}>{criticalCount}</span>
+                <div className="card glass text-center p-8 transition-all hover:scale-[1.02] border-navy-light" style={{ borderBottom: '4px solid var(--status-canceled)' }}>
+                    <span className="text-xs font-bold text-muted uppercase tracking-[0.2em] block mb-3" style={{ fontFamily: 'var(--font-montserrat)' }}>Quadros Críticos (UTI)</span>
+                    <span className="text-4xl font-black" style={{ color: 'var(--status-canceled)', fontFamily: 'var(--font-montserrat)' }}>{criticalCount}</span>
                 </div>
-                <div className="card glass text-center">
-                    <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Leitos Disponíveis</span>
-                    <span className="text-3xl font-bold" style={{ color: 'var(--status-done)' }}>{beds.filter(b => b.status === 'available').length} / {beds.length}</span>
+                <div className="card glass text-center p-8 transition-all hover:scale-[1.02] border-navy-light" style={{ borderBottom: '4px solid var(--color-sky)' }}>
+                    <span className="text-xs font-bold text-muted uppercase tracking-[0.2em] block mb-3" style={{ fontFamily: 'var(--font-montserrat)' }}>Leitos Disponíveis</span>
+                    <span className="text-4xl font-black text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{beds.filter(b => b.status === 'available').length} / {beds.length}</span>
                 </div>
             </div>
 
@@ -259,16 +272,16 @@ export default function HospitalDashboard() {
                                                     )}
                                                 </div>
 
-                                                <div className="flex p-2 gap-1 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                    <button className="flex-1 btn btn-outline" style={{ padding: '6px', fontSize: '11px' }} onClick={() => setShowRecordModal(adm)}>
+                                                <div className="flex p-3 gap-2 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                                    <button className="flex-1 btn btn-outline" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px' }} onClick={() => setShowRecordModal(adm)}>
                                                         🩺 Prontuário
                                                     </button>
                                                     {nextMeds.length > 0 && (
-                                                        <button className="flex-1 btn btn-primary" style={{ padding: '6px', fontSize: '11px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
-                                                            💉 Aplicar Dose
+                                                        <button className="flex-1 btn btn-primary" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
+                                                            💉 Aplicar
                                                         </button>
                                                     )}
-                                                    <button className="flex-1 btn" style={{ padding: '6px', fontSize: '11px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => onDischarge(adm.id, bed.id)}>
+                                                    <button className="flex-1 btn" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => onDischarge(adm.id, bed.id)}>
                                                         Alta
                                                     </button>
                                                 </div>

@@ -69,58 +69,80 @@ export default function InternmentRecordModal({ admission, activeMedications, on
 
     return (
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-            <div className="card glass relative flex flex-col p-0" style={{ width: '100%', maxWidth: '800px', height: '90vh', overflow: 'hidden' }}>
-                <div className="flex justify-between items-center px-6 py-4 border-b bg-secondary" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+            <div className="card glass relative flex flex-col p-0 font-sans" style={{ width: '100%', maxWidth: '850px', height: '90vh', overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
+                {/* Header */}
+                <div className="flex justify-between items-center px-6 py-5 border-b bg-secondary" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
                     <div>
-                        <h2 className="text-2xl font-bold text-coral m-0 flex items-center gap-2">🩺 Prontuário Clínico</h2>
-                        <p className="text-muted text-sm m-0 mt-1">Paciente: <span className="text-white font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'} • {admission.pets.breed})</p>
+                        <h2 className="text-2xl font-bold text-coral m-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>命 Prontuário Clínico</h2>
+                        <p className="text-muted text-sm m-0 mt-1" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                            Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span className="text-white">{admission.pets.customers?.name}</span>
+                        </p>
                     </div>
-                    <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                    <button onClick={onClose} className="text-muted hover:text-white transition-colors p-2" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                 </div>
 
-                <div className="flex px-6 pt-4 gap-6 border-b bg-tertiary text-sm" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                {/* Tabs */}
+                <div className="flex px-6 pt-4 gap-8 border-b bg-tertiary" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
                     <button
-                        className={`pb-3 font-bold transition-colors ${activeTab === 'medications' ? 'text-coral border-b-2 border-coral' : 'text-muted hover:text-secondary'}`}
-                        style={{ background: 'transparent', outline: 'none' }}
+                        className={`pb-4 font-bold text-sm transition-all relative ${activeTab === 'medications' ? 'text-sky' : 'text-muted hover:text-secondary'}`}
+                        style={{ background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)' }}
                         onClick={() => setActiveTab('medications')}
                     >
-                        💊 Relatório de Medicações
+                        💊 Medicações
+                        {activeTab === 'medications' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-sky rounded-t-full shadow-glow-sky"></div>}
                     </button>
                     <button
-                        className={`pb-3 font-bold transition-colors ${activeTab === 'observations' ? 'text-coral border-b-2 border-coral' : 'text-muted hover:text-secondary'}`}
-                        style={{ background: 'transparent', outline: 'none' }}
+                        className={`pb-4 font-bold text-sm transition-all relative ${activeTab === 'observations' ? 'text-sky' : 'text-muted hover:text-secondary'}`}
+                        style={{ background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)' }}
                         onClick={() => setActiveTab('observations')}
                     >
-                        📋 Evolução Diária (Observações)
+                        📋 Evolução Clínica
+                        {activeTab === 'observations' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-sky rounded-t-full shadow-glow-sky"></div>}
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto p-6" style={{ background: 'rgba(13, 27, 42, 0.4)' }}>
                     {activeTab === 'medications' && (
-                        <div className="flex flex-col gap-6">
-                            <div>
-                                <h3 className="text-lg font-bold text-secondary mb-4">Medicações Ativas</h3>
+                        <div className="flex flex-col gap-8">
+                            <section>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-bold text-white m-0" style={{ fontFamily: 'var(--font-montserrat)' }}>Prescrições Ativas</h3>
+                                    <span className="text-xs text-muted font-semibold uppercase tracking-widest">{activeMedications.length} Item(s)</span>
+                                </div>
+
                                 {activeMedications.length === 0 ? (
-                                    <div className="p-4 rounded border-dashed border text-muted bg-tertiary">
-                                        Nenhuma prescrição ativa. Use o formulário abaixo para prescrever.
+                                    <div className="p-10 text-center rounded-xl border-2 border-dashed border-navy-light bg-navy bg-opacity-20 text-muted">
+                                        <div className="text-3xl mb-2">📋</div>
+                                        <p className="font-medium">Nenhuma prescrição ativa para este paciente.</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {activeMedications.map(m => (
-                                            <div key={m.id} className="p-4 rounded bg-tertiary relative border flex flex-col justify-between" style={{ borderColor: 'rgba(140, 180, 201, 0.2)' }}>
+                                            <div key={m.id} className="card glass p-4 flex flex-col justify-between" style={{ borderLeft: '4px solid var(--color-sky)' }}>
                                                 <div>
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <strong className="text-lg text-primary">{m.name}</strong>
-                                                        <span className="badge badge-confirmed">A cada {m.frequency_hours}h</span>
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <strong className="text-lg text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{m.name}</strong>
+                                                        <span className="badge badge-confirmed" style={{ fontSize: '10px' }}>{m.frequency_hours}h / {m.frequency_hours}h</span>
                                                     </div>
-                                                    <p className="text-muted text-sm mb-3">Dose Via: <span className="text-white">{m.dosage}</span></p>
-                                                    {m.notes && <p className="text-xs text-muted mb-3 italic">Obs: {m.notes}</p>}
+                                                    <div className="flex flex-col gap-1 mb-3">
+                                                        <p className="text-secondary text-sm m-0">Dosagem: <span className="text-white font-semibold">{m.dosage}</span></p>
+                                                        {m.notes && <p className="text-xs text-muted italic m-0 bg-navy bg-opacity-30 p-2 rounded mt-1">"{m.notes}"</p>}
+                                                    </div>
                                                 </div>
-                                                <div className="pt-3 border-t flex items-center justify-between" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                    <span className="text-xs font-bold" style={{ color: new Date(m.next_dose_at) <= new Date() ? 'var(--status-canceled)' : 'var(--status-pending)' }}>
-                                                        ⏰ Próx: {new Date(m.next_dose_at).toLocaleString('pt-BR')}
-                                                    </span>
-                                                    <button disabled={loading} onClick={() => handleApplyDose(m.id)} className="btn btn-primary" style={{ padding: '4px 12px', fontSize: '0.75rem' }}>
+                                                <div className="pt-3 border-t flex items-center justify-between" style={{ borderColor: 'rgba(0, 228, 206, 0.1)' }}>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-muted uppercase font-bold tracking-tighter">Próxima Dose</span>
+                                                        <span className="text-xs font-bold" style={{ color: new Date(m.next_dose_at) <= new Date() ? 'var(--status-canceled)' : 'var(--status-done)' }}>
+                                                            {new Date(m.next_dose_at).toLocaleString('pt-BR')}
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        disabled={loading}
+                                                        onClick={() => handleApplyDose(m.id)}
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '6px 14px', fontSize: '12px' }}
+                                                    >
                                                         💉 Aplicar
                                                     </button>
                                                 </div>
@@ -128,95 +150,116 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                         ))}
                                     </div>
                                 )}
-                            </div>
+                            </section>
 
-                            <form onSubmit={handlePrescribe} className="bg-secondary p-4 rounded border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                <h3 className="text-md font-bold text-coral mb-3 mt-0">Nova Prescrição</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                    <div className="col-span-2">
-                                        <input type="text" name="name" required className="input text-sm" placeholder="Nome (Ex: Dipirona Gotas)" />
+                            <section className="bg-secondary p-6 rounded-2xl border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                <h3 className="text-md font-bold text-coral mb-5 mt-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-coral bg-opacity-20 text-xs">＋</span>
+                                    Nova Prescrição Médica
+                                </h3>
+                                <form onSubmit={handlePrescribe} className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                    <div className="md:col-span-5">
+                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Medicamento</label>
+                                        <input type="text" name="name" required className="input text-sm" placeholder="Ex: Dipirona gotas" />
                                     </div>
-                                    <div className="col-span-2">
-                                        <input type="text" name="dosage" required className="input text-sm" placeholder="Dose/Via (Ex: 5ml VO)" />
+                                    <div className="md:col-span-4">
+                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Dose e Via</label>
+                                        <input type="text" name="dosage" required className="input text-sm" placeholder="Ex: 5 gotas VO" />
                                     </div>
-                                    <div className="col-span-1">
-                                        <input type="number" name="frequencyHours" required min="1" max="72" className="input text-sm" placeholder="A cada (Horas)" />
+                                    <div className="md:col-span-3">
+                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Intervalo (h)</label>
+                                        <input type="number" name="frequencyHours" required min="1" className="input text-sm" placeholder="Ex: 8" />
                                     </div>
-                                    <div className="col-span-2">
-                                        <input type="text" name="notes" className="input text-sm" placeholder="Observações (Opcional)" />
+                                    <div className="md:col-span-9 text-sm">
+                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Recomendações de Administração</label>
+                                        <input type="text" name="notes" className="input text-sm" placeholder="Ex: Diluir em 5ml de água" />
                                     </div>
-                                    <div className="col-span-1 flex items-end">
-                                        <button type="submit" disabled={loading} className="btn btn-navy w-full text-sm p-2">
-                                            + Incluir
+                                    <div className="md:col-span-3 flex items-end">
+                                        <button type="submit" disabled={loading} className="btn btn-primary w-full shadow-glow-coral py-3">
+                                            {loading ? '...' : 'Salvar'}
                                         </button>
                                     </div>
-                                </div>
-                            </form>
+                                </form>
+                            </section>
 
-                            <div>
-                                <h3 className="text-lg font-bold text-secondary mb-4">Histórico de Aplicações</h3>
-                                {medicationLogs.length === 0 ? (
-                                    <div className="p-4 rounded border-dashed border text-muted bg-tertiary">
-                                        Nenhuma dose foi aplicada até o momento neste internamento.
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-2">
-                                        {medicationLogs.map(log => (
-                                            <div key={log.id} className="flex gap-4 p-3 bg-tertiary rounded text-sm items-center border" style={{ borderColor: 'rgba(140, 180, 201, 0.05)' }}>
-                                                <div className="text-xs text-muted w-32 shrink-0">
+                            <section>
+                                <h3 className="text-lg font-bold text-secondary mb-4" style={{ fontFamily: 'var(--font-montserrat)' }}>Log de Aplicações</h3>
+                                <div className="flex flex-col gap-2">
+                                    {medicationLogs.length === 0 ? (
+                                        <p className="text-sm text-muted italic p-4 text-center">Nenhum registro de aplicação.</p>
+                                    ) : (
+                                        medicationLogs.map(log => (
+                                            <div key={log.id} className="flex gap-4 p-3 bg-tertiary bg-opacity-40 rounded-lg text-sm items-center border border-transparent hover:border-sky hover:bg-opacity-60 transition-all cursor-default group">
+                                                <div className="text-[11px] text-muted w-36 font-semibold font-mono">
                                                     {new Date(log.applied_at).toLocaleString('pt-BR')}
                                                 </div>
-                                                <div className="flex-1">
-                                                    <strong className="text-white">{log.hospital_medications?.name}</strong> • <span className="text-secondary">{log.hospital_medications?.dosage}</span>
+                                                <div className="flex-1 font-medium">
+                                                    <span className="text-sky">{log.hospital_medications?.name}</span>
+                                                    <span className="mx-2 text-muted">|</span>
+                                                    <span className="text-white">{log.hospital_medications?.dosage}</span>
                                                 </div>
-                                                <div className="text-xs text-muted shrink-0 text-right">
-                                                    por {log.profiles?.full_name || 'Usuário'}
+                                                <div className="text-xs text-muted group-hover:text-secondary italic">
+                                                    aplicado por {log.profiles?.full_name}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </section>
                         </div>
                     )}
 
                     {activeTab === 'observations' && (
-                        <div className="flex flex-col gap-6 h-full">
-                            <form onSubmit={handleAddObservation} className="bg-secondary p-4 rounded border flex flex-col gap-3" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                <label className="text-coral font-bold text-sm">Registrar Evolução ou Observação</label>
-                                <textarea name="observation" required rows={3} className="input text-sm" placeholder="O paciente apresentou melhora... Se alimentou bem..." />
-                                <div className="flex justify-end">
-                                    <button type="submit" disabled={loading} className="btn btn-primary text-sm p-2 px-6">
-                                        Salvar Observação
-                                    </button>
-                                </div>
-                            </form>
-
-                            <div className="flex-1">
-                                <h3 className="text-lg font-bold text-secondary mb-4">Acompanhamento e Evolução</h3>
-                                {observations.length === 0 ? (
-                                    <div className="p-4 text-center rounded border-dashed border text-muted bg-tertiary">
-                                        Nenhum registro de evolução foi adicionado ao prontuário.
+                        <div className="flex flex-col gap-8 h-full">
+                            <section className="bg-secondary p-6 rounded-2xl border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                <label className="text-coral font-bold text-sm mb-4 block" style={{ fontFamily: 'var(--font-montserrat)' }}>Evolução Clínica / Notas de Observação</label>
+                                <form onSubmit={handleAddObservation} className="flex flex-col gap-4">
+                                    <textarea
+                                        name="observation"
+                                        required
+                                        rows={4}
+                                        className="input text-sm bg-navy bg-opacity-40 focus:bg-opacity-80"
+                                        style={{ resize: 'none' }}
+                                        placeholder="Descreva o estado atual do paciente, apetite, comportamento..."
+                                    />
+                                    <div className="flex justify-end">
+                                        <button type="submit" disabled={loading} className="btn btn-primary px-8">
+                                            {loading ? 'Salvando...' : 'Registrar Evolução'}
+                                        </button>
                                     </div>
-                                ) : (
-                                    <div className="flex flex-col gap-4 relative before:absolute before:border-l-2 before:border-secondary before:h-full before:left-[11px] before:top-4 pl-8">
-                                        {observations.map(obs => (
-                                            <div key={obs.id} className="relative bg-tertiary p-4 rounded border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                {/* Timeline dot */}
-                                                <div className="absolute w-6 h-6 bg-secondary rounded-full border-4 flex items-center justify-center text-xs" style={{ left: '-39px', top: '16px', borderColor: 'var(--bg-primary)' }}></div>
+                                </form>
+                            </section>
 
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <strong className="text-white text-sm">{obs.profiles?.full_name || 'Equipe'}</strong>
-                                                    <span className="text-xs text-muted bg-primary-light bg-opacity-10 py-1 px-2 rounded">
-                                                        {new Date(obs.created_at).toLocaleString('pt-BR')}
-                                                    </span>
+                            <section className="flex-1">
+                                <h3 className="text-lg font-bold text-white mb-6" style={{ fontFamily: 'var(--font-montserrat)' }}>Linha do Tempo de Evolução</h3>
+                                <div className="flex flex-col gap-6 relative ml-4 pl-8 before:absolute before:left-0 before:top-2 before:w-[2px] before:h-[calc(100%-16px)] before:bg-gradient-to-b before:from-sky before:to-navy-light">
+                                    {observations.length === 0 ? (
+                                        <p className="text-sm text-muted italic ml-[-32px] text-center p-10">Inicie o acompanhamento clínico registrando a primeira evolução acima.</p>
+                                    ) : (
+                                        observations.map(obs => (
+                                            <div key={obs.id} className="relative group">
+                                                {/* Timeline Node */}
+                                                <div className="absolute left-[-41px] top-1 w-6 h-6 rounded-full bg-navy border-4 border-sky group-hover:scale-125 transition-transform z-10 shadow-glow-sky"></div>
+
+                                                <div className="glass p-5 rounded-2xl border hover:border-sky transition-all duration-300">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-full bg-sky bg-opacity-10 flex items-center justify-center text-sky font-bold text-xs">
+                                                                {obs.profiles?.full_name?.charAt(0)}
+                                                            </div>
+                                                            <span className="text-sm text-white font-bold">{obs.profiles?.full_name}</span>
+                                                        </div>
+                                                        <span className="text-[11px] font-bold text-muted bg-navy-dark px-3 py-1 rounded-full uppercase tracking-tighter">
+                                                            {new Date(obs.created_at).toLocaleString('pt-BR')}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-secondary m-0 leading-relaxed font-medium whitespace-pre-wrap">{obs.observation}</p>
                                                 </div>
-                                                <p className="text-sm text-secondary m-0 whitespace-pre-wrap leading-relaxed">{obs.observation}</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </section>
                         </div>
                     )}
                 </div>
