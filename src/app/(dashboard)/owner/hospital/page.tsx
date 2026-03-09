@@ -137,7 +137,7 @@ export default function HospitalDashboard() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-3 gap-6 mb-8">
                 <div className="card glass text-center">
                     <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Pacientes Internados</span>
                     <span className="text-3xl font-bold text-coral">{totalInternados}</span>
@@ -183,7 +183,7 @@ export default function HospitalDashboard() {
                             </div>
 
                             {!isCollapsed && (
-                                <div className="p-6 bg-tertiary grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                                <div className="p-6 bg-tertiary grid grid-cols-3 lg:grid-cols-4 gap-4">
                                     {wardBeds.map(bed => {
                                         const adm = admissions.find(a => a.bed_id === bed.id)
                                         const isDragOver = dragOverBedId === bed.id
@@ -192,15 +192,15 @@ export default function HospitalDashboard() {
                                             return (
                                                 <div
                                                     key={bed.id}
-                                                    className={`card flex flex-col items-center justify-center p-8 transition-transform ${isDragOver ? 'scale-105 border-sky' : ''}`}
-                                                    style={{ border: isDragOver ? '2px dashed var(--color-sky)' : '2px dashed rgba(140, 180, 201, 0.2)', backgroundColor: isDragOver ? 'rgba(0, 228, 206, 0.1)' : 'transparent', minHeight: '280px' }}
+                                                    className={`card flex flex-col items-center justify-center p-6 transition-transform ${isDragOver ? 'scale-105 border-sky' : ''}`}
+                                                    style={{ border: isDragOver ? '2px dashed var(--color-sky)' : '2px dashed rgba(140, 180, 201, 0.2)', backgroundColor: isDragOver ? 'rgba(0, 228, 206, 0.1)' : 'transparent', minHeight: '180px' }}
                                                     onDragOver={(e) => handleDragOver(e, bed.id)}
                                                     onDragLeave={handleDragLeave}
                                                     onDrop={(e) => handleDrop(e, bed.id)}
                                                 >
-                                                    <h3 className="text-xl font-bold text-muted mb-6">{bed.name}</h3>
-                                                    <button className="btn btn-primary" onClick={() => setShowAdmitModal(bed.id)}>
-                                                        + Internar Paciente
+                                                    <h3 className="text-lg font-bold text-muted mb-4">{bed.name}</h3>
+                                                    <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => setShowAdmitModal(bed.id)}>
+                                                        + Internar
                                                     </button>
                                                 </div>
                                             )
@@ -231,45 +231,45 @@ export default function HospitalDashboard() {
                                                     </span>
                                                 </div>
 
-                                                <div className="p-4 flex flex-col flex-1 gap-4 bg-tertiary">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="avatar avatar-lg flex items-center justify-center text-3xl bg-primary-light text-navy font-bold rounded-full">
+                                                <div className="p-4 flex flex-col flex-1 gap-3 bg-tertiary">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex items-center justify-center text-2xl bg-primary-light text-navy font-bold rounded-full" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
                                                             {pet.species === 'cat' ? '🐱' : '🐶'}
                                                         </div>
-                                                        <div className="flex flex-col">
-                                                            <h3 className="text-xl font-bold text-primary m-0">{pet.name}</h3>
-                                                            <p className="text-sm text-secondary m-0">{pet.breed} • {pet.weight_kg}kg</p>
-                                                            <p className="text-xs text-muted m-0 mt-1">Tutor: {pet.customers?.name}</p>
+                                                        <div className="flex flex-col" style={{ minWidth: 0 }}>
+                                                            <h3 className="text-lg font-bold text-primary m-0 truncate">{pet.name}</h3>
+                                                            <p className="text-xs text-secondary m-0 truncate">{pet.breed} • {pet.weight_kg}kg</p>
+                                                            <p className="text-xs text-muted m-0 mt-1 truncate">Tutor: {pet.customers?.name}</p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="text-sm text-secondary p-3 rounded bg-secondary line-clamp-2">
-                                                        <strong className="block mb-1 text-white">Motivo do Internamento:</strong>
+                                                    <div className="text-xs text-secondary p-2 rounded bg-secondary line-clamp-2" title={adm.reason}>
+                                                        <strong className="block mb-1 text-white">Motivo:</strong>
                                                         {adm.reason}
                                                     </div>
 
                                                     {nextMeds.length > 0 ? (
-                                                        <div className="text-sm p-3 rounded flex items-center gap-2 font-bold" style={{ backgroundColor: 'rgba(232, 130, 106, 0.1)', color: 'var(--status-pending)', border: '1px solid var(--status-pending)' }}>
-                                                            ⏰ Próxima Medicação: {nextMeds[0].name}
+                                                        <div className="text-xs p-2 rounded flex items-center gap-1 font-bold" style={{ backgroundColor: 'rgba(232, 130, 106, 0.1)', color: 'var(--status-pending)', border: '1px solid var(--status-pending)' }}>
+                                                            ⏰ Próxima Med.: {nextMeds[0].name}
                                                         </div>
                                                     ) : (
-                                                        <div className="text-sm text-muted p-3 bg-secondary rounded border-dashed border">
-                                                            Nenhuma medicação urgente.
+                                                        <div className="text-xs text-muted p-2 bg-secondary rounded border-dashed border">
+                                                            Sem medicações
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                <div className="flex p-3 gap-2 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                    <button className="flex-1 btn btn-outline text-xs" style={{ padding: '8px' }} onClick={() => setShowPrescribeModal(adm)}>
-                                                        💊 Prescrever
+                                                <div className="flex p-2 gap-1 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                                    <button className="flex-1 btn btn-outline" style={{ padding: '6px', fontSize: '11px' }} onClick={() => setShowPrescribeModal(adm)}>
+                                                        💊 Medicações
                                                     </button>
                                                     {nextMeds.length > 0 && (
-                                                        <button className="flex-1 btn btn-primary text-xs" style={{ padding: '8px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
+                                                        <button className="flex-1 btn btn-primary" style={{ padding: '6px', fontSize: '11px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
                                                             💉 Aplicar Dose
                                                         </button>
                                                     )}
-                                                    <button className="flex-1 btn" style={{ padding: '8px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => onDischarge(adm.id, bed.id)}>
-                                                        Alta Médica
+                                                    <button className="flex-1 btn" style={{ padding: '6px', fontSize: '11px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => onDischarge(adm.id, bed.id)}>
+                                                        Alta
                                                     </button>
                                                 </div>
                                             </div>
