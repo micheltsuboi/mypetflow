@@ -42,7 +42,7 @@ export async function checkInAppointment(appointmentId: string) {
 /**
  * Check-out an appointment (mark actual departure time)
  */
-export async function checkOutAppointment(appointmentId: string) {
+export async function checkOutAppointment(appointmentId: string, checkoutType?: string) {
     try {
         const supabase = await createClient()
 
@@ -51,12 +51,18 @@ export async function checkOutAppointment(appointmentId: string) {
             return { success: false, message: 'Não autorizado.' }
         }
 
+        const updateData: any = {
+            actual_check_out: new Date().toISOString(),
+            status: 'done' // Auto-complete on checkout
+        }
+
+        if (checkoutType) {
+            updateData.checkout_type = checkoutType
+        }
+
         const { error } = await supabase
             .from('appointments')
-            .update({
-                actual_check_out: new Date().toISOString(),
-                status: 'done' // Auto-complete on checkout
-            })
+            .update(updateData)
             .eq('id', appointmentId)
 
         if (error) {

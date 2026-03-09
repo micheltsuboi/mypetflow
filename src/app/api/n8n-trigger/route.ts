@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
             id,
             scheduled_at,
             status,
+            checkout_type,
             pets ( name ),
             services ( name ),
             customers ( name, phone_1, phone_2, user_id )
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
         })
         : ''
 
+    const checkoutType = appointment.checkout_type || null
+
     const enrichedPayload = {
         appointmentId,
         newStatus,
@@ -72,6 +75,7 @@ export async function POST(req: NextRequest) {
         tutorPhone,
         formattedDate,
         formattedTime,
+        checkoutType,
         eventType: type, // INSERT | UPDATE | DELETE
     }
 

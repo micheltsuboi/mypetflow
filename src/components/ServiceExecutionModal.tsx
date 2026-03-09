@@ -162,7 +162,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         await saveDailyReport(appointment.id, '', newPhotos)
     }
 
-    const handleStatusAction = async (action: 'start' | 'checkin' | 'checkout') => {
+    const handleStatusAction = async (action: 'start' | 'checkin' | 'checkout', checkoutType?: string) => {
         setLoading(true)
         let res
         if (action === 'start') {
@@ -172,7 +172,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         } else {
             // Save everything before checkout
             await handleSaveChecklist()
-            res = await checkOutAppointment(appointment.id)
+            res = await checkOutAppointment(appointment.id, checkoutType)
         }
 
         setLoading(false)
@@ -283,9 +283,16 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                                     📥 Confirmar Entrada (Check-in)
                                 </button>
                             ) : !appointment.actual_check_out ? (
-                                <button onClick={() => handleStatusAction('checkout')} style={{ flex: 1, padding: '1rem', borderRadius: '8px', border: 'none', background: '#3B82F6', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                                    ✅ Finalizar (Check-out)
-                                </button>
+                                <div style={{ flex: 1, display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={() => handleStatusAction('checkout', 'a_caminho')} style={{ flex: 1, padding: '1rem', borderRadius: '8px', border: 'none', background: '#3B82F6', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                        <span style={{ fontSize: '1.2rem' }}>🚗</span>
+                                        <span style={{ fontSize: '0.85rem' }}>Pet Pronto (A Caminho)</span>
+                                    </button>
+                                    <button onClick={() => handleStatusAction('checkout', 'aguardando_retirada')} style={{ flex: 1, padding: '1rem', borderRadius: '8px', border: 'none', background: '#8B5CF6', color: 'white', fontWeight: 700, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                        <span style={{ fontSize: '1.2rem' }}>🏠</span>
+                                        <span style={{ fontSize: '0.85rem' }}>Pet Pronto (Aguardando)</span>
+                                    </button>
+                                </div>
                             ) : (
                                 <div style={{ flex: 1, padding: '1rem', background: '#334155', borderRadius: '8px', color: '#94a3b8', textAlign: 'center' }}>
                                     Serviço Concluído

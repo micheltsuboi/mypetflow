@@ -156,8 +156,8 @@ export default function BanhoTosaPage() {
         }
     }
 
-    const handleCheckOut = async (appointmentId: string) => {
-        const result = await checkOutAppointment(appointmentId)
+    const handleCheckOut = async (appointmentId: string, checkoutType: string) => {
+        const result = await checkOutAppointment(appointmentId, checkoutType)
         if (result.success) {
             alert(result.message)
             fetchBanhoTosaData()
@@ -381,14 +381,24 @@ export default function BanhoTosaPage() {
                                                     🟢 Iniciar Atendimento
                                                 </button>
                                             ) : !appt.actual_check_out ? (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleCheckOut(appt.id)
-                                                    }}
-                                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#2563EB', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
-                                                    ✅ Finalizar Atendimento
-                                                </button>
+                                                <div style={{ flex: 1, display: 'flex', gap: '0.5rem' }}>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleCheckOut(appt.id, 'a_caminho')
+                                                        }}
+                                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#3B82F6', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                                        🚗 A Caminho
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleCheckOut(appt.id, 'aguardando_retirada')
+                                                        }}
+                                                        style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#8B5CF6', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                                                        🏠 Aguardando
+                                                    </button>
+                                                </div>
                                             ) : null}
                                         </>
                                     ) : (
