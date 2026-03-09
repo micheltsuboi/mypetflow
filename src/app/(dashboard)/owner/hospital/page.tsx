@@ -155,7 +155,7 @@ export default function HospitalDashboard() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-3 gap-8 mb-12">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
                 <div className="card glass text-center p-8 transition-all hover:scale-[1.02] border-navy-light" style={{ borderBottom: '4px solid var(--color-coral)' }}>
                     <span className="text-xs font-bold text-muted uppercase tracking-[0.2em] block mb-3" style={{ fontFamily: 'var(--font-montserrat)' }}>Pacientes Internados</span>
                     <span className="text-4xl font-black text-coral" style={{ fontFamily: 'var(--font-montserrat)' }}>{totalInternados}</span>
@@ -201,7 +201,7 @@ export default function HospitalDashboard() {
                             </div>
 
                             {!isCollapsed && (
-                                <div className="p-8 bg-tertiary grid grid-cols-4 gap-6">
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', padding: '2rem', backgroundColor: 'var(--bg-tertiary)' }}>
                                     {wardBeds.map(bed => {
                                         const adm = admissions.find(a => a.bed_id === bed.id)
                                         const isDragOver = dragOverBedId === bed.id
