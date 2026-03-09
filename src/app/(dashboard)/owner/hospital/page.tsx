@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, getAdmissionMedications } from '@/app/actions/hospital'
+import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, getAdmissionMedications, updateAdmissionSeverity } from '@/app/actions/hospital'
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
@@ -127,6 +127,13 @@ export default function HospitalDashboard() {
 
     // Antigo onDischarge foi substituido pelo Modal de Faturamento
 
+    const onUpdateSeverity = async (admissionId: string, severity: string) => {
+        const res = await updateAdmissionSeverity(admissionId, severity)
+        if (res.success) {
+            loadData(true)
+        }
+    }
+
     const onApplyDose = async (medId: string, admId: string) => {
         await applyMedicationDose(medId, admId)
         loadData(true)
@@ -248,6 +255,21 @@ export default function HospitalDashboard() {
                                             >
                                                 <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
                                                     <span className="font-bold text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{bed.name}</span>
+                                                    <select
+                                                        value={adm.severity}
+                                                        onChange={(e) => onUpdateSeverity(adm.id, e.target.value)}
+                                                        className="text-[10px] uppercase font-bold px-2 py-1 rounded bg-tertiary border-none cursor-pointer"
+                                                        style={{
+                                                            color: severityColors[adm.severity],
+                                                            backgroundColor: `${severityColors[adm.severity]}15`,
+                                                            fontFamily: 'var(--font-montserrat)'
+                                                        }}
+                                                    >
+                                                        <option value="low">🟢 Estável</option>
+                                                        <option value="medium">🟡 Moderado</option>
+                                                        <option value="high">🟠 Grave</option>
+                                                        <option value="critical">🔴 Crítico</option>
+                                                    </select>
                                                     <span className="cursor-grab hover:text-white transition-colors text-[10px] uppercase font-bold tracking-widest text-muted" style={{ fontFamily: 'var(--font-montserrat)' }} title="Arrastar Pet para outro leito">
                                                         🖐️ Mover
                                                     </span>

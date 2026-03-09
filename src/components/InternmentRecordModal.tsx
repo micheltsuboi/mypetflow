@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { prescreverMedicacao, applyMedicationDose, getMedicationLogs, getHospitalObservations, addHospitalObservation } from '@/app/actions/hospital'
+import { prescreverMedicacao, applyMedicationDose, getMedicationLogs, getHospitalObservations, addHospitalObservation, updateAdmissionSeverity } from '@/app/actions/hospital'
 
 export default function InternmentRecordModal({ admission, activeMedications, onClose, onSuccess }: { admission: any, activeMedications: any[], onClose: () => void, onSuccess: () => void }) {
     const [activeTab, setActiveTab] = useState<'medications' | 'observations'>('medications')
@@ -10,6 +10,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
     const [observations, setObservations] = useState<any[]>([])
     const [applyNotes, setApplyNotes] = useState<Record<string, string>>({})
     const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
+    const [currentSeverity, setCurrentSeverity] = useState(admission.severity)
 
     const loadRecords = async () => {
         const [logs, obs] = await Promise.all([
@@ -75,16 +76,50 @@ export default function InternmentRecordModal({ admission, activeMedications, on
         }
     }
 
+    const handleUpdateSeverity = async (newSeverity: string) => {
+        setLoading(true)
+        const res = await updateAdmissionSeverity(admission.id, newSeverity)
+        setLoading(false)
+        if (res.success) {
+            setCurrentSeverity(newSeverity)
+            onSuccess()
+        }
+    }
+
     return (
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
             <div className="card glass relative flex flex-col p-0" style={{ width: '100%', maxWidth: '900px', maxHeight: '90vh', padding: 0, overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
                 {/* Header */}
                 <div className="flex justify-between items-center" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(140, 180, 201, 0.1)', backgroundColor: 'var(--bg-secondary)' }}>
-                    <div>
-                        <h2 className="text-2xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>🩺 Prontuário Clínico</h2>
-                        <p className="text-muted text-sm" style={{ margin: '4px 0 0 0' }}>
-                            Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span style={{ color: '#fff' }}>{admission.pets.customers?.name}</span>
-                        </p>
+                    <div className="flex gap-4 items-center">
+                        <div>
+                            <h2 className="text-2xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>🩺 Prontuário Clínico</h2>
+                            <p className="text-muted text-sm" style={{ margin: '4px 0 0 0' }}>
+                                Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span style={{ color: '#fff' }}>{admission.pets.customers?.name}</span>
+                            </p>
+                        </div>
+                        <div style={{ marginLeft: '1rem', borderLeft: '1px solid rgba(140, 180, 201, 0.2)', paddingLeft: '1.5rem' }}>
+                            <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Status Clínico Atual</label>
+                            <select
+                                value={currentSeverity}
+                                onChange={(e) => handleUpdateSeverity(e.target.value)}
+                                className="input"
+                                style={{
+                                    padding: '4px 12px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    width: 'auto',
+                                    color: currentSeverity === 'low' ? 'var(--status-done)' : currentSeverity === 'medium' ? 'var(--status-pending)' : currentSeverity === 'high' ? 'var(--status-in-progress)' : 'var(--status-canceled)',
+                                    backgroundColor: 'rgba(27, 59, 90, 0.3)',
+                                    fontFamily: 'var(--font-montserrat)'
+                                }}
+                            >
+                                <option value="low">🟢 Estável / Baixa Gravidade</option>
+                                <option value="medium">🟡 Moderado / Observação</option>
+                                <option value="high">🟠 Grave / Atenção Constante</option>
+                                <option value="critical">🔴 Crítico / Risco Iminente</option>
+                            </select>
+                        </div>
                     </div>
                     <button onClick={onClose} className="text-muted" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                 </div>

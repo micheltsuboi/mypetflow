@@ -385,6 +385,21 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
     }
 }
 
+export async function updateAdmissionSeverity(admissionId: string, severity: string) {
+    try {
+        const supabase = await createClient()
+        const { error } = await supabase
+            .from('hospital_admissions')
+            .update({ severity })
+            .eq('id', admissionId)
+
+        if (error) throw error
+        return { success: true }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
 export async function getMedicationLogs(admissionId: string) {
     const supabase = await createClient()
     const { data, error } = await supabase
