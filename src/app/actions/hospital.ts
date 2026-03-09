@@ -339,11 +339,12 @@ export async function prescreverMedicacao(formData: FormData) {
             frequency_hours: frequencyHours,
             next_dose_at: frequencyHours ? initialDoseAt.toISOString() : null,
             notes,
+            is_active: true,
             created_by: user.id
         })
 
         if (error) throw error
-
+        revalidatePath('/owner/hospital')
         return { success: true, message: 'Prescrito com sucesso.' }
     } catch (e) {
         console.error(e)
@@ -379,6 +380,7 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
         }
 
         revalidatePath('/owner/hospital')
+        revalidatePath('/owner/hospital/history')
         return { success: true, message: 'Dose aplicada com sucesso!' }
     } catch (e) {
         return { success: false, message: 'Erro.' }
@@ -452,6 +454,7 @@ export async function addHospitalObservation(formData: FormData) {
         })
 
         if (error) throw error
+        revalidatePath('/owner/hospital')
         return { success: true, message: 'Observação salva com sucesso.' }
     } catch {
         return { success: false, message: 'Erro ao salvar.' }

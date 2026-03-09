@@ -9,6 +9,7 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
     const [pets, setPets] = useState<any[]>([])
     const [vets, setVets] = useState<any[]>([])
     const [services, setServices] = useState<any[]>([])
+    const [currentUserVetId, setCurrentUserVetId] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
     const supabase = createClient()
 
@@ -17,17 +18,29 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+            if (!profile) return
 
             // fetch active pets
             const { data: pData } = await supabase
                 .from('pets')
                 .select('id, name, species, breed, customers!inner(name, org_id)')
-                .eq('customers.org_id', profile!.org_id)
+                .eq('customers.org_id', profile.org_id)
                 .order('name')
             setPets(pData || [])
 
             const vData = await getVeterinarians()
             setVets(vData || [])
+
+            // Se o usuário logado for um veterinário (com user_id vinculado na tabela veterinarians), puxamos o ID dele
+            const { data: vetProfile } = await supabase
+                .from('veterinarians')
+                .select('id')
+                .eq('user_id', user.id)
+                .single()
+
+            if (vetProfile) {
+                setCurrentUserVetId(vetProfile.id)
+            }
 
             const sData = await getHospitalServices()
             setServices(sData || [])
@@ -97,7 +110,13 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
 
                     <div>
                         <label className="label" style={{ fontFamily: 'var(--font-montserrat)' }}>Veterinário Responsável</label>
-                        <select name="veterinarianId" className="input glass" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                        <select
+                            name="veterinarianId"
+                            key={currentUserVetId}
+                            defaultValue={currentUserVetId || ''}
+                            className="input glass"
+                            style={{ fontFamily: 'var(--font-montserrat)' }}
+                        >
                             <option value="" className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>(Opcional / Plantonista Atual)</option>
                             {vets.map(v => (
                                 <option key={v.id} value={v.id} className="text-navy" style={{ fontFamily: 'var(--font-montserrat)' }}>{v.name}</option>

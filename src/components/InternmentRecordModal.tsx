@@ -1,24 +1,27 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { prescreverMedicacao, applyMedicationDose, getMedicationLogs, getHospitalObservations, addHospitalObservation, updateAdmissionSeverity } from '@/app/actions/hospital'
+import { prescreverMedicacao, applyMedicationDose, getMedicationLogs, getHospitalObservations, addHospitalObservation, updateAdmissionSeverity, getAdmissionMedications } from '@/app/actions/hospital'
 
-export default function InternmentRecordModal({ admission, activeMedications, onClose, onSuccess }: { admission: any, activeMedications: any[], onClose: () => void, onSuccess: () => void }) {
+export default function InternmentRecordModal({ admission, onClose, onSuccess }: { admission: any, onClose: () => void, onSuccess: () => void }) {
     const [activeTab, setActiveTab] = useState<'medications' | 'observations'>('medications')
     const [loading, setLoading] = useState(false)
     const [medicationLogs, setMedicationLogs] = useState<any[]>([])
+    const [activeMedications, setActiveMedications] = useState<any[]>([])
     const [observations, setObservations] = useState<any[]>([])
     const [applyNotes, setApplyNotes] = useState<Record<string, string>>({})
     const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
     const [currentSeverity, setCurrentSeverity] = useState(admission.severity)
 
     const loadRecords = async () => {
-        const [logs, obs] = await Promise.all([
+        const [logs, obs, activeMeds] = await Promise.all([
             getMedicationLogs(admission.id),
-            getHospitalObservations(admission.id)
+            getHospitalObservations(admission.id),
+            getAdmissionMedications(admission.id)
         ])
         setMedicationLogs(logs)
         setObservations(obs)
+        setActiveMedications(activeMeds)
     }
 
     useEffect(() => {
@@ -36,6 +39,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
         setLoading(false)
         if (res.success) {
             e.currentTarget.reset()
+            await loadRecords()
             onSuccess()
             setShowPrescriptionForm(false)
         } else {

@@ -365,7 +365,6 @@ export default function HospitalDashboard() {
             {showRecordModal && (
                 <InternmentRecordModal
                     admission={showRecordModal}
-                    activeMedications={medications[showRecordModal.id] || []}
                     onClose={() => setShowRecordModal(null)}
                     onSuccess={() => {
                         loadData(true)
