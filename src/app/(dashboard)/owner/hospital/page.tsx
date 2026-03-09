@@ -245,15 +245,31 @@ export default function HospitalDashboard() {
                                             'critical': 'var(--status-canceled)'
                                         };
 
+                                        const severityGlows: any = {
+                                            'low': 'rgba(122, 201, 160, 0.05)',
+                                            'medium': 'rgba(240, 160, 144, 0.08)',
+                                            'high': 'rgba(232, 130, 106, 0.12)',
+                                            'critical': 'rgba(212, 107, 107, 0.2)'
+                                        };
+
                                         return (
                                             <div
                                                 key={bed.id}
-                                                className="card p-0 flex flex-col overflow-hidden relative"
+                                                className="card p-0 flex flex-col overflow-hidden relative group transition-all duration-300"
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, adm.id, bed.id)}
-                                                style={{ borderTop: `4px solid ${severityColors[adm.severity]}` }}
+                                                style={{
+                                                    border: `1px solid ${severityColors[adm.severity]}30`,
+                                                    borderTop: `8px solid ${severityColors[adm.severity]}`,
+                                                    backgroundColor: severityGlows[adm.severity],
+                                                    boxShadow: adm.severity === 'critical' ? '0 0 25px rgba(212, 107, 107, 0.25)' : 'none',
+                                                    position: 'relative'
+                                                }}
                                             >
-                                                <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                                {/* Stripe Lateral de Destaque */}
+                                                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '4px', backgroundColor: severityColors[adm.severity], opacity: 0.6 }}></div>
+
+                                                <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)', backgroundColor: 'rgba(22, 38, 56, 0.8)', paddingLeft: '1rem' }}>
                                                     <span className="font-bold text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{bed.name}</span>
                                                     <select
                                                         value={adm.severity}

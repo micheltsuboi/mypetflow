@@ -57,7 +57,8 @@ const STAFF_MODULES = [
     { id: 'servicos', label: '📋 Serviços' },
     { id: 'ponto', label: '⏰ Cartão Ponto' },
     { id: 'assessment', label: '📝 Questionário' },
-    { id: 'clinica_vet', label: '🩺 Clínica Vet' }
+    { id: 'clinica_vet', label: '🩺 Clínica Vet' },
+    { id: 'hospital', label: '🏥 Hospital' }
 ]
 
 const initialState = {
