@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, dischargePet, getAdmissionMedications } from '@/app/actions/hospital'
-import styles from './page.module.css'
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
 import PrescribeMedicationModal from '@/components/PrescribeMedicationModal'
@@ -121,38 +120,46 @@ export default function HospitalDashboard() {
         loadData()
     }
 
-    if (loading) return <div className={styles.container}>Carregando mapa hospitalar...</div>
+    if (loading) return <div className="container p-6 animate-pulse">Carregando mapa hospitalar...</div>
 
     const totalInternados = admissions.length
     const criticalCount = admissions.filter(a => a.severity === 'critical').length
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <h1 className={styles.title}>Mapa de Leitos (Hospital)</h1>
-                <Link href="/owner/hospital/config" className={styles.configButton}>
-                    ⚙️ Configurar Setores
+        <div className="container p-6 animate-fadeIn">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-coral mb-2">Hospital e Leitos</h1>
+                    <p className="text-muted">Acompanhe os pacientes internados, aplique medicamentos e monitore gravidades.</p>
+                </div>
+                <Link href="/owner/hospital/config" className="btn btn-secondary">
+                    ⚙️ Configurar Estrutura
                 </Link>
             </div>
 
-            <div className={styles.statsGrid}>
-                <div className={styles.statCard}>
-                    <span className={styles.statLabel}>Internados Agora</span>
-                    <span className={styles.statValue}>{totalInternados}</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="card glass text-center">
+                    <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Pacientes Internados</span>
+                    <span className="text-3xl font-bold text-coral">{totalInternados}</span>
                 </div>
-                <div className={styles.statCard}>
-                    <span className={styles.statLabel}>Pacientes Críticos</span>
-                    <span className={styles.statValue} style={{ color: '#DC2626' }}>{criticalCount}</span>
+                <div className="card glass text-center">
+                    <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Quadros Críticos (UTI)</span>
+                    <span className="text-3xl font-bold" style={{ color: 'var(--status-canceled)' }}>{criticalCount}</span>
                 </div>
-                <div className={styles.statCard}>
-                    <span className={styles.statLabel}>Leitos Disponíveis</span>
-                    <span className={styles.statValue} style={{ color: '#10B981' }}>{beds.filter(b => b.status === 'available').length} / {beds.length}</span>
+                <div className="card glass text-center">
+                    <span className="text-sm font-bold text-muted uppercase tracking-wider block mb-2">Leitos Disponíveis</span>
+                    <span className="text-3xl font-bold" style={{ color: 'var(--status-done)' }}>{beds.filter(b => b.status === 'available').length} / {beds.length}</span>
                 </div>
             </div>
 
             {wards.length === 0 ? (
-                <div className={styles.emptyState}>
-                    Nenhum setor cadastrado. Vá em Configurar Setores para criar o hospital.
+                <div className="card text-center p-8 glass animate-fadeIn">
+                    <div className="text-4xl mb-4">🏥</div>
+                    <h2 className="text-xl font-bold mb-2">Seu hospital ainda não foi configurado</h2>
+                    <p className="text-muted mb-6">Para começar a internar pacientes, primeiro crie seus setores (ex: UTI, Internamento Canino) e leitos.</p>
+                    <Link href="/owner/hospital/config" className="btn btn-primary">
+                        Configurar Primeiro Setor
+                    </Link>
                 </div>
             ) : (
                 wards.map(ward => {
@@ -160,19 +167,23 @@ export default function HospitalDashboard() {
                     const isCollapsed = collapsedWards.has(ward.id)
 
                     return (
-                        <div key={ward.id} className={styles.wardSection}>
+                        <div key={ward.id} className="card glass mb-6 p-0 overflow-hidden" style={{ borderLeft: `6px solid ${ward.color}` }}>
                             <div
-                                className={styles.wardHeader}
-                                style={{ backgroundColor: ward.color }}
+                                className="flex justify-between items-center p-4 cursor-pointer transition-colors hover:bg-opacity-20"
+                                style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
                                 onClick={() => toggleWard(ward.id)}
                             >
-                                <span className={styles.wardTitle}>
-                                    {isCollapsed ? '▶' : '▼'} {ward.name} ({wardBeds.filter(b => b.status === 'occupied').length}/{wardBeds.length} ocupados)
+                                <span className="text-lg font-bold flex items-center gap-2">
+                                    {isCollapsed ? '▶' : '▼'}
+                                    <span style={{ color: ward.color }}>{ward.name}</span>
+                                    <span className="text-sm text-secondary font-normal badge badge-confirmed ml-2">
+                                        {wardBeds.filter(b => b.status === 'occupied').length} / {wardBeds.length} Ocupados
+                                    </span>
                                 </span>
                             </div>
 
                             {!isCollapsed && (
-                                <div className={styles.wardBeds}>
+                                <div className="p-6 bg-tertiary grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                                     {wardBeds.map(bed => {
                                         const adm = admissions.find(a => a.bed_id === bed.id)
                                         const isDragOver = dragOverBedId === bed.id
@@ -181,14 +192,15 @@ export default function HospitalDashboard() {
                                             return (
                                                 <div
                                                     key={bed.id}
-                                                    className={`${styles.bedCard} ${styles.available} ${isDragOver ? styles.dragOver : ''}`}
+                                                    className={`card flex flex-col items-center justify-center p-8 transition-transform ${isDragOver ? 'scale-105 border-sky' : ''}`}
+                                                    style={{ border: isDragOver ? '2px dashed var(--color-sky)' : '2px dashed rgba(140, 180, 201, 0.2)', backgroundColor: isDragOver ? 'rgba(0, 228, 206, 0.1)' : 'transparent', minHeight: '280px' }}
                                                     onDragOver={(e) => handleDragOver(e, bed.id)}
                                                     onDragLeave={handleDragLeave}
                                                     onDrop={(e) => handleDrop(e, bed.id)}
                                                 >
-                                                    <h3 style={{ margin: '0 0 1rem 0', color: '#9CA3AF' }}>{bed.name}</h3>
-                                                    <button className={styles.admitButton} onClick={() => setShowAdmitModal(bed.id)}>
-                                                        + Internar Pet
+                                                    <h3 className="text-xl font-bold text-muted mb-6">{bed.name}</h3>
+                                                    <button className="btn btn-primary" onClick={() => setShowAdmitModal(bed.id)}>
+                                                        + Internar Paciente
                                                     </button>
                                                 </div>
                                             )
@@ -197,54 +209,68 @@ export default function HospitalDashboard() {
                                         const pet = adm.pets
                                         const nextMeds = (medications[adm.id] || []).filter(m => new Date(m.next_dose_at) <= new Date(Date.now() + 3600000))
 
+                                        const severityColors: any = {
+                                            'low': 'var(--status-done)',
+                                            'medium': 'var(--status-pending)',
+                                            'high': 'var(--status-in-progress)',
+                                            'critical': 'var(--status-canceled)'
+                                        };
+
                                         return (
                                             <div
                                                 key={bed.id}
-                                                className={`${styles.bedCard} ${styles.occupied}`}
+                                                className="card p-0 flex flex-col overflow-hidden relative"
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, adm.id, bed.id)}
+                                                style={{ borderTop: `4px solid ${severityColors[adm.severity]}` }}
                                             >
-                                                <div className={`${styles.severityLED} ${styles[`severity_${adm.severity}`]}`} />
-
-                                                <div className={styles.bedHeader}>
-                                                    <span>{bed.name}</span>
-                                                    <span className={styles.dragHandle} title="Arrastar">🖐️</span>
+                                                <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                                    <span className="font-bold text-sky">{bed.name}</span>
+                                                    <span className="cursor-grab hover:text-white transition-colors" title="Arrastar Pet para outro leito">
+                                                        🖐️ Mover
+                                                    </span>
                                                 </div>
 
-                                                <div className={styles.petInfo}>
-                                                    <div className={styles.petIdentity}>
-                                                        <div className={styles.petAvatar}>
+                                                <div className="p-4 flex flex-col flex-1 gap-4 bg-tertiary">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="avatar avatar-lg flex items-center justify-center text-3xl bg-primary-light text-navy font-bold rounded-full">
                                                             {pet.species === 'cat' ? '🐱' : '🐶'}
                                                         </div>
-                                                        <div className={styles.petDetails}>
-                                                            <h3>{pet.name}</h3>
-                                                            <p>{pet.breed} • {pet.weight_kg}kg</p>
-                                                            <p style={{ fontSize: '0.75rem', marginTop: '2px' }}>Tutor: {pet.customers?.name}</p>
+                                                        <div className="flex flex-col">
+                                                            <h3 className="text-xl font-bold text-primary m-0">{pet.name}</h3>
+                                                            <p className="text-sm text-secondary m-0">{pet.breed} • {pet.weight_kg}kg</p>
+                                                            <p className="text-xs text-muted m-0 mt-1">Tutor: {pet.customers?.name}</p>
                                                         </div>
                                                     </div>
 
-                                                    <div style={{ fontSize: '0.875rem', color: '#4B5563', backgroundColor: '#F3F4F6', padding: '0.5rem', borderRadius: '4px' }}>
-                                                        <strong style={{ display: 'block', marginBottom: '4px' }}>Motivo:</strong>
+                                                    <div className="text-sm text-secondary p-3 rounded bg-secondary line-clamp-2">
+                                                        <strong className="block mb-1 text-white">Motivo do Internamento:</strong>
                                                         {adm.reason}
                                                     </div>
 
                                                     {nextMeds.length > 0 ? (
-                                                        <div className={`${styles.medicationAlert} ${new Date(nextMeds[0].next_dose_at) <= new Date() ? styles.urgent : ''}`}>
-                                                            ⏰ Próxima medicação em breve: {nextMeds[0].name}
+                                                        <div className="text-sm p-3 rounded flex items-center gap-2 font-bold" style={{ backgroundColor: 'rgba(232, 130, 106, 0.1)', color: 'var(--status-pending)', border: '1px solid var(--status-pending)' }}>
+                                                            ⏰ Próxima Medicação: {nextMeds[0].name}
                                                         </div>
                                                     ) : (
-                                                        <div style={{ fontSize: '0.875rem', color: '#6B7280' }}>
-                                                            Sem medicações urgentes.
+                                                        <div className="text-sm text-muted p-3 bg-secondary rounded border-dashed border">
+                                                            Nenhuma medicação urgente.
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                <div className={styles.cardActions}>
-                                                    <button className={styles.actionBtn} onClick={() => setShowPrescribeModal(adm)}>💊 Prescrever</button>
+                                                <div className="flex p-3 gap-2 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                                    <button className="flex-1 btn btn-outline text-xs" style={{ padding: '8px' }} onClick={() => setShowPrescribeModal(adm)}>
+                                                        💊 Prescrever
+                                                    </button>
                                                     {nextMeds.length > 0 && (
-                                                        <button className={`${styles.actionBtn} ${styles.primary}`} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>💉 Dar Dose</button>
+                                                        <button className="flex-1 btn btn-primary text-xs" style={{ padding: '8px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
+                                                            💉 Aplicar Dose
+                                                        </button>
                                                     )}
-                                                    <button className={styles.actionBtn} onClick={() => onDischarge(adm.id, bed.id)} style={{ color: '#059669', borderColor: '#10B981', backgroundColor: '#ECFDF5' }}>Alta</button>
+                                                    <button className="flex-1 btn" style={{ padding: '8px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => onDischarge(adm.id, bed.id)}>
+                                                        Alta Médica
+                                                    </button>
                                                 </div>
                                             </div>
                                         )

@@ -24,63 +24,65 @@ export default function PrescribeMedicationModal({ admission, medications, onClo
     }
 
     return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '1rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Medicações - {admission.pets.name}</h2>
-                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+            <div className="card glass relative flex flex-col" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflow: 'hidden' }}>
+                <div className="flex justify-between items-center mb-6 pb-4 border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                    <h2 className="text-2xl font-bold text-sky m-0 flex items-center gap-2">💊 Receituário de {admission.pets.name}</h2>
+                    <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                 </div>
 
-                <div style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Receituário Ativo</h3>
+                <div className="flex-1 overflow-y-auto pr-2" style={{ maxHeight: '40vh', marginBottom: '1.5rem' }}>
+                    <h3 className="text-lg font-bold text-secondary mb-4">Medicações Ativas</h3>
                     {medications.length === 0 ? (
-                        <p style={{ color: '#6B7280', fontSize: '0.875rem' }}>Nenhuma medicação ativa.</p>
+                        <div className="p-4 rounded border-dashed border text-muted bg-tertiary">
+                            Este paciente não possui nenhuma prescrição ativa no leito atual.
+                        </div>
                     ) : (
-                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div className="flex flex-col gap-3">
                             {medications.map(m => (
-                                <li key={m.id} style={{ padding: '0.75rem', background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '6px', fontSize: '0.875rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                                        <strong style={{ fontSize: '1rem' }}>{m.name}</strong>
-                                        <span style={{ color: '#3B82F6', fontWeight: 500 }}>A cada {m.frequency_hours}h</span>
+                                <div key={m.id} className="p-4 rounded glass relative border" style={{ borderColor: 'rgba(140, 180, 201, 0.2)' }}>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <strong className="text-lg text-primary">{m.name}</strong>
+                                        <span className="badge badge-confirmed">A cada {m.frequency_hours}h</span>
                                     </div>
-                                    <p style={{ margin: '0 0 0.5rem 0', color: '#4B5563' }}>Dosagem: {m.dosage}</p>
-                                    <span style={{ background: '#FEF3C7', color: '#92400E', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 500 }}>
-                                        Próxima dose: {new Date(m.next_dose_at).toLocaleString('pt-BR')}
-                                    </span>
-                                </li>
+                                    <p className="text-muted text-sm mb-3">Dose: <span className="text-white">{m.dosage}</span></p>
+                                    <div className="inline-block" style={{ background: 'rgba(232, 130, 106, 0.15)', color: 'var(--status-pending)', border: '1px solid var(--status-pending)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                        ⏰ Próxima aplicação prevista: {new Date(m.next_dose_at).toLocaleString('pt-BR')}
+                                    </div>
+                                </div>
                             ))}
-                        </ul>
+                        </div>
                     )}
                 </div>
 
-                <form onSubmit={handleSubmit} style={{ background: '#F3F4F6', padding: '1.5rem', borderRadius: '8px' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', marginTop: 0 }}>Nova Prescrição</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <form onSubmit={handleSubmit} className="bg-tertiary p-6 rounded border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                    <h3 className="text-lg font-bold text-coral mb-4 mt-0">Incluir Nova Prescrição</h3>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Medicamento</label>
-                            <input type="text" name="name" required style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #D1D5DB' }} placeholder="Ex: Dipirona 500mg" />
+                            <label className="label">Qual Medicamento?</label>
+                            <input type="text" name="name" required className="input" placeholder="Ex: Dipirona Gotas" />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Via / Dosagem</label>
-                            <input type="text" name="dosage" required style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #D1D5DB' }} placeholder="Ex: 5ml VO" />
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Frequência (horas)</label>
-                            <input type="number" name="frequencyHours" required min="1" max="72" style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #D1D5DB' }} placeholder="Ex: 8" />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Observações</label>
-                            <input type="text" name="notes" style={{ width: '100%', padding: '0.625rem', borderRadius: '6px', border: '1px solid #D1D5DB' }} placeholder="Ex: Aplicar com alimento" />
+                            <label className="label">Dosagem e Via</label>
+                            <input type="text" name="dosage" required className="input" placeholder="Ex: 5ml VO" />
                         </div>
                     </div>
 
-                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button type="button" onClick={onClose} style={{ padding: '0.75rem 1.5rem', background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 500 }}>Fechar</button>
-                        <button type="submit" disabled={loading} style={{ padding: '0.75rem 1.5rem', background: '#10B981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-                            {loading ? 'Salvando...' : 'Prescrever'}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="col-span-1">
+                            <label className="label">A cada (Horas)</label>
+                            <input type="number" name="frequencyHours" required min="1" max="72" className="input" placeholder="Ex: 8" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="label">Observações sobre a Medicação</label>
+                            <input type="text" name="notes" className="input" placeholder="Ex: Aplicar via intravenosa lenta" />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 mt-6 pt-4 border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                        <button type="button" onClick={onClose} className="btn btn-outline text-muted">Cancelar</button>
+                        <button type="submit" disabled={loading} className="btn btn-primary">
+                            {loading ? 'Registrando...' : 'Salvar Prescrição'}
                         </button>
                     </div>
                 </form>

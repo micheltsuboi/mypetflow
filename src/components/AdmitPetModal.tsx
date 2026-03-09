@@ -20,8 +20,8 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
             // fetch active pets
             const { data: pData } = await supabase
                 .from('pets')
-                .select('id, name, species, breed, customers(name)')
-                .eq('org_id', profile!.org_id)
+                .select('id, name, species, breed, customers!inner(name, org_id)')
+                .eq('customers.org_id', profile!.org_id)
                 .order('name')
             setPets(pData || [])
 
@@ -48,53 +48,53 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
     }
 
     return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '100%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Internar Paciente</h2>
-                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>×</button>
+        <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
+            <div className="card glass relative" style={{ width: '100%', maxWidth: '500px' }}>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-primary">Internar Paciente</h2>
+                    <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                 </div>
 
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Indicar Paciente</label>
-                        <select name="petId" required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}>
+                        <label className="label">Indicar Paciente</label>
+                        <select name="petId" required className="input glass">
                             <option value="">Selecione um pet...</option>
                             {pets.map(p => (
-                                <option key={p.id} value={p.id}>{p.name} ({p.species}) - Tutor: {p.customers?.name}</option>
+                                <option key={p.id} value={p.id} className="text-navy">{p.name} ({p.species}) - Tutor: {p.customers?.name}</option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Motivo do Internamento</label>
-                        <textarea name="reason" required rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #D1D5DB' }} placeholder="Descreva os sintomas ou procedimento..." />
+                        <label className="label">Motivo do Internamento / Sintomas</label>
+                        <textarea name="reason" required rows={3} className="input glass" placeholder="Descreva o que houve..." />
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Gravidade do Quadro</label>
-                        <select name="severity" required style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}>
-                            <option value="low">🟡 Baixo / Observação</option>
-                            <option value="medium">🟠 Médio / Cuidados Regulares</option>
-                            <option value="high">🔴 Alto / Atenção Frequente</option>
-                            <option value="critical">🚨 Crítico / UTI</option>
+                        <label className="label">Gravidade Clínica Atual</label>
+                        <select name="severity" required className="input glass">
+                            <option value="low" className="text-navy">🟢 Baixo / Apenas Observação</option>
+                            <option value="medium" className="text-navy">🟡 Médio / Cuidados Regulares</option>
+                            <option value="high" className="text-navy">🟠 Alto / Atenção Constante</option>
+                            <option value="critical" className="text-navy">🔴 Crítico / Risco Iminente</option>
                         </select>
                     </div>
 
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Veterinário Responsável</label>
-                        <select name="veterinarianId" style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}>
-                            <option value="">(Opcional)</option>
+                        <label className="label">Veterinário Responsável</label>
+                        <select name="veterinarianId" className="input glass">
+                            <option value="" className="text-navy">(Opcional / Plantonista Atual)</option>
                             {vets.map(v => (
-                                <option key={v.id} value={v.id}>{v.name}</option>
+                                <option key={v.id} value={v.id} className="text-navy">{v.name}</option>
                             ))}
                         </select>
                     </div>
 
-                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                        <button type="button" onClick={onClose} style={{ padding: '0.75rem 1.5rem', background: '#F3F4F6', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
-                        <button type="submit" disabled={loading} style={{ padding: '0.75rem 1.5rem', background: '#3B82F6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}>
-                            {loading ? 'Salvando...' : 'Internar Pet'}
+                    <div className="flex justify-end gap-3 mt-4 pt-4 border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                        <button type="button" onClick={onClose} className="btn btn-outline text-muted">Cancelar</button>
+                        <button type="submit" disabled={loading} className="btn btn-primary">
+                            {loading ? 'Processando...' : 'Confirmar Internamento'}
                         </button>
                     </div>
                 </form>

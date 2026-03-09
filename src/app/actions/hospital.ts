@@ -222,6 +222,34 @@ export async function createBedsBatch(wardId: string, count: number, prefix: str
     return { success: true, message: 'Leitos gerados.' }
 }
 
+export async function deleteWard(wardId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, message: 'Não autorizado.' }
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return { success: false, message: 'Org needed.' }
+
+    const { error } = await supabase.from('hospital_wards').delete().eq('id', wardId).eq('org_id', profile.org_id)
+    if (error) return { success: false, message: 'Não é possível excluir um setor que possui leitos ocupados ou histórico.' }
+
+    revalidatePath('/owner/hospital/config')
+    return { success: true, message: 'Setor removido com sucesso.' }
+}
+
+export async function deleteBed(bedId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, message: 'Não autorizado.' }
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return { success: false, message: 'Org needed.' }
+
+    const { error } = await supabase.from('hospital_beds').delete().eq('id', bedId).eq('org_id', profile.org_id)
+    if (error) return { success: false, message: 'Leito não pode ser excluído no momento.' }
+
+    revalidatePath('/owner/hospital/config')
+    return { success: true, message: 'Leito removido.' }
+}
+
 export async function getAdmissionMedications(admissionId: string) {
     const supabase = await createClient()
     const { data } = await supabase
