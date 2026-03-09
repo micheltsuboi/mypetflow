@@ -394,6 +394,7 @@ export async function updateAdmissionSeverity(admissionId: string, severity: str
             .eq('id', admissionId)
 
         if (error) throw error
+        revalidatePath('/owner/hospital')
         return { success: true }
     } catch (error: any) {
         return { success: false, message: error.message }
