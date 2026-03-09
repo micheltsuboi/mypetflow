@@ -36,6 +36,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
         if (res.success) {
             e.currentTarget.reset()
             onSuccess()
+            setShowPrescriptionForm(false)
         } else {
             alert(res.message)
         }
@@ -76,90 +77,91 @@ export default function InternmentRecordModal({ admission, activeMedications, on
 
     return (
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-            <div className="card glass relative flex flex-col p-0 font-sans" style={{ width: '100%', maxWidth: '900px', height: '94vh', overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
+            <div className="card glass relative flex flex-col p-0" style={{ width: '100%', maxWidth: '900px', maxHeight: '90vh', padding: 0, overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
                 {/* Header */}
-                <div className="flex justify-between items-center px-6 py-5 border-b bg-secondary" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                <div className="flex justify-between items-center" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(140, 180, 201, 0.1)', backgroundColor: 'var(--bg-secondary)' }}>
                     <div>
-                        <h2 className="text-2xl font-bold text-coral m-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>🩺 Prontuário Clínico</h2>
-                        <p className="text-muted text-sm m-0 mt-1" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                            Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span className="text-white">{admission.pets.customers?.name}</span>
+                        <h2 className="text-2xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>🩺 Prontuário Clínico</h2>
+                        <p className="text-muted text-sm" style={{ margin: '4px 0 0 0' }}>
+                            Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span style={{ color: '#fff' }}>{admission.pets.customers?.name}</span>
                         </p>
                     </div>
-                    <button onClick={onClose} className="text-muted hover:text-white transition-colors p-2" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                    <button onClick={onClose} className="text-muted" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex px-6 pt-4 gap-8 border-b bg-tertiary" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                <div className="flex gap-6" style={{ padding: '1rem 1.5rem 0 1.5rem', borderBottom: '1px solid rgba(140, 180, 201, 0.1)', backgroundColor: 'var(--bg-tertiary)' }}>
                     <button
-                        className={`pb-4 font-bold text-sm transition-all relative ${activeTab === 'medications' ? 'text-sky' : 'text-muted hover:text-secondary'}`}
-                        style={{ background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)' }}
+                        className="font-bold text-sm"
+                        style={{ paddingBottom: '1rem', position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)', color: activeTab === 'medications' ? 'var(--color-sky)' : 'var(--text-muted)' }}
                         onClick={() => setActiveTab('medications')}
                     >
                         💊 Medicações
-                        {activeTab === 'medications' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-sky rounded-t-full shadow-glow-sky"></div>}
+                        {activeTab === 'medications' && <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', backgroundColor: 'var(--color-sky)', borderRadius: '4px 4px 0 0' }}></div>}
                     </button>
                     <button
-                        className={`pb-4 font-bold text-sm transition-all relative ${activeTab === 'observations' ? 'text-sky' : 'text-muted hover:text-secondary'}`}
-                        style={{ background: 'transparent', border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)' }}
+                        className="font-bold text-sm"
+                        style={{ paddingBottom: '1rem', position: 'relative', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-montserrat)', color: activeTab === 'observations' ? 'var(--color-sky)' : 'var(--text-muted)' }}
                         onClick={() => setActiveTab('observations')}
                     >
                         📋 Evolução Clínica
-                        {activeTab === 'observations' && <div className="absolute bottom-0 left-0 w-full h-[3px] bg-sky rounded-t-full shadow-glow-sky"></div>}
+                        {activeTab === 'observations' && <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '3px', backgroundColor: 'var(--color-sky)', borderRadius: '4px 4px 0 0' }}></div>}
                     </button>
                 </div>
 
                 {/* Content Area */}
-                <div className="flex-1 overflow-y-auto p-6" style={{ background: 'rgba(13, 27, 42, 0.4)' }}>
+                <div className="flex-col" style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', backgroundColor: 'rgba(13, 27, 42, 0.4)' }}>
                     {activeTab === 'medications' && (
-                        <div className="flex flex-col gap-8">
+                        <div className="flex flex-col gap-6">
                             <section>
                                 <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-lg font-bold text-white m-0" style={{ fontFamily: 'var(--font-montserrat)' }}>Prescrições Ativas</h3>
-                                    <span className="text-xs text-muted font-semibold uppercase tracking-widest">{activeMedications.length} Item(s)</span>
+                                    <h3 className="text-lg font-bold" style={{ color: '#fff', margin: 0 }}>Prescrições Ativas</h3>
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{activeMedications.length} Item(s)</span>
                                 </div>
 
                                 {activeMedications.length === 0 ? (
-                                    <div className="p-10 text-center rounded-xl border-2 border-dashed border-navy-light bg-navy bg-opacity-20 text-muted">
-                                        <div className="text-3xl mb-2">📋</div>
-                                        <p className="font-medium">Nenhuma prescrição ativa para este paciente.</p>
+                                    <div style={{ padding: '2.5rem', textAlign: 'center', borderRadius: '12px', border: '2px dashed rgba(42, 86, 130, 0.5)', backgroundColor: 'rgba(27, 59, 90, 0.2)', color: 'var(--text-muted)' }}>
+                                        <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📋</div>
+                                        <p style={{ fontWeight: 500 }}>Nenhuma prescrição ativa para este paciente.</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 gap-6">
                                         {activeMedications.map(m => (
-                                            <div key={m.id} className="card glass p-0 flex flex-col justify-between overflow-hidden" style={{ borderLeft: '4px solid var(--color-sky)' }}>
-                                                <div className="p-5">
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <strong className="text-lg text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{m.name}</strong>
-                                                        <span className="badge badge-confirmed" style={{ fontSize: '10px' }}>{m.frequency_hours}h / {m.frequency_hours}h</span>
+                                            <div key={m.id} className="card glass p-0 flex flex-col justify-between" style={{ borderLeft: '4px solid var(--color-sky)', padding: 0, overflow: 'hidden' }}>
+                                                <div style={{ padding: '1.25rem' }}>
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <strong className="text-lg text-sky">{m.name}</strong>
+                                                        <span className="badge badge-confirmed" style={{ fontSize: '0.65rem' }}>{m.frequency_hours}h / {m.frequency_hours}h</span>
                                                     </div>
-                                                    <div className="flex flex-col gap-1 mb-3">
-                                                        <p className="text-secondary text-sm m-0">Dosagem: <span className="text-white font-semibold">{m.dosage}</span></p>
-                                                        {m.notes && <p className="text-xs text-muted italic m-0 bg-navy bg-opacity-30 p-2 rounded mt-1">"{m.notes}"</p>}
+                                                    <div className="flex flex-col gap-2 mb-4">
+                                                        <p className="text-secondary text-sm" style={{ margin: 0 }}>Dosagem: <span style={{ color: '#fff', fontWeight: 600 }}>{m.dosage}</span></p>
+                                                        {m.notes && <p className="text-muted" style={{ fontSize: '0.75rem', fontStyle: 'italic', margin: 0, backgroundColor: 'rgba(27, 59, 90, 0.3)', padding: '8px', borderRadius: '4px' }}>"{m.notes}"</p>}
                                                     </div>
 
-                                                    <div className="mt-4">
-                                                        <label className="text-[10px] uppercase font-bold text-muted block mb-1">Observação da Dose</label>
+                                                    <div style={{ marginTop: '1rem' }}>
+                                                        <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Observação da Dose</label>
                                                         <input
                                                             type="text"
-                                                            className="input py-2 text-xs"
+                                                            className="input"
+                                                            style={{ fontSize: '0.75rem', padding: '8px' }}
                                                             placeholder="Como o pet reagiu? Alguma nota?"
                                                             value={applyNotes[m.id] || ''}
                                                             onChange={(e) => setApplyNotes(prev => ({ ...prev, [m.id]: e.target.value }))}
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="p-4 bg-secondary bg-opacity-30 border-t flex items-center justify-between" style={{ borderColor: 'rgba(0, 228, 206, 0.1)' }}>
+                                                <div className="flex items-center justify-between" style={{ padding: '1rem 1.25rem', backgroundColor: 'rgba(22, 38, 56, 0.5)', borderTop: '1px solid rgba(0, 228, 206, 0.1)' }}>
                                                     <div className="flex flex-col">
-                                                        <span className="text-[10px] text-muted uppercase font-bold tracking-tighter">Próxima Dose</span>
-                                                        <span className="text-xs font-bold" style={{ color: new Date(m.next_dose_at) <= new Date() ? 'var(--status-canceled)' : 'var(--status-done)' }}>
+                                                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '-0.05em' }}>Próxima Dose</span>
+                                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: new Date(m.next_dose_at) <= new Date() ? 'var(--status-canceled)' : 'var(--status-done)' }}>
                                                             {new Date(m.next_dose_at).toLocaleString('pt-BR')}
                                                         </span>
                                                     </div>
                                                     <button
                                                         disabled={loading}
                                                         onClick={() => handleApplyDose(m.id)}
-                                                        className="btn btn-secondary shadow-glow-sky"
-                                                        style={{ padding: '8px 18px', fontSize: '12px' }}
+                                                        className="btn btn-secondary"
+                                                        style={{ padding: '6px 14px', fontSize: '0.75rem' }}
                                                     >
                                                         💉 Aplicar
                                                     </button>
@@ -170,17 +172,16 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                 )}
                             </section>
 
-                            <section className="bg-secondary p-8 rounded-2xl border transition-all" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                            <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(140, 180, 201, 0.1)' }}>
                                 {!showPrescriptionForm ? (
                                     <div className="flex justify-between items-center">
                                         <div className="flex flex-col">
-                                            <h3 className="text-md font-bold text-white m-0" style={{ fontFamily: 'var(--font-montserrat)' }}>Prescrições Médicas</h3>
-                                            <p className="text-xs text-muted mb-0">Adicione novos medicamentos ou tratamentos</p>
+                                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', margin: 0 }}>Prescrições Médicas</h3>
+                                            <p className="text-muted" style={{ fontSize: '0.75rem', margin: 0 }}>Adicione novos medicamentos ou tratamentos</p>
                                         </div>
                                         <button
                                             onClick={() => setShowPrescriptionForm(true)}
-                                            className="btn btn-primary px-6 flex items-center gap-2"
-                                            style={{ fontFamily: 'var(--font-montserrat)' }}
+                                            className="btn btn-primary"
                                         >
                                             <span style={{ fontSize: '1.2rem' }}>＋</span> Nova Prescrição
                                         </button>
@@ -188,36 +189,39 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                 ) : (
                                     <>
                                         <div className="flex justify-between items-center mb-6">
-                                            <h3 className="text-md font-bold text-coral m-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-coral bg-opacity-20 text-xs text-white">＋</span>
+                                            <h3 className="text-coral" style={{ fontSize: '1rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px', borderRadius: '50%', backgroundColor: 'rgba(240, 140, 152, 0.2)', fontSize: '0.75rem', color: '#fff' }}>＋</span>
                                                 Nova Prescrição Médica
                                             </h3>
                                             <button
                                                 onClick={() => setShowPrescriptionForm(false)}
-                                                className="text-xs text-muted hover:text-white underline"
+                                                className="text-muted"
+                                                style={{ fontSize: '0.75rem', textDecoration: 'underline', background: 'transparent', border: 'none', cursor: 'pointer' }}
                                             >
                                                 Cancelar
                                             </button>
                                         </div>
-                                        <form onSubmit={handlePrescribe} className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                                            <div className="md:col-span-5">
-                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Medicamento</label>
-                                                <input type="text" name="name" required className="input text-sm" placeholder="Ex: Dipirona gotas" />
+                                        <form onSubmit={handlePrescribe} className="flex flex-col gap-4">
+                                            <div className="flex gap-4" style={{ flexWrap: 'wrap' }}>
+                                                <div style={{ flex: 2, minWidth: '200px' }}>
+                                                    <label className="label text-sm">Medicamento</label>
+                                                    <input type="text" name="name" required className="input" placeholder="Ex: Dipirona gotas" />
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: '150px' }}>
+                                                    <label className="label text-sm">Dose e Via</label>
+                                                    <input type="text" name="dosage" required className="input" placeholder="Ex: 5 gotas VO" />
+                                                </div>
+                                                <div style={{ flex: 1, minWidth: '100px' }}>
+                                                    <label className="label text-sm">Intervalo (h)</label>
+                                                    <input type="number" name="frequencyHours" required min="1" className="input" placeholder="Ex: 8" />
+                                                </div>
                                             </div>
-                                            <div className="md:col-span-4">
-                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Dose e Via</label>
-                                                <input type="text" name="dosage" required className="input text-sm" placeholder="Ex: 5 gotas VO" />
+                                            <div>
+                                                <label className="label text-sm">Recomendações e Observações Livres</label>
+                                                <textarea name="notes" className="input" style={{ resize: 'none', padding: '12px' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
                                             </div>
-                                            <div className="md:col-span-3">
-                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Intervalo (h)</label>
-                                                <input type="number" name="frequencyHours" required min="1" className="input text-sm" placeholder="Ex: 8" />
-                                            </div>
-                                            <div className="md:col-span-12">
-                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Recomendações e Observações Livres</label>
-                                                <textarea name="notes" className="input text-sm py-3" style={{ resize: 'none' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
-                                            </div>
-                                            <div className="md:col-span-12 flex justify-end mt-2">
-                                                <button type="submit" disabled={loading} className="btn btn-primary shadow-glow-coral py-3 px-10">
+                                            <div className="flex justify-center mt-2" style={{ justifyContent: 'flex-end' }}>
+                                                <button type="submit" disabled={loading} className="btn btn-primary text-sm" style={{ padding: '12px 32px' }}>
                                                     {loading ? '...' : 'Salvar Prescrição'}
                                                 </button>
                                             </div>
@@ -228,32 +232,32 @@ export default function InternmentRecordModal({ admission, activeMedications, on
 
                             <section>
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-white m-0" style={{ fontFamily: 'var(--font-montserrat)' }}>Histórico de Aplicações</h3>
+                                    <h3 className="text-lg font-bold" style={{ color: '#fff', margin: 0 }}>Histórico de Aplicações</h3>
                                     <button
                                         onClick={loadRecords}
-                                        className="text-[10px] text-sky hover:text-white uppercase font-bold tracking-widest bg-navy bg-opacity-30 px-3 py-1 rounded-full border border-sky border-opacity-20"
+                                        style={{ fontSize: '0.65rem', color: 'var(--color-sky)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.1em', backgroundColor: 'rgba(27, 59, 90, 0.3)', padding: '4px 12px', borderRadius: '16px', border: '1px solid rgba(0, 228, 206, 0.2)', cursor: 'pointer' }}
                                     >
                                         🔄 Atualizar
                                     </button>
                                 </div>
                                 <div className="flex flex-col gap-3">
                                     {medicationLogs.length === 0 ? (
-                                        <p className="text-sm text-muted italic p-10 text-center border-2 border-dashed border-navy-light rounded-xl">Nenhum registro de aplicação encontrado.</p>
+                                        <p className="text-muted" style={{ fontSize: '0.875rem', fontStyle: 'italic', padding: '2.5rem', textAlign: 'center', border: '2px dashed rgba(42, 86, 130, 0.5)', borderRadius: '12px' }}>Nenhum registro de aplicação encontrado.</p>
                                     ) : (
                                         medicationLogs.map(log => (
-                                            <div key={log.id} className="flex flex-col gap-2 p-4 bg-tertiary bg-opacity-40 rounded-xl text-sm border border-transparent hover:border-sky transition-all cursor-default group">
+                                            <div key={log.id} className="flex flex-col gap-2" style={{ padding: '1rem', backgroundColor: 'rgba(30, 52, 75, 0.4)', borderRadius: '12px', border: '1px solid transparent', transition: 'all 0.2s' }}>
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-sky font-bold font-mono text-xs">{new Date(log.applied_at).toLocaleString('pt-BR')}</span>
-                                                        <span className="text-white font-bold">{log.hospital_medications?.name}</span>
-                                                        <span className="text-muted text-xs">({log.hospital_medications?.dosage})</span>
+                                                        <span className="text-sky font-bold" style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{new Date(log.applied_at).toLocaleString('pt-BR')}</span>
+                                                        <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem' }}>{log.hospital_medications?.name}</span>
+                                                        <span className="text-muted" style={{ fontSize: '0.75rem' }}>({log.hospital_medications?.dosage})</span>
                                                     </div>
-                                                    <div className="text-[10px] text-muted uppercase font-bold">
-                                                        por {log.profiles?.full_name}
+                                                    <div className="text-muted" style={{ fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700 }}>
+                                                        por {log.profiles?.full_name || 'Usuário'}
                                                     </div>
                                                 </div>
                                                 {log.notes && (
-                                                    <div className="mt-1 p-2 bg-navy bg-opacity-40 rounded text-xs text-secondary border-l-2 border-coral italic">
+                                                    <div className="text-secondary" style={{ marginTop: '4px', padding: '8px', backgroundColor: 'rgba(18, 40, 64, 0.4)', borderRadius: '4px', fontSize: '0.75rem', borderLeft: '2px solid var(--color-coral)', fontStyle: 'italic' }}>
                                                         "{log.notes}"
                                                     </div>
                                                 )}
@@ -266,50 +270,52 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                     )}
 
                     {activeTab === 'observations' && (
-                        <div className="flex flex-col gap-8 h-full">
-                            <section className="bg-secondary p-6 rounded-2xl border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                <label className="text-coral font-bold text-sm mb-4 block" style={{ fontFamily: 'var(--font-montserrat)' }}>Evolução Clínica / Notas de Observação</label>
+                        <div className="flex flex-col gap-6" style={{ height: '100%' }}>
+                            <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(140, 180, 201, 0.1)' }}>
+                                <label className="text-coral font-bold text-sm" style={{ display: 'block', marginBottom: '1rem' }}>Evolução Clínica / Notas de Observação</label>
                                 <form onSubmit={handleAddObservation} className="flex flex-col gap-4">
                                     <textarea
                                         name="observation"
                                         required
                                         rows={4}
-                                        className="input text-sm bg-navy bg-opacity-40 focus:bg-opacity-80"
-                                        style={{ resize: 'none' }}
+                                        className="input text-sm"
+                                        style={{ resize: 'none', backgroundColor: 'rgba(27, 59, 90, 0.4)' }}
                                         placeholder="Descreva o estado atual do paciente, apetite, comportamento..."
                                     />
-                                    <div className="flex justify-end">
-                                        <button type="submit" disabled={loading} className="btn btn-primary px-8">
+                                    <div className="flex" style={{ justifyContent: 'flex-end' }}>
+                                        <button type="submit" disabled={loading} className="btn btn-primary" style={{ padding: '10px 32px' }}>
                                             {loading ? 'Salvando...' : 'Registrar Evolução'}
                                         </button>
                                     </div>
                                 </form>
                             </section>
 
-                            <section className="flex-1">
-                                <h3 className="text-lg font-bold text-white mb-6" style={{ fontFamily: 'var(--font-montserrat)' }}>Linha do Tempo de Evolução</h3>
-                                <div className="flex flex-col gap-6 relative ml-4 pl-8 before:absolute before:left-0 before:top-2 before:w-[2px] before:h-[calc(100%-16px)] before:bg-gradient-to-b before:from-sky before:to-navy-light">
+                            <section style={{ flex: 1 }}>
+                                <h3 className="text-lg font-bold mb-6" style={{ color: '#fff' }}>Linha do Tempo de Evolução</h3>
+                                <div className="flex flex-col gap-6" style={{ position: 'relative', paddingLeft: '2rem', marginLeft: '1rem' }}>
+                                    <div style={{ position: 'absolute', left: 0, top: '8px', width: '2px', height: 'calc(100% - 16px)', background: 'linear-gradient(180deg, var(--color-sky) 0%, rgba(42, 86, 130, 0.5) 100%)' }}></div>
+
                                     {observations.length === 0 ? (
-                                        <p className="text-sm text-muted italic ml-[-32px] text-center p-10">Inicie o acompanhamento clínico registrando a primeira evolução acima.</p>
+                                        <p className="text-muted" style={{ fontSize: '0.875rem', fontStyle: 'italic', marginLeft: '-2rem', textAlign: 'center', padding: '2.5rem' }}>Inicie o acompanhamento clínico registrando a primeira evolução acima.</p>
                                     ) : (
                                         observations.map(obs => (
-                                            <div key={obs.id} className="relative group">
+                                            <div key={obs.id} style={{ position: 'relative' }}>
                                                 {/* Timeline Node */}
-                                                <div className="absolute left-[-41px] top-1 w-6 h-6 rounded-full bg-navy border-4 border-sky group-hover:scale-125 transition-transform z-10 shadow-glow-sky"></div>
+                                                <div style={{ position: 'absolute', left: '-2.5rem', top: '0.25rem', width: '1rem', height: '1rem', borderRadius: '50%', backgroundColor: 'var(--color-navy)', border: '3px solid var(--color-sky)', zIndex: 10 }}></div>
 
-                                                <div className="glass p-5 rounded-2xl border hover:border-sky transition-all duration-300">
+                                                <div className="glass" style={{ padding: '1.25rem', borderRadius: '16px', transition: 'all 0.3s ease' }}>
                                                     <div className="flex justify-between items-center mb-3">
                                                         <div className="flex items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-full bg-sky bg-opacity-10 flex items-center justify-center text-sky font-bold text-xs">
-                                                                {obs.profiles?.full_name?.charAt(0)}
+                                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'rgba(0, 228, 206, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-sky)', fontWeight: 700, fontSize: '0.75rem' }}>
+                                                                {obs.profiles?.full_name?.charAt(0) || '?'}
                                                             </div>
-                                                            <span className="text-sm text-white font-bold">{obs.profiles?.full_name}</span>
+                                                            <span style={{ fontSize: '0.875rem', color: '#fff', fontWeight: 700 }}>{obs.profiles?.full_name || 'Usuário'}</span>
                                                         </div>
-                                                        <span className="text-[11px] font-bold text-muted bg-navy-dark px-3 py-1 rounded-full uppercase tracking-tighter">
+                                                        <span className="text-muted" style={{ fontSize: '0.65rem', fontWeight: 700, backgroundColor: 'var(--color-navy-dark)', padding: '4px 12px', borderRadius: '16px', textTransform: 'uppercase', letterSpacing: '-0.05em' }}>
                                                             {new Date(obs.created_at).toLocaleString('pt-BR')}
                                                         </span>
                                                     </div>
-                                                    <p className="text-sm text-secondary m-0 leading-relaxed font-medium whitespace-pre-wrap">{obs.observation}</p>
+                                                    <p className="text-secondary text-sm" style={{ margin: 0, lineHeight: 1.6, fontWeight: 500, whiteSpace: 'pre-wrap' }}>{obs.observation}</p>
                                                 </div>
                                             </div>
                                         ))

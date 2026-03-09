@@ -338,7 +338,7 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
 
 export async function getMedicationLogs(admissionId: string) {
     const supabase = await createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('hospital_medication_logs')
         .select(`
             id,
@@ -349,6 +349,8 @@ export async function getMedicationLogs(admissionId: string) {
         `)
         .eq('admission_id', admissionId)
         .order('applied_at', { ascending: false })
+
+    if (error) console.error('getMedicationLogs ERROR:', error)
     return data || []
 }
 
