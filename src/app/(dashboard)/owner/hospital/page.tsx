@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, getAdmissionMedications, updateAdmissionSeverity, sendMedicationAlert } from '@/app/actions/hospital'
+import { getHospitalDashboardData, movePetBed, applyMedicationDose, updateAdmissionSeverity, sendMedicationAlert } from '@/app/actions/hospital'
 import { useRef } from 'react'
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
@@ -35,26 +35,18 @@ export default function HospitalDashboard() {
     const loadData = async (silent = false) => {
         if (!silent) setLoading(true)
         try {
-            const [wData, bData, aData] = await Promise.all([
-                getHospitalWards(),
-                getHospitalBeds(),
-                getActiveAdmissions()
-            ])
+            const data = await getHospitalDashboardData()
+            if (!data) return
 
-            setWards(wData)
-            setBeds(bData)
-            setAdmissions(aData)
+            setWards(data.wards)
+            setBeds(data.beds)
+            setAdmissions(data.admissions)
 
-            // Optimize: Fetch all medications in parallel
-            const medsPromises = aData.map(async (adm) => ({
-                id: adm.id,
-                meds: await getAdmissionMedications(adm.id)
-            }))
-
-            const medsResults = await Promise.all(medsPromises)
+            // Mapeia medicações para o objeto de estado por admission_id
             const medsObj: Record<string, any[]> = {}
-            medsResults.forEach(res => {
-                medsObj[res.id] = res.meds
+            data.medications.forEach(m => {
+                if (!medsObj[m.admission_id]) medsObj[m.admission_id] = []
+                medsObj[m.admission_id].push(m)
             })
 
             setMedications(medsObj)

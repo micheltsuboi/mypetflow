@@ -49,7 +49,7 @@ export async function getActiveAdmissions() {
         .from('hospital_admissions')
         .select(`
             id, bed_id, pet_id, veterinarian_id, admitted_at, reason, severity, status, service_id,
-            pets ( name, species, breed, weight_kg, customers ( name ) ),
+            pets ( name, species, breed, photo_url, weight_kg, customers ( name ) ),
             veterinarians ( name, phone ),
             hospital_beds ( ward_id, name ),
             services ( id, name, base_price )
@@ -58,6 +58,35 @@ export async function getActiveAdmissions() {
         .eq('status', 'active')
 
     return data || []
+}
+
+export async function getHospitalDashboardData() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return null
+
+    const [wards, beds, admissions, medications] = await Promise.all([
+        supabase.from('hospital_wards').select('*').eq('org_id', profile.org_id).order('order', { ascending: true }),
+        supabase.from('hospital_beds').select('*, hospital_wards(name, color)').eq('org_id', profile.org_id).order('order', { ascending: true }),
+        supabase.from('hospital_admissions').select(`
+            id, bed_id, pet_id, veterinarian_id, admitted_at, reason, severity, status, service_id,
+            pets ( name, species, breed, photo_url, weight_kg, customers ( name ) ),
+            veterinarians ( name, phone ),
+            hospital_beds ( ward_id, name ),
+            services ( id, name, base_price )
+        `).eq('org_id', profile.org_id).eq('status', 'active'),
+        supabase.from('hospital_medications').select('*').eq('org_id', profile.org_id).eq('is_active', true)
+    ])
+
+    return {
+        wards: (wards.data || []) as any[],
+        beds: (beds.data || []) as any[],
+        admissions: (admissions.data || []) as any[],
+        medications: (medications.data || []) as any[]
+    }
 }
 
 export async function getHospitalServices() {
@@ -222,7 +251,7 @@ export async function movePetBed(admissionId: string, currentBedId: string, newB
         await supabase.from('hospital_beds').update({ status: 'available' }).eq('id', currentBedId)
         await supabase.from('hospital_beds').update({ status: 'occupied' }).eq('id', newBedId)
 
-        revalidatePath('/owner/hospital')
+        // revalidatePath removido para performance em operações rápidas
         return { success: true, message: 'Pet movido.' }
     } catch (error) {
         console.error('movePetBed error:', error)
@@ -379,8 +408,7 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
             await supabase.from('hospital_medications').update({ is_active: false }).eq('id', medicationId)
         }
 
-        revalidatePath('/owner/hospital')
-        revalidatePath('/owner/hospital/history')
+        // revalidatePath removidos para performance, o frontend já atualiza via loadData(true)
         return { success: true, message: 'Dose aplicada com sucesso!' }
     } catch (e) {
         return { success: false, message: 'Erro.' }
@@ -396,7 +424,8 @@ export async function updateAdmissionSeverity(admissionId: string, severity: str
             .eq('id', admissionId)
 
         if (error) throw error
-        revalidatePath('/owner/hospital')
+        // Removido revalidatePath aqui para evitar lentidão extrema em updates de estado simples
+        // O frontend já faz loadData(true) silencioso ou update otimista
         return { success: true }
     } catch (error: any) {
         return { success: false, message: error.message }
