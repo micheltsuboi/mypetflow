@@ -66,6 +66,15 @@ export async function POST(req: NextRequest) {
 
     const checkoutType = appointment.checkout_type || null
 
+    let customMessage = ''
+    if (newStatus === 'done' && checkoutType === 'a_caminho') {
+        customMessage = `🐾 Ei! O banho do(a) ${petName} acabou e ele(a) já está a caminho de casa! 🚗💨 Prepare os petiscos!`
+    } else if (newStatus === 'done' && checkoutType === 'aguardando_retirada') {
+        customMessage = `🛁 O(a) ${petName} já está limpinho(a) e cheiroso(a) esperando por você! 🏠 Pode vir buscá-lo(a) quando quiser.`
+    } else if (newStatus === 'done') {
+        customMessage = `✅ O serviço de ${serviceName} do(a) ${petName} foi finalizado!`
+    }
+
     const enrichedPayload = {
         appointmentId,
         newStatus,
@@ -76,6 +85,7 @@ export async function POST(req: NextRequest) {
         formattedDate,
         formattedTime,
         checkoutType,
+        customMessage,
         eventType: type, // INSERT | UPDATE | DELETE
     }
 
