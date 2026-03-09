@@ -302,7 +302,7 @@ export async function prescreverMedicacao(formData: FormData) {
     }
 }
 
-export async function applyMedicationDose(medicationId: string, admissionId: string) {
+export async function applyMedicationDose(medicationId: string, admissionId: string, notes?: string) {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -314,7 +314,8 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
             org_id: profile!.org_id,
             medication_id: medicationId,
             admission_id: admissionId,
-            applied_by: user.id
+            applied_by: user.id,
+            notes: notes || null
         })
 
         // calculate next dose

@@ -25,8 +25,8 @@ export default function HospitalDashboard() {
     const [showAdmitModal, setShowAdmitModal] = useState<string | null>(null) // bed_id
     const [showRecordModal, setShowRecordModal] = useState<any | null>(null) // admission
 
-    const loadData = async () => {
-        setLoading(true)
+    const loadData = async (silent = false) => {
+        if (!silent) setLoading(true)
         try {
             const [wData, bData, aData] = await Promise.all([
                 getHospitalWards(),
@@ -130,10 +130,15 @@ export default function HospitalDashboard() {
 
     const onApplyDose = async (medId: string, admId: string) => {
         await applyMedicationDose(medId, admId)
-        loadData()
+        loadData(true)
     }
 
-    if (loading) return <div className="container p-6 animate-pulse">Carregando mapa hospitalar...</div>
+    if (loading && wards.length === 0) return (
+        <div className="container p-12 text-center animate-pulse">
+            <div className="text-4xl mb-4">⚙️</div>
+            <p className="text-muted font-bold">Carregando mapa hospitalar...</p>
+        </div>
+    )
 
     const totalInternados = admissions.length
     const criticalCount = admissions.filter(a => a.severity === 'critical').length
@@ -196,7 +201,7 @@ export default function HospitalDashboard() {
                             </div>
 
                             {!isCollapsed && (
-                                <div className="p-6 bg-tertiary grid grid-cols-3 lg:grid-cols-4 gap-4">
+                                <div className="p-8 bg-tertiary grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                                     {wardBeds.map(bed => {
                                         const adm = admissions.find(a => a.bed_id === bed.id)
                                         const isDragOver = dragOverBedId === bed.id
@@ -312,7 +317,7 @@ export default function HospitalDashboard() {
                     activeMedications={medications[showRecordModal.id] || []}
                     onClose={() => setShowRecordModal(null)}
                     onSuccess={() => {
-                        loadData()
+                        loadData(true)
                     }}
                 />
             )}

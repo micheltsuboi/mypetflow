@@ -8,6 +8,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
     const [loading, setLoading] = useState(false)
     const [medicationLogs, setMedicationLogs] = useState<any[]>([])
     const [observations, setObservations] = useState<any[]>([])
+    const [applyNotes, setApplyNotes] = useState<Record<string, string>>({})
 
     const loadRecords = async () => {
         const [logs, obs] = await Promise.all([
@@ -41,9 +42,11 @@ export default function InternmentRecordModal({ admission, activeMedications, on
 
     const handleApplyDose = async (medId: string) => {
         setLoading(true)
-        const res = await applyMedicationDose(medId, admission.id)
+        const note = applyNotes[medId] || ''
+        const res = await applyMedicationDose(medId, admission.id, note)
         setLoading(false)
         if (res.success) {
+            setApplyNotes(prev => ({ ...prev, [medId]: '' }))
             loadRecords()
             onSuccess()
         } else {
@@ -69,11 +72,11 @@ export default function InternmentRecordModal({ admission, activeMedications, on
 
     return (
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-            <div className="card glass relative flex flex-col p-0 font-sans" style={{ width: '100%', maxWidth: '850px', height: '90vh', overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
+            <div className="card glass relative flex flex-col p-0 font-sans" style={{ width: '100%', maxWidth: '900px', height: '94vh', overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
                 {/* Header */}
                 <div className="flex justify-between items-center px-6 py-5 border-b bg-secondary" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
                     <div>
-                        <h2 className="text-2xl font-bold text-coral m-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>命 Prontuário Clínico</h2>
+                        <h2 className="text-2xl font-bold text-coral m-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>🩺 Prontuário Clínico</h2>
                         <p className="text-muted text-sm m-0 mt-1" style={{ fontFamily: 'var(--font-montserrat)' }}>
                             Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span className="text-white">{admission.pets.customers?.name}</span>
                         </p>
@@ -117,10 +120,10 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                         <p className="font-medium">Nenhuma prescrição ativa para este paciente.</p>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {activeMedications.map(m => (
-                                            <div key={m.id} className="card glass p-4 flex flex-col justify-between" style={{ borderLeft: '4px solid var(--color-sky)' }}>
-                                                <div>
+                                            <div key={m.id} className="card glass p-0 flex flex-col justify-between overflow-hidden" style={{ borderLeft: '4px solid var(--color-sky)' }}>
+                                                <div className="p-5">
                                                     <div className="flex justify-between items-start mb-3">
                                                         <strong className="text-lg text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{m.name}</strong>
                                                         <span className="badge badge-confirmed" style={{ fontSize: '10px' }}>{m.frequency_hours}h / {m.frequency_hours}h</span>
@@ -129,8 +132,19 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                                         <p className="text-secondary text-sm m-0">Dosagem: <span className="text-white font-semibold">{m.dosage}</span></p>
                                                         {m.notes && <p className="text-xs text-muted italic m-0 bg-navy bg-opacity-30 p-2 rounded mt-1">"{m.notes}"</p>}
                                                     </div>
+
+                                                    <div className="mt-4">
+                                                        <label className="text-[10px] uppercase font-bold text-muted block mb-1">Observação da Dose</label>
+                                                        <input
+                                                            type="text"
+                                                            className="input py-2 text-xs"
+                                                            placeholder="Como o pet reagiu? Alguma nota?"
+                                                            value={applyNotes[m.id] || ''}
+                                                            onChange={(e) => setApplyNotes(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <div className="pt-3 border-t flex items-center justify-between" style={{ borderColor: 'rgba(0, 228, 206, 0.1)' }}>
+                                                <div className="p-4 bg-secondary bg-opacity-30 border-t flex items-center justify-between" style={{ borderColor: 'rgba(0, 228, 206, 0.1)' }}>
                                                     <div className="flex flex-col">
                                                         <span className="text-[10px] text-muted uppercase font-bold tracking-tighter">Próxima Dose</span>
                                                         <span className="text-xs font-bold" style={{ color: new Date(m.next_dose_at) <= new Date() ? 'var(--status-canceled)' : 'var(--status-done)' }}>
@@ -140,8 +154,8 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                                     <button
                                                         disabled={loading}
                                                         onClick={() => handleApplyDose(m.id)}
-                                                        className="btn btn-secondary"
-                                                        style={{ padding: '6px 14px', fontSize: '12px' }}
+                                                        className="btn btn-secondary shadow-glow-sky"
+                                                        style={{ padding: '8px 18px', fontSize: '12px' }}
                                                     >
                                                         💉 Aplicar
                                                     </button>
@@ -152,9 +166,9 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                 )}
                             </section>
 
-                            <section className="bg-secondary p-6 rounded-2xl border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                <h3 className="text-md font-bold text-coral mb-5 mt-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-coral bg-opacity-20 text-xs">＋</span>
+                            <section className="bg-secondary p-8 rounded-2xl border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                <h3 className="text-md font-bold text-coral mb-6 mt-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-coral bg-opacity-20 text-xs text-white">＋</span>
                                     Nova Prescrição Médica
                                 </h3>
                                 <form onSubmit={handlePrescribe} className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -170,37 +184,41 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                         <label className="label text-[11px] uppercase tracking-wider font-bold">Intervalo (h)</label>
                                         <input type="number" name="frequencyHours" required min="1" className="input text-sm" placeholder="Ex: 8" />
                                     </div>
-                                    <div className="md:col-span-9 text-sm">
-                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Recomendações de Administração</label>
-                                        <input type="text" name="notes" className="input text-sm" placeholder="Ex: Diluir em 5ml de água" />
+                                    <div className="md:col-span-12">
+                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Recomendações e Observações Livres</label>
+                                        <textarea name="notes" className="input text-sm py-3" style={{ resize: 'none' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
                                     </div>
-                                    <div className="md:col-span-3 flex items-end">
-                                        <button type="submit" disabled={loading} className="btn btn-primary w-full shadow-glow-coral py-3">
-                                            {loading ? '...' : 'Salvar'}
+                                    <div className="md:col-span-12 flex justify-end mt-2">
+                                        <button type="submit" disabled={loading} className="btn btn-primary shadow-glow-coral py-3 px-10">
+                                            {loading ? '...' : 'Salvar Prescrição'}
                                         </button>
                                     </div>
                                 </form>
                             </section>
 
                             <section>
-                                <h3 className="text-lg font-bold text-secondary mb-4" style={{ fontFamily: 'var(--font-montserrat)' }}>Log de Aplicações</h3>
-                                <div className="flex flex-col gap-2">
+                                <h3 className="text-lg font-bold text-secondary mb-4" style={{ fontFamily: 'var(--font-montserrat)' }}>Histórico de Aplicações</h3>
+                                <div className="flex flex-col gap-3">
                                     {medicationLogs.length === 0 ? (
-                                        <p className="text-sm text-muted italic p-4 text-center">Nenhum registro de aplicação.</p>
+                                        <p className="text-sm text-muted italic p-10 text-center border-2 border-dashed border-navy-light rounded-xl">Nenhum registro de aplicação encontrado.</p>
                                     ) : (
                                         medicationLogs.map(log => (
-                                            <div key={log.id} className="flex gap-4 p-3 bg-tertiary bg-opacity-40 rounded-lg text-sm items-center border border-transparent hover:border-sky hover:bg-opacity-60 transition-all cursor-default group">
-                                                <div className="text-[11px] text-muted w-36 font-semibold font-mono">
-                                                    {new Date(log.applied_at).toLocaleString('pt-BR')}
+                                            <div key={log.id} className="flex flex-col gap-2 p-4 bg-tertiary bg-opacity-40 rounded-xl text-sm border border-transparent hover:border-sky transition-all cursor-default group">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-sky font-bold font-mono text-xs">{new Date(log.applied_at).toLocaleString('pt-BR')}</span>
+                                                        <span className="text-white font-bold">{log.hospital_medications?.name}</span>
+                                                        <span className="text-muted text-xs">({log.hospital_medications?.dosage})</span>
+                                                    </div>
+                                                    <div className="text-[10px] text-muted uppercase font-bold">
+                                                        por {log.profiles?.full_name}
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 font-medium">
-                                                    <span className="text-sky">{log.hospital_medications?.name}</span>
-                                                    <span className="mx-2 text-muted">|</span>
-                                                    <span className="text-white">{log.hospital_medications?.dosage}</span>
-                                                </div>
-                                                <div className="text-xs text-muted group-hover:text-secondary italic">
-                                                    aplicado por {log.profiles?.full_name}
-                                                </div>
+                                                {log.notes && (
+                                                    <div className="mt-1 p-2 bg-navy bg-opacity-40 rounded text-xs text-secondary border-l-2 border-coral italic">
+                                                        "{log.notes}"
+                                                    </div>
+                                                )}
                                             </div>
                                         ))
                                     )}
