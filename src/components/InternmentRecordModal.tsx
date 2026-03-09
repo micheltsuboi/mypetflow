@@ -48,8 +48,11 @@ export default function InternmentRecordModal({ admission, activeMedications, on
         setLoading(false)
         if (res.success) {
             setApplyNotes(prev => ({ ...prev, [medId]: '' }))
-            loadRecords()
-            onSuccess()
+            // Pequeno delay para garantir que a inserção no banco foi processada antes do fetch
+            setTimeout(() => {
+                loadRecords()
+                onSuccess()
+            }, 400)
         } else {
             alert(res.message)
         }
