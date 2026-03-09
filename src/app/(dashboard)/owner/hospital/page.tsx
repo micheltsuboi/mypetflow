@@ -369,11 +369,15 @@ export default function HospitalDashboard() {
 
                                                 <div className="p-4 pt-4 flex flex-col flex-1 gap-4 relative z-20">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="relative w-14 h-14 flex-shrink-0">
+                                                        <div style={{ width: '56px', height: '56px', position: 'relative', flexShrink: 0 }}>
                                                             {pet.photo_url ? (
-                                                                <img src={pet.photo_url} alt={pet.name} className="w-full h-full rounded-full object-cover border-2 border-white/10 p-0.5" />
+                                                                <img
+                                                                    src={pet.photo_url}
+                                                                    alt={pet.name}
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '9999px', border: '2px solid rgba(255,255,255,0.1)', padding: '2px' }}
+                                                                />
                                                             ) : (
-                                                                <div className="w-full h-full rounded-full bg-navy-light/30 flex items-center justify-center text-2xl border border-white/10">
+                                                                <div style={{ width: '100%', height: '100%', borderRadius: '9999px', backgroundColor: 'rgba(42, 86, 130, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                                                     {pet.species === 'cat' ? '🐱' : '🐶'}
                                                                 </div>
                                                             )}
@@ -430,7 +434,8 @@ export default function HospitalDashboard() {
                                         )
                                     })}
                                 </div>
-                            )}
+                            )
+                            }
                         </div>
                     )
                 })
