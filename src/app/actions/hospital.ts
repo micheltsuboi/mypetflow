@@ -50,7 +50,7 @@ export async function getActiveAdmissions() {
         .select(`
             id, bed_id, pet_id, veterinarian_id, admitted_at, reason, severity, status, service_id,
             pets ( name, species, breed, weight_kg, customers ( name ) ),
-            veterinarians ( name ),
+            veterinarians ( name, phone ),
             hospital_beds ( ward_id, name ),
             services ( id, name, base_price )
         `)
@@ -519,4 +519,19 @@ export async function getAllAdmissionsHistory(searchTerm?: string) {
     }
 
     return data || []
+}
+
+export async function sendMedicationAlert(phone: string, message: string) {
+    try {
+        const webhookUrl = 'https://n8n.webhook.mazzetto.com.br/webhook/vet-alert-final-v5'
+        await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, message })
+        })
+        return { success: true }
+    } catch (error) {
+        console.error('Error sending medication alert:', error)
+        return { success: false }
+    }
 }

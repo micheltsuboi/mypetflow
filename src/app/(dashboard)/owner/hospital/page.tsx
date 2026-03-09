@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, getAdmissionMedications, updateAdmissionSeverity } from '@/app/actions/hospital'
+import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, getAdmissionMedications, updateAdmissionSeverity, sendMedicationAlert } from '@/app/actions/hospital'
+import { useRef } from 'react'
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
@@ -28,6 +29,7 @@ export default function HospitalDashboard() {
     const [showRecordModal, setShowRecordModal] = useState<any | null>(null) // admission
     const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [showDischargeModal, setShowDischargeModal] = useState<any | null>(null) // admission
+    const notifiedMeds = useRef<Set<string>>(new Set())
 
     const loadData = async (silent = false) => {
         if (!silent) setLoading(true)
@@ -64,7 +66,37 @@ export default function HospitalDashboard() {
 
     useEffect(() => {
         loadData()
-    }, [])
+
+        // Agendador para verificar medicações a cada minuto
+        const interval = setInterval(async () => {
+            const now = new Date()
+            admissions.forEach(adm => {
+                const meds = medications[adm.id] || []
+                meds.forEach(async (m) => {
+                    if (m.is_active && m.next_dose_at) {
+                        const nextDose = new Date(m.next_dose_at)
+                        const diffMin = (nextDose.getTime() - now.getTime()) / (1000 * 60)
+
+                        // Alerta se faltar menos de 15 minutos e não tiver sido notificado
+                        if (diffMin <= 15 && diffMin > -30 && !notifiedMeds.current.has(m.id)) {
+                            notifiedMeds.current.add(m.id)
+
+                            // 1. Alerta Sonoro/Console (Simulação de Push)
+                            console.log(`ALERTA: Dose de ${m.name} para o pet ${adm.pets.name} às ${nextDose.toLocaleTimeString()}`)
+
+                            // 2. Enviar para WhatsApp via Action -> Webhook n8n
+                            const vetPhone = adm.veterinarians?.phone
+                            if (vetPhone) {
+                                await sendMedicationAlert(vetPhone, `🏥 *ALERTA HOSPITALAR*\n\nO pet *${adm.pets.name}* está no horário da medicação:\n💊 *${m.name}* (${m.dosage})\n🕒 Previsto para: ${nextDose.toLocaleTimeString()}\n📍 Leito: ${wards.find(w => w.id === beds.find(b => b.id === adm.bed_id)?.ward_id)?.name} - ${beds.find(b => b.id === adm.bed_id)?.name}`)
+                            }
+                        }
+                    }
+                })
+            })
+        }, 60000)
+
+        return () => clearInterval(interval)
+    }, [admissions, medications, wards, beds])
 
     const toggleWard = (id: string) => {
         const newSet = new Set(collapsedWards)
@@ -238,33 +270,38 @@ export default function HospitalDashboard() {
 
                                         const severityColors: any = {
                                             'low': '#7AC9A0',
-                                            'medium': '#F0A090',
-                                            'high': '#E8826A',
+                                            'medium': '#FABB05',
+                                            'high': '#EA4335',
                                             'critical': '#D46B6B'
                                         };
 
                                         const severityGlows: any = {
                                             'low': 'rgba(122, 201, 160, 0.05)',
-                                            'medium': 'rgba(240, 160, 144, 0.08)',
-                                            'high': 'rgba(232, 130, 106, 0.12)',
-                                            'critical': 'rgba(212, 107, 107, 0.2)'
+                                            'medium': 'rgba(250, 187, 5, 0.12)',
+                                            'high': 'rgba(234, 67, 53, 0.18)',
+                                            'critical': 'rgba(212, 107, 107, 0.25)'
                                         };
 
                                         return (
                                             <div
                                                 key={bed.id}
-                                                className="card p-0 flex flex-col overflow-hidden relative group transition-all duration-300"
+                                                className={`card p-0 flex flex-col overflow-hidden relative group transition-all duration-300 ${adm.severity === 'critical' ? 'animate-critical' : ''}`}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, adm.id, bed.id)}
                                                 style={{
-                                                    border: `1px solid ${severityColors[adm.severity]}40`,
-                                                    background: `linear-gradient(180deg, ${severityGlows[adm.severity]} 0%, rgba(22, 38, 56, 0.4) 100%)`,
-                                                    boxShadow: adm.severity === 'critical' ? '0 0 40px rgba(212, 107, 107, 0.3)' : 'var(--shadow-lg)',
+                                                    border: `1px solid ${severityColors[adm.severity]}`,
+                                                    background: `linear-gradient(180deg, ${severityGlows[adm.severity]} 0%, rgba(22, 38, 56, 1) 100%)`,
+                                                    boxShadow: adm.severity === 'critical' ? '0 0 50px rgba(212, 107, 107, 0.4)' : adm.severity === 'high' ? '0 0 30px rgba(234, 67, 53, 0.2)' : 'var(--shadow-lg)',
                                                     position: 'relative'
                                                 }}
                                             >
-                                                {/* Faixa Superior de Gravidade (Interna para respeitar bordas redondas) */}
-                                                <div className="h-1 w-full relative z-30" style={{ backgroundColor: severityColors[adm.severity] }} />
+                                                {/* Faixa Superior de Gravidade (Thicker para maior destaque) */}
+                                                <div className="h-2 w-full relative z-30" style={{ backgroundColor: severityColors[adm.severity] }} />
+
+                                                {/* Efeito Glow para Gravidade Alta */}
+                                                {(adm.severity === 'high' || adm.severity === 'critical') && (
+                                                    <div className="absolute inset-0 z-10 pointer-events-none animate-glow" style={{ boxShadow: `inset 0 0 30px ${severityColors[adm.severity]}30` }} />
+                                                )}
 
                                                 {/* Header Integrado com Faixa Escura */}
                                                 <div className="relative z-20">
