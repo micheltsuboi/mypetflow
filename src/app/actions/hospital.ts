@@ -419,3 +419,36 @@ export async function getAllAdmissionMedications(admissionId: string) {
 
     return data || []
 }
+
+export async function getAllAdmissionsHistory(searchTerm?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return []
+
+    let query = supabase
+        .from('hospital_admissions')
+        .select(`
+            *,
+            pets (*, customers (name)),
+            hospital_beds (name, hospital_wards(name))
+        `)
+        .eq('org_id', profile.org_id)
+        .order('admitted_at', { ascending: false })
+        .limit(100)
+
+    if (searchTerm) {
+        query = query.ilike('pets.name', `%${searchTerm}%`)
+    }
+
+    const { data, error } = await query
+    if (error) console.error('getAllAdmissionsHistory', error)
+
+    // Filtro no lado do JS caso a busca aninhada falhe (limitação de queries nativas de nested resource non-foreign fk directly text)
+    if (data && searchTerm) {
+        return data.filter(d => d.pets && d.pets.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+
+    return data || []
+}

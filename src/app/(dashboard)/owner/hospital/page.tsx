@@ -5,6 +5,7 @@ import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, app
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
+import HospitalHistoryModal from '@/components/HospitalHistoryModal'
 
 export default function HospitalDashboard() {
     const [wards, setWards] = useState<any[]>([])
@@ -24,6 +25,7 @@ export default function HospitalDashboard() {
     // Modals
     const [showAdmitModal, setShowAdmitModal] = useState<string | null>(null) // bed_id
     const [showRecordModal, setShowRecordModal] = useState<any | null>(null) // admission
+    const [showHistoryModal, setShowHistoryModal] = useState(false)
 
     const loadData = async (silent = false) => {
         if (!silent) setLoading(true)
@@ -150,9 +152,14 @@ export default function HospitalDashboard() {
                     <h1 className="text-3xl font-bold text-coral mb-2" style={{ fontFamily: 'var(--font-montserrat)' }}>Hospital e Leitos</h1>
                     <p className="text-muted" style={{ fontFamily: 'var(--font-montserrat)' }}>Acompanhe os pacientes internados, aplique medicamentos e monitore gravidades.</p>
                 </div>
-                <Link href="/owner/hospital/config" className="btn btn-secondary" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                    ⚙️ Configurar Estrutura
-                </Link>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button onClick={() => setShowHistoryModal(true)} className="btn btn-primary" style={{ fontFamily: 'var(--font-montserrat)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span>📂</span> Histórico Completo
+                    </button>
+                    <Link href="/owner/hospital/config" className="btn btn-secondary" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                        ⚙️ Configurar Estrutura
+                    </Link>
+                </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
@@ -320,6 +327,10 @@ export default function HospitalDashboard() {
                         loadData(true)
                     }}
                 />
+            )}
+
+            {showHistoryModal && (
+                <HospitalHistoryModal onClose={() => setShowHistoryModal(false)} />
             )}
         </div>
     )
