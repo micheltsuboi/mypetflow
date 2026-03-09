@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, dischargePet, getAdmissionMedications } from '@/app/actions/hospital'
+import { getHospitalWards, getHospitalBeds, getActiveAdmissions, movePetBed, applyMedicationDose, getAdmissionMedications } from '@/app/actions/hospital'
 import Link from 'next/link'
 import AdmitPetModal from '@/components/AdmitPetModal'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
 import HospitalHistoryModal from '@/components/HospitalHistoryModal'
+import DischargeModal from '@/components/DischargeModal'
 
 export default function HospitalDashboard() {
     const [wards, setWards] = useState<any[]>([])
@@ -26,6 +27,7 @@ export default function HospitalDashboard() {
     const [showAdmitModal, setShowAdmitModal] = useState<string | null>(null) // bed_id
     const [showRecordModal, setShowRecordModal] = useState<any | null>(null) // admission
     const [showHistoryModal, setShowHistoryModal] = useState(false)
+    const [showDischargeModal, setShowDischargeModal] = useState<any | null>(null) // admission
 
     const loadData = async (silent = false) => {
         if (!silent) setLoading(true)
@@ -123,12 +125,7 @@ export default function HospitalDashboard() {
         setDraggedOriginBed(null)
     }
 
-    const onDischarge = async (admissionId: string, bedId: string) => {
-        if (confirm('Tem certeza que deseja dar alta para este pet?')) {
-            await dischargePet(admissionId, bedId)
-            loadData()
-        }
-    }
+    // Antigo onDischarge foi substituido pelo Modal de Faturamento
 
     const onApplyDose = async (medId: string, admId: string) => {
         await applyMedicationDose(medId, admId)
@@ -293,7 +290,7 @@ export default function HospitalDashboard() {
                                                             💉 Aplicar
                                                         </button>
                                                     )}
-                                                    <button className="flex-1 btn" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => onDischarge(adm.id, bed.id)}>
+                                                    <button className="flex-1 btn" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => setShowDischargeModal(adm)}>
                                                         Alta
                                                     </button>
                                                 </div>
@@ -331,6 +328,17 @@ export default function HospitalDashboard() {
 
             {showHistoryModal && (
                 <HospitalHistoryModal onClose={() => setShowHistoryModal(false)} />
+            )}
+
+            {showDischargeModal && (
+                <DischargeModal
+                    admission={showDischargeModal}
+                    onClose={() => setShowDischargeModal(null)}
+                    onSuccess={() => {
+                        setShowDischargeModal(null)
+                        loadData()
+                    }}
+                />
             )}
         </div>
     )

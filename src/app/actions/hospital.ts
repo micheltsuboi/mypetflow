@@ -48,15 +48,41 @@ export async function getActiveAdmissions() {
     const { data } = await supabase
         .from('hospital_admissions')
         .select(`
-            id, bed_id, pet_id, veterinarian_id, admitted_at, reason, severity, status,
+            id, bed_id, pet_id, veterinarian_id, admitted_at, reason, severity, status, service_id,
             pets ( name, species, breed, weight_kg, customers ( name ) ),
             veterinarians ( name ),
-            hospital_beds ( ward_id, name )
+            hospital_beds ( ward_id, name ),
+            services ( id, name, price )
         `)
         .eq('org_id', profile.org_id)
         .eq('status', 'active')
 
     return data || []
+}
+
+export async function getHospitalServices() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+
+    const { data } = await supabase
+        .from('services')
+        .select('*, service_categories(name)')
+        .eq('org_id', profile!.org_id)
+        .eq('is_active', true)
+        .ilike('service_categories.name', '%Internamento%')
+
+    // Since the API join ilike doesn't fully filter out null related records in Supabase perfectly without !inner, let's filter after:
+    const filtered = (data || []).filter(s => s.service_categories !== null)
+
+    // Fallback if no specific category was found, get 'Hospedagem' or any.
+    if (filtered.length === 0) {
+        const { data: fallback } = await supabase.from('services').select('*, service_categories(name)').eq('org_id', profile!.org_id).eq('is_active', true).order('name')
+        return fallback || []
+    }
+
+    return filtered;
 }
 
 export async function admitPet(formData: FormData) {
@@ -73,6 +99,7 @@ export async function admitPet(formData: FormData) {
         const veterinarian_id = formData.get('veterinarianId') as string || null
         const reason = formData.get('reason') as string
         const severity = formData.get('severity') as string
+        const service_id = formData.get('serviceId') as string || null
 
         if (!bed_id || !pet_id) {
             return { success: false, message: 'Leito e Pet são obrigatórios.' }
@@ -88,6 +115,7 @@ export async function admitPet(formData: FormData) {
                 veterinarian_id,
                 reason,
                 severity,
+                service_id,
                 created_by: user.id
             })
             .select()
@@ -109,28 +137,49 @@ export async function admitPet(formData: FormData) {
     }
 }
 
-export async function dischargePet(admissionId: string, bedId: string) {
+export async function dischargePetWithCheckout(admissionId: string, bedId: string, checkoutData: { total_amount: number, discount_amount: number, payment_method: string }) {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, message: 'Não autorizado.' }
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
 
         // Discharge admission
         const { error } = await supabase
             .from('hospital_admissions')
             .update({
                 status: 'discharged',
-                discharged_at: new Date().toISOString()
+                discharged_at: new Date().toISOString(),
+                total_amount: checkoutData.total_amount,
+                discount_amount: checkoutData.discount_amount,
+                payment_method: checkoutData.payment_method,
+                payment_status: 'paid'
             })
             .eq('id', admissionId)
 
-        if (error) return { success: false, message: 'Erro ao dar alta.' }
+        if (error) return { success: false, message: 'Erro ao dar alta e fechar faturamento.' }
+
+        // Register Financial Transaction
+        if (checkoutData.total_amount > 0) {
+            await supabase.from('financial_transactions').insert({
+                org_id: profile!.org_id,
+                type: 'income',
+                category: 'Internamento / Hospital',
+                amount: checkoutData.total_amount,
+                description: `Pagamento de Internamento - Ficha #${admissionId.substring(0, 8)}`,
+                payment_method: checkoutData.payment_method,
+                date: new Date().toISOString(),
+                created_by: user.id,
+                reference_id: admissionId // Can use reference_id for tracking
+            })
+        }
 
         // Free bed
         await supabase.from('hospital_beds').update({ status: 'available' }).eq('id', bedId)
 
         revalidatePath('/owner/hospital')
-        return { success: true, message: 'Alta registrada com sucesso.' }
+        return { success: true, message: 'Alta registrada e receita lançada com sucesso.' }
     } catch (error) {
         console.error('dischargePet error:', error)
         return { success: false, message: 'Erro inesperado.' }

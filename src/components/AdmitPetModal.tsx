@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { getVeterinarians } from '@/app/actions/veterinary'
-import { admitPet } from '@/app/actions/hospital'
+import { admitPet, getHospitalServices } from '@/app/actions/hospital'
 import { createClient } from '@/lib/supabase/client'
 
 export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: string, onClose: () => void, onSuccess: () => void }) {
     const [pets, setPets] = useState<any[]>([])
     const [vets, setVets] = useState<any[]>([])
+    const [services, setServices] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
     const supabase = createClient()
 
@@ -27,6 +28,9 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
 
             const vData = await getVeterinarians()
             setVets(vData || [])
+
+            const sData = await getHospitalServices()
+            setServices(sData || [])
         }
         loadData()
     }, [supabase])
@@ -49,7 +53,7 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
 
     return (
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
-            <div className="card glass relative" style={{ width: '100%', maxWidth: '500px' }}>
+            <div className="card glass relative" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-primary">Internar Paciente</h2>
                     <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
@@ -67,8 +71,18 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
                     </div>
 
                     <div>
+                        <label className="label">Serviço / Faturamento Base</label>
+                        <select name="serviceId" required className="input glass">
+                            <option value="">Selecione a Tabela de Preço...</option>
+                            {services.map(s => (
+                                <option key={s.id} value={s.id} className="text-navy">{s.name} - R$ {s.price?.toFixed(2)}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
                         <label className="label">Motivo do Internamento / Sintomas</label>
-                        <textarea name="reason" required rows={3} className="input glass" placeholder="Descreva o que houve..." />
+                        <textarea name="reason" required rows={2} className="input glass" placeholder="Descreva o que houve..." />
                     </div>
 
                     <div>
