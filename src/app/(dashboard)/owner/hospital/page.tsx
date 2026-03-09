@@ -17,6 +17,7 @@ export default function HospitalDashboard() {
 
     // UI state
     const [loading, setLoading] = useState(true)
+    const [updatingStatus, setUpdatingStatus] = useState<string | null>(null) // admissionId
     const [collapsedWards, setCollapsedWards] = useState<Set<string>>(new Set())
 
     // Drag and Drop
@@ -158,15 +159,43 @@ export default function HospitalDashboard() {
     }
 
     const onUpdateSeverity = async (admissionId: string, severity: string) => {
+        // Atualização Otimista
+        const oldAdmissions = [...admissions]
+        setAdmissions(prev => prev.map(a => a.id === admissionId ? { ...a, severity } : a))
+        setUpdatingStatus(admissionId)
+
         const res = await updateAdmissionSeverity(admissionId, severity)
-        if (res.success) {
+        setUpdatingStatus(null)
+
+        if (!res.success) {
+            alert(res.message || 'Erro ao atualizar gravidade')
+            setAdmissions(oldAdmissions)
+        } else {
+            // Recarrega silenciosamente para alinhar estados complexos (como animações de glow que dependem do server-side state se houver delay)
             loadData(true)
         }
     }
 
     const onApplyDose = async (medId: string, admId: string) => {
-        await applyMedicationDose(medId, admId)
-        loadData(true)
+        // Atualização Otimista: Remove a medicação da lista de pendências imediatas na UI
+        const oldMeds = { ...medications }
+        setMedications(prev => {
+            const newMeds = { ...prev }
+            if (newMeds[admId]) {
+                newMeds[admId] = newMeds[admId].map(m =>
+                    m.id === medId ? { ...m, next_dose_at: new Date(Date.now() + 86400000).toISOString() } : m
+                )
+            }
+            return newMeds
+        })
+
+        const res = await applyMedicationDose(medId, admId)
+        if (!res.success) {
+            setMedications(oldMeds)
+            alert(res.message || 'Erro ao aplicar dose')
+        } else {
+            loadData(true)
+        }
     }
 
     if (loading && wards.length === 0) return (
@@ -338,6 +367,11 @@ export default function HospitalDashboard() {
                                                                 🖐️ <span className="hidden sm:inline">Mover</span>
                                                             </span>
                                                         </div>
+                                                        {updatingStatus === adm.id && (
+                                                            <div className="absolute top-10 right-4 animate-spin text-sky text-xs font-bold">
+                                                                ⏳
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
 
