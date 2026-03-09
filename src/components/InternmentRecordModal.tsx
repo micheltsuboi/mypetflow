@@ -36,13 +36,17 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
         formData.append('petId', admission.pet_id)
 
         const res = await prescreverMedicacao(formData)
-        setLoading(false)
         if (res.success) {
             e.currentTarget.reset()
-            await loadRecords()
-            onSuccess()
-            setShowPrescriptionForm(false)
+            // Pequeno delay para garantir que o insert foi processado antes do fetch
+            setTimeout(async () => {
+                await loadRecords()
+                onSuccess()
+                setLoading(false)
+                setShowPrescriptionForm(false)
+            }, 500)
         } else {
+            setLoading(false)
             alert(res.message)
         }
     }
@@ -94,38 +98,41 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
             <div className="card glass relative flex flex-col p-0" style={{ width: '100%', maxWidth: '900px', maxHeight: '90vh', padding: 0, overflow: 'hidden', border: '1px solid rgba(0, 228, 206, 0.2)', fontFamily: 'var(--font-montserrat)' }}>
                 {/* Header */}
-                <div className="flex justify-between items-center" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(140, 180, 201, 0.1)', backgroundColor: 'var(--bg-secondary)' }}>
-                    <div className="flex gap-4 items-center">
-                        <div>
-                            <h2 className="text-2xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>🩺 Prontuário Clínico</h2>
-                            <p className="text-muted text-sm" style={{ margin: '4px 0 0 0' }}>
-                                Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span style={{ color: '#fff' }}>{admission.pets.customers?.name}</span>
-                            </p>
+                <div className="relative" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                    <div className="absolute inset-0 bg-navy-dark/40 backdrop-blur-sm" />
+                    <div className="flex justify-between items-center relative z-10" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(140, 180, 201, 0.1)' }}>
+                        <div className="flex gap-4 items-center">
+                            <div>
+                                <h2 className="text-2xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontFamily: 'var(--font-montserrat)' }}>🩺 Prontuário Clínico</h2>
+                                <p className="text-muted text-sm" style={{ margin: '4px 0 0 0', fontFamily: 'var(--font-montserrat)' }}>
+                                    Paciente: <span className="text-sky font-bold">{admission.pets.name}</span> ({admission.pets.species === 'cat' ? 'Felino' : 'Canino'}) • Tutor: <span style={{ color: '#fff' }}>{admission.pets.customers?.name}</span>
+                                </p>
+                            </div>
+                            <div style={{ marginLeft: '1rem', borderLeft: '1px solid rgba(140, 180, 201, 0.2)', paddingLeft: '1.5rem' }}>
+                                <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', fontFamily: 'var(--font-montserrat)' }}>Status Clínico Atual</label>
+                                <select
+                                    value={currentSeverity}
+                                    onChange={(e) => handleUpdateSeverity(e.target.value)}
+                                    className="input"
+                                    style={{
+                                        padding: '4px 12px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 700,
+                                        width: 'auto',
+                                        color: currentSeverity === 'low' ? 'var(--status-done)' : currentSeverity === 'medium' ? 'var(--status-pending)' : currentSeverity === 'high' ? 'var(--status-in-progress)' : 'var(--status-canceled)',
+                                        backgroundColor: 'rgba(27, 59, 90, 0.3)',
+                                        fontFamily: 'var(--font-montserrat)'
+                                    }}
+                                >
+                                    <option value="low">🟢 Estável / Baixa Gravidade</option>
+                                    <option value="medium">🟡 Moderado / Observação</option>
+                                    <option value="high">🟠 Grave / Atenção Constante</option>
+                                    <option value="critical">🔴 Crítico / Risco Iminente</option>
+                                </select>
+                            </div>
                         </div>
-                        <div style={{ marginLeft: '1rem', borderLeft: '1px solid rgba(140, 180, 201, 0.2)', paddingLeft: '1.5rem' }}>
-                            <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Status Clínico Atual</label>
-                            <select
-                                value={currentSeverity}
-                                onChange={(e) => handleUpdateSeverity(e.target.value)}
-                                className="input"
-                                style={{
-                                    padding: '4px 12px',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    width: 'auto',
-                                    color: currentSeverity === 'low' ? 'var(--status-done)' : currentSeverity === 'medium' ? 'var(--status-pending)' : currentSeverity === 'high' ? 'var(--status-in-progress)' : 'var(--status-canceled)',
-                                    backgroundColor: 'rgba(27, 59, 90, 0.3)',
-                                    fontFamily: 'var(--font-montserrat)'
-                                }}
-                            >
-                                <option value="low">🟢 Estável / Baixa Gravidade</option>
-                                <option value="medium">🟡 Moderado / Observação</option>
-                                <option value="high">🟠 Grave / Atenção Constante</option>
-                                <option value="critical">🔴 Crítico / Risco Iminente</option>
-                            </select>
-                        </div>
+                        <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                     </div>
-                    <button onClick={onClose} className="text-muted" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
                 </div>
 
                 {/* Tabs */}

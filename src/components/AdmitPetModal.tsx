@@ -68,8 +68,8 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
         <div className="flex items-center justify-center p-4 animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
             <div className="card glass relative" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto' }}>
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-primary">Internar Paciente</h2>
-                    <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                    <h2 className="text-2xl font-bold text-primary" style={{ fontFamily: 'var(--font-montserrat)' }}>Internar Paciente</h2>
+                    <button onClick={onClose} className="text-muted hover:text-white transition-colors" style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', lineHeight: 1, fontFamily: 'var(--font-montserrat)' }}>✕</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -125,8 +125,8 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4 pt-4 border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                        <button type="button" onClick={onClose} className="btn btn-outline text-muted">Cancelar</button>
-                        <button type="submit" disabled={loading} className="btn btn-primary">
+                        <button type="button" onClick={onClose} className="btn btn-outline text-muted" style={{ fontFamily: 'var(--font-montserrat)' }}>Cancelar</button>
+                        <button type="submit" disabled={loading} className="btn btn-primary" style={{ fontFamily: 'var(--font-montserrat)' }}>
                             {loading ? 'Processando...' : 'Confirmar Internamento'}
                         </button>
                     </div>

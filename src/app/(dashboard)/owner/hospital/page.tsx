@@ -125,8 +125,6 @@ export default function HospitalDashboard() {
         setDraggedOriginBed(null)
     }
 
-    // Antigo onDischarge foi substituido pelo Modal de Faturamento
-
     const onUpdateSeverity = async (admissionId: string, severity: string) => {
         const res = await updateAdmissionSeverity(admissionId, severity)
         if (res.success) {
@@ -239,10 +237,10 @@ export default function HospitalDashboard() {
                                         const nextMeds = (medications[adm.id] || []).filter(m => new Date(m.next_dose_at) <= new Date(Date.now() + 3600000))
 
                                         const severityColors: any = {
-                                            'low': 'var(--status-done)',
-                                            'medium': 'var(--status-pending)',
-                                            'high': 'var(--status-in-progress)',
-                                            'critical': 'var(--status-canceled)'
+                                            'low': '#7AC9A0',
+                                            'medium': '#F0A090',
+                                            'high': '#E8826A',
+                                            'critical': '#D46B6B'
                                         };
 
                                         const severityGlows: any = {
@@ -259,87 +257,111 @@ export default function HospitalDashboard() {
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e, adm.id, bed.id)}
                                                 style={{
-                                                    border: `1px solid ${severityColors[adm.severity]}30`,
-                                                    borderTop: `8px solid ${severityColors[adm.severity]}`,
-                                                    backgroundColor: severityGlows[adm.severity],
-                                                    boxShadow: adm.severity === 'critical' ? '0 0 25px rgba(212, 107, 107, 0.25)' : 'none',
+                                                    border: `1px solid ${severityColors[adm.severity]}40`,
+                                                    background: `linear-gradient(180deg, ${severityGlows[adm.severity]} 0%, rgba(22, 38, 56, 0.4) 100%)`,
+                                                    boxShadow: adm.severity === 'critical' ? '0 0 40px rgba(212, 107, 107, 0.3)' : 'var(--shadow-lg)',
                                                     position: 'relative'
                                                 }}
                                             >
-                                                {/* Stripe Lateral de Destaque - Com Bordas Arredondadas */}
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    left: 0,
-                                                    top: 0,
-                                                    bottom: 0,
-                                                    width: '5px',
-                                                    backgroundColor: severityColors[adm.severity],
-                                                    opacity: 0.8,
-                                                    borderRadius: '16px 0 0 16px' // Forçamos o arredondamento para casar com o Card
-                                                }}></div>
+                                                {/* Faixa Superior de Gravidade (Interna para respeitar bordas redondas) */}
+                                                <div className="h-1 w-full relative z-30" style={{ backgroundColor: severityColors[adm.severity] }} />
 
-                                                <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)', backgroundColor: 'rgba(22, 38, 56, 0.8)', paddingLeft: '1.25rem', position: 'relative', zIndex: 1 }}>
-                                                    <span className="font-bold text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{bed.name}</span>
-                                                    <select
-                                                        value={adm.severity}
-                                                        onChange={(e) => onUpdateSeverity(adm.id, e.target.value)}
-                                                        className="text-[10px] uppercase font-bold px-2 py-1 rounded bg-tertiary border-none cursor-pointer"
-                                                        style={{
-                                                            color: severityColors[adm.severity],
-                                                            backgroundColor: `${severityColors[adm.severity]}15`,
-                                                            fontFamily: 'var(--font-montserrat)'
-                                                        }}
-                                                    >
-                                                        <option value="low">🟢 Estável</option>
-                                                        <option value="medium">🟡 Moderado</option>
-                                                        <option value="high">🟠 Grave</option>
-                                                        <option value="critical">🔴 Crítico</option>
-                                                    </select>
-                                                    <span className="cursor-grab hover:text-white transition-colors text-[10px] uppercase font-bold tracking-widest text-muted" style={{ fontFamily: 'var(--font-montserrat)' }} title="Arrastar Pet para outro leito">
-                                                        🖐️ Mover
-                                                    </span>
+                                                {/* Header Integrado com Faixa Escura */}
+                                                <div className="relative z-20">
+                                                    <div className="absolute inset-0 bg-navy-dark/70 backdrop-blur-md transition-all group-hover:bg-navy-dark/90" />
+                                                    <div className="flex justify-between items-center px-4 py-2.5 relative z-10 border-b border-white/5">
+                                                        <div className="flex items-center">
+                                                            <div className="bg-navy-dark border border-white/10 px-2 py-1.5 rounded-sm min-w-[50px] text-center shadow-inner hover:scale-105 transition-transform" title="Identificação do Leito">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                                                                    {bed.name}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <select
+                                                                value={adm.severity}
+                                                                onChange={(e) => onUpdateSeverity(adm.id, e.target.value)}
+                                                                className="text-[9px] uppercase font-black px-3 py-1.5 rounded-full cursor-pointer transition-all border outline-none appearance-none hover:brightness-110"
+                                                                style={{
+                                                                    fontFamily: 'var(--font-montserrat)',
+                                                                    color: severityColors[adm.severity],
+                                                                    backgroundColor: `${severityColors[adm.severity]}15`,
+                                                                    borderColor: `${severityColors[adm.severity]}40`,
+                                                                    textAlign: 'center',
+                                                                    minWidth: '94px'
+                                                                }}
+                                                            >
+                                                                <option value="low">🟢 Estável</option>
+                                                                <option value="medium">🟡 Moderado</option>
+                                                                <option value="high">🟠 Grave</option>
+                                                                <option value="critical">🔴 Crítico</option>
+                                                            </select>
+                                                            <span className="cursor-grab hover:text-white transition-colors text-[10px] uppercase font-black tracking-widest text-muted" style={{ fontFamily: 'var(--font-montserrat)' }} title="Arrastar Pet para outro leito">
+                                                                🖐️ <span className="hidden sm:inline">Mover</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                <div className="p-4 flex flex-col flex-1 gap-3 bg-tertiary">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="flex items-center justify-center text-2xl bg-primary-light text-navy font-bold rounded-full" style={{ width: '40px', height: '40px', flexShrink: 0 }}>
-                                                            {pet.species === 'cat' ? '🐱' : '🐶'}
+                                                <div className="p-4 pt-4 flex flex-col flex-1 gap-4 relative z-20">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="relative">
+                                                            {pet.photo_url ? (
+                                                                <img src={pet.photo_url} alt={pet.name} className="w-14 h-14 rounded-full object-cover border-2 border-white/10 p-0.5" />
+                                                            ) : (
+                                                                <div className="w-14 h-14 rounded-full bg-navy-light/30 flex items-center justify-center text-2xl border border-white/10">
+                                                                    {pet.species === 'cat' ? '🐱' : '🐶'}
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-navy-dark flex items-center justify-center text-[10px] border border-white/20">
+                                                                {pet.species === 'dog' ? '🦴' : '🐟'}
+                                                            </div>
                                                         </div>
-                                                        <div className="flex flex-col" style={{ minWidth: 0 }}>
-                                                            <h3 className="text-md font-bold text-primary m-0 truncate" style={{ fontFamily: 'var(--font-montserrat)' }}>{pet.name}</h3>
-                                                            <p className="text-[10px] text-secondary m-0 truncate" style={{ fontFamily: 'var(--font-montserrat)' }}>{pet.breed} • {pet.weight_kg}kg</p>
-                                                            <p className="text-[10px] text-muted m-0 mt-1 truncate" style={{ fontFamily: 'var(--font-montserrat)' }}>Tutor: {pet.customers?.name}</p>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <h3 className="text-lg font-black text-white m-0 truncate leading-tight tracking-tight" style={{ fontFamily: 'var(--font-montserrat)' }}>{pet.name}</h3>
+                                                            <p className="text-[11px] text-sky/80 m-0 truncate font-semibold" style={{ fontFamily: 'var(--font-montserrat)' }}>{pet.breed || 'SRD'} • {pet.weight_kg}kg</p>
+                                                            <p className="text-[10px] text-muted m-0 mt-0.5 truncate italic" style={{ fontFamily: 'var(--font-montserrat)' }}>Tutor: {pet.customers?.name}</p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="text-[11px] text-secondary p-2 rounded bg-secondary line-clamp-2" style={{ fontFamily: 'var(--font-montserrat)' }} title={adm.reason}>
-                                                        <strong className="block mb-1 text-white uppercase text-[9px] tracking-widest">Motivo:</strong>
-                                                        {adm.reason}
+                                                    <div className="bg-navy-dark/30 p-3 rounded-lg border border-white/5 group-hover:bg-navy-dark/50 transition-colors">
+                                                        <strong className="block text-[8px] uppercase tracking-[0.2em] text-coral mb-1 font-black" style={{ fontFamily: 'var(--font-montserrat)' }}>Motivo do Internamento</strong>
+                                                        <p className="text-[11px] text-secondary line-clamp-2 leading-snug" style={{ fontFamily: 'var(--font-montserrat)' }}>{adm.reason || 'Não informado'}</p>
                                                     </div>
 
-                                                    {nextMeds.length > 0 ? (
-                                                        <div className="text-xs p-2 rounded flex items-center gap-1 font-bold" style={{ backgroundColor: 'rgba(232, 130, 106, 0.1)', color: 'var(--status-pending)', border: '1px solid var(--status-pending)' }}>
-                                                            ⏰ Próxima Med.: {nextMeds[0].name}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs text-muted p-2 bg-secondary rounded border-dashed border">
-                                                            Sem medicações
-                                                        </div>
-                                                    )}
+                                                    <div className="mt-auto">
+                                                        {nextMeds.length > 0 ? (
+                                                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-orange-500/5 border border-orange-500/20 animate-pulse">
+                                                                <span className="text-sm">⏰</span>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-[8px] uppercase font-black text-orange-400 tracking-wider">Próxima Medicação</span>
+                                                                    <span className="text-[10px] text-white font-bold truncate">{nextMeds[0].name}</span>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                                                                <span className="text-sm">✅</span>
+                                                                <span className="text-[10px] text-muted font-medium italic">Sem pendências imediatas</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
 
-                                                <div className="flex p-3 gap-2 bg-secondary border-t" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                    <button className="flex-1 btn btn-outline" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px' }} onClick={() => setShowRecordModal(adm)}>
+                                                <div className="grid grid-cols-2 p-3 gap-2 bg-black/20 mt-2 backdrop-blur-sm relative z-20">
+                                                    <button className="btn btn-outline border-white/10 hover:bg-white/5 !text-[10px] !py-2 !px-3 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => setShowRecordModal(adm)}>
                                                         🩺 Prontuário
                                                     </button>
-                                                    {nextMeds.length > 0 && (
-                                                        <button className="flex-1 btn btn-primary" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
-                                                            💉 Aplicar
+                                                    <div className="flex gap-1">
+                                                        {nextMeds.length > 0 && (
+                                                            <button className="flex-1 btn btn-primary !text-[10px] !py-2 !px-2 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
+                                                                💉 Aplicar
+                                                            </button>
+                                                        )}
+                                                        <button className={`btn ${nextMeds.length > 0 ? 'w-12' : 'flex-1'} bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 border border-emerald-500/30 !text-[10px] !py-2 !px-2 font-black uppercase tracking-tighter`} style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => setShowDischargeModal(adm)}>
+                                                            Alta
                                                         </button>
-                                                    )}
-                                                    <button className="flex-1 btn" style={{ padding: '8px 4px', fontSize: '11px', minHeight: '36px', backgroundColor: 'rgba(122, 201, 160, 0.15)', color: 'var(--status-done)', border: '1px solid var(--status-done)' }} onClick={() => setShowDischargeModal(adm)}>
-                                                        Alta
-                                                    </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         )
