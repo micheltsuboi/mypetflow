@@ -279,11 +279,11 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                         required
                                         rows={4}
                                         className="input text-sm"
-                                        style={{ resize: 'none', backgroundColor: 'rgba(27, 59, 90, 0.4)' }}
+                                        style={{ resize: 'none', backgroundColor: 'rgba(27, 59, 90, 0.4)', fontFamily: 'var(--font-montserrat)' }}
                                         placeholder="Descreva o estado atual do paciente, apetite, comportamento..."
                                     />
                                     <div className="flex" style={{ justifyContent: 'flex-end' }}>
-                                        <button type="submit" disabled={loading} className="btn btn-primary" style={{ padding: '10px 32px' }}>
+                                        <button type="submit" disabled={loading} className="btn btn-primary" style={{ padding: '10px 32px', fontFamily: 'var(--font-montserrat)' }}>
                                             {loading ? 'Salvando...' : 'Registrar Evolução'}
                                         </button>
                                     </div>
@@ -291,8 +291,8 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                             </section>
 
                             <section style={{ flex: 1 }}>
-                                <h3 className="text-lg font-bold mb-6" style={{ color: '#fff' }}>Linha do Tempo de Evolução</h3>
-                                <div className="flex flex-col gap-6" style={{ position: 'relative', paddingLeft: '2rem', marginLeft: '1rem' }}>
+                                <h3 className="text-lg font-bold mb-6" style={{ color: '#fff', fontFamily: 'var(--font-montserrat)' }}>Linha do Tempo de Evolução</h3>
+                                <div className="flex flex-col gap-6" style={{ position: 'relative', paddingLeft: '2rem', marginLeft: '1rem', fontFamily: 'var(--font-montserrat)' }}>
                                     <div style={{ position: 'absolute', left: 0, top: '8px', width: '2px', height: 'calc(100% - 16px)', background: 'linear-gradient(180deg, var(--color-sky) 0%, rgba(42, 86, 130, 0.5) 100%)' }}></div>
 
                                     {observations.length === 0 ? (
