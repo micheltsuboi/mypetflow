@@ -369,11 +369,11 @@ export default function HospitalDashboard() {
 
                                                 <div className="p-4 pt-4 flex flex-col flex-1 gap-4 relative z-20">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="relative">
+                                                        <div className="relative w-14 h-14 flex-shrink-0">
                                                             {pet.photo_url ? (
-                                                                <img src={pet.photo_url} alt={pet.name} className="w-14 h-14 rounded-full object-cover border-2 border-white/10 p-0.5" />
+                                                                <img src={pet.photo_url} alt={pet.name} className="w-full h-full rounded-full object-cover border-2 border-white/10 p-0.5" />
                                                             ) : (
-                                                                <div className="w-14 h-14 rounded-full bg-navy-light/30 flex items-center justify-center text-2xl border border-white/10">
+                                                                <div className="w-full h-full rounded-full bg-navy-light/30 flex items-center justify-center text-2xl border border-white/10">
                                                                     {pet.species === 'cat' ? '🐱' : '🐶'}
                                                                 </div>
                                                             )}
