@@ -9,6 +9,7 @@ export default function InternmentRecordModal({ admission, activeMedications, on
     const [medicationLogs, setMedicationLogs] = useState<any[]>([])
     const [observations, setObservations] = useState<any[]>([])
     const [applyNotes, setApplyNotes] = useState<Record<string, string>>({})
+    const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
 
     const loadRecords = async () => {
         const [logs, obs] = await Promise.all([
@@ -166,38 +167,72 @@ export default function InternmentRecordModal({ admission, activeMedications, on
                                 )}
                             </section>
 
-                            <section className="bg-secondary p-8 rounded-2xl border" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                <h3 className="text-md font-bold text-coral mb-6 mt-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-coral bg-opacity-20 text-xs text-white">＋</span>
-                                    Nova Prescrição Médica
-                                </h3>
-                                <form onSubmit={handlePrescribe} className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                                    <div className="md:col-span-5">
-                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Medicamento</label>
-                                        <input type="text" name="name" required className="input text-sm" placeholder="Ex: Dipirona gotas" />
-                                    </div>
-                                    <div className="md:col-span-4">
-                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Dose e Via</label>
-                                        <input type="text" name="dosage" required className="input text-sm" placeholder="Ex: 5 gotas VO" />
-                                    </div>
-                                    <div className="md:col-span-3">
-                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Intervalo (h)</label>
-                                        <input type="number" name="frequencyHours" required min="1" className="input text-sm" placeholder="Ex: 8" />
-                                    </div>
-                                    <div className="md:col-span-12">
-                                        <label className="label text-[11px] uppercase tracking-wider font-bold">Recomendações e Observações Livres</label>
-                                        <textarea name="notes" className="input text-sm py-3" style={{ resize: 'none' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
-                                    </div>
-                                    <div className="md:col-span-12 flex justify-end mt-2">
-                                        <button type="submit" disabled={loading} className="btn btn-primary shadow-glow-coral py-3 px-10">
-                                            {loading ? '...' : 'Salvar Prescrição'}
+                            <section className="bg-secondary p-8 rounded-2xl border transition-all" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
+                                {!showPrescriptionForm ? (
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex flex-col">
+                                            <h3 className="text-md font-bold text-white m-0" style={{ fontFamily: 'var(--font-montserrat)' }}>Prescrições Médicas</h3>
+                                            <p className="text-xs text-muted mb-0">Adicione novos medicamentos ou tratamentos</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowPrescriptionForm(true)}
+                                            className="btn btn-primary px-6 flex items-center gap-2"
+                                            style={{ fontFamily: 'var(--font-montserrat)' }}
+                                        >
+                                            <span style={{ fontSize: '1.2rem' }}>＋</span> Nova Prescrição
                                         </button>
                                     </div>
-                                </form>
+                                ) : (
+                                    <>
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="text-md font-bold text-coral m-0 flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                                                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-coral bg-opacity-20 text-xs text-white">＋</span>
+                                                Nova Prescrição Médica
+                                            </h3>
+                                            <button
+                                                onClick={() => setShowPrescriptionForm(false)}
+                                                className="text-xs text-muted hover:text-white underline"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                        <form onSubmit={handlePrescribe} className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                            <div className="md:col-span-5">
+                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Medicamento</label>
+                                                <input type="text" name="name" required className="input text-sm" placeholder="Ex: Dipirona gotas" />
+                                            </div>
+                                            <div className="md:col-span-4">
+                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Dose e Via</label>
+                                                <input type="text" name="dosage" required className="input text-sm" placeholder="Ex: 5 gotas VO" />
+                                            </div>
+                                            <div className="md:col-span-3">
+                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Intervalo (h)</label>
+                                                <input type="number" name="frequencyHours" required min="1" className="input text-sm" placeholder="Ex: 8" />
+                                            </div>
+                                            <div className="md:col-span-12">
+                                                <label className="label text-[11px] uppercase tracking-wider font-bold">Recomendações e Observações Livres</label>
+                                                <textarea name="notes" className="input text-sm py-3" style={{ resize: 'none' }} rows={2} placeholder="Descreva aqui orientações ou observações adicionais para este medicamento..."></textarea>
+                                            </div>
+                                            <div className="md:col-span-12 flex justify-end mt-2">
+                                                <button type="submit" disabled={loading} className="btn btn-primary shadow-glow-coral py-3 px-10">
+                                                    {loading ? '...' : 'Salvar Prescrição'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </>
+                                )}
                             </section>
 
                             <section>
-                                <h3 className="text-lg font-bold text-secondary mb-4" style={{ fontFamily: 'var(--font-montserrat)' }}>Histórico de Aplicações</h3>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-bold text-white m-0" style={{ fontFamily: 'var(--font-montserrat)' }}>Histórico de Aplicações</h3>
+                                    <button
+                                        onClick={loadRecords}
+                                        className="text-[10px] text-sky hover:text-white uppercase font-bold tracking-widest bg-navy bg-opacity-30 px-3 py-1 rounded-full border border-sky border-opacity-20"
+                                    >
+                                        🔄 Atualizar
+                                    </button>
+                                </div>
                                 <div className="flex flex-col gap-3">
                                     {medicationLogs.length === 0 ? (
                                         <p className="text-sm text-muted italic p-10 text-center border-2 border-dashed border-navy-light rounded-xl">Nenhum registro de aplicação encontrado.</p>

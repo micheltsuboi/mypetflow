@@ -147,10 +147,10 @@ export default function HospitalDashboard() {
         <div className="container p-6 animate-fadeIn">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-coral mb-2">Hospital e Leitos</h1>
-                    <p className="text-muted">Acompanhe os pacientes internados, aplique medicamentos e monitore gravidades.</p>
+                    <h1 className="text-3xl font-bold text-coral mb-2" style={{ fontFamily: 'var(--font-montserrat)' }}>Hospital e Leitos</h1>
+                    <p className="text-muted" style={{ fontFamily: 'var(--font-montserrat)' }}>Acompanhe os pacientes internados, aplique medicamentos e monitore gravidades.</p>
                 </div>
-                <Link href="/owner/hospital/config" className="btn btn-secondary">
+                <Link href="/owner/hospital/config" className="btn btn-secondary" style={{ fontFamily: 'var(--font-montserrat)' }}>
                     ⚙️ Configurar Estrutura
                 </Link>
             </div>
@@ -191,17 +191,17 @@ export default function HospitalDashboard() {
                                 style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
                                 onClick={() => toggleWard(ward.id)}
                             >
-                                <span className="text-lg font-bold flex items-center gap-2">
+                                <span className="text-lg font-bold flex items-center gap-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
                                     {isCollapsed ? '▶' : '▼'}
                                     <span style={{ color: ward.color }}>{ward.name}</span>
-                                    <span className="text-sm text-secondary font-normal badge badge-confirmed ml-2">
+                                    <span className="text-sm text-secondary font-normal badge badge-confirmed ml-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
                                         {wardBeds.filter(b => b.status === 'occupied').length} / {wardBeds.length} Ocupados
                                     </span>
                                 </span>
                             </div>
 
                             {!isCollapsed && (
-                                <div className="p-8 bg-tertiary grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                                <div className="p-8 bg-tertiary grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-6">
                                     {wardBeds.map(bed => {
                                         const adm = admissions.find(a => a.bed_id === bed.id)
                                         const isDragOver = dragOverBedId === bed.id
@@ -211,12 +211,12 @@ export default function HospitalDashboard() {
                                                 <div
                                                     key={bed.id}
                                                     className={`card flex flex-col items-center justify-center p-6 transition-transform ${isDragOver ? 'scale-105 border-sky' : ''}`}
-                                                    style={{ border: isDragOver ? '2px dashed var(--color-sky)' : '2px dashed rgba(140, 180, 201, 0.2)', backgroundColor: isDragOver ? 'rgba(0, 228, 206, 0.1)' : 'transparent', minHeight: '180px' }}
+                                                    style={{ border: isDragOver ? '2px dashed var(--color-sky)' : '2px dashed rgba(140, 180, 201, 0.2)', backgroundColor: isDragOver ? 'rgba(0, 228, 206, 0.1)' : 'transparent', minHeight: '180px', fontFamily: 'var(--font-montserrat)' }}
                                                     onDragOver={(e) => handleDragOver(e, bed.id)}
                                                     onDragLeave={handleDragLeave}
                                                     onDrop={(e) => handleDrop(e, bed.id)}
                                                 >
-                                                    <h3 className="text-lg font-bold text-muted mb-4">{bed.name}</h3>
+                                                    <h3 className="text-lg font-bold text-muted mb-4" style={{ fontFamily: 'var(--font-montserrat)' }}>{bed.name}</h3>
                                                     <button className="btn btn-primary" style={{ padding: '8px 16px', fontSize: '0.8rem' }} onClick={() => setShowAdmitModal(bed.id)}>
                                                         + Internar
                                                     </button>
@@ -243,8 +243,8 @@ export default function HospitalDashboard() {
                                                 style={{ borderTop: `4px solid ${severityColors[adm.severity]}` }}
                                             >
                                                 <div className="flex justify-between items-center p-3 bg-secondary border-b" style={{ borderColor: 'rgba(140, 180, 201, 0.1)' }}>
-                                                    <span className="font-bold text-sky">{bed.name}</span>
-                                                    <span className="cursor-grab hover:text-white transition-colors" title="Arrastar Pet para outro leito">
+                                                    <span className="font-bold text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{bed.name}</span>
+                                                    <span className="cursor-grab hover:text-white transition-colors text-[10px] uppercase font-bold tracking-widest text-muted" style={{ fontFamily: 'var(--font-montserrat)' }} title="Arrastar Pet para outro leito">
                                                         🖐️ Mover
                                                     </span>
                                                 </div>
@@ -255,14 +255,14 @@ export default function HospitalDashboard() {
                                                             {pet.species === 'cat' ? '🐱' : '🐶'}
                                                         </div>
                                                         <div className="flex flex-col" style={{ minWidth: 0 }}>
-                                                            <h3 className="text-lg font-bold text-primary m-0 truncate">{pet.name}</h3>
-                                                            <p className="text-xs text-secondary m-0 truncate">{pet.breed} • {pet.weight_kg}kg</p>
-                                                            <p className="text-xs text-muted m-0 mt-1 truncate">Tutor: {pet.customers?.name}</p>
+                                                            <h3 className="text-md font-bold text-primary m-0 truncate" style={{ fontFamily: 'var(--font-montserrat)' }}>{pet.name}</h3>
+                                                            <p className="text-[10px] text-secondary m-0 truncate" style={{ fontFamily: 'var(--font-montserrat)' }}>{pet.breed} • {pet.weight_kg}kg</p>
+                                                            <p className="text-[10px] text-muted m-0 mt-1 truncate" style={{ fontFamily: 'var(--font-montserrat)' }}>Tutor: {pet.customers?.name}</p>
                                                         </div>
                                                     </div>
 
-                                                    <div className="text-xs text-secondary p-2 rounded bg-secondary line-clamp-2" title={adm.reason}>
-                                                        <strong className="block mb-1 text-white">Motivo:</strong>
+                                                    <div className="text-[11px] text-secondary p-2 rounded bg-secondary line-clamp-2" style={{ fontFamily: 'var(--font-montserrat)' }} title={adm.reason}>
+                                                        <strong className="block mb-1 text-white uppercase text-[9px] tracking-widest">Motivo:</strong>
                                                         {adm.reason}
                                                     </div>
 
