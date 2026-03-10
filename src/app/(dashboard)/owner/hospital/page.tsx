@@ -59,7 +59,9 @@ export default function HospitalDashboard() {
 
     useEffect(() => {
         loadData()
+    }, [])
 
+    useEffect(() => {
         // Agendador para verificar medicações a cada minuto
         const interval = setInterval(async () => {
             const now = new Date()
@@ -119,35 +121,32 @@ export default function HospitalDashboard() {
         e.preventDefault()
         setDragOverBedId(null)
 
-        if (draggedAdmissionId && draggedOriginBed && targetBedId !== draggedOriginBed) {
+        const admId = draggedAdmissionId;
+        const originId = draggedOriginBed;
+
+        setDraggedAdmissionId(null)
+        setDraggedOriginBed(null)
+
+        if (admId && originId && targetBedId !== originId) {
             // Optimistic update
-            const admIndex = admissions.findIndex(a => a.id === draggedAdmissionId)
+            const admIndex = admissions.findIndex(a => a.id === admId)
             const oldAdmissions = [...admissions]
-            const oldBeds = [...beds]
 
             if (admIndex >= 0) {
                 const newAdms = [...admissions]
                 newAdms[admIndex].bed_id = targetBedId
                 setAdmissions(newAdms)
-
-                setBeds(beds.map(b =>
-                    b.id === targetBedId ? { ...b, status: 'occupied' } :
-                        b.id === draggedOriginBed ? { ...b, status: 'available' } : b
-                ))
             }
 
-            const res = await movePetBed(draggedAdmissionId, draggedOriginBed, targetBedId)
+            const res = await movePetBed(admId, originId, targetBedId)
             if (!res.success) {
                 alert(res.message)
                 setAdmissions(oldAdmissions)
-                setBeds(oldBeds)
             } else {
-                loadData()
+                // If success, refresh the data to ensure medications and references match properly without double renders
+                loadData(true)
             }
         }
-
-        setDraggedAdmissionId(null)
-        setDraggedOriginBed(null)
     }
 
     const onUpdateSeverity = async (admissionId: string, severity: string) => {
@@ -228,7 +227,7 @@ export default function HospitalDashboard() {
                 </div>
                 <div className="card glass text-center p-8 transition-all hover:scale-[1.02] border-navy-light" style={{ borderBottom: '4px solid var(--color-sky)' }}>
                     <span className="text-xs font-bold text-muted uppercase tracking-[0.2em] block mb-3" style={{ fontFamily: 'var(--font-montserrat)' }}>Leitos Disponíveis</span>
-                    <span className="text-4xl font-black text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{beds.filter(b => b.status === 'available').length} / {beds.length}</span>
+                    <span className="text-4xl font-black text-sky" style={{ fontFamily: 'var(--font-montserrat)' }}>{Math.max(0, beds.length - totalInternados)} / {beds.length}</span>
                 </div>
             </div>
 
@@ -257,7 +256,7 @@ export default function HospitalDashboard() {
                                     {isCollapsed ? '▶' : '▼'}
                                     <span style={{ color: ward.color }}>{ward.name}</span>
                                     <span className="text-sm text-secondary font-normal badge badge-confirmed ml-2" style={{ fontFamily: 'var(--font-montserrat)' }}>
-                                        {wardBeds.filter(b => b.status === 'occupied').length} / {wardBeds.length} Ocupados
+                                        {admissions.filter(a => wardBeds.some(b => b.id === a.bed_id)).length} / {wardBeds.length} Ocupados
                                     </span>
                                 </span>
                             </div>

@@ -224,10 +224,14 @@ export async function movePetBed(admissionId: string, currentBedId: string, newB
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
         if (!profile?.org_id) return { success: false, message: 'Org não encontrada.' }
 
-        // Check if new bed is available
-        const { data: newBed } = await supabase.from('hospital_beds').select('status').eq('id', newBedId).single()
-        if (newBed?.status !== 'available') {
-            return { success: false, message: 'O leito de destino não está disponível.' }
+        // Check if new bed is actually available by checking for active admissions in that bed
+        const { data: activeAdmissions } = await supabase.from('hospital_admissions')
+            .select('id')
+            .eq('bed_id', newBedId)
+            .eq('status', 'active')
+
+        if (activeAdmissions && activeAdmissions.length > 0) {
+            return { success: false, message: 'O leito de destino não está disponível ou já está ocupado.' }
         }
 
         // Assign new bed
@@ -247,7 +251,7 @@ export async function movePetBed(admissionId: string, currentBedId: string, newB
             moved_by: user.id
         })
 
-        // Free old bed, occupy new bed
+        // (Fallback) Update bed status just to maintain DB consistency if needed elsewhere
         await supabase.from('hospital_beds').update({ status: 'available' }).eq('id', currentBedId)
         await supabase.from('hospital_beds').update({ status: 'occupied' }).eq('id', newBedId)
 
