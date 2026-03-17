@@ -28,13 +28,18 @@ export async function getHospitalBeds() {
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
     if (!profile?.org_id) return []
 
-    const { data } = await supabase
-        .from('hospital_beds')
-        .select('*, hospital_wards(name, color)')
-        .eq('org_id', profile.org_id)
-        .order('order', { ascending: true })
+    const [bedsRes, admissionsRes] = await Promise.all([
+        supabase.from('hospital_beds').select('*, hospital_wards(name, color)').eq('org_id', profile.org_id).order('order', { ascending: true }),
+        supabase.from('hospital_admissions').select('bed_id').eq('org_id', profile.org_id).eq('status', 'active')
+    ])
 
-    return data || []
+    const beds = bedsRes.data || []
+    const activeBedIds = new Set((admissionsRes.data || []).map(a => a.bed_id))
+
+    return beds.map(bed => ({
+        ...bed,
+        status: activeBedIds.has(bed.id) ? 'occupied' : 'available'
+    }))
 }
 
 export async function getActiveAdmissions() {
@@ -81,10 +86,17 @@ export async function getHospitalDashboardData() {
         supabase.from('hospital_medications').select('*').eq('org_id', profile.org_id).eq('is_active', true)
     ])
 
+    const bedsList = (beds.data || []) as any[]
+    const admissionsList = (admissions.data || []) as any[]
+    const activeBedIds = new Set(admissionsList.map(a => a.bed_id))
+
     return {
         wards: (wards.data || []) as any[],
-        beds: (beds.data || []) as any[],
-        admissions: (admissions.data || []) as any[],
+        beds: bedsList.map(b => ({
+            ...b,
+            status: activeBedIds.has(b.id) ? 'occupied' : 'available'
+        })),
+        admissions: admissionsList,
         medications: (medications.data || []) as any[]
     }
 }
@@ -159,6 +171,7 @@ export async function admitPet(formData: FormData) {
         await supabase.from('hospital_beds').update({ status: 'occupied' }).eq('id', bed_id)
 
         revalidatePath('/owner/hospital')
+        revalidatePath('/owner/hospital/config')
         return { success: true, message: 'Pet internado com sucesso!' }
     } catch (error) {
         console.error('admitPet error:', error)
@@ -208,6 +221,7 @@ export async function dischargePetWithCheckout(admissionId: string, bedId: strin
         await supabase.from('hospital_beds').update({ status: 'available' }).eq('id', bedId)
 
         revalidatePath('/owner/hospital')
+        revalidatePath('/owner/hospital/config')
         return { success: true, message: 'Alta registrada e receita lançada com sucesso.' }
     } catch (error) {
         console.error('dischargePet error:', error)
@@ -256,6 +270,7 @@ export async function movePetBed(admissionId: string, currentBedId: string, newB
         await supabase.from('hospital_beds').update({ status: 'occupied' }).eq('id', newBedId)
 
         revalidatePath('/owner/hospital')
+        revalidatePath('/owner/hospital/config')
         return { success: true, message: 'Pet movido.' }
     } catch (error) {
         console.error('movePetBed error:', error)
