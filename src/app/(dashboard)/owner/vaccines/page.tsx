@@ -323,7 +323,7 @@ export default function VaccinesPage() {
                                                     {vaccineBatches.map(batch => (
                                                         <tr key={batch.id}>
                                                             <td>{batch.batch_number}</td>
-                                                            <td>{new Date(batch.expiration_date).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{new Date(batch.expiration_date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                                                             <td>{batch.quantity}</td>
                                                             <td>{formatCurrency(batch.cost_price)}</td>
                                                             <td>{formatCurrency(batch.selling_price)}</td>

@@ -219,7 +219,7 @@ export default function TutorsPage() {
                                             <span style={{ fontSize: '0.9rem' }}>📞 {tutor.phone_1}</span>
                                             <span className={styles.userEmail}>✉️ {tutor.email}</span>
                                             {tutor.birth_date && (
-                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>🎂 {new Date(tutor.birth_date).toLocaleDateString('pt-BR')}</span>
+                                                <span style={{ fontSize: '0.8rem', color: '#64748b' }}>🎂 {new Date(tutor.birth_date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                                             )}
                                         </div>
                                     </td>

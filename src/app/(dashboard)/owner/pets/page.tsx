@@ -121,7 +121,7 @@ function PetsContent() {
 
     const calculateAge = (birthDate?: string) => {
         if (!birthDate) return 'N/A'
-        const birth = new Date(birthDate)
+        const birth = new Date(birthDate + 'T12:00:00')
         const now = new Date()
         let years = now.getFullYear() - birth.getFullYear()
         let months = now.getMonth() - birth.getMonth()
