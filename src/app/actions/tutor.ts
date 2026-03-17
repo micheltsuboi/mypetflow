@@ -89,7 +89,7 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
         phone_1: phone,
         address: address || null,
         neighborhood: neighborhood || null,
-        city: city || 'São Paulo',
+        city: city || '',
         instagram: instagram || null,
     }
 
@@ -182,7 +182,7 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
         phone_1: phone,
         address: address || null,
         neighborhood: neighborhood || null,
-        city: city || 'São Paulo',
+        city: city || '',
         instagram: instagram || null,
         user_id: userId || currentTutor?.user_id // Keep or link new userId
     }

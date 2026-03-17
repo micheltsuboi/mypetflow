@@ -101,7 +101,7 @@ export async function registerClient(prevState: RegisterState, formData: FormDat
             name: name,
             email: email,
             phone_1: phone,
-            city: 'São Paulo' // Default
+            city: '' // No default
         })
 
     if (customerError) {
