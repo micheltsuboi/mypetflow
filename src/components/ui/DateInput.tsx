@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import styles from './DateInput.module.css'
 
 interface DateInputProps {
     name?: string
@@ -54,7 +55,7 @@ export default function DateInput({
 
     // Helper to get current parts (from props or state)
     const getParts = () => {
-        if (value !== undefined) {
+        if (value !== undefined && value !== null) {
             const parts = value.split('-')
             return {
                 y: parts[0] || '',
@@ -104,26 +105,19 @@ export default function DateInput({
     ]
     const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'))
 
-    const selectStyle = {
-        appearance: 'none' as const,
-        backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 0.5rem center',
-        backgroundSize: '1em',
-        paddingRight: '2rem'
-    }
-
     const finalDateStr = (y && m && d) ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : ''
 
     return (
-        <div className={className} style={{ display: 'flex', gap: '0.4rem', width: '100%', ...style }}>
+        <div
+            className={`${styles.container} ${disabled ? styles.disabled : ''} ${className || ''}`}
+            style={style}
+        >
             {name && <input type="hidden" name={name} value={finalDateStr} required={required} />}
 
             <select
                 value={d}
                 onChange={(e) => handlePartChange('d', e.target.value)}
-                className={className}
-                style={{ flex: 1, minWidth: 0, ...selectStyle }}
+                className={`${styles.select} ${styles.day}`}
                 required={required}
                 disabled={disabled}
             >
@@ -134,8 +128,7 @@ export default function DateInput({
             <select
                 value={m}
                 onChange={(e) => handlePartChange('m', e.target.value)}
-                className={className}
-                style={{ flex: 1.2, minWidth: 0, ...selectStyle }}
+                className={`${styles.select} ${styles.month}`}
                 required={required}
                 disabled={disabled}
             >
@@ -146,8 +139,7 @@ export default function DateInput({
             <select
                 value={y}
                 onChange={(e) => handlePartChange('y', e.target.value)}
-                className={className}
-                style={{ flex: 1.5, minWidth: 0, ...selectStyle }}
+                className={`${styles.select} ${styles.year}`}
                 required={required}
                 disabled={disabled}
             >
