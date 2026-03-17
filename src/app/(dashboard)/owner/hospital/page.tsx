@@ -262,7 +262,7 @@ export default function HospitalDashboard() {
                             </div>
 
                             {!isCollapsed && (
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', padding: '2rem', backgroundColor: 'var(--bg-tertiary)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', padding: '2rem', backgroundColor: 'var(--bg-tertiary)' }}>
                                     {wardBeds.map(bed => {
                                         const adm = admissions.find(a => a.bed_id === bed.id)
                                         const isDragOver = dragOverBedId === bed.id
@@ -416,20 +416,18 @@ export default function HospitalDashboard() {
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-2 p-3 gap-2 bg-black/20 mt-2 backdrop-blur-sm relative z-20">
-                                                    <button className="btn btn-outline border-white/10 hover:bg-white/5 !text-[10px] !py-2 !px-3 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => setShowRecordModal(adm)}>
+                                                <div className="flex items-center p-3 gap-2 bg-black/20 mt-2 backdrop-blur-sm relative z-20">
+                                                    <button className="flex-1 btn btn-outline border-white/10 hover:bg-white/5 !text-[9px] !py-2 !px-2 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => setShowRecordModal(adm)}>
                                                         🩺 Prontuário
                                                     </button>
-                                                    <div className="flex gap-1">
-                                                        {nextMeds.length > 0 && (
-                                                            <button className="flex-1 btn btn-primary !text-[10px] !py-2 !px-2 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
-                                                                💉 Aplicar
-                                                            </button>
-                                                        )}
-                                                        <button className={`btn ${nextMeds.length > 0 ? 'w-12' : 'flex-1'} bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 border border-emerald-500/30 !text-[10px] !py-2 !px-2 font-black uppercase tracking-tighter`} style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => setShowDischargeModal(adm)}>
-                                                            Alta
+                                                    {nextMeds.length > 0 && (
+                                                        <button className="flex-1 btn btn-primary !text-[9px] !py-2 !px-2 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => onApplyDose(nextMeds[0].id, adm.id)}>
+                                                            💉 Aplicar
                                                         </button>
-                                                    </div>
+                                                    )}
+                                                    <button className="flex-1 btn bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 border border-emerald-500/30 !text-[9px] !py-2 !px-2 font-black uppercase tracking-tighter" style={{ minHeight: '36px', fontFamily: 'var(--font-montserrat)' }} onClick={() => setShowDischargeModal(adm)}>
+                                                        Alta
+                                                    </button>
                                                 </div>
                                             </div>
                                         )
