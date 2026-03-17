@@ -14,12 +14,13 @@ export const metadata: Metadata = {
   title: "MyPet Flow | Sistema de Gestão para Pet Shops",
   description: "Sistema completo para gestão de Pet Shops, incluindo creche, hotel, banho e tosa.",
   keywords: ["pet shop", "banho e tosa", "hotel pet", "creche pet", "gestão pet shop"],
+  manifest: '/manifest.webmanifest',
   icons: {
     icon: [
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: '/icon-512.png',
+    apple: '/apple-touch-icon.png',
   },
   appleWebApp: {
     capable: true,
