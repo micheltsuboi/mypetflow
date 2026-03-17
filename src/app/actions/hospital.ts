@@ -255,7 +255,7 @@ export async function movePetBed(admissionId: string, currentBedId: string, newB
         await supabase.from('hospital_beds').update({ status: 'available' }).eq('id', currentBedId)
         await supabase.from('hospital_beds').update({ status: 'occupied' }).eq('id', newBedId)
 
-        // revalidatePath removido para performance em operações rápidas
+        revalidatePath('/owner/hospital')
         return { success: true, message: 'Pet movido.' }
     } catch (error) {
         console.error('movePetBed error:', error)

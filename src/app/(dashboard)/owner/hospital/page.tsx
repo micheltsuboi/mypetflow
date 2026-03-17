@@ -8,6 +8,7 @@ import AdmitPetModal from '@/components/AdmitPetModal'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
 import HospitalHistoryModal from '@/components/HospitalHistoryModal'
 import DischargeModal from '@/components/DischargeModal'
+import MovePetBedModal from '@/components/MovePetBedModal'
 
 export default function HospitalDashboard() {
     const [wards, setWards] = useState<any[]>([])
@@ -30,6 +31,7 @@ export default function HospitalDashboard() {
     const [showRecordModal, setShowRecordModal] = useState<any | null>(null) // admission
     const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [showDischargeModal, setShowDischargeModal] = useState<any | null>(null) // admission
+    const [showMoveModal, setShowMoveModal] = useState<any | null>(null) // admission
     const notifiedMeds = useRef<Set<string>>(new Set())
 
     const loadData = async (silent = false) => {
@@ -128,23 +130,15 @@ export default function HospitalDashboard() {
         setDraggedOriginBed(null)
 
         if (admId && originId && targetBedId !== originId) {
-            // Optimistic update
-            const admIndex = admissions.findIndex(a => a.id === admId)
-            const oldAdmissions = [...admissions]
-
-            if (admIndex >= 0) {
-                const newAdms = [...admissions]
-                newAdms[admIndex].bed_id = targetBedId
-                setAdmissions(newAdms)
-            }
-
+            setLoading(true)
             const res = await movePetBed(admId, originId, targetBedId)
+
             if (!res.success) {
                 alert(res.message)
-                setAdmissions(oldAdmissions)
+                setLoading(false)
             } else {
-                // If success, refresh the data to ensure medications and references match properly without double renders
-                loadData(true)
+                // Refresh data
+                await loadData(true)
             }
         }
     }
@@ -354,9 +348,14 @@ export default function HospitalDashboard() {
                                                                 <option value="high">🟠 Grave</option>
                                                                 <option value="critical">🔴 Crítico</option>
                                                             </select>
-                                                            <span className="cursor-grab hover:text-white transition-colors text-[10px] uppercase font-black tracking-widest text-muted" style={{ fontFamily: 'var(--font-montserrat)' }} title="Arrastar Pet para outro leito">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setShowMoveModal(adm); }}
+                                                                className="cursor-pointer hover:text-white transition-colors text-[10px] font-black uppercase tracking-widest text-muted"
+                                                                style={{ background: 'none', border: 'none', fontFamily: 'var(--font-montserrat)' }}
+                                                                title="Trocar Leito (Ideal para Tablet)"
+                                                            >
                                                                 🖐️ <span className="hidden sm:inline">Mover</span>
-                                                            </span>
+                                                            </button>
                                                         </div>
                                                         {updatingStatus === adm.id && (
                                                             <div className="absolute top-10 right-4 animate-spin text-sky text-xs font-bold">
@@ -472,6 +471,17 @@ export default function HospitalDashboard() {
                     onSuccess={() => {
                         setShowDischargeModal(null)
                         loadData()
+                    }}
+                />
+            )}
+
+            {showMoveModal && (
+                <MovePetBedModal
+                    admission={showMoveModal}
+                    onClose={() => setShowMoveModal(null)}
+                    onSuccess={() => {
+                        setShowMoveModal(null)
+                        loadData(true)
                     }}
                 />
             )}
