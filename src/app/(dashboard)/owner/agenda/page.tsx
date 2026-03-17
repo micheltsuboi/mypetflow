@@ -24,6 +24,7 @@ import ConsultationModal from '@/components/modules/ConsultationModal'
 import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { format } from 'date-fns'
+import DateInput from '@/components/ui/DateInput'
 
 interface Customer {
     name: string
@@ -906,7 +907,12 @@ function AgendaContent() {
                             setSelectedDate(d.toISOString().split('T')[0])
                         }}>◀</button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className={styles.dateInput} style={{ color: selectedDate === todayStr ? 'var(--primary)' : 'inherit' }} />
+                            <DateInput
+                                value={selectedDate}
+                                onChange={setSelectedDate}
+                                className={styles.dateInput}
+                                style={{ color: selectedDate === todayStr ? 'var(--primary)' : 'inherit' }}
+                            />
                             {selectedDate === todayStr && (
                                 <span style={{ fontSize: '0.75rem', background: 'var(--primary)', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '12px', fontWeight: 'bold' }}>Hoje</span>
                             )}
@@ -988,15 +994,14 @@ function AgendaContent() {
                                 <div className={styles.row}>
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>Data *</label>
-                                        <input
+                                        <DateInput
                                             name="date"
-                                            type="date"
+                                            value={selectedDate}
                                             className={styles.input}
                                             required
-                                            defaultValue={selectedDate}
-                                            onChange={(e) => {
-                                                setSelectedDate(e.target.value)
-                                                validateScheduling(e.target.value, selectedServiceId, preSelectedPetId || "")
+                                            onChange={(val: string) => {
+                                                setSelectedDate(val)
+                                                validateScheduling(val, selectedServiceId, preSelectedPetId || "")
                                             }}
                                         />
                                     </div>
@@ -1044,7 +1049,11 @@ function AgendaContent() {
                                     <input type="hidden" name="id" value={selectedAppointment.id} />
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>Data</label>
-                                        <input name="date" type="date" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]} />
+                                        <DateInput
+                                            name="date"
+                                            defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]}
+                                            className={styles.input}
+                                        />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>Hora</label>

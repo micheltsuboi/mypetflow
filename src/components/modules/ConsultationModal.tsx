@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import styles from './ConsultationModal.module.css'
 import { autosaveVetConsultation, getVeterinarians, finishVetConsultation } from '@/app/actions/veterinary'
 import BodyMap from './BodyMap'
+import DateInput from '../ui/DateInput'
 
 interface ConsultationModalProps {
     consultation: any
@@ -165,11 +166,12 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                         </div>
                         <div className={styles.formGroup}>
                             <label>Data da Consulta</label>
-                            <input
-                                type="date"
+                            <DateInput
+                                name="consultation_date"
                                 value={formData.consultation_date?.split('T')[0] || ''}
-                                onChange={(e) => handleFieldChange('consultation_date', e.target.value)}
+                                onChange={(val) => handleFieldChange('consultation_date', val)}
                                 className={styles.input}
+                                yearRange={[2024, new Date().getFullYear() + 1]}
                                 disabled={readOnly}
                             />
                         </div>

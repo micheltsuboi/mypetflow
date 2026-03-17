@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { maskPhone } from '@/utils/masks'
+import DateInput from '@/components/ui/DateInput'
 
 
 interface Customer {
@@ -320,9 +321,10 @@ export default function TutorsPage() {
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="birthDate" className={styles.label}>Data de Nascimento</label>
-                                        <input
-                                            id="birthDate" name="birthDate" type="date" className={styles.input}
-                                            defaultValue={selectedTutor?.birth_date || ''}
+                                        <DateInput
+                                            name="birthDate"
+                                            className={styles.input}
+                                            defaultValue={selectedTutor?.birth_date}
                                         />
                                     </div>
 

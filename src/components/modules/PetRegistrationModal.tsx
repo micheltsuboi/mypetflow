@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from 'react'
 import { createPetByTutor } from '@/app/actions/pet'
 import styles from './PetRegistrationModal.module.css'
 import ImageUpload from '@/components/ImageUpload'
+import DateInput from '@/components/ui/DateInput'
 
 const initialState = {
     message: '',
@@ -91,7 +92,7 @@ export default function PetRegistrationModal({ onClose, onSuccess }: { onClose: 
 
                     <div className={styles.formGroup}>
                         <label className={styles.label}>Data de Nascimento</label>
-                        <input name="birthDate" type="date" className={styles.input} />
+                        <DateInput name="birthDate" className={styles.input} />
                     </div>
 
                     <div className={styles.formGroup}>

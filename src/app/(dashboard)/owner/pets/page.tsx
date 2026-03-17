@@ -33,6 +33,7 @@ import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actio
 import InternmentRecordModal from '@/components/InternmentRecordModal'
 import ImageUpload from '@/components/ImageUpload'
 import PlanGuard from '@/components/modules/PlanGuard'
+import DateInput from '@/components/ui/DateInput'
 
 interface Pet {
     id: string
@@ -406,7 +407,11 @@ function PetsContent() {
                                                 </div>
                                                 <div className={styles.formGroup}>
                                                     <label>Nascimento</label>
-                                                    <input name="birthDate" type="date" className={styles.input} defaultValue={selectedPet?.birth_date || ''} />
+                                                    <DateInput
+                                                        name="birthDate"
+                                                        className={styles.input}
+                                                        defaultValue={selectedPet?.birth_date}
+                                                    />
                                                 </div>
                                                 <div className={styles.formGroup}>
                                                     <label>Peso (kg)</label>
@@ -465,7 +470,7 @@ function PetsContent() {
                                 </div>
                             )}
 
-                            
+
                             {/* HOSPITAL (INTERNAMENTO) */}
                             {planFeatures.includes('clinica_vet') && (
                                 <div className={styles.accordionItem}>
@@ -695,13 +700,9 @@ function PetsContent() {
             {showHospitalModal && activeAdmission && (
                 <InternmentRecordModal
                     admission={activeAdmission}
-                    activeMedications={admissionMeds}
                     onClose={() => setShowHospitalModal(false)}
                     onSuccess={() => {
-                        // just reload meds possibly? read-only preferred here for discharged
-                        if (activeAdmission.status === 'active') {
-                            getAllAdmissionMedications(activeAdmission.id).then(setAdmissionMeds);
-                        }
+                        if (selectedPet) getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
                     }}
                 />
             )}

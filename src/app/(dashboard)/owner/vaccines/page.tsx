@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Vaccine, VaccineBatch } from '@/types/database'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
+import DateInput from '@/components/ui/DateInput'
 
 export default function VaccinesPage() {
     const supabase = createClient()
@@ -433,12 +434,12 @@ export default function VaccinesPage() {
                                     </div>
                                     <div className={styles.formGroup} style={{ flex: 1 }}>
                                         <label className={styles.label}>Validade</label>
-                                        <input
-                                            type="date"
+                                        <DateInput
+                                            name="expiration_date"
                                             className={styles.input}
                                             required
                                             value={batchForm.expiration_date}
-                                            onChange={(e) => setBatchForm({ ...batchForm, expiration_date: e.target.value })}
+                                            onChange={(val) => setBatchForm({ ...batchForm, expiration_date: val })}
                                         />
                                     </div>
                                 </div>

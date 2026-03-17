@@ -10,6 +10,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { payPetshopSale } from '@/app/actions/petshop'
 import PlanGuard from '@/components/modules/PlanGuard'
+import DateInput from '@/components/ui/DateInput'
 
 interface MonthlyData {
     month: string
@@ -471,20 +472,22 @@ export default function FinanceiroPage() {
                     <div className={styles.filters}>
                         <div className={styles.filterGroup}>
                             <label>De:</label>
-                            <input
-                                type="date"
+                            <DateInput
+                                name="startDate"
                                 value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
+                                onChange={setStartDate}
                                 className={styles.dateInput}
+                                yearRange={[2020, new Date().getFullYear() + 1]}
                             />
                         </div>
                         <div className={styles.filterGroup}>
                             <label>Até:</label>
-                            <input
-                                type="date"
+                            <DateInput
+                                name="endDate"
                                 value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
+                                onChange={setEndDate}
                                 className={styles.dateInput}
+                                yearRange={[2020, new Date().getFullYear() + 1]}
                             />
                         </div>
                         <div className={styles.filterGroup}>

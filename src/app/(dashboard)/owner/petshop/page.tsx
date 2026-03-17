@@ -9,6 +9,7 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
 import { getCashbackBalance } from '@/app/actions/cashback'
 import { ShoppingCart, Plus, Minus, Trash2, Search, PackageOpen, Coins } from 'lucide-react'
+import DateInput from '@/components/ui/DateInput'
 
 // Interfaces locais para o Carrinho
 interface CartItem {
@@ -630,7 +631,12 @@ export default function PetshopPage() {
                                     </div>
                                     <div className={styles.col}>
                                         <label className={styles.label}>Validade</label>
-                                        <input className={styles.input} type="date" value={formData.expiration_date} onChange={e => setFormData({ ...formData, expiration_date: e.target.value })} />
+                                        <DateInput
+                                            value={formData.expiration_date}
+                                            onChange={val => setFormData({ ...formData, expiration_date: val })}
+                                            className={styles.input}
+                                            yearRange={[new Date().getFullYear(), new Date().getFullYear() + 10]}
+                                        />
                                     </div>
                                 </div>
                                 <div className={styles.formGroup}>
