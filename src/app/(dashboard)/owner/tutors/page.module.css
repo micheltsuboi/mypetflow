@@ -125,6 +125,29 @@
     color: var(--text-secondary);
 }
 
+.petTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.petTag {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    background: rgba(0, 228, 206, 0.1);
+    color: var(--color-sky-light);
+    border: 1px solid rgba(0, 228, 206, 0.2);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.noPets {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
 /* Modal */
 .modalOverlay {
     position: fixed;

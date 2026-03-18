@@ -22,6 +22,7 @@ interface Customer {
     birth_date: string | null
     user_id: string | null
     created_at: string
+    pets?: { name: string }[]
 }
 
 const initialState = {
@@ -63,7 +64,7 @@ export default function TutorsPage() {
 
             let query = supabase
                 .from('customers')
-                .select('*')
+                .select('*, pets(name)')
                 .eq('org_id', profile.org_id)
                 .order('name')
 
@@ -208,9 +209,17 @@ export default function TutorsPage() {
                                             <div className={styles.avatar}>
                                                 {tutor.name.charAt(0).toUpperCase()}
                                             </div>
-                                            <div>
+                                             <div>
                                                 <span className={styles.userName}>{tutor.name}</span>
-                                                {tutor.instagram && <span style={{ fontSize: '0.8rem', color: '#ec4899' }}>@{tutor.instagram.replace('@', '')}</span>}
+                                                <div className={styles.petTags}>
+                                                    {tutor.pets?.map((pet, idx) => (
+                                                        <span key={idx} className={styles.petTag}>🐾 {pet.name}</span>
+                                                    ))}
+                                                    {(!tutor.pets || tutor.pets.length === 0) && (
+                                                        <span className={styles.noPets}>Sem pets</span>
+                                                    )}
+                                                </div>
+                                                {tutor.instagram && <span style={{ fontSize: '0.8rem', color: '#ec4899', display: 'block', marginTop: '2px' }}>@{tutor.instagram.replace('@', '')}</span>}
                                             </div>
                                         </div>
                                     </td>
