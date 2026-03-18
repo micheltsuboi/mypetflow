@@ -9,7 +9,7 @@ export default function SWRegistration() {
         const isHttps = window.location.protocol === 'https:';
 
         if ('serviceWorker' in navigator && (isLocalhost || isHttps)) {
-            window.addEventListener('load', () => {
+            const registerSW = () => {
                 navigator.serviceWorker
                     .register('/sw.js')
                     .then((registration) => {
@@ -18,7 +18,13 @@ export default function SWRegistration() {
                     .catch((registrationError) => {
                         console.error('SW: registration failed: ', registrationError);
                     });
-            });
+            };
+
+            if (document.readyState === 'complete') {
+                registerSW();
+            } else {
+                window.addEventListener('load', registerSW);
+            }
         } else {
             console.warn('SW: Service Workers are missing or not supported on this protocol/domain (HTTPS required).');
         }
