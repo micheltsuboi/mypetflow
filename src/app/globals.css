@@ -184,11 +184,19 @@ body {
 .btn-primary {
   background: var(--gradient-primary);
   color: white;
-  box-shadow: var(--shadow-md), var(--shadow-glow-coral);
+  box-shadow: 0 4px 15px rgba(240, 140, 152, 0.3);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .btn-primary:hover {
-  box-shadow: var(--shadow-lg), 0 0 30px rgba(232, 130, 106, 0.4);
+  box-shadow: 0 8px 25px rgba(240, 140, 152, 0.5);
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.1);
+}
+
+.btn-primary:active {
+  transform: translateY(-1px) scale(0.98);
 }
 
 .btn-secondary {

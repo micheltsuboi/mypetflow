@@ -148,31 +148,36 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    font-size: 1rem;
-    font-weight: 600;
+    gap: 0.75rem;
+    padding: 1.15rem;
+    font-size: 1.1rem;
+    font-weight: 700;
     color: white;
     background: var(--gradient-primary);
     border: none;
-    border-radius: 0.75rem;
+    border-radius: 1rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     margin-top: 0.5rem;
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(232, 130, 106, 0.4);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(240, 140, 152, 0.5);
+    filter: brightness(1.1);
 }
 
 .button:active:not(:disabled) {
-    transform: translateY(0);
+    transform: translateY(-1px) scale(0.98);
 }
 
 .button:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
+    filter: grayscale(0.5);
 }
 
 .spinner {

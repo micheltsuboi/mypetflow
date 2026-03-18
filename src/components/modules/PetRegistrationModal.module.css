@@ -87,11 +87,22 @@
     grid-column: 1 / -1;
     margin-top: 1rem;
     width: 100%;
+    padding: 0.85rem;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.4);
+}
+
+.submitBtn:hover {
+    box-shadow: 0 8px 25px rgba(240, 140, 152, 0.6);
 }
 
 .submitBtn:disabled {
-    opacity: 0.7;
+    opacity: 0.5;
     cursor: not-allowed;
+    filter: grayscale(1);
 }
 
 .msg {

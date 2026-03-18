@@ -462,7 +462,27 @@
     color: #e74c3c;
 }
 
-.confirmPayBtn,
+.confirmPayBtn {
+    padding: 0.6rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(240, 140, 152, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.confirmPayBtn:hover {
+    box-shadow: 0 6px 18px rgba(240, 140, 152, 0.5);
+    transform: translateY(-2px) scale(1.05);
+    filter: brightness(1.1);
+}
+
 .deleteBtn {
     padding: 0.4rem 0.8rem;
     border: none;
@@ -472,18 +492,6 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-}
-
-.confirmPayBtn {
-    background: var(--primary);
-}
-
-.confirmPayBtn:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-}
-
-.deleteBtn {
     background: rgba(231, 76, 60, 0.2);
     color: #e74c3c;
     border: 1px solid rgba(231, 76, 60, 0.3);

@@ -536,25 +536,28 @@
 
 .checkoutBtn {
     width: 100%;
-    padding: 0.75rem;
+    padding: 1rem;
     background: #10B981;
     color: white;
     border: none;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.95rem;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1.1rem;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
 .checkoutBtn:hover:not(:disabled) {
     background: #059669;
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.5);
 }
 
-.checkoutBtn:disabled {
-    background: var(--border);
-    color: var(--text-secondary);
-    cursor: not-allowed;
+.checkoutBtn:active:not(:disabled) {
+    transform: translateY(-1px);
 }
 
 /* Modals Restantes (Mínima adaptação) */
@@ -629,12 +632,21 @@
 .submitButton {
     width: 100%;
     padding: 1rem;
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
     border: none;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.3);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.submitButton:hover {
+    box-shadow: 0 8px 25px rgba(240, 140, 152, 0.5);
+    transform: translateY(-2px) scale(1.02);
 }
 
 .cashbackCheckoutRow {

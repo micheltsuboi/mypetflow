@@ -38,17 +38,21 @@
     background: var(--gradient-primary);
     color: white;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
+    padding: 0.85rem 2rem;
+    border-radius: 10px;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: var(--shadow-md);
-    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
 }
 
 .submitBtn:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(240, 140, 152, 0.6);
+    transform: translateY(-2px) scale(1.02);
+    filter: brightness(1.1);
 }
 
 .grid {
@@ -231,13 +235,28 @@
 
 
 .submitBtn {
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
+    padding: 0.85rem 2rem;
+    border-radius: 10px;
+    font-weight: 700;
     cursor: pointer;
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.95rem;
+}
+
+.submitBtn:hover {
+    box-shadow: 0 8px 25px rgba(240, 140, 152, 0.6);
+    transform: translateY(-2px) scale(1.02);
+    filter: brightness(1.1);
+}
+
+.submitBtn:active {
+    transform: translateY(1px);
 }
 
 .editBtn {
