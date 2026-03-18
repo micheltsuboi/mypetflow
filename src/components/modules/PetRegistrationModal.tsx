@@ -100,6 +100,16 @@ export default function PetRegistrationModal({ onClose, onSuccess }: { onClose: 
                         <input name="weight" type="number" step="0.1" className={styles.input} placeholder="0.0" />
                     </div>
 
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>Cor</label>
+                        <input name="color" className={styles.input} placeholder="Ex: Marrom" />
+                    </div>
+
+                    <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                        <label className={styles.label}>Características / Observações</label>
+                        <textarea name="characteristics" className={styles.input} rows={2} placeholder="Ex: Mancha branca no peito..." />
+                    </div>
+
                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                         <label className={styles.label} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                             <input type="checkbox" name="isNeutered" /> É castrado?

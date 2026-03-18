@@ -49,6 +49,8 @@ interface Pet {
     existing_conditions?: string
     vaccination_up_to_date: boolean
     photo_url?: string
+    color?: string
+    characteristics?: string
     customer_id: string
     customers: {
         id: string
@@ -192,6 +194,7 @@ function PetsContent() {
             let query = supabase.from('pets').select(`
                     id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
+                    color, characteristics,
                     customers!inner ( id, name, org_id )
                 `).eq('customers.org_id', profile.org_id).order('name')
             if (searchTerm) query = query.or(`name.ilike.%${searchTerm}%,breed.ilike.%${searchTerm}%`)
@@ -314,7 +317,7 @@ function PetsContent() {
                                         )}
                                         <div>
                                             <div className={styles.itemName}>{pet.name}</div>
-                                            <div className={styles.itemSub}>{pet.breed}</div>
+                                            <div className={styles.itemSub}>{pet.breed} {pet.color && `• ${pet.color}`}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -416,6 +419,14 @@ function PetsContent() {
                                                 <div className={styles.formGroup}>
                                                     <label>Peso (kg)</label>
                                                     <input name="weight" type="number" step="0.1" className={styles.input} defaultValue={selectedPet?.weight_kg || ''} />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label>Cor</label>
+                                                    <input name="color" className={styles.input} defaultValue={selectedPet?.color || ''} />
+                                                </div>
+                                                <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Características / Observações</label>
+                                                    <textarea name="characteristics" className={styles.input} rows={3} defaultValue={selectedPet?.characteristics || ''} style={{ resize: 'vertical' }} />
                                                 </div>
                                                 <div style={{ gridColumn: '1 / -1' }}>
                                                     <label><input type="checkbox" name="isNeutered" defaultChecked={selectedPet?.is_neutered} /> Castrado</label>

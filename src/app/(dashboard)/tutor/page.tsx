@@ -13,6 +13,7 @@ interface Pet {
     breed: string
     photo_url: string | null
     weight_kg: number
+    color?: string
 }
 
 interface TimelineEvent {
@@ -300,7 +301,9 @@ export default function TutorPage() {
                 </div>
                 <div className={styles.petInfo}>
                     <h1 className={styles.petName}>{selectedPet.name}</h1>
-                    <p className={styles.petBreed}>{selectedPet.breed} • {selectedPet.weight_kg}kg</p>
+                    <p className={styles.petBreed}>
+                        {selectedPet.breed} • {selectedPet.weight_kg}kg {selectedPet.color && `• ${selectedPet.color}`}
+                    </p>
                 </div>
                 {pets.length > 1 && (
                     <select
