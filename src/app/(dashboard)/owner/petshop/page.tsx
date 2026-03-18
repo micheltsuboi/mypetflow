@@ -197,7 +197,7 @@ export default function PetshopPage() {
         }
 
         return { subtotal, totalDiscount, finalTotal }
-    }, [cart, globalDiscount, isUsingCashback, useCashbackAmount])
+    }, [cart, globalDiscount, globalDiscountType, isUsingCashback, useCashbackAmount])
 
     const handleCheckout = async () => {
         if (cart.length === 0) return

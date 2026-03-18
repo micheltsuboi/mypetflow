@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { updatePaymentStatus, applyDiscount } from '@/app/actions/appointment'
+import { DollarSign, CreditCard, Check, X, Percent, Wallet, Banknote } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
 interface PaymentControlsProps {
@@ -48,9 +49,14 @@ export default function PaymentControls({
     )
     const [loading, setLoading] = useState(false)
 
+    const [isClient, setIsClient] = useState(false)
     const isPaid = paymentStatus === 'paid'
     const displayPrice = finalPrice ?? calculatedPrice ?? 0
     const basePrice = calculatedPrice ?? 0
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
 
     // Reset local state when props change
     useEffect(() => {
@@ -145,14 +151,14 @@ export default function PaymentControls({
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748b' }}>
                         <span>Valor Base:</span>
-                        <span>R$ {basePrice.toFixed(2)}</span>
+                        <span>R$ {Number(basePrice || 0).toFixed(2)}</span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Desconto:</span>
                             {!isPaid && (
-                                <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '4px', padding: '2px' }}>
+                                <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border)' }}>
                                     <button 
                                         onClick={() => setDiscountTypeState('percent')}
                                         style={{ 
@@ -218,7 +224,7 @@ export default function PaymentControls({
 
                     <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem', color: '#1e293b' }}>
                         <span>Total Final:</span>
-                        <span>R$ {parseFloat(displayPrice.toFixed(2)).toFixed(2)}</span>
+                        <span>R$ {Number(displayPrice || 0).toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -238,7 +244,7 @@ export default function PaymentControls({
                                 gap: '0.5rem',
                                 fontWeight: 600
                             }}>
-                                ✅ Pago via {paymentMethodLabels[paymentMethod || ''] || paymentMethod}
+                                <Check size={16} /> Pago via {paymentMethodLabels[paymentMethod || ''] || paymentMethod}
                             </div>
                             <button
                                 onClick={handleUnpay}
@@ -324,7 +330,7 @@ export default function PaymentControls({
                         fontWeight: 700,
                         color: isPaid ? '#10b981' : '#f59e0b'
                     }}>
-                        R$ {displayPrice.toFixed(2)}
+                        R$ {Number(displayPrice || 0).toFixed(2)}
                     </span>
                     <span style={{
                         width: '1px',
@@ -341,7 +347,7 @@ export default function PaymentControls({
                 </div>
             </div>
 
-            {showModal && typeof document !== 'undefined' && createPortal(paymentModalJSX, document.body)}
+            {showModal && isClient && typeof document !== 'undefined' && createPortal(paymentModalJSX, document.body)}
         </>
     )
 }
