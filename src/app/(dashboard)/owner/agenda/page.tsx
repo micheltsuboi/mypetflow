@@ -1029,25 +1029,71 @@ function AgendaContent() {
                                     </select>
                                     {/* Preset Category hidden field if needed for logic, but usually we just need serviceId */}
                                 </div>
-                                <div className={styles.row}>
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Data *</label>
-                                        <DateInput
-                                            name="date"
-                                            value={selectedDate}
-                                            className={styles.input}
-                                            required
-                                            onChange={(val: string) => {
-                                                setSelectedDate(val)
-                                                validateScheduling(val, selectedServiceId, preSelectedPetId || "")
-                                            }}
-                                        />
-                                    </div>
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Hora *</label>
-                                        <input name="time" type="time" className={styles.input} required defaultValue={selectedHourSlot ? `${selectedHourSlot}:00` : ''} />
-                                    </div>
-                                </div>
+
+                                {(() => {
+                                    const selectedService = services.find(s => s.id === selectedServiceId)
+                                    const sc = (selectedService as any)?.service_categories
+                                    const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                    const isHospedagem = categoryName === 'Hospedagem'
+
+                                    if (isHospedagem) {
+                                        return (
+                                            <div className={styles.row}>
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.label}>Check-in *</label>
+                                                    <DateInput
+                                                        name="checkInDate"
+                                                        value={selectedDate}
+                                                        className={styles.input}
+                                                        required
+                                                        onChange={(val: string) => setSelectedDate(val)}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.label}>Check-out *</label>
+                                                    <DateInput
+                                                        name="checkOutDate"
+                                                        value={new Date(new Date(selectedDate).getTime() + 86400000).toISOString().split('T')[0]}
+                                                        className={styles.input}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+                                    return null
+                                })()}
+                                {(() => {
+                                    const selectedService = services.find(s => s.id === selectedServiceId)
+                                    const sc = (selectedService as any)?.service_categories
+                                    const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                    const isHospedagem = categoryName === 'Hospedagem'
+
+                                    if (!isHospedagem) {
+                                        return (
+                                            <div className={styles.row}>
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.label}>Data *</label>
+                                                    <DateInput
+                                                        name="date"
+                                                        value={selectedDate}
+                                                        className={styles.input}
+                                                        required
+                                                        onChange={(val: string) => {
+                                                            setSelectedDate(val)
+                                                            validateScheduling(val, selectedServiceId, preSelectedPetId || "")
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.label}>Hora *</label>
+                                                    <input name="time" type="time" className={styles.input} required defaultValue={selectedHourSlot ? `${selectedHourSlot}:00` : ''} />
+                                                </div>
+                                            </div>
+                                        )
+                                    }
+                                    return null
+                                })()}
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Observações</label>
                                     <textarea name="notes" className={styles.textarea} rows={3} />
@@ -1086,26 +1132,61 @@ function AgendaContent() {
                                 <form action={updateAction} style={{ display: 'grid', gap: '1rem' }}>
                                     <input type="hidden" name="id" value={selectedAppointment.id} />
                                     
-                                    <div className={styles.formGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                                        <div className={styles.formGroup}>
-                                            <label className={styles.label}>📅 Data</label>
-                                            <DateInput
-                                                name="date"
-                                                defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]}
-                                                className={styles.input}
-                                                required
-                                            />
-                                        </div>
-                                        <div className={styles.formGroup}>
-                                            <label className={styles.label}>🕐 Hora</label>
-                                            <input 
-                                                name="time" 
-                                                type="time" 
-                                                className={styles.input} 
-                                                required 
-                                                defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5)} 
-                                            />
-                                        </div>
+                                    <div className={styles.formGrid}>
+                                        {(() => {
+                                            const sc = (selectedAppointment?.services as any)?.service_categories
+                                            const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                            const isHospedagem = catName === 'Hospedagem'
+
+                                            if (isHospedagem) {
+                                                return (
+                                                    <div className={styles.row} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label className={styles.label}>Check-in *</label>
+                                                            <DateInput
+                                                                name="checkInDate"
+                                                                defaultValue={selectedAppointment.check_in_date ? selectedAppointment.check_in_date.split('T')[0] : selectedAppointment.scheduled_at.split('T')[0]}
+                                                                className={styles.input}
+                                                                required
+                                                            />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label className={styles.label}>Check-out *</label>
+                                                            <DateInput
+                                                                name="checkOutDate"
+                                                                defaultValue={selectedAppointment.check_out_date ? selectedAppointment.check_out_date.split('T')[0] : ''}
+                                                                className={styles.input}
+                                                                required
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )
+                                            }
+
+                                            return (
+                                                <div className={styles.row} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%' }}>
+                                                    <div className={styles.formGroup}>
+                                                        <label className={styles.label}>📅 Data</label>
+                                                        <DateInput
+                                                            name="date"
+                                                            defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]}
+                                                            className={styles.input}
+                                                            required
+                                                        />
+                                                    </div>
+                                                    <div className={styles.formGroup}>
+                                                        <label className={styles.label}>🕐 Hora</label>
+                                                        <input 
+                                                            name="time" 
+                                                            type="time" 
+                                                            className={styles.input} 
+                                                            required 
+                                                            defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} 
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )
+                                        })()}
                                     </div>
 
                                     <div className={styles.formGroup}>

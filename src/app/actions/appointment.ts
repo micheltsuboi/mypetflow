@@ -385,24 +385,35 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
     const time = formData.get('time') as string
     const serviceId = formData.get('serviceId') as string
     const notes = formData.get('notes') as string
+    const checkInDate = formData.get('checkInDate') as string
+    const checkOutDate = formData.get('checkOutDate') as string
 
-    if (!id || !date || !time || !serviceId) {
-        return { message: 'Dados incompletos.', success: false }
+    if (!id || !serviceId) {
+        return { message: 'ID e Serviço são obrigatórios.', success: false }
+    }
+    
+    // Validate either date/time OR checkIn/checkOut
+    if ((!date || !time) && (!checkInDate || !checkOutDate)) {
+        return { message: 'Dados de data e hora incompletos.', success: false }
     }
 
-    let scheduledAt: string
-    try {
-        scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
-    } catch (_) {
-        return { message: 'Data inválida.', success: false }
+    let scheduledAt = ''
+    if (date && time) {
+        try {
+            scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
+        } catch (_) {
+            return { message: 'Data inválida.', success: false }
+        }
     }
 
     const { error } = await supabase
         .from('appointments')
         .update({
             service_id: serviceId,
-            scheduled_at: scheduledAt,
-            notes: notes || null
+            scheduled_at: scheduledAt || null,
+            notes: notes || null,
+            check_in_date: checkInDate || null,
+            check_out_date: checkOutDate || null
         })
         .eq('id', id)
 

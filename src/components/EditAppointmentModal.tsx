@@ -14,12 +14,13 @@ interface Service {
 interface EditAppointmentModalProps {
     appointment: {
         id: string
-        pet_id: string
         service_id: string
         scheduled_at: string
         notes: string | null
+        check_in_date?: string | null
+        check_out_date?: string | null
         pets: { name: string }
-        services?: { name: string }
+        services?: { name: string, service_categories?: { name: string } }
     }
     onClose: () => void
     onSave: () => void
@@ -32,8 +33,10 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
 
     // Form State
     const [serviceId, setServiceId] = useState(appointment.service_id)
-    const [date, setDate] = useState(new Date(appointment.scheduled_at).toISOString().split('T')[0])
-    const [time, setTime] = useState(new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5))
+    const [date, setDate] = useState(appointment.scheduled_at ? new Date(appointment.scheduled_at).toISOString().split('T')[0] : '')
+    const [time, setTime] = useState(appointment.scheduled_at ? new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5) : '12:00')
+    const [checkInDate, setCheckInDate] = useState(appointment.check_in_date ? appointment.check_in_date.split('T')[0] : (appointment.scheduled_at ? appointment.scheduled_at.split('T')[0] : ''))
+    const [checkOutDate, setCheckOutDate] = useState(appointment.check_out_date ? appointment.check_out_date.split('T')[0] : '')
     const [notes, setNotes] = useState(appointment.notes || '')
 
     useEffect(() => {
@@ -46,7 +49,7 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
 
             const { data } = await supabase
                 .from('services')
-                .select('id, name, base_price, duration_minutes')
+                .select('id, name, base_price, duration_minutes, service_categories(name)')
                 .eq('org_id', profile.org_id)
                 .order('name')
 
@@ -64,6 +67,8 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
         formData.append('serviceId', serviceId)
         formData.append('date', date)
         formData.append('time', time)
+        formData.append('checkInDate', checkInDate)
+        formData.append('checkOutDate', checkOutDate)
         formData.append('notes', notes)
 
         const result = await updateAppointment({ message: '', success: false }, formData)
@@ -143,29 +148,70 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
                             </select>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Data</label>
-                                <input
-                                    type="date"
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
-                                />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Hora</label>
-                                <select
-                                    value={time}
-                                    onChange={e => setTime(e.target.value)}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
-                                >
-                                    {Array.from({ length: 13 }, (_, i) => i + 8).map(h => (
-                                        <option key={h} value={`${h.toString().padStart(2, '0')}:00`}>{h}:00</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
+                        {(() => {
+                            const selectedService = services.find(s => s.id === serviceId)
+                            const sc = (selectedService as any)?.service_categories
+                            const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                            const isHospedagem = catName === 'Hospedagem'
+
+                            if (isHospedagem) {
+                                return (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Check-in *</label>
+                                            <input
+                                                type="date"
+                                                value={checkInDate}
+                                                onChange={e => setCheckInDate(e.target.value)}
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Check-out *</label>
+                                            <input
+                                                type="date"
+                                                value={checkOutDate}
+                                                onChange={e => setCheckOutDate(e.target.value)}
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            }
+
+                            return (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Data</label>
+                                        <input
+                                            type="date"
+                                            value={date}
+                                            onChange={e => setDate(e.target.value)}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Hora</label>
+                                        <select
+                                            value={time}
+                                            onChange={e => setTime(e.target.value)}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                        >
+                                            {Array.from({ length: 24 }, (_, i) => i).map(h => (
+                                                <optgroup key={h} label={`${h.toString().padStart(2, '0')}:00`}>
+                                                    <option value={`${h.toString().padStart(2, '0')}:00`}>{h.toString().padStart(2, '0')}:00</option>
+                                                    <option value={`${h.toString().padStart(2, '0')}:15`}>{h.toString().padStart(2, '0')}:15</option>
+                                                    <option value={`${h.toString().padStart(2, '0')}:30`}>{h.toString().padStart(2, '0')}:30</option>
+                                                    <option value={`${h.toString().padStart(2, '0')}:45`}>{h.toString().padStart(2, '0')}:45</option>
+                                                </optgroup>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            )
+                        })()}
 
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Observações</label>
