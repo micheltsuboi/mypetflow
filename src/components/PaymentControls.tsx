@@ -9,6 +9,8 @@ interface PaymentControlsProps {
     calculatedPrice: number | null
     finalPrice: number | null
     discountPercent: number | null
+    discountType?: string | null
+    discountFixed?: number | null
     paymentStatus: string | null
     paymentMethod: string | null
     onUpdate?: () => void
@@ -28,13 +30,22 @@ export default function PaymentControls({
     calculatedPrice,
     finalPrice,
     discountPercent,
+    discountType,
+    discountFixed,
     paymentStatus,
     paymentMethod,
     onUpdate,
     compact = false
 }: PaymentControlsProps) {
     const [showModal, setShowModal] = useState(false)
-    const [discountValue, setDiscountValue] = useState(discountPercent?.toString() || '0')
+    const [discountValue, setDiscountValue] = useState(
+        discountType === 'fixed' 
+            ? (discountFixed?.toString() || '0') 
+            : (discountPercent?.toString() || '0')
+    )
+    const [discountTypeState, setDiscountTypeState] = useState<'percent' | 'fixed'>(
+        (discountType as 'percent' | 'fixed') || 'percent'
+    )
     const [loading, setLoading] = useState(false)
 
     const isPaid = paymentStatus === 'paid'
@@ -43,8 +54,13 @@ export default function PaymentControls({
 
     // Reset local state when props change
     useEffect(() => {
-        setDiscountValue(discountPercent?.toString() || '0')
-    }, [discountPercent])
+        setDiscountValue(
+            discountType === 'fixed' 
+                ? (discountFixed?.toString() || '0') 
+                : (discountPercent?.toString() || '0')
+        )
+        setDiscountTypeState((discountType as 'percent' | 'fixed') || 'percent')
+    }, [discountPercent, discountType, discountFixed])
 
     const handlePayment = async (method: string) => {
         setLoading(true)
@@ -69,11 +85,13 @@ export default function PaymentControls({
     }
 
     const handleDiscount = async () => {
-        const percent = parseFloat(discountValue)
-        if (isNaN(percent) || percent < 0 || percent > 100) return
+        const value = parseFloat(discountValue)
+        if (isNaN(value) || value < 0) return
+        if (discountTypeState === 'percent' && value > 100) return
+        
         setLoading(true)
         try {
-            await applyDiscount(appointmentId, percent, basePrice)
+            await applyDiscount(appointmentId, value, discountTypeState, basePrice)
             onUpdate?.()
         } finally {
             setLoading(false)
@@ -131,16 +149,37 @@ export default function PaymentControls({
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Desconto (%):</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Desconto:</span>
+                            {!isPaid && (
+                                <div style={{ display: 'flex', background: '#e2e8f0', borderRadius: '4px', padding: '2px' }}>
+                                    <button 
+                                        onClick={() => setDiscountTypeState('percent')}
+                                        style={{ 
+                                            padding: '2px 6px', fontSize: '0.7rem', border: 'none', borderRadius: '2px', cursor: 'pointer',
+                                            background: discountTypeState === 'percent' ? 'white' : 'transparent',
+                                            fontWeight: discountTypeState === 'percent' ? 700 : 400
+                                        }}>%</button>
+                                    <button 
+                                        onClick={() => setDiscountTypeState('fixed')}
+                                        style={{ 
+                                            padding: '2px 6px', fontSize: '0.7rem', border: 'none', borderRadius: '2px', cursor: 'pointer',
+                                            background: discountTypeState === 'fixed' ? 'white' : 'transparent',
+                                            fontWeight: discountTypeState === 'fixed' ? 700 : 400
+                                        }}>R$</button>
+                                </div>
+                            )}
+                        </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <input
                                 type="number"
                                 value={discountValue}
                                 onChange={(e) => setDiscountValue(e.target.value)}
-                                min="0" max="100"
+                                min="0" 
+                                max={discountTypeState === 'percent' ? 100 : undefined}
                                 disabled={isPaid}
                                 style={{
-                                    width: '60px',
+                                    width: '80px',
                                     padding: '4px',
                                     borderRadius: '4px',
                                     border: '1px solid #e2e8f0',
@@ -153,7 +192,7 @@ export default function PaymentControls({
                                         e.stopPropagation()
                                         handleDiscount()
                                     }}
-                                    disabled={loading || discountValue === discountPercent?.toString()}
+                                    disabled={loading}
                                     style={{
                                         fontSize: '0.75rem',
                                         padding: '4px 8px',
@@ -161,8 +200,7 @@ export default function PaymentControls({
                                         color: 'white',
                                         border: 'none',
                                         borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        opacity: discountValue === discountPercent?.toString() ? 0.5 : 1
+                                        cursor: 'pointer'
                                     }}
                                 >
                                     Aplicar

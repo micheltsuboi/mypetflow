@@ -265,15 +265,44 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                             />
                         </div>
                         <div className={styles.formGroup}>
-                            <label>Desconto (%)</label>
-                            <input
-                                type="number"
-                                step="0.1"
-                                value={formData.discount_percent || 0}
-                                onChange={(e) => handleFieldChange('discount_percent', parseFloat(e.target.value))}
-                                className={styles.input}
-                                disabled={readOnly}
-                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                                <label style={{ margin: 0 }}>Desconto</label>
+                                <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px' }}>
+                                    <button 
+                                        onClick={() => handleFieldChange('discount_type', 'percent')}
+                                        style={{ 
+                                            padding: '2px 8px', fontSize: '0.75rem', border: 'none', borderRadius: '3px', cursor: 'pointer',
+                                            background: formData.discount_type === 'percent' || !formData.discount_type ? 'white' : 'transparent',
+                                            fontWeight: (formData.discount_type === 'percent' || !formData.discount_type) ? 700 : 400
+                                        }}>%</button>
+                                    <button 
+                                        onClick={() => handleFieldChange('discount_type', 'fixed')}
+                                        style={{ 
+                                            padding: '2px 8px', fontSize: '0.75rem', border: 'none', borderRadius: '3px', cursor: 'pointer',
+                                            background: formData.discount_type === 'fixed' ? 'white' : 'transparent',
+                                            fontWeight: formData.discount_type === 'fixed' ? 700 : 400
+                                        }}>R$</button>
+                                </div>
+                            </div>
+                            {formData.discount_type === 'fixed' ? (
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.discount_fixed || 0}
+                                    onChange={(e) => handleFieldChange('discount_fixed', parseFloat(e.target.value))}
+                                    className={styles.input}
+                                    disabled={readOnly}
+                                />
+                            ) : (
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={formData.discount_percent || 0}
+                                    onChange={(e) => handleFieldChange('discount_percent', parseFloat(e.target.value))}
+                                    className={styles.input}
+                                    disabled={readOnly}
+                                />
+                            )}
                         </div>
                         <div className={styles.formGroup}>
                             <label>Status Pagamento</label>

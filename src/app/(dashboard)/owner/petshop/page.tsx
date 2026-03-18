@@ -49,6 +49,7 @@ export default function PetshopPage() {
     // Carrinho de Compras (PDV)
     const [cart, setCart] = useState<CartItem[]>([])
     const [globalDiscount, setGlobalDiscount] = useState<number>(0)
+    const [globalDiscountType, setGlobalDiscountType] = useState<'percent' | 'fixed'>('percent')
     const [paymentMethod, setPaymentMethod] = useState('cash')
     const [paymentStatus, setPaymentStatus] = useState<'paid' | 'pending'>('paid')
 
@@ -183,9 +184,11 @@ export default function PetshopPage() {
         }, 0)
 
         const totalBeforeGlobalDiscount = subtotal - itemDiscounts
-        const globalDiscountAmount = totalBeforeGlobalDiscount * (globalDiscount / 100)
+        const globalDiscountAmount = globalDiscountType === 'percent' 
+            ? totalBeforeGlobalDiscount * (globalDiscount / 100)
+            : globalDiscount
 
-        let finalTotal = totalBeforeGlobalDiscount - globalDiscountAmount
+        let finalTotal = Math.max(0, totalBeforeGlobalDiscount - globalDiscountAmount)
         const totalDiscount = itemDiscounts + globalDiscountAmount
 
         // Cashback Discount
@@ -497,13 +500,35 @@ export default function PetshopPage() {
                     {/* Resumo e Pagamento */}
                     <div className={styles.checkoutSection}>
                         <div className={styles.discountRow}>
-                            <label>Desconto Global (%)</label>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <label>Desconto Global</label>
+                                <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px' }}>
+                                    <button 
+                                        onClick={() => setGlobalDiscountType('percent')}
+                                        style={{ 
+                                            padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                                            background: globalDiscountType === 'percent' ? 'var(--color-navy)' : 'transparent',
+                                            color: globalDiscountType === 'percent' ? 'white' : 'var(--text-secondary)',
+                                            fontWeight: globalDiscountType === 'percent' ? 700 : 400
+                                        }}>%</button>
+                                    <button 
+                                        onClick={() => setGlobalDiscountType('fixed')}
+                                        style={{ 
+                                            padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                                            background: globalDiscountType === 'fixed' ? 'var(--color-navy)' : 'transparent',
+                                            color: globalDiscountType === 'fixed' ? 'white' : 'var(--text-secondary)',
+                                            fontWeight: globalDiscountType === 'fixed' ? 700 : 400
+                                        }}>R$</button>
+                                </div>
+                            </div>
                             <input
                                 type="number"
-                                min="0" max="100"
+                                min="0" 
+                                max={globalDiscountType === 'percent' ? 100 : undefined}
                                 className={styles.discountInput}
                                 value={globalDiscount}
                                 onChange={e => setGlobalDiscount(parseFloat(e.target.value) || 0)}
+                                style={{ width: '100%' }}
                             />
                         </div>
 

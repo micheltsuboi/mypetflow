@@ -38,6 +38,8 @@ interface Appointment {
     calculated_price: number | null
     final_price: number | null
     discount_percent: number | null
+    discount_type: string | null
+    discount: number | null
     payment_status: string | null
     payment_method: string | null
 }
@@ -82,7 +84,7 @@ export default function BanhoTosaPage() {
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
                     calculated_price, checklist,
-                    final_price, discount_percent, payment_status, payment_method,
+                    final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
                     services!inner ( 
@@ -301,6 +303,8 @@ export default function BanhoTosaPage() {
                                                 calculatedPrice={appt.calculated_price ?? appt.services?.base_price ?? null}
                                                 finalPrice={appt.final_price}
                                                 discountPercent={appt.discount_percent}
+                                                discountType={appt.discount_type}
+                                                discountFixed={appt.discount}
                                                 paymentStatus={appt.payment_status}
                                                 paymentMethod={appt.payment_method}
                                                 onUpdate={() => fetchBanhoTosaData(true)}

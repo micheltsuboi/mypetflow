@@ -215,7 +215,9 @@ export async function createVetConsultation(formData: FormData) {
         const notes = formData.get('notes') as string || null
 
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
+        const discount_type = formData.get('discount_type') as string || 'percent'
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
+        const discount_fixed = parseFloat(formData.get('discount_fixed') as string || '0')
         const payment_status = formData.get('payment_status') as string || 'pending'
         const payment_method = formData.get('payment_method') as string || 'cash'
 
@@ -234,7 +236,9 @@ export async function createVetConsultation(formData: FormData) {
                 prescription,
                 notes,
                 consultation_fee,
+                discount_type,
                 discount_percent,
+                discount_fixed,
                 payment_status,
                 payment_method,
                 created_by: user.id
@@ -244,7 +248,12 @@ export async function createVetConsultation(formData: FormData) {
 
         // Registra transação financeira se já estiver pago
         if (payment_status === 'paid' && consultation_fee > 0) {
-            const finalTotal = consultation_fee - (consultation_fee * (discount_percent / 100));
+            let finalTotal = consultation_fee;
+            if (discount_type === 'percent') {
+                finalTotal = consultation_fee - (consultation_fee * (discount_percent / 100));
+            } else {
+                finalTotal = Math.max(0, consultation_fee - discount_fixed);
+            }
             // Call financial transaction if necessary, or just rely on the user doing it via finance module.
             // Ideally should register income:
             await supabase.from('financial_transactions').insert({
@@ -281,7 +290,9 @@ export async function updateVetConsultation(formData: FormData) {
         const prescription = formData.get('prescription') as string || null
         const notes = formData.get('notes') as string || null
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
+        const discount_type = formData.get('discount_type') as string || 'percent'
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
+        const discount_fixed = parseFloat(formData.get('discount_fixed') as string || '0')
         const payment_status = formData.get('payment_status') as string
         const payment_method = formData.get('payment_method') as string
 
@@ -296,7 +307,9 @@ export async function updateVetConsultation(formData: FormData) {
                 prescription,
                 notes,
                 consultation_fee,
+                discount_type,
                 discount_percent,
+                discount_fixed,
                 payment_status,
                 payment_method
             })
@@ -519,7 +532,9 @@ export async function createVetExam(formData: FormData) {
         const result_notes = formData.get('result_notes') as string || null
 
         const price = parseFloat(formData.get('price') as string || '0')
+        const discount_type = formData.get('discount_type') as string || 'percent'
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
+        const discount_fixed = parseFloat(formData.get('discount_fixed') as string || '0')
         const payment_status = formData.get('payment_status') as string || 'pending'
         const payment_method = formData.get('payment_method') as string || 'cash'
 
@@ -540,7 +555,9 @@ export async function createVetExam(formData: FormData) {
                 result_notes,
                 file_url,
                 price,
+                discount_type,
                 discount_percent,
+                discount_fixed,
                 payment_status,
                 payment_method,
                 created_by: user.id
@@ -549,7 +566,12 @@ export async function createVetExam(formData: FormData) {
         if (error) throw error
 
         if (payment_status === 'paid' && price > 0) {
-            const finalTotal = price - (price * (discount_percent / 100));
+            let finalTotal = price;
+            if (discount_type === 'percent') {
+                finalTotal = price - (price * (discount_percent / 100));
+            } else {
+                finalTotal = Math.max(0, price - discount_fixed);
+            }
             await supabase.from('financial_transactions').insert({
                 org_id: profile?.org_id,
                 type: 'income',

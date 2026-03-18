@@ -30,8 +30,16 @@ interface Appointment {
     }
     services: {
         name: string
+        base_price: number
         service_categories: { name: string, color: string, icon: string }
     }
+    calculated_price: number | null
+    final_price: number | null
+    discount_percent: number | null
+    discount_type: string | null
+    discount: number | null
+    payment_status: string | null
+    payment_method: string | null
 }
 
 export default function CrechePage() {
@@ -69,7 +77,7 @@ export default function CrechePage() {
                 .from('appointments')
                 .select(`
                     id, pet_id, service_id, scheduled_at, status, notes,
-                    calculated_price, final_price, discount_percent, payment_status, payment_method,
+                    calculated_price, final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
                     pets ( name, species, breed, customers ( name ) ),
                     services!inner ( 
@@ -320,8 +328,10 @@ export default function CrechePage() {
                                                 appointmentId={appt.id}
                                                 calculatedPrice={(appt as any).calculated_price ?? (appt.services as any)?.base_price ?? null}
                                                 finalPrice={(appt as any).final_price}
-                                                discountPercent={(appt as any).discount_percent}
-                                                paymentStatus={(appt as any).payment_status}
+                                                discountPercent={appt.discount_percent}
+                                            discountType={appt.discount_type}
+                                            discountFixed={appt.discount}
+                                            paymentStatus={appt.payment_status}
                                                 paymentMethod={(appt as any).payment_method}
                                                 onUpdate={() => fetchCrecheData(true)}
                                                 compact

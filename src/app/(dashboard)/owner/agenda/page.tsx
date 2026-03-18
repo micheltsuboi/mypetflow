@@ -80,6 +80,8 @@ interface Appointment {
     calculated_price?: number | null
     final_price?: number | null
     discount_percent?: number | null
+    discount_type?: string | null
+    discount?: number | null
     payment_status?: string | null
     payment_method?: string | null
 }
@@ -231,7 +233,7 @@ function AgendaContent() {
 
             const apptsPromise = supabase.from('appointments').select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
-                    calculated_price, final_price, discount_percent, payment_status, payment_method,
+                    calculated_price, final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out, check_in_date, check_out_date,
                     pets ( name, species, breed, perfume_allowed, accessories_allowed, special_care, is_adapted, customers ( name )),
                     services ( name, duration_minutes, base_price, category_id, service_categories ( name, color, icon ))
@@ -611,6 +613,8 @@ function AgendaContent() {
                     calculatedPrice={appt.calculated_price ?? (appt.services as any)?.base_price ?? null}
                     finalPrice={appt.final_price ?? null}
                     discountPercent={appt.discount_percent ?? null}
+                    discountType={appt.discount_type}
+                    discountFixed={appt.discount}
                     paymentStatus={appt.payment_status ?? null}
                     paymentMethod={appt.payment_method ?? null}
                     onUpdate={() => fetchData()}
