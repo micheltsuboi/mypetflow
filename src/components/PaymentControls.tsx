@@ -128,50 +128,62 @@ export default function PaymentControls({
             <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                    background: 'white',
-                    borderRadius: '12px',
-                    padding: '1.5rem',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: 'var(--radius-xl)',
+                    padding: '2rem',
                     width: '100%',
-                    maxWidth: '400px',
-                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                    position: 'relative'
+                    maxWidth: '450px',
+                    boxShadow: 'var(--shadow-xl)',
+                    position: 'relative',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text-primary)'
                 }}
             >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b' }}>💰 Detalhes do Pagamento</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ background: 'var(--gradient-primary)', padding: '0.5rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <DollarSign size={20} color="white" />
+                        </div>
+                        <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)', fontWeight: 700 }}>Detalhes do Pagamento</h3>
+                    </div>
                     <button
                         onClick={() => setShowModal(false)}
-                        style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}
+                        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-secondary)', transition: 'all 0.2s' }}
+                        onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
                     >
-                        &times;
+                        <X size={18} />
                     </button>
                 </div>
 
                 {/* Price Summary */}
-                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#64748b' }}>
+                <div style={{ background: 'var(--bg-primary)', padding: '1.25rem', borderRadius: 'var(--radius-lg)', marginBottom: '1.5rem', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
                         <span>Valor Base:</span>
-                        <span>R$ {Number(basePrice || 0).toFixed(2)}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>R$ {Number(basePrice || 0).toFixed(2)}</span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Desconto:</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Desconto:</span>
                             {!isPaid && (
-                                <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px', border: '1px solid var(--border)' }}>
+                                <div style={{ display: 'flex', background: 'var(--bg-tertiary)', borderRadius: '8px', padding: '3px', border: '1px solid var(--border)' }}>
                                     <button 
                                         onClick={() => setDiscountTypeState('percent')}
                                         style={{ 
-                                            padding: '2px 6px', fontSize: '0.7rem', border: 'none', borderRadius: '2px', cursor: 'pointer',
-                                            background: discountTypeState === 'percent' ? 'white' : 'transparent',
-                                            fontWeight: discountTypeState === 'percent' ? 700 : 400
+                                            padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                                            background: discountTypeState === 'percent' ? 'var(--color-sky)' : 'transparent',
+                                            color: discountTypeState === 'percent' ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                                            fontWeight: 700,
+                                            transition: 'all 0.2s'
                                         }}>%</button>
                                     <button 
                                         onClick={() => setDiscountTypeState('fixed')}
                                         style={{ 
-                                            padding: '2px 6px', fontSize: '0.7rem', border: 'none', borderRadius: '2px', cursor: 'pointer',
-                                            background: discountTypeState === 'fixed' ? 'white' : 'transparent',
-                                            fontWeight: discountTypeState === 'fixed' ? 700 : 400
+                                            padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                                            background: discountTypeState === 'fixed' ? 'var(--color-sky)' : 'transparent',
+                                            color: discountTypeState === 'fixed' ? 'var(--bg-primary)' : 'var(--text-secondary)',
+                                            fontWeight: 700,
+                                            transition: 'all 0.2s'
                                         }}>R$</button>
                                 </div>
                             )}
@@ -185,11 +197,15 @@ export default function PaymentControls({
                                 max={discountTypeState === 'percent' ? 100 : undefined}
                                 disabled={isPaid}
                                 style={{
-                                    width: '80px',
-                                    padding: '4px',
-                                    borderRadius: '4px',
-                                    border: '1px solid #e2e8f0',
-                                    textAlign: 'center'
+                                    width: '90px',
+                                    padding: '8px',
+                                    borderRadius: '8px',
+                                    background: 'var(--bg-input)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border)',
+                                    textAlign: 'center',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 600
                                 }}
                             />
                             {!isPaid && (
@@ -200,13 +216,16 @@ export default function PaymentControls({
                                     }}
                                     disabled={loading}
                                     style={{
-                                        fontSize: '0.75rem',
-                                        padding: '4px 8px',
-                                        background: '#3b82f6',
-                                        color: 'white',
+                                        fontSize: '0.85rem',
+                                        padding: '0.5rem 1rem',
+                                        background: 'var(--color-sky)',
+                                        color: 'var(--bg-primary)',
                                         border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer'
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: 700,
+                                        transition: 'all 0.2s',
+                                        boxShadow: 'var(--shadow-glow-sky)'
                                     }}
                                 >
                                     Aplicar
@@ -216,15 +235,15 @@ export default function PaymentControls({
                     </div>
 
                     {discountPercent && discountPercent > 0 ? (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#ef4444' }}>
-                            <span>Desconto aplicado:</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--color-coral)', fontWeight: 500 }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Percent size={14} /> Desconto aplicado:</span>
                             <span>- R$ {(basePrice - displayPrice).toFixed(2)}</span>
                         </div>
                     ) : null}
 
-                    <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '0.5rem', paddingTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.1rem', color: '#1e293b' }}>
+                    <div style={{ borderTop: '1px solid var(--border)', marginTop: '0.75rem', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--text-primary)' }}>
                         <span>Total Final:</span>
-                        <span>R$ {Number(displayPrice || 0).toFixed(2)}</span>
+                        <span style={{ color: 'var(--color-sky)', textShadow: '0 0 10px rgba(0, 228, 206, 0.4)' }}>R$ {Number(displayPrice || 0).toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -233,40 +252,45 @@ export default function PaymentControls({
                     {isPaid ? (
                         <div style={{ textAlign: 'center' }}>
                             <div style={{
-                                background: 'rgba(16, 185, 129, 0.1)',
-                                color: '#10b981',
-                                padding: '0.75rem',
-                                borderRadius: '8px',
-                                marginBottom: '1rem',
+                                background: 'rgba(122, 201, 160, 0.1)',
+                                color: 'var(--status-done)',
+                                padding: '1rem',
+                                borderRadius: 'var(--radius-lg)',
+                                marginBottom: '1.25rem',
+                                border: '1px solid rgba(122, 201, 160, 0.2)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: '0.5rem',
-                                fontWeight: 600
+                                gap: '0.75rem',
+                                fontWeight: 600,
+                                fontSize: '1.05rem'
                             }}>
-                                <Check size={16} /> Pago via {paymentMethodLabels[paymentMethod || ''] || paymentMethod}
+                                <Check size={20} /> Pago via {paymentMethodLabels[paymentMethod || ''] || paymentMethod}
                             </div>
                             <button
                                 onClick={handleUnpay}
                                 disabled={loading}
                                 style={{
-                                    background: 'none',
-                                    border: '1px solid #e2e8f0',
-                                    padding: '0.5rem 1rem',
-                                    borderRadius: '6px',
-                                    color: '#64748b',
+                                    background: 'var(--bg-primary)',
+                                    border: '1px solid var(--border)',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    color: 'var(--text-secondary)',
                                     cursor: 'pointer',
                                     fontSize: '0.9rem',
-                                    width: '100%'
+                                    width: '100%',
+                                    fontWeight: 500,
+                                    transition: 'all 0.2s'
                                 }}
+                                onMouseOver={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
                             >
-                                ↺ Desfazer Pagamento
+                                <X size={16} style={{ marginBottom: '-2px', marginRight: '4px' }} /> Desfazer Pagamento
                             </button>
                         </div>
                     ) : (
                         <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.75rem', color: '#1e293b' }}>
-                                Confirmar Pagamento:
+                            <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <CreditCard size={18} color="var(--color-sky)" /> Confirmar Pagamento:
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                                 {Object.entries(paymentMethodLabels).map(([key, label]) => (
@@ -275,19 +299,39 @@ export default function PaymentControls({
                                         onClick={() => handlePayment(key)}
                                         disabled={loading}
                                         style={{
-                                            padding: '0.75rem',
-                                            borderRadius: '8px',
-                                            border: '1px solid #e2e8f0',
-                                            background: 'white',
-                                            color: '#1e293b',
+                                            padding: '1rem',
+                                            borderRadius: '12px',
+                                            border: '1px solid var(--border)',
+                                            background: 'var(--bg-primary)',
+                                            color: 'var(--text-primary)',
                                             cursor: loading ? 'wait' : 'pointer',
-                                            fontSize: '0.9rem',
+                                            fontSize: '0.95rem',
+                                            fontWeight: 600,
                                             textAlign: 'left',
                                             transition: 'all 0.2s',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            boxShadow: 'var(--shadow-sm)'
                                         }}
-                                        onMouseOver={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-                                        onMouseOut={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+                                        onMouseOver={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--color-sky)';
+                                            e.currentTarget.style.transform = 'translateY(-2px)';
+                                            e.currentTarget.style.boxShadow = 'var(--shadow-glow-sky)';
+                                        }}
+                                        onMouseOut={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--border)';
+                                            e.currentTarget.style.transform = 'translateY(0)';
+                                            e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                                        }}
                                     >
+                                        <div style={{ background: 'var(--bg-tertiary)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                            {key === 'pix' && <DollarSign size={16} color="var(--color-sky)" />}
+                                            {key === 'credit' && <CreditCard size={16} color="var(--color-sky)" />}
+                                            {key === 'debit' && <CreditCard size={16} color="var(--color-sky)" />}
+                                            {key === 'cash' && <Banknote size={16} color="var(--color-sky)" />}
+                                            {key === 'package' && <Wallet size={16} color="var(--color-sky)" />}
+                                        </div>
                                         {label}
                                     </button>
                                 ))}
