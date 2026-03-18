@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   title: "MyPet Flow | Sistema de Gestão para Pet Shops",
   description: "Sistema completo para gestão de Pet Shops, incluindo creche, hotel, banho e tosa.",
   keywords: ["pet shop", "banho e tosa", "hotel pet", "creche pet", "gestão pet shop"],
-  manifest: '/manifest.webmanifest',
+  manifest: '/manifest.json',
   icons: {
     icon: [
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },

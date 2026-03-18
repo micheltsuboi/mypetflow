@@ -2,7 +2,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './LandingPage.module.css'
 import { fetchPlans } from '@/app/actions/plans'
-import { Droplet, Home, Calendar, Store, PieChart, Check } from 'lucide-react'
+import { Check } from 'lucide-react'
+import InstallAppButton from './InstallAppButton'
 
 export default async function LandingPage() {
     // Busca os planos do banco de dados e filtra apenas os ativos
@@ -17,7 +18,7 @@ export default async function LandingPage() {
                 <Link href="/admin" className={styles.topBannerLink}>Acessar meu Pet Shop &rarr;</Link>
             </div>
 
-            {/* Navbar */}
+            {/* Header */}
             <header className={styles.header}>
                 <div className={styles.container}>
                     <div className={styles.navInner}>
@@ -47,9 +48,7 @@ export default async function LandingPage() {
                             </p>
                             <div className={styles.heroActions}>
                                 <Link href="/cadastro-empresa" className={styles.primaryBtn}>Testar Grátis Agora</Link>
-                                <Link href="#modulos" className={styles.secondaryBtn}>
-                                    <span className={styles.playIcon}>▶</span> Ver Demo
-                                </Link>
+                                <InstallAppButton />
                             </div>
                         </div>
 
@@ -242,7 +241,7 @@ export default async function LandingPage() {
                                     </div>
                                     <ul className={styles.pricingFeatures}>
                                         {plan.features && plan.features.length > 0 ? (
-                                            plan.features.map(feature => {
+                                            plan.features.map((feature: any) => {
                                                 const featureNames: Record<string, string> = {
                                                     'agenda': 'Agenda inteligente',
                                                     'customers': 'Gestão de tutores e pets',
@@ -256,7 +255,7 @@ export default async function LandingPage() {
                                                     'relatorios': 'Relatórios avançados',
                                                     'whatsapp': 'Automação de WhatsApp'
                                                 };
-                                                let displayName = featureNames[feature] || feature;
+                                                let displayName = featureNames[feature as string] || feature;
                                                 // Garantir que a primeira letra seja sempre maiúscula
                                                 displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
                                                 return (
