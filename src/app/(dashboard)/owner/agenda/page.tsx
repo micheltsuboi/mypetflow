@@ -306,6 +306,16 @@ function AgendaContent() {
     }, [createState, fetchData])
 
     useEffect(() => {
+        if (updateState.success) {
+            setShowDetailModal(false)
+            setIsEditing(false)
+            fetchData()
+        } else if (updateState.message) {
+            alert(updateState.message)
+        }
+    }, [updateState, fetchData])
+
+    useEffect(() => {
         if (blockState.success) {
             setShowBlockModal(false)
             fetchData()
@@ -445,12 +455,15 @@ function AgendaContent() {
         setShowDetailModal(true)
     }
 
-    const handleDelete = async () => {
-        if (!selectedAppointment) return
+    const handleDelete = async (appt?: Appointment) => {
+        const target = appt || selectedAppointment
+        if (!target) return
+
         if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
-            const res = await deleteAppointment(selectedAppointment.id)
+            const res = await deleteAppointment(target.id)
             if (res.success) {
                 setShowDetailModal(false)
+                setIsEditing(false)
                 fetchData()
             } else {
                 alert(res.message)
@@ -530,40 +543,67 @@ function AgendaContent() {
                 className={styles.appointmentCard}
                 onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}
                 style={{
-                    minWidth: '300px',
-                    borderLeft: `4px solid ${needsAdaptation ? '#f1c40f' : categoryColor} `,
-                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : (needsAdaptation ? 'rgba(241, 196, 15, 0.05)' : 'var(--bg-secondary)'),
+                    minWidth: '320px',
+                    borderLeft: `4px solid ${needsAdaptation ? '#f1c40f' : categoryColor}`,
+                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : (needsAdaptation ? 'rgba(241, 196, 15, 0.05)' : 'var(--bg-card)'),
                     opacity: appt.status === 'done' ? 0.7 : 1
                 }}
             >
-                <div className={styles.timeDisplay}>{formatTime(appt.scheduled_at)}</div>
                 <div className={styles.cardTop}>
-                    <div className={styles.petInfoMain}>
-                        <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
-                        <div className={styles.petDetails}>
-                            <div className={styles.petName}>
-                                {petName}
-                                {needsAdaptation && (
-                                    <span style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', background: '#f1c40f', color: '#000', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: 'bold' }}>
-                                        ⚠️ Adaptação Pendente
-                                    </span>
-                                )}
-                                <span className={styles.statusBadge}>
-                                    {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Andamento' :
-                                        appt.actual_check_out ? '🏁 Finalizado' :
-                                            getStatusLabel(appt.status)}
-                                </span>
-                            </div>
-                            <span className={styles.petBreed}>{appt.pets?.breed}</span>
-                            <span className={styles.tutorName}>👤 {ownerName}</span>
-                        </div>
+                    <div className={styles.timeDisplay}>
+                        🕐 {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className={styles.quickActionsRow}>
+                        <button
+                            className={styles.cardIconButton}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedAppointment(appt)
+                                setIsEditing(true)
+                                setShowDetailModal(true)
+                            }}
+                            title="Editar Agendamento"
+                        >
+                            ✏️
+                        </button>
+                        <button
+                            className={styles.cardDeleteButton}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(appt)
+                            }}
+                            title="Excluir Agendamento"
+                        >
+                            🗑️
+                        </button>
                     </div>
                 </div>
 
-                <div className={styles.serviceLine}>
-                    <span style={{ marginRight: '0.25rem' }}>{categoryIcon}</span>
-                    {appt.services?.name}
+                <div className={styles.petInfoMain}>
+                    <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
+                    <div className={styles.petDetails}>
+                        <div className={styles.petName}>
+                            {petName}
+                            {needsAdaptation && (
+                                <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: '#f1c40f', color: '#000', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: 'bold' }}>
+                                    ADAPTAÇÃO
+                                </span>
+                            )}
+                        </div>
+                        <span className={styles.statusBadge}>
+                            {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Atendimento' :
+                                appt.actual_check_out ? '🏁 Finalizado' :
+                                    getStatusLabel(appt.status)}
+                        </span>
+                        <div className={styles.tutorName}>👤 {ownerName}</div>
+                    </div>
                 </div>
+
+                <div className={styles.serviceLine} style={{ marginTop: '0.75rem' }}>
+                    <span style={{ fontSize: '1.2rem' }}>{categoryIcon}</span>
+                    <span style={{ fontWeight: 600 }}>{appt.services?.name}</span>
+                </div>
+
                 <PaymentControls
                     appointmentId={appt.id}
                     calculatedPrice={appt.calculated_price ?? (appt.services as any)?.base_price ?? null}
@@ -575,7 +615,7 @@ function AgendaContent() {
                     compact
                 />
 
-                <div className={styles.quickActions}>
+                <div className={styles.quickActions} style={{ marginTop: '1rem' }}>
                     {!appt.actual_check_in && categoryName !== 'Clínica Veterinária' && (
                         <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkin') }}>Entrada ➡️</button>
                     )}
@@ -1039,39 +1079,77 @@ function AgendaContent() {
                                 {!isEditing && (
                                     <div className={styles.modalTools}>
                                         <button className={styles.editBtnSmall} onClick={() => setIsEditing(true)}>✏️ Editar</button>
-                                        <button className={styles.deleteBtnSmall} onClick={handleDelete}>🗑️ Cancelar</button>
+                                        <button className={styles.deleteBtnSmall} onClick={() => handleDelete()}>🗑️ Cancelar</button>
                                     </div>
                                 )}
                             </div>
 
                             {isEditing ? (
-                                <form action={updateAction}>
+                                <form action={updateAction} style={{ display: 'grid', gap: '1rem' }}>
                                     <input type="hidden" name="id" value={selectedAppointment.id} />
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Data</label>
-                                        <DateInput
-                                            name="date"
-                                            defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]}
-                                            className={styles.input}
-                                        />
+                                    
+                                    <div className={styles.formGrid} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.label}>📅 Data</label>
+                                            <DateInput
+                                                name="date"
+                                                defaultValue={new Date(selectedAppointment.scheduled_at).toISOString().split('T')[0]}
+                                                className={styles.input}
+                                                required
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label className={styles.label}>🕐 Hora</label>
+                                            <input 
+                                                name="time" 
+                                                type="time" 
+                                                className={styles.input} 
+                                                required 
+                                                defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5)} 
+                                            />
+                                        </div>
                                     </div>
+
                                     <div className={styles.formGroup}>
-                                        <label className={styles.label}>Hora</label>
-                                        <input name="time" type="time" className={styles.input} defaultValue={new Date(selectedAppointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} />
-                                    </div>
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>Serviço</label>
-                                        <select name="serviceId" className={styles.select} defaultValue={selectedAppointment.services?.id}>
-                                            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                        <label className={styles.label}>🛠️ Serviço</label>
+                                        <select 
+                                            name="serviceId" 
+                                            className={styles.select} 
+                                            defaultValue={selectedAppointment.services?.id}
+                                            required
+                                        >
+                                            {services.map(s => <option key={s.id} value={s.id}>{s.name} - R$ {s.base_price.toFixed(2)}</option>)}
                                         </select>
                                     </div>
+
                                     <div className={styles.formGroup}>
-                                        <label className={styles.label}>Notas</label>
-                                        <textarea name="notes" className={styles.textarea} defaultValue={selectedAppointment.notes || ''} />
+                                        <label className={styles.label}>📝 Observações</label>
+                                        <textarea 
+                                            name="notes" 
+                                            className={styles.textarea} 
+                                            defaultValue={selectedAppointment.notes || ''} 
+                                            rows={3}
+                                            placeholder="Alguma observação importante?"
+                                        />
                                     </div>
-                                    <div className={styles.modalActions}>
-                                        <button type="button" className={styles.cancelBtn} onClick={() => setIsEditing(false)}>Cancelar</button>
-                                        <button type="submit" className={styles.submitBtn} disabled={isUpdatePending}>Salvar</button>
+
+                                    <div className={styles.modalActions} style={{ marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                                        <button 
+                                            type="button" 
+                                            className={styles.deleteBtn} 
+                                            onClick={() => {
+                                                if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
+                                                    handleDelete(selectedAppointment)
+                                                }
+                                            }}
+                                            style={{ marginRight: 'auto' }}
+                                        >
+                                            🗑️ Cancelar Agendamento
+                                        </button>
+                                        <button type="button" className={styles.cancelBtn} onClick={() => setIsEditing(false)}>Voltar</button>
+                                        <button type="submit" className={styles.submitBtn} disabled={isUpdatePending}>
+                                            {isUpdatePending ? 'Salvando...' : '💾 Salvar Alterações'}
+                                        </button>
                                     </div>
                                 </form>
                             ) : (
