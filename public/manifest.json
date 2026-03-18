@@ -3,10 +3,10 @@
     "name": "MyPet Flow",
     "short_name": "MyPet Flow",
     "description": "Sistema completo para gestão de Pet Shops",
-    "start_url": "/",
+    "start_url": "/login",
     "display": "standalone",
-    "background_color": "#0D1B2A",
-    "theme_color": "#1B3B5A",
+    "background_color": "#0E1624",
+    "theme_color": "#0E1624",
     "orientation": "portrait",
     "icons": [
         {

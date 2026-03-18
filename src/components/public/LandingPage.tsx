@@ -4,6 +4,7 @@ import styles from './LandingPage.module.css'
 import { fetchPlans } from '@/app/actions/plans'
 import { Check, Droplet, Home, Calendar, Store, PieChart } from 'lucide-react'
 import InstallAppButton from './InstallAppButton'
+import LandingHeader from './LandingHeader'
 
 export default async function LandingPage() {
     // Busca os planos do banco de dados e filtra apenas os ativos
@@ -19,23 +20,7 @@ export default async function LandingPage() {
             </div>
 
             {/* Header */}
-            <header className={styles.header}>
-                <div className={styles.container}>
-                    <div className={styles.navInner}>
-                        <div className={styles.logo}>
-                            <Image src="/LOGO-02.png" alt="MyPet Flow" width={300} height={80} style={{ width: '220px', height: 'auto', objectFit: 'contain' }} priority />
-                        </div>
-                        <nav className={styles.desktopNav}>
-                            <Link href="#modulos">Módulos</Link>
-                            <Link href="#diferenciais">Diferenciais</Link>
-                            <Link href="#planos">Planos</Link>
-                        </nav>
-                        <div className={styles.authButtons}>
-                            <Link href="/cadastro-empresa" className={styles.signupBtn}>Cadastrar Empresa</Link>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <LandingHeader />
 
             {/* Hero Section */}
             <section className={styles.heroSection}>
