@@ -13,6 +13,7 @@ import EditAppointmentModal from '@/components/EditAppointmentModal'
 import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import { createAppointment } from '@/app/actions/appointment'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PetSearchSelect from '@/components/ui/PetSearchSelect'
 
 interface Appointment {
     id: string
@@ -462,14 +463,11 @@ export default function BanhoTosaPage() {
                             }}>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Pet *</label>
-                                    <select name="petId" className={styles.select} required>
-                                        <option value="">Selecione...</option>
-                                        {pets.map(p => (
-                                            <option key={p.id} value={p.id}>
-                                                {p.name} ({p.species}) {p.weight_kg ? `- ${p.weight_kg}kg` : ''}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <PetSearchSelect 
+                                        name="petId"
+                                        placeholder="Digite o nome do pet..."
+                                        required
+                                    />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Serviço *</label>

@@ -280,3 +280,36 @@ export async function getCrecheHistory(petId: string) {
     return { success: true, data }
 }
 
+
+export async function searchPets(query: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, message: 'Não autorizado', data: [] }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('org_id')
+        .eq('id', user.id)
+        .single()
+    
+    if (!profile?.org_id) return { success: false, message: 'Org não encontrada', data: [] }
+
+    try {
+        const { data, error } = await supabase
+            .from('pets')
+            .select(`
+                id, name, species, breed,
+                customers!inner(name, org_id)
+            `)
+            .eq('customers.org_id', profile.org_id)
+            .ilike('name', `%${query}%`)
+            .order('name')
+            .limit(10)
+
+        if (error) throw error
+        return { success: true, data }
+    } catch (error: any) {
+        console.error('Error searching pets:', error)
+        return { success: false, message: error.message, data: [] }
+    }
+}

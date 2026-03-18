@@ -11,6 +11,7 @@ import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PetSearchSelect from '@/components/ui/PetSearchSelect'
 
 interface Appointment {
     id: string
@@ -497,11 +498,12 @@ function NewCrecheAppointmentModal({ onClose, onSave }: { onClose: () => void, o
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '1rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Pet *</label>
-                        <select required value={selectedPetId} onChange={e => setSelectedPetId(e.target.value)}
-                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }}>
-                            <option value="">Selecione...</option>
-                            {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                        <PetSearchSelect 
+                                name="petId"
+                                placeholder="Digite o nome do pet..."
+                                onSelect={(id) => setSelectedPetId(id)}
+                                required
+                            />
                     </div>
                     <div style={{ marginBottom: '1rem' }}>
                         <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Serviço *</label>

@@ -25,6 +25,8 @@ import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { format } from 'date-fns'
 import DateInput from '@/components/ui/DateInput'
+import PetSearchSelect from '@/components/ui/PetSearchSelect'
+import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
 
 interface Customer {
     name: string
@@ -981,20 +983,16 @@ function AgendaContent() {
                             <form action={createAction}>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Pet *</label>
-                                    <select
+                                    <PetSearchSelect 
                                         name="petId"
-                                        className={styles.select}
-                                        required
                                         defaultValue={preSelectedPetId || ""}
-                                        key={preSelectedPetId}
-                                        onChange={(e) => {
-                                            setPreSelectedPetId(e.target.value)
-                                            validateScheduling(selectedDate, selectedServiceId, e.target.value)
+                                        initialPets={pets as any}
+                                        onSelect={(id) => {
+                                            setPreSelectedPetId(id)
+                                            validateScheduling(selectedDate, selectedServiceId, id)
                                         }}
-                                    >
-                                        <option value="" disabled>Selecione...</option>
-                                        {pets.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
+                                        required
+                                    />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Serviço *</label>
