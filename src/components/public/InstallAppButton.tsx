@@ -5,62 +5,68 @@ import styles from './LandingPage.module.css';
 
 export default function InstallAppButton() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-    const [isInstallable, setIsInstallable] = useState(false);
     const [isIOS, setIsIOS] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
-        // Check if it's iOS
+        // Check if already in standalone mode
+        if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+            setIsStandalone(true);
+        }
+
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
         setIsIOS(isIOSDevice);
 
         const handleBeforeInstallPrompt = (e: any) => {
-            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            console.log('PWA: beforeinstallprompt event fired');
             e.preventDefault();
-            // Stash the event so it can be triggered later.
             setDeferredPrompt(e);
-            setIsInstallable(true);
         };
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-        // Check if app is already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            setIsInstallable(false);
-        }
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         };
     }, []);
 
-    const handleInstallClick = async () => {
+    const handleInstallClick = async (e: React.MouseEvent) => {
+        e.preventDefault();
+
+        if (isStandalone) {
+            alert('O App já está instalado e em uso!');
+            return;
+        }
+
         if (isIOS) {
-            alert('Para instalar no iPhone:\n1. Toque no ícone de Compartilhar (seta para cima)\n2. Role para baixo e toque em "Adicionar à Tela de Início"');
+            alert('Para instalar no iPhone:\n1. Toque no ícone de Compartilhar (seta para baixo)\n2. Role para baixo e toque em "Adicionar à Tela de Início"');
             return;
         }
 
         if (!deferredPrompt) {
-            alert('O aplicativo já está instalado ou seu navegador não suporta instalação automática. Procure por "Instalar" no menu do seu navegador.');
+            // Se não houver o prompt, o navegador pode não suportar ou o critério PWA não foi atendido
+            alert('Seu navegador não disparou o convite de instalação automática. No Android/Chrome, clique nos 3 pontos no canto superior e selecione "Instalar Aplicativo".');
             return;
         }
 
-        // Show the prompt
         deferredPrompt.prompt();
-        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        // We've used the prompt, and can't use it again, throw it away
+        console.log(`PWA: User response to the install prompt: ${outcome}`);
         setDeferredPrompt(null);
-        setIsInstallable(false);
     };
 
+    // Se já estiver instalado, podemos esconder ou mostrar um estado diferente
+    // Mas por enquanto, vamos manter o botão para não quebrar o layout
+
     return (
-        <button
+        <div
             onClick={handleInstallClick}
             className={styles.secondaryBtn}
-            style={{ cursor: 'pointer', border: 'none', font: 'inherit' }}
+            style={{ cursor: 'pointer' }}
+            role="button"
+            tabIndex={0}
         >
             <span className={styles.playIcon} style={{ fontSize: '1.2rem' }}>📱</span> Instalar App
-        </button>
+        </div>
     );
 }

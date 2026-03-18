@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import styles from './LandingPage.module.css'
 import { fetchPlans } from '@/app/actions/plans'
-import { Check } from 'lucide-react'
+import { Check, Droplet, Home, Calendar, Store, PieChart } from 'lucide-react'
 import InstallAppButton from './InstallAppButton'
 
 export default async function LandingPage() {

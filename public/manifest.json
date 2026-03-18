@@ -1,11 +1,12 @@
 {
+    "id": "com.mypetflow.app",
     "name": "MyPet Flow",
     "short_name": "MyPet Flow",
     "description": "Sistema completo para gestão de Pet Shops",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#0057ff",
+    "background_color": "#0D1B2A",
+    "theme_color": "#1B3B5A",
     "orientation": "portrait",
     "icons": [
         {
