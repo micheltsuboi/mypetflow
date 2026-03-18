@@ -6,6 +6,7 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 import PlanGuard from '@/components/modules/PlanGuard'
+import { MessageCircle } from 'lucide-react'
 import { maskPhone } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
 
@@ -210,7 +211,28 @@ export default function TutorsPage() {
                                                 {tutor.name.charAt(0).toUpperCase()}
                                             </div>
                                              <div>
-                                                <span className={styles.userName}>{tutor.name}</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                    <span className={styles.userName}>{tutor.name}</span>
+                                                    {tutor.phone_1 && (
+                                                        <a
+                                                            href={`https://wa.me/55${tutor.phone_1.replace(/\D/g, '')}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            title="Abrir WhatsApp"
+                                                            style={{ 
+                                                                color: '#25D366', 
+                                                                display: 'flex', 
+                                                                alignItems: 'center',
+                                                                transition: 'opacity 0.2s'
+                                                            }}
+                                                            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                                                            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                                                        >
+                                                            <MessageCircle size={14} fill="#25D366" color="#25D366" />
+                                                        </a>
+                                                    )}
+                                                </div>
                                                 <div className={styles.petTags}>
                                                     {tutor.pets?.map((pet, idx) => (
                                                         <span key={idx} className={styles.petTag}>🐾 {pet.name}</span>

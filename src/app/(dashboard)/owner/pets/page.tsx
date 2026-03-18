@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
+import { MessageCircle } from 'lucide-react'
 import {
     createPet,
     updatePet,
@@ -56,6 +57,7 @@ interface Pet {
         id: string
         name: string
         org_id: string
+        phone_1: string | null
     }
 }
 
@@ -195,7 +197,7 @@ function PetsContent() {
                     id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
                     color, characteristics,
-                    customers!inner ( id, name, org_id )
+                    customers!inner ( id, name, org_id, phone_1 )
                 `).eq('customers.org_id', profile.org_id).order('name')
             if (searchTerm) query = query.or(`name.ilike.%${searchTerm}%,breed.ilike.%${searchTerm}%`)
             else query = query.limit(50)
@@ -321,7 +323,30 @@ function PetsContent() {
                                         </div>
                                     </div>
                                 </td>
-                                <td>{pet.customers?.name}</td>
+                                <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                        {pet.customers?.name}
+                                        {pet.customers?.phone_1 && (
+                                            <a
+                                                href={`https://wa.me/55${pet.customers.phone_1.replace(/\D/g, '')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
+                                                title="Abrir WhatsApp"
+                                                style={{ 
+                                                    color: '#25D366', 
+                                                    display: 'flex', 
+                                                    alignItems: 'center',
+                                                    transition: 'opacity 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                                                onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                                            >
+                                                <MessageCircle size={14} fill="#25D366" color="#25D366" />
+                                            </a>
+                                        )}
+                                    </div>
+                                </td>
                                 <td>{pet.gender === 'male' ? 'Macho' : 'Fêmea'} • {pet.size}</td>
                                 <td>{calculateAge(pet.birth_date)}</td>
                             </tr>
