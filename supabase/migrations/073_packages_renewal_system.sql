@@ -78,6 +78,7 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON public.package_sessions
 -- =====================================================
 -- 4. Função: calcular período atual de um pacote
 -- =====================================================
+DROP FUNCTION IF EXISTS public.get_package_period(TEXT, DATE);
 CREATE OR REPLACE FUNCTION public.get_package_period(
   p_validity_type TEXT,
   p_reference_date DATE DEFAULT CURRENT_DATE
@@ -191,6 +192,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =====================================================
 -- 6. Atualizar get_pet_package_summary para incluir dados novos
 -- =====================================================
+DROP FUNCTION IF EXISTS public.get_pet_package_summary(UUID);
 CREATE OR REPLACE FUNCTION public.get_pet_package_summary(
   p_pet_id UUID
 )
