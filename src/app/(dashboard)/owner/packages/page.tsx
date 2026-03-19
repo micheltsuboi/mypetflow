@@ -39,6 +39,7 @@ interface ServicePackage {
     total_price: number
     validity_days: number | null
     validity_type: 'weekly' | 'monthly' | 'unlimited'
+    validity_weeks: number | null
     auto_renew: boolean
     is_active: boolean
     package_items: PackageItem[]
@@ -262,8 +263,10 @@ export default function PackagesPage() {
     }
 
     const validityLabel = (pkg: ServicePackage) => {
-        if (pkg.validity_type === 'monthly') return '📅 Renovação Mensal'
-        if (pkg.validity_type === 'weekly') return '📆 Renovação Semanal'
+        if (pkg.validity_type === 'weekly') {
+            const weeks = (pkg as any).validity_weeks || 1
+            return weeks === 1 ? '📆 Renovação Semanal' : `📆 Renovação a cada ${weeks} semanas`
+        }
         return '∞ Sem expiração'
     }
 
@@ -358,8 +361,10 @@ export default function PackagesPage() {
                                         </div>
                                         <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
                                             📦 {cp.service_packages?.name}
-                                            <span style={{ marginLeft: '0.5rem', padding: '2px 6px', borderRadius: '8px', fontSize: '0.75rem', background: cp.service_packages?.validity_type === 'monthly' ? 'rgba(59,130,246,0.15)' : cp.service_packages?.validity_type === 'weekly' ? 'rgba(139,92,246,0.15)' : 'rgba(100,116,139,0.15)', color: cp.service_packages?.validity_type === 'monthly' ? '#3b82f6' : '#8b5cf6' }}>
-                                                {cp.service_packages?.validity_type === 'monthly' ? 'Mensal' : cp.service_packages?.validity_type === 'weekly' ? 'Semanal' : 'Ilimitado'}
+                                            <span style={{ marginLeft: '0.5rem', padding: '2px 6px', borderRadius: '8px', fontSize: '0.75rem', background: cp.service_packages?.validity_type === 'weekly' ? 'rgba(139,92,246,0.15)' : 'rgba(100,116,139,0.15)', color: cp.service_packages?.validity_type === 'weekly' ? '#8b5cf6' : '#64748b' }}>
+                                                {cp.service_packages?.validity_type === 'weekly' 
+                                                    ? ((cp.service_packages as any).validity_weeks === 4 ? 'Mensal (4 sem)' : (cp.service_packages as any).validity_weeks === 1 ? 'Semanal' : `${(cp.service_packages as any).validity_weeks} semanas`)
+                                                    : 'Ilimitado'}
                                             </span>
                                         </div>
                                         {cp.preferred_day_of_week !== null && (
@@ -429,13 +434,31 @@ export default function PackagesPage() {
                                     </div>
                                     <div className={styles.inputGroup} style={{ gridColumn: '1/-1' }}>
                                         <label className={styles.label}>Tipo de Renovação *</label>
-                                        <select name="validity_type" className={styles.select} defaultValue={selectedPackage?.validity_type || 'unlimited'}>
-                                            <option value="unlimited">∞ Sem expiração (uso manual de créditos)</option>
-                                            <option value="monthly">📅 Mensal — renova todo início de mês</option>
-                                            <option value="weekly">📆 Semanal — renova toda semana</option>
-                                        </select>
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                            <select 
+                                                name="validity_type" 
+                                                className={styles.select} 
+                                                defaultValue={selectedPackage?.validity_type || 'unlimited'}
+                                                onChange={(e) => {
+                                                    const target = e.target as HTMLSelectElement;
+                                                    const weeksSelect = document.getElementById('validity_weeks_container');
+                                                    if (weeksSelect) weeksSelect.style.display = target.value === 'weekly' ? 'block' : 'none';
+                                                }}
+                                            >
+                                                <option value="unlimited">∞ Sem expiração (uso manual de créditos)</option>
+                                                <option value="weekly">📆 Recorrente (por semanas)</option>
+                                            </select>
+                                            
+                                            <div id="validity_weeks_container" style={{ display: (selectedPackage?.validity_type === 'weekly' || (!selectedPackage && false)) ? 'block' : 'none', minWidth: '150px' }}>
+                                                <select name="validity_weeks" className={styles.select} defaultValue={selectedPackage?.validity_weeks || 1}>
+                                                    <option value="1">1 semana (Semanal)</option>
+                                                    <option value="4">4 semanas (Mensal)</option>
+                                                    <option value="2">2 semanas (Quinzenal)</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                         <small style={{ fontSize: '0.75rem', color: '#666', marginTop: '0.3rem', display: 'block' }}>
-                                            Pacotes mensais/semanais se renovam automaticamente, gerando novas sessões a cada período.
+                                            Pacotes recorrentes se renovam automaticamente ao fim do período (1, 2 ou 4 semanas).
                                         </small>
                                     </div>
                                 </div>

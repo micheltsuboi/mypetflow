@@ -25,10 +25,11 @@ export async function createServicePackage(prevState: ActionState, formData: For
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
     const validity_type = (formData.get('validity_type') as string) || 'unlimited'
+    const validity_weeks = parseInt(formData.get('validity_weeks') as string) || 1
     const auto_renew = validity_type !== 'unlimited'
     
-    // Compatibilidade com validity_days
-    const validity_days = validity_type === 'monthly' ? 30 : validity_type === 'weekly' ? 7 : null
+    // Compatibilidade com validity_days (usado para expiração legada)
+    const validity_days = validity_type === 'weekly' ? (validity_weeks * 7) : null
 
     const { data: package_data, error: packageError } = await supabase
         .from('service_packages')
@@ -39,6 +40,7 @@ export async function createServicePackage(prevState: ActionState, formData: For
             total_price,
             validity_days,
             validity_type,
+            validity_weeks: validity_type === 'weekly' ? validity_weeks : 1,
             auto_renew
         })
         .select()
@@ -60,12 +62,21 @@ export async function updateServicePackage(prevState: ActionState, formData: For
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
     const validity_type = (formData.get('validity_type') as string) || 'unlimited'
+    const validity_weeks = parseInt(formData.get('validity_weeks') as string) || 1
     const auto_renew = validity_type !== 'unlimited'
-    const validity_days = validity_type === 'monthly' ? 30 : validity_type === 'weekly' ? 7 : null
+    const validity_days = validity_type === 'weekly' ? (validity_weeks * 7) : null
 
     const { error } = await supabase
         .from('service_packages')
-        .update({ name, description, total_price, validity_days, validity_type, auto_renew })
+        .update({ 
+            name, 
+            description, 
+            total_price, 
+            validity_days, 
+            validity_type, 
+            validity_weeks: validity_type === 'weekly' ? validity_weeks : 1, 
+            auto_renew 
+        })
         .eq('id', id)
 
     if (error) return { message: error.message, success: false }
@@ -180,12 +191,9 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         return { message: 'Pacote não encontrado.', success: false }
     }
 
-    let expires_at = null
-    if (packageData.validity_days) {
-        const expiry = new Date()
-        expiry.setDate(expiry.getDate() + packageData.validity_days)
-        expires_at = expiry.toISOString()
-    }
+    const sp = packageData as any
+    const validity_weeks = sp.validity_weeks || 1
+    const validity_days = sp.validity_days || (validity_weeks * 7)
 
     const { data: customerPackage, error: cpError } = await supabase
         .from('customer_packages')
@@ -194,12 +202,12 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
             pet_id,
             package_id,
             org_id: profile.org_id,
-            total_paid,
-            payment_method,
-            notes,
-            expires_at,
-            preferred_day_of_week,
-            preferred_time
+            total_paid: total_paid,
+            payment_method: payment_method,
+            notes: notes,
+            expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
+            preferred_day_of_week: preferred_day_of_week,
+            preferred_time: preferred_time
         })
         .select()
         .single()
@@ -317,12 +325,9 @@ export async function sellPackageToPet(
 
     if (packageError || !packageData) return { message: 'Pacote não encontrado.', success: false }
 
-    let expires_at = null
-    if (packageData.validity_days) {
-        const expiry = new Date()
-        expiry.setDate(expiry.getDate() + packageData.validity_days)
-        expires_at = expiry.toISOString()
-    }
+    const sp = packageData as any
+    const validity_weeks = sp.validity_weeks || 1
+    const validity_days = sp.validity_days || (validity_weeks * 7)
 
     const { data: customerPackage, error: cpError } = await supabase
         .from('customer_packages')
@@ -334,7 +339,7 @@ export async function sellPackageToPet(
             total_paid: totalPaid,
             payment_method: paymentMethod,
             notes: `Pacote para ${petData.name}`,
-            expires_at,
+            expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
             preferred_day_of_week: preferredDayOfWeek ?? null,
             preferred_time: preferredTime ?? null
         })
@@ -392,6 +397,9 @@ export async function renewCustomerPackage(customerPackageId: string): Promise<A
     if (!currentPackage) return { message: 'Pacote não encontrado.', success: false }
 
     const sp = currentPackage.service_packages as any
+    const validity_weeks = sp.validity_weeks || (sp.validity_type === 'monthly' ? 4 : 1)
+    const validity_days = sp.validity_days || (validity_weeks * 7)
+
     const newPackage = await supabase
         .from('customer_packages')
         .insert({
@@ -402,7 +410,7 @@ export async function renewCustomerPackage(customerPackageId: string): Promise<A
             total_paid: 0,
             payment_method: 'other',
             notes: 'Renovação automática',
-            expires_at: sp.validity_days ? new Date(Date.now() + sp.validity_days * 86400000).toISOString() : null,
+            expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
             preferred_day_of_week: currentPackage.preferred_day_of_week,
             preferred_time: currentPackage.preferred_time,
             renewal_count: (currentPackage.renewal_count || 0) + 1,

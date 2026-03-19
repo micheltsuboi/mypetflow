@@ -209,7 +209,7 @@ function PetsContent() {
                 if (customersData) setCustomers(customersData)
             })
 
-            const packagesPromise = supabase.from('service_packages').select('id, name, total_price, description, validity_type').eq('org_id', profile.org_id).eq('is_active', true).order('total_price').then(({ data: packagesData }) => {
+            const packagesPromise = supabase.from('service_packages').select('id, name, total_price, description, validity_type, validity_weeks').eq('org_id', profile.org_id).eq('is_active', true).order('total_price').then(({ data: packagesData }) => {
                 if (packagesData) setAvailablePackages(packagesData)
             })
 
@@ -591,13 +591,13 @@ function PetsContent() {
                                                         <option value="">Selecione um pacote...</option>
                                                         {availablePackages.map((p: any) => (
                                                             <option key={p.id} value={p.id}>
-                                                                {p.name} - R$ {p.total_price.toFixed(2)}{p.validity_type === 'monthly' ? ' (Mensal)' : p.validity_type === 'weekly' ? ' (Semanal)' : ''}
+                                                                {p.name} - R$ {p.total_price.toFixed(2)}{p.validity_type === 'weekly' ? ` (${p.validity_weeks === 4 ? 'Mensal' : p.validity_weeks === 1 ? 'Semanal' : p.validity_weeks + ' sem'})` : ''}
                                                             </option>
                                                         ))}
                                                     </select>
                                                     {selectedPackageId && (() => {
                                                         const selectedPkg = availablePackages.find((p: any) => p.id === selectedPackageId)
-                                                        if (selectedPkg?.validity_type !== 'unlimited') {
+                                                        if (selectedPkg?.validity_type === 'weekly') {
                                                             return (
                                                                 <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                                                     <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -676,9 +676,9 @@ function PetsContent() {
                                                             <span>📦 {pkg.package_name}: {pkg.service_name}</span>
                                                             <span style={{ color: pkg.remaining_qty > 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>{pkg.remaining_qty} / {pkg.total_qty} restantes</span>
                                                         </div>
-                                                        {pkg.validity_type && pkg.validity_type !== 'unlimited' && (
+                                                        {pkg.validity_type === 'weekly' && (
                                                             <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginTop: '0.25rem' }}>
-                                                                {pkg.validity_type === 'monthly' ? '📅 Renovação Mensal' : '📆 Renovação Semanal'}
+                                                                {pkg.validity_weeks === 4 ? '📅 Renovação Mensal' : pkg.validity_weeks === 1 ? '📆 Renovação Semanal' : `📆 Renovação a cada ${pkg.validity_weeks} semanas`}
                                                                 {pkg.preferred_day_of_week !== null && pkg.preferred_day_of_week !== undefined && (
                                                                     <span style={{ marginLeft: '0.5rem' }}>• {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][pkg.preferred_day_of_week]} {pkg.preferred_time}</span>
                                                                 )}
