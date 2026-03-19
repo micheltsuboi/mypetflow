@@ -12,6 +12,7 @@ import {
     getHotelHistory,
     getCrecheHistory
 } from '@/app/actions/pet'
+import { getPetAppointmentsByCategory } from '@/app/actions/appointment'
 import { getPetAssessment } from '@/app/actions/petAssessment'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
 import { getPetPackagesWithUsage, sellPackageToPet } from '@/app/actions/package'
@@ -99,6 +100,7 @@ function PetsContent() {
     const [hotelHistory, setHotelHistory] = useState<any[]>([])
     const [crecheHistory, setCrecheHistory] = useState<any[]>([])
     const [petshopHistory, setPetshopHistory] = useState<any[]>([])
+    const [groomingHistory, setGroomingHistory] = useState<any[]>([])
     const [hospitalHistory, setHospitalHistory] = useState<any[]>([])
     const [showHospitalModal, setShowHospitalModal] = useState(false)
     const [activeAdmission, setActiveAdmission] = useState<any | null>(null)
@@ -119,7 +121,8 @@ function PetsContent() {
         medical: false,
         exams: false,
         vetAlerts: false,
-        hospital: false
+        hospital: false,
+        grooming: false
     })
 
     const calculateAge = (birthDate?: string) => {
@@ -167,6 +170,9 @@ function PetsContent() {
             if (key === 'hospital' as any) {
                 getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
             }
+            if (key === 'grooming' as any) {
+                getPetAppointmentsByCategory(selectedPet.id, 'Banho e Tosa').then(setGroomingHistory)
+            }
         }
     }
 
@@ -186,7 +192,7 @@ function PetsContent() {
 
             // Resolvendo de forma paralela usando Promise.all para melhorar a performance da listagem
             const featuresPromise = profile.role === 'superadmin' ? Promise.resolve().then(() => {
-                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet']);
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa']);
             }) : supabase.from('organizations').select('saas_plans(features)').eq('id', profile.org_id).maybeSingle().then(({ data: org }) => {
                 if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || []);
             });
@@ -239,7 +245,8 @@ function PetsContent() {
         setAccordions({
             details: false, packages: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false, vetAlerts: false, hospital: false
+            medical: false, exams: false, vetAlerts: false, hospital: false,
+            grooming: false
         })
         setPetAssessment(null)
         setShowModal(true)
@@ -251,7 +258,8 @@ function PetsContent() {
         setAccordions({
             details: true, packages: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false, vetAlerts: false, hospital: false
+            medical: false, exams: false, vetAlerts: false, hospital: false,
+            grooming: false
         })
         setShowModal(true)
     }
@@ -553,7 +561,8 @@ function PetsContent() {
                             )}
 
                             {/* AVALIAÇÃO */}
-                            <div className={styles.accordionItem}>
+                            {(planFeatures.includes('creche') || planFeatures.includes('hospedagem')) && (
+                                <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('assessment')} className={styles.accordionHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <span>📋 Avaliação Comportamental</span>
@@ -574,6 +583,34 @@ function PetsContent() {
                                     </div>
                                 )}
                             </div>
+                            )}
+
+                            {/* BANHO E TOSA */}
+                            {planFeatures.includes('banho_tosa') && (
+                                <div className={styles.accordionItem}>
+                                    <button type="button" onClick={() => toggleAccordion('grooming' as any)} className={styles.accordionHeader}>
+                                        <span>🛁 Histórico de Banho e Tosa</span>
+                                        <span>{(accordions as any).grooming ? '−' : '+'}</span>
+                                    </button>
+                                    {(accordions as any).grooming && (
+                                        <div className={styles.accordionContent}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {groomingHistory.length === 0 ? <p>Nenhum serviço de banho e tosa registrado.</p> : groomingHistory.map((appt: any) => (
+                                                    <div key={appt.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <strong>{new Date(appt.scheduled_at).toLocaleDateString()}</strong>
+                                                            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: appt.status === 'done' ? '#10B981' : '#f59e0b' }}>
+                                                                {appt.status === 'done' ? 'CONCLUÍDO' : appt.status.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <p style={{ fontSize: '0.85rem', margin: '0.25rem 0' }}>{appt.services?.name}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* PACOTES */}
                             {planFeatures.includes('pacotes') && (
@@ -756,7 +793,8 @@ function PetsContent() {
                             )}
 
                             {/* ALERTAS VETERINÁRIOS */}
-                            <div className={styles.accordionItem}>
+                            {(planFeatures.includes('clinica_vet') || planFeatures.includes('banho_tosa')) && (
+                                <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('vetAlerts' as any)} className={styles.accordionHeader}>
                                     <span>🚨 Alertas Veterinários</span>
                                     <span>{accordions.vetAlerts ? '−' : '+'}</span>
@@ -781,6 +819,7 @@ function PetsContent() {
                                     </div>
                                 )}
                             </div>
+                            )}
 
                             {/* PETSHOP */}
                             {planFeatures.includes('petshop') && (

@@ -137,6 +137,7 @@ function AgendaContent() {
 
     const [categoryFilter, setCategoryFilter] = useState<string>('')
     const [isVet, setIsVet] = useState(false)
+    const [planFeatures, setPlanFeatures] = useState<string[]>([])
 
     // Modal State
     const [showNewModal, setShowNewModal] = useState(false)
@@ -194,6 +195,14 @@ function AgendaContent() {
 
             const { data: profile } = await supabase.from('profiles').select('org_id, role').eq('id', user.id).single()
             if (!profile?.org_id) return
+
+            // Buscar features do plano
+            if (profile.role === 'superadmin') {
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa']);
+            } else {
+                const { data: org } = await supabase.from('organizations').select('saas_plans(features)').eq('id', profile.org_id).maybeSingle()
+                if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || [])
+            }
 
             // Calculate Date Range based on viewMode
             const [y, m, d] = selectedDate.split('-').map(Number)
@@ -1027,6 +1036,13 @@ function AgendaContent() {
                                             const cat = catName || 'Outros'
 
                                             if (isVet && cat !== 'Clínica Veterinária') return acc
+
+                                            // Filter by Plan
+                                            const planFeat = planFeatures || []
+                                            if (cat === 'Banho e Tosa' && !planFeat.includes('banho_tosa')) return acc
+                                            if (cat === 'Creche' && !planFeat.includes('creche')) return acc
+                                            if (cat === 'Hospedagem' && !planFeat.includes('hospedagem')) return acc
+                                            if (cat === 'Clínica Veterinária' && !planFeat.includes('clinica_vet')) return acc
 
                                             if (!acc[cat]) acc[cat] = []
                                             acc[cat].push(s)
