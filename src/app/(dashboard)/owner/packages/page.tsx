@@ -72,7 +72,7 @@ interface CustomerPackage {
     renewal_count: number
     customers: { name: string }
     pets: { name: string } | null
-    service_packages: { name: string, validity_type: string }
+    service_packages: { name: string, validity_type: string, validity_weeks: number | null }
 }
 
 const DAYS_OF_WEEK = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -145,7 +145,7 @@ export default function PackagesPage() {
                 supabase.from('services').select('id, name, category, base_price')
                     .eq('org_id', profile.org_id).eq('is_active', true).order('name'),
                 supabase.from('customer_packages').select(`
-                    *, customers(name), pets(name), service_packages(name, validity_type)
+                    *, customers(name), pets(name), service_packages(name, validity_type, validity_weeks)
                 `).eq('org_id', profile.org_id).eq('is_active', true)
                     .order('purchased_at', { ascending: false }).limit(100)
             ])
@@ -570,7 +570,7 @@ export default function PackagesPage() {
                                                     {session.status !== 'done' && (
                                                         <button
                                                             onClick={() => setRescheduleSessionId(rescheduleSessionId === session.id ? null : session.id)}
-                                                            style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', cursor: 'pointer', fontSize: '0.75rem' }}
+                                                            style={{ padding: '0.35rem 0.8rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-primary)', fontWeight: 500 }}
                                                         >
                                                             📅 Reagendar
                                                         </button>
