@@ -41,6 +41,7 @@ export async function checkInAppointment(appointmentId: string) {
 
 /**
  * Check-out an appointment (mark actual departure time)
+ * Automatically marks the related package session as 'done' if applicable.
  */
 export async function checkOutAppointment(appointmentId: string, checkoutType?: string) {
     try {
@@ -53,7 +54,7 @@ export async function checkOutAppointment(appointmentId: string, checkoutType?: 
 
         const updateData: any = {
             actual_check_out: new Date().toISOString(),
-            status: 'done' // Auto-complete on checkout
+            status: 'done'
         }
 
         if (checkoutType) {
@@ -70,9 +71,24 @@ export async function checkOutAppointment(appointmentId: string, checkoutType?: 
             return { success: false, message: 'Erro ao fazer check-out' }
         }
 
+        // Marcar sessão de pacote como realizada automaticamente
+        const { data: session } = await supabase
+            .from('package_sessions')
+            .select('id')
+            .eq('appointment_id', appointmentId)
+            .maybeSingle()
+
+        if (session?.id) {
+            await supabase
+                .from('package_sessions')
+                .update({ status: 'done' })
+                .eq('id', session.id)
+        }
+
         revalidatePath('/owner/creche')
         revalidatePath('/owner/banho-tosa')
         revalidatePath('/owner/agenda')
+        revalidatePath('/owner/pets')
         return { success: true, message: 'Check-out realizado com sucesso!' }
 
     } catch (error) {

@@ -24,9 +24,12 @@ export async function createServicePackage(prevState: ActionState, formData: For
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
-    const validity_days = formData.get('validity_days') ? parseInt(formData.get('validity_days') as string) : null
+    const validity_type = (formData.get('validity_type') as string) || 'unlimited'
+    const auto_renew = validity_type !== 'unlimited'
+    
+    // Compatibilidade com validity_days
+    const validity_days = validity_type === 'monthly' ? 30 : validity_type === 'weekly' ? 7 : null
 
-    // Criar o pacote
     const { data: package_data, error: packageError } = await supabase
         .from('service_packages')
         .insert({
@@ -34,7 +37,9 @@ export async function createServicePackage(prevState: ActionState, formData: For
             name,
             description,
             total_price,
-            validity_days
+            validity_days,
+            validity_type,
+            auto_renew
         })
         .select()
         .single()
@@ -54,11 +59,13 @@ export async function updateServicePackage(prevState: ActionState, formData: For
     const name = formData.get('name') as string
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
-    const validity_days = formData.get('validity_days') ? parseInt(formData.get('validity_days') as string) : null
+    const validity_type = (formData.get('validity_type') as string) || 'unlimited'
+    const auto_renew = validity_type !== 'unlimited'
+    const validity_days = validity_type === 'monthly' ? 30 : validity_type === 'weekly' ? 7 : null
 
     const { error } = await supabase
         .from('service_packages')
-        .update({ name, description, total_price, validity_days })
+        .update({ name, description, total_price, validity_days, validity_type, auto_renew })
         .eq('id', id)
 
     if (error) return { message: error.message, success: false }
@@ -106,11 +113,7 @@ export async function addPackageItem(packageId: string, serviceId: string, quant
 
     const { error } = await supabase
         .from('package_items')
-        .insert({
-            package_id: packageId,
-            service_id: serviceId,
-            quantity
-        })
+        .insert({ package_id: packageId, service_id: serviceId, quantity })
 
     if (error) return { message: error.message, success: false }
 
@@ -147,7 +150,7 @@ export async function deletePackageItem(id: string): Promise<ActionState> {
 }
 
 // =====================================================
-// CUSTOMER PACKAGES (Vendas)
+// CUSTOMER PACKAGES (Vendas) - Com suporte a dia/hora
 // =====================================================
 
 export async function sellPackageToCustomer(prevState: ActionState, formData: FormData): Promise<ActionState> {
@@ -160,12 +163,13 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
 
     const customer_id = formData.get('customer_id') as string
     const package_id = formData.get('package_id') as string
-    const pet_id = formData.get('pet_id') as string || null // NOVO: suporte a pet específico
+    const pet_id = formData.get('pet_id') as string || null
     const total_paid = parseFloat(formData.get('total_paid') as string)
     const payment_method = formData.get('payment_method') as string
     const notes = formData.get('notes') as string || null
+    const preferred_day_of_week = formData.get('preferred_day_of_week') ? parseInt(formData.get('preferred_day_of_week') as string) : null
+    const preferred_time = formData.get('preferred_time') as string || null
 
-    // Buscar informações do pacote
     const { data: packageData, error: packageError } = await supabase
         .from('service_packages')
         .select('*, package_items(service_id, quantity)')
@@ -176,7 +180,6 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         return { message: 'Pacote não encontrado.', success: false }
     }
 
-    // Calcular data de expiração
     let expires_at = null
     if (packageData.validity_days) {
         const expiry = new Date()
@@ -184,18 +187,19 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         expires_at = expiry.toISOString()
     }
 
-    // Criar registro de compra do pacote
     const { data: customerPackage, error: cpError } = await supabase
         .from('customer_packages')
         .insert({
             customer_id,
-            pet_id, // NOVO: vincular a pet específico (opcional)
+            pet_id,
             package_id,
             org_id: profile.org_id,
             total_paid,
             payment_method,
             notes,
-            expires_at
+            expires_at,
+            preferred_day_of_week,
+            preferred_time
         })
         .select()
         .single()
@@ -204,7 +208,6 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         return { message: cpError?.message || 'Erro ao criar pacote.', success: false }
     }
 
-    // Criar créditos para cada serviço do pacote
     const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => ({
         customer_package_id: customerPackage.id,
         service_id: item.service_id,
@@ -213,62 +216,107 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         remaining_quantity: item.quantity
     }))
 
-    const { error: creditsError } = await supabase
-        .from('package_credits')
-        .insert(credits)
+    const { error: creditsError } = await supabase.from('package_credits').insert(credits)
 
     if (creditsError) {
-        // Rollback: deletar o customer_package
         await supabase.from('customer_packages').delete().eq('id', customerPackage.id)
         return { message: creditsError.message, success: false }
     }
 
+    // Gerar sessões do período atual
+    await supabase.rpc('generate_package_sessions', { p_customer_package_id: customerPackage.id })
+
+    // Se tem dia/hora definido, criar agendamentos automáticos
+    if (preferred_day_of_week !== null && preferred_time && pet_id) {
+        await createScheduledAppointmentsForPackage(supabase, customerPackage.id, profile.org_id)
+    }
+
     revalidatePath('/owner/packages')
     revalidatePath('/owner/pets')
+    revalidatePath('/owner/agenda')
     revalidatePath('/staff')
     return { message: 'Pacote vendido com sucesso!', success: true }
 }
 
-// Nova função para vender pacote direto para um pet (atalho)
-export async function sellPackageToPet(petId: string, packageId: string, totalPaid: number, paymentMethod: string): Promise<ActionState> {
-    console.log('sellPackageToPet iniciado', { petId, packageId, totalPaid, paymentMethod })
+// Helper: criar agendamentos automáticos para sessões com horário definido
+async function createScheduledAppointmentsForPackage(supabase: any, customerPackageId: string, orgId: string) {
+    const { data: sessions } = await supabase
+        .from('package_sessions')
+        .select('*, customer_packages(pet_id, customer_id)')
+        .eq('customer_package_id', customerPackageId)
+        .eq('status', 'scheduled')
+        .is('appointment_id', null)
+
+    if (!sessions || sessions.length === 0) return
+
+    for (const session of sessions) {
+        if (!session.scheduled_at) continue
+
+        const petId = session.customer_packages?.pet_id
+        const customerId = session.customer_packages?.customer_id
+        if (!petId) continue
+
+        const { data: appt, error } = await supabase
+            .from('appointments')
+            .insert({
+                org_id: orgId,
+                pet_id: petId,
+                service_id: session.service_id,
+                customer_id: customerId,
+                scheduled_at: session.scheduled_at,
+                status: 'pending',
+                package_credit_id: null, // será vinculado quando usado
+                notes: '📦 Agendamento automático de pacote',
+                calculated_price: 0,
+                final_price: 0,
+                payment_status: 'pending',
+                discount_percent: 0,
+                is_package: true
+            })
+            .select('id')
+            .single()
+
+        if (!error && appt) {
+            // Atualizar sessão com o appointment_id
+            await supabase
+                .from('package_sessions')
+                .update({ appointment_id: appt.id })
+                .eq('id', session.id)
+        }
+    }
+}
+
+export async function sellPackageToPet(
+    petId: string,
+    packageId: string,
+    totalPaid: number,
+    paymentMethod: string,
+    preferredDayOfWeek?: number | null,
+    preferredTime?: string | null
+): Promise<ActionState> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-        console.log('Usuário não autenticado')
-        return { message: 'Não autorizado.', success: false }
-    }
+    if (!user) return { message: 'Não autorizado.', success: false }
 
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-    if (!profile?.org_id) {
-        console.log('Perfil ou org_id não encontrado', profile)
-        return { message: 'Erro de organização.', success: false }
-    }
+    if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
 
-    // Buscar customer_id do pet
     const { data: petData, error: petError } = await supabase
         .from('pets')
         .select('customer_id, name')
         .eq('id', petId)
         .single()
 
-    if (petError || !petData) {
-        console.log('Erro ao buscar pet', petError)
-        return { message: 'Pet não encontrado.', success: false }
-    }
+    if (petError || !petData) return { message: 'Pet não encontrado.', success: false }
 
-    // Buscar informações do pacote
     const { data: packageData, error: packageError } = await supabase
         .from('service_packages')
         .select('*, package_items(service_id, quantity)')
         .eq('id', packageId)
         .single()
 
-    if (packageError || !packageData) {
-        return { message: 'Pacote não encontrado.', success: false }
-    }
+    if (packageError || !packageData) return { message: 'Pacote não encontrado.', success: false }
 
-    // Calcular data de expiração
     let expires_at = null
     if (packageData.validity_days) {
         const expiry = new Date()
@@ -276,7 +324,6 @@ export async function sellPackageToPet(petId: string, packageId: string, totalPa
         expires_at = expiry.toISOString()
     }
 
-    // Criar registro de compra do pacote
     const { data: customerPackage, error: cpError } = await supabase
         .from('customer_packages')
         .insert({
@@ -287,17 +334,17 @@ export async function sellPackageToPet(petId: string, packageId: string, totalPa
             total_paid: totalPaid,
             payment_method: paymentMethod,
             notes: `Pacote para ${petData.name}`,
-            expires_at
+            expires_at,
+            preferred_day_of_week: preferredDayOfWeek ?? null,
+            preferred_time: preferredTime ?? null
         })
         .select()
         .single()
 
     if (cpError || !customerPackage) {
-        console.error('Erro ao criar customer_package:', cpError)
         return { message: cpError?.message || 'Erro ao criar pacote.', success: false }
     }
 
-    // Criar créditos para cada serviço do pacote
     const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => ({
         customer_package_id: customerPackage.id,
         service_id: item.service_id,
@@ -306,18 +353,24 @@ export async function sellPackageToPet(petId: string, packageId: string, totalPa
         remaining_quantity: item.quantity
     }))
 
-    const { error: creditsError } = await supabase
-        .from('package_credits')
-        .insert(credits)
+    const { error: creditsError } = await supabase.from('package_credits').insert(credits)
 
     if (creditsError) {
-        // Rollback: deletar o customer_package
         await supabase.from('customer_packages').delete().eq('id', customerPackage.id)
         return { message: creditsError.message, success: false }
     }
 
+    // Gerar sessões do período atual
+    await supabase.rpc('generate_package_sessions', { p_customer_package_id: customerPackage.id })
+
+    // Criar agendamentos automáticos se tiver dia/hora
+    if (preferredDayOfWeek !== null && preferredDayOfWeek !== undefined && preferredTime) {
+        await createScheduledAppointmentsForPackage(supabase, customerPackage.id, profile.org_id)
+    }
+
     revalidatePath('/owner/packages')
     revalidatePath('/owner/pets')
+    revalidatePath('/owner/agenda')
     revalidatePath('/staff')
     return { message: `Pacote "${packageData.name}" ativado para ${petData.name}!`, success: true }
 }
@@ -330,84 +383,62 @@ export async function renewCustomerPackage(customerPackageId: string): Promise<A
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
     if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
 
-    // Buscar pacote atual
-    const { data: currentPackage, error: fetchError } = await supabase
+    const { data: currentPackage } = await supabase
         .from('customer_packages')
-        .select('*, service_packages(validity_days, package_items(service_id, quantity))')
+        .select('*, service_packages(validity_days, validity_type, auto_renew, package_items(service_id, quantity))')
         .eq('id', customerPackageId)
         .single()
 
-    if (fetchError || !currentPackage) {
-        return { message: 'Pacote não encontrado.', success: false }
-    }
+    if (!currentPackage) return { message: 'Pacote não encontrado.', success: false }
 
-    // Os créditos não usados devem ser somados aos novos créditos
-    const { data: existingCredits } = await supabase
-        .from('package_credits')
-        .select('*')
-        .eq('customer_package_id', customerPackageId)
-
-    // Calcular nova data de expiração
-    let new_expires_at = null
-    const validityDays = (currentPackage.service_packages as { validity_days: number | null }).validity_days
-    if (validityDays) {
-        const expiry = new Date()
-        expiry.setDate(expiry.getDate() + validityDays)
-        new_expires_at = expiry.toISOString()
-    }
-
-    // Criar novo pacote
-    const { data: newPackage, error: newPackageError } = await supabase
+    const sp = currentPackage.service_packages as any
+    const newPackage = await supabase
         .from('customer_packages')
         .insert({
             customer_id: currentPackage.customer_id,
+            pet_id: currentPackage.pet_id,
             package_id: currentPackage.package_id,
             org_id: currentPackage.org_id,
-            total_paid: 0, // Renovação pode ser gratuita ou paga manualmente
+            total_paid: 0,
             payment_method: 'other',
             notes: 'Renovação automática',
-            expires_at: new_expires_at
+            expires_at: sp.validity_days ? new Date(Date.now() + sp.validity_days * 86400000).toISOString() : null,
+            preferred_day_of_week: currentPackage.preferred_day_of_week,
+            preferred_time: currentPackage.preferred_time,
+            renewal_count: (currentPackage.renewal_count || 0) + 1,
+            parent_package_id: customerPackageId
         })
         .select()
         .single()
 
-    if (newPackageError || !newPackage) {
-        return { message: 'Erro ao renovar pacote.', success: false }
-    }
+    if (newPackage.error || !newPackage.data) return { message: 'Erro ao renovar pacote.', success: false }
 
-    // Criar créditos considerando os antigos
-    const packageItems = (currentPackage.service_packages as { package_items: Array<{ service_id: string; quantity: number }> }).package_items
-    const newCredits = packageItems.map((item) => {
-        const existingCredit = existingCredits?.find(c => c.service_id === item.service_id)
-        const carryOver = existingCredit?.remaining_quantity || 0
+    // Créditos: quantidade original (sem carry-over para renovação automática)
+    const newCredits = sp.package_items.map((item: any) => ({
+        customer_package_id: newPackage.data.id,
+        service_id: item.service_id,
+        total_quantity: item.quantity,
+        used_quantity: 0,
+        remaining_quantity: item.quantity
+    }))
 
-        return {
-            customer_package_id: newPackage.id,
-            service_id: item.service_id,
-            total_quantity: item.quantity + carryOver,
-            used_quantity: 0,
-            remaining_quantity: item.quantity + carryOver
-        }
-    })
-
-    const { error: creditsError } = await supabase
-        .from('package_credits')
-        .insert(newCredits)
-
-    if (creditsError) {
-        await supabase.from('customer_packages').delete().eq('id', newPackage.id)
-        return { message: creditsError.message, success: false }
-    }
+    await supabase.from('package_credits').insert(newCredits)
 
     // Desativar pacote antigo
-    await supabase
-        .from('customer_packages')
-        .update({ is_active: false })
-        .eq('id', customerPackageId)
+    await supabase.from('customer_packages').update({ is_active: false }).eq('id', customerPackageId)
+
+    // Gerar sessões do novo período
+    await supabase.rpc('generate_package_sessions', { p_customer_package_id: newPackage.data.id })
+
+    // Criar agendamentos automáticos
+    if (currentPackage.preferred_day_of_week !== null && currentPackage.preferred_time) {
+        await createScheduledAppointmentsForPackage(supabase, newPackage.data.id, profile.org_id)
+    }
 
     revalidatePath('/owner/packages')
+    revalidatePath('/owner/agenda')
     revalidatePath('/staff')
-    return { message: 'Pacote renovado! Créditos antigos foram transferidos.', success: true }
+    return { message: 'Pacote renovado com sucesso!', success: true }
 }
 
 export async function cancelCustomerPackage(id: string): Promise<ActionState> {
@@ -427,10 +458,119 @@ export async function cancelCustomerPackage(id: string): Promise<ActionState> {
     return { message: 'Pacote cancelado.', success: true }
 }
 
+export async function pauseCustomerPackage(id: string, paused: boolean): Promise<ActionState> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase
+        .from('customer_packages')
+        .update({ paused })
+        .eq('id', id)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/packages')
+    return { message: paused ? 'Pacote pausado.' : 'Pacote reativado!', success: true }
+}
+
+// =====================================================
+// PACKAGE SESSIONS
+// =====================================================
+
+export async function getPackageSessions(customerPackageId: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('package_sessions')
+        .select(`
+            *,
+            services(id, name),
+            appointments(id, scheduled_at, status)
+        `)
+        .eq('customer_package_id', customerPackageId)
+        .order('period_start', { ascending: false })
+        .order('scheduled_at', { ascending: true })
+
+    if (error) return []
+    return data || []
+}
+
+export async function reschedulePackageSession(
+    sessionId: string,
+    newScheduledAt: string,
+    createNewAppointment: boolean,
+    petId?: string,
+    orgId?: string,
+    serviceId?: string
+): Promise<ActionState> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const updateData: any = {
+        scheduled_at: newScheduledAt,
+        status: 'rescheduled'
+    }
+
+    if (createNewAppointment && petId && orgId && serviceId) {
+        const { data: appt } = await supabase
+            .from('appointments')
+            .insert({
+                org_id: orgId,
+                pet_id: petId,
+                service_id: serviceId,
+                scheduled_at: newScheduledAt,
+                status: 'pending',
+                notes: '📦 Reagendamento de pacote',
+                calculated_price: 0,
+                final_price: 0,
+                payment_status: 'pending',
+                discount_percent: 0,
+                is_package: true
+            })
+            .select('id')
+            .single()
+
+        if (appt) updateData.appointment_id = appt.id
+    }
+
+    const { error } = await supabase
+        .from('package_sessions')
+        .update(updateData)
+        .eq('id', sessionId)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/agenda')
+    revalidatePath('/owner/pets')
+    return { message: 'Sessão reagendada!', success: true }
+}
+
+export async function markSessionDone(sessionId: string, done: boolean): Promise<ActionState> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase
+        .from('package_sessions')
+        .update({ status: done ? 'done' : 'pending' })
+        .eq('id', sessionId)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/packages')
+    revalidatePath('/owner/pets')
+    return { message: done ? 'Sessão marcada como realizada!' : 'Sessão revertida para pendente.', success: true }
+}
+
+// =====================================================
+// EXISTING FUNCTIONS (mantidas)
+// =====================================================
+
 export async function getPetPackagesWithUsage(petId: string) {
     const supabase = await createClient()
 
-    // 1. Buscar resumo dos pacotes (usando a função RPC existente para facilitar)
     const { data: summary, error } = await supabase.rpc('get_pet_package_summary', {
         p_pet_id: petId
     })
@@ -442,10 +582,7 @@ export async function getPetPackagesWithUsage(petId: string) {
 
     if (!summary || summary.length === 0) return []
 
-    // 2. Buscar detalhes de uso (agendamentos) para cada item
     const packagesWithUsage = await Promise.all(summary.map(async (item: any) => {
-        // Primeiro, precisamos encontrar o crédito exato
-        // A RPC não retorna o ID do crédito, então precisamos buscar
         const { data: credit } = await supabase
             .from('package_credits')
             .select('id')
@@ -464,10 +601,23 @@ export async function getPetPackagesWithUsage(petId: string) {
             if (apps) appointments = apps
         }
 
+        // Buscar sessões do período atual
+        let sessions: any[] = []
+        const { data: sessionData } = await supabase
+            .from('package_sessions')
+            .select('*, services(name), appointments(id, scheduled_at, status)')
+            .eq('customer_package_id', item.customer_package_id)
+            .order('period_start', { ascending: false })
+            .order('scheduled_at', { ascending: true })
+            .limit(20)
+
+        if (sessionData) sessions = sessionData
+
         return {
             ...item,
             credit_id: credit?.id,
-            appointments
+            appointments,
+            sessions
         }
     }))
 

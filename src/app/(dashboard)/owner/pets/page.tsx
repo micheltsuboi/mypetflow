@@ -209,7 +209,7 @@ function PetsContent() {
                 if (customersData) setCustomers(customersData)
             })
 
-            const packagesPromise = supabase.from('service_packages').select('id, name, total_price, description').eq('org_id', profile.org_id).eq('is_active', true).order('total_price').then(({ data: packagesData }) => {
+            const packagesPromise = supabase.from('service_packages').select('id, name, total_price, description, validity_type').eq('org_id', profile.org_id).eq('is_active', true).order('total_price').then(({ data: packagesData }) => {
                 if (packagesData) setAvailablePackages(packagesData)
             })
 
@@ -586,35 +586,123 @@ function PetsContent() {
                                         <div className={styles.accordionContent}>
                                             <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
                                                 <h4>Ativar Novo Pacote</h4>
-                                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.75rem' }}>
                                                     <select className={styles.select} value={selectedPackageId} onChange={e => setSelectedPackageId(e.target.value)}>
                                                         <option value="">Selecione um pacote...</option>
-                                                        {availablePackages.map(p => <option key={p.id} value={p.id}>{p.name} - R$ {p.total_price.toFixed(2)}</option>)}
+                                                        {availablePackages.map((p: any) => (
+                                                            <option key={p.id} value={p.id}>
+                                                                {p.name} - R$ {p.total_price.toFixed(2)}{p.validity_type === 'monthly' ? ' (Mensal)' : p.validity_type === 'weekly' ? ' (Semanal)' : ''}
+                                                            </option>
+                                                        ))}
                                                     </select>
-                                                    <button className={styles.addButton} disabled={!selectedPackageId || isSelling} onClick={async () => {
-                                                        if (!selectedPet || !selectedPackageId) return
-                                                        setIsSelling(true)
-                                                        const pkg = availablePackages.find(p => p.id === selectedPackageId)
-                                                        const res = await sellPackageToPet(selectedPet.id, selectedPackageId, pkg.total_price, 'pix')
-                                                        if (res.success) {
-                                                            alert(res.message)
-                                                            getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
-                                                            setSelectedPackageId('')
-                                                        } else alert(res.message)
-                                                        setIsSelling(false)
-                                                    }}>{isSelling ? '...' : 'Ativar'}</button>
+                                                    {selectedPackageId && (() => {
+                                                        const selectedPkg = availablePackages.find((p: any) => p.id === selectedPackageId)
+                                                        if (selectedPkg?.validity_type !== 'unlimited') {
+                                                            return (
+                                                                <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                                        🗓️ <strong>Agendamento Automático</strong> — Configure o dia e horário para este pacote ser inserido na agenda automaticamente. Deixe em branco para agendar manualmente.
+                                                                    </p>
+                                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                                                        <div>
+                                                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Dia da Semana</label>
+                                                                            <select
+                                                                                className={styles.select}
+                                                                                value={(selectedPet as any)?._pkgDay ?? ''}
+                                                                                onChange={e => {
+                                                                                    const val = e.target.value
+                                                                                    setSelectedPet((prev: any) => prev ? { ...prev, _pkgDay: val } : prev)
+                                                                                }}
+                                                                                style={{ fontSize: '0.85rem' }}
+                                                                            >
+                                                                                <option value="">Sem preferência</option>
+                                                                                <option value="0">Domingo</option>
+                                                                                <option value="1">Segunda</option>
+                                                                                <option value="2">Terça</option>
+                                                                                <option value="3">Quarta</option>
+                                                                                <option value="4">Quinta</option>
+                                                                                <option value="5">Sexta</option>
+                                                                                <option value="6">Sábado</option>
+                                                                            </select>
+                                                                        </div>
+                                                                        <div>
+                                                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Horário</label>
+                                                                            <input
+                                                                                type="time"
+                                                                                className={styles.input}
+                                                                                value={(selectedPet as any)?._pkgTime ?? ''}
+                                                                                onChange={e => {
+                                                                                    const val = e.target.value
+                                                                                    setSelectedPet((prev: any) => prev ? { ...prev, _pkgTime: val } : prev)
+                                                                                }}
+                                                                                style={{ fontSize: '0.85rem' }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        }
+                                                        return null
+                                                    })()}
+                                                    <button
+                                                        className={styles.addButton}
+                                                        disabled={!selectedPackageId || isSelling}
+                                                        onClick={async () => {
+                                                            if (!selectedPet || !selectedPackageId) return
+                                                            setIsSelling(true)
+                                                            const pkg = availablePackages.find((p: any) => p.id === selectedPackageId)
+                                                            const dayVal = (selectedPet as any)._pkgDay
+                                                            const timeVal = (selectedPet as any)._pkgTime
+                                                            const preferredDay = dayVal !== undefined && dayVal !== '' ? parseInt(dayVal) : null
+                                                            const preferredTime = timeVal || null
+                                                            const res = await sellPackageToPet(selectedPet.id, selectedPackageId, pkg.total_price, 'pix', preferredDay, preferredTime)
+                                                            if (res.success) {
+                                                                alert(res.message)
+                                                                getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
+                                                                setSelectedPackageId('')
+                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgDay: '', _pkgTime: '' } : prev)
+                                                            } else alert(res.message)
+                                                            setIsSelling(false)
+                                                        }}
+                                                    >
+                                                        {isSelling ? '...' : '✓ Ativar Pacote'}
+                                                    </button>
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {petPackages.length === 0 ? <p>Nenhum pacote ativo.</p> : petPackages.map((pkg: any, idx: number) => (
                                                     <div key={idx} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
-                                                            <span>{pkg.package_name}: {pkg.service_name}</span>
-                                                            <span style={{ color: pkg.remaining_qty > 0 ? '#10B981' : '#EF4444' }}>{pkg.remaining_qty} / {pkg.total_qty}</span>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
+                                                            <span>📦 {pkg.package_name}: {pkg.service_name}</span>
+                                                            <span style={{ color: pkg.remaining_qty > 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>{pkg.remaining_qty} / {pkg.total_qty} restantes</span>
                                                         </div>
+                                                        {pkg.validity_type && pkg.validity_type !== 'unlimited' && (
+                                                            <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginTop: '0.25rem' }}>
+                                                                {pkg.validity_type === 'monthly' ? '📅 Renovação Mensal' : '📆 Renovação Semanal'}
+                                                                {pkg.preferred_day_of_week !== null && pkg.preferred_day_of_week !== undefined && (
+                                                                    <span style={{ marginLeft: '0.5rem' }}>• {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][pkg.preferred_day_of_week]} {pkg.preferred_time}</span>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                                                            Expira em: {pkg.expires_at ? new Date(pkg.expires_at).toLocaleDateString() : 'Nunca'}
+                                                            {pkg.period_start && pkg.period_end && (
+                                                                <span>Período: {new Date(pkg.period_start + 'T12:00:00').toLocaleDateString('pt-BR')} – {new Date(pkg.period_end + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                                            )}
                                                         </div>
+                                                        {/* Sessões do período */}
+                                                        {pkg.sessions && pkg.sessions.length > 0 && (
+                                                            <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
+                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 600 }}>Sessões do Período:</div>
+                                                                {pkg.sessions.slice(0, 5).map((s: any) => (
+                                                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', padding: '2px 0' }}>
+                                                                        <span>{s.services?.name}</span>
+                                                                        <span style={{ color: s.status === 'done' ? '#10b981' : s.status === 'missed' ? '#ef4444' : '#f59e0b' }}>
+                                                                            {s.status === 'done' ? '✓ Realizado' : s.status === 'missed' ? '✗ Não realizado' : s.scheduled_at ? new Date(s.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '⏳ Pendente'}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>

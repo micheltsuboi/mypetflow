@@ -84,6 +84,8 @@ interface Appointment {
     discount?: number | null
     payment_status?: string | null
     payment_method?: string | null
+    is_package?: boolean | null
+    package_credit_id?: string | null
 }
 
 interface ScheduleBlock {
@@ -235,6 +237,7 @@ function AgendaContent() {
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
                     calculated_price, final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out, check_in_date, check_out_date,
+                    is_package, package_credit_id,
                     pets ( name, species, breed, perfume_allowed, accessories_allowed, special_care, is_adapted, customers ( name )),
                     services ( name, duration_minutes, base_price, category_id, service_categories ( name, color, icon ))
                 `).eq('org_id', profile.org_id).or(`and(scheduled_at.gte.${startDateStr},scheduled_at.lte.${endDateStr}),and(check_in_date.lte.${endDayStr},check_out_date.gte.${startDayStr})`).neq('status', 'cancelled')
@@ -556,6 +559,11 @@ function AgendaContent() {
                 <div className={styles.cardTop}>
                     <div className={styles.timeDisplay}>
                         🕐 {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                        {(appt.is_package || appt.package_credit_id) && (
+                            <span title="Agendamento de Pacote" style={{ marginLeft: '0.4rem', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', borderRadius: '6px', padding: '1px 6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
+                                📦 PACOTE
+                            </span>
+                        )}
                     </div>
                     <div className={styles.quickActionsRow}>
                         <button
@@ -819,14 +827,15 @@ function AgendaContent() {
                                         const serviceCategory = (appt.services as any)?.service_categories
                                         const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
                                         const petName = appt.pets?.name || 'Pet'
+                                        const isPkg = appt.is_package || appt.package_credit_id
                                         return (
                                             <div
                                                 key={appt.id}
                                                 className={styles.weekEventPill}
-                                                style={{ backgroundColor: categoryColor }}
-                                                title={`${petName} - ${appt.services?.name}`}
+                                                style={{ backgroundColor: isPkg ? '#8b5cf6' : categoryColor }}
+                                                title={`${isPkg ? '📦 ' : ''}${petName} - ${appt.services?.name}`}
                                             >
-                                                {petName}
+                                                {isPkg ? '📦 ' : ''}{petName}
                                             </div>
                                         )
                                     })}
@@ -881,14 +890,15 @@ function AgendaContent() {
                                 const serviceCategory = (appt.services as any)?.service_categories
                                 const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
                                 const petName = appt.pets?.name || 'Pet'
+                                const isPkg = appt.is_package || appt.package_credit_id
                                 return (
                                     <div
                                         key={appt.id}
                                         className={styles.monthEventDot}
-                                        style={{ borderLeftColor: categoryColor }}
-                                        title={`${petName} - ${appt.services?.name}`}
+                                        style={{ borderLeftColor: isPkg ? '#8b5cf6' : categoryColor }}
+                                        title={`${isPkg ? '📦 ' : ''}${petName} - ${appt.services?.name}`}
                                     >
-                                        {petName}
+                                        {isPkg && <span style={{ marginRight: '2px', fontSize: '0.7em' }}>📦</span>}{petName}
                                     </div>
                                 )
                             })}
