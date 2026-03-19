@@ -1,7 +1,7 @@
 -- =====================================================
 -- MIGRATION: Refinar validade de pacotes para Semanal/Multisemanal
 -- Remove 'monthly' e adiciona 'validity_weeks' para maior flexibilidade
--- Garante que agendamentos automáticos não sejam criados no passado
+-- Garante que o período comece no primeiro dia disponível (evita perda de sessões)
 -- =====================================================
 
 -- 1. Migrar dados existentes e adicionar validity_weeks
@@ -16,27 +16,28 @@ ALTER TABLE public.service_packages DROP CONSTRAINT IF EXISTS service_packages_v
 ALTER TABLE public.service_packages ADD CONSTRAINT service_packages_validity_type_check 
   CHECK (validity_type IN ('weekly', 'unlimited'));
 
--- 2. Atualizar funções para suportar weeks e evitar datas passadas
+-- 3. Função: calcular período atual de um pacote
+DROP FUNCTION IF EXISTS public.get_package_period(TEXT, INTEGER, DATE, INTEGER);
 DROP FUNCTION IF EXISTS public.get_package_period(TEXT, INTEGER, DATE);
-DROP FUNCTION IF EXISTS public.get_package_period(TEXT, DATE); -- Versão antiga se existir
+DROP FUNCTION IF EXISTS public.get_package_period(TEXT, DATE);
 
 CREATE OR REPLACE FUNCTION public.get_package_period(
   p_validity_type TEXT,
   p_validity_weeks INTEGER DEFAULT 1,
-  p_reference_date DATE DEFAULT CURRENT_DATE
+  p_reference_date DATE DEFAULT CURRENT_DATE,
+  p_preferred_day INTEGER DEFAULT NULL
 )
 RETURNS TABLE(period_start DATE, period_end DATE) AS $$
 DECLARE
   v_start DATE;
 BEGIN
   IF p_validity_type = 'weekly' THEN
-    -- Início da semana (Segunda-feira) da data de referência
-    v_start := p_reference_date - EXTRACT(DOW FROM p_reference_date)::INTEGER + 1;
-    -- Se por acaso cair no domingo anterior (DOW=0), o cálculo acima dá +1 (segunda). 
-    -- Se p_reference_date for domingo, DOW é 0. v_start = date + 1 (próxima segunda).
-    -- Ajuste para domingo: se DOW=0, subtraímos 6 dias para pegar a segunda da semana que está terminando.
-    IF EXTRACT(DOW FROM p_reference_date) = 0 THEN
-      v_start := p_reference_date - 6;
+    IF p_preferred_day IS NOT NULL THEN
+      -- Encontra a próxima ocorrência do dia da semana (pode ser hoje)
+      v_start := p_reference_date + (p_preferred_day - EXTRACT(DOW FROM p_reference_date)::INTEGER + 7) % 7;
+    ELSE
+      -- Sem preferência: começa na data de referência (hoje)
+      v_start := p_reference_date;
     END IF;
 
     RETURN QUERY SELECT
@@ -49,7 +50,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- 3. Atualizar generate_package_sessions para evitar datas passadas
+-- 4. Gerar sessões do período atual para um customer_package
 DROP FUNCTION IF EXISTS public.generate_package_sessions(UUID);
 CREATE OR REPLACE FUNCTION public.generate_package_sessions(
   p_customer_package_id UUID
@@ -74,8 +75,14 @@ BEGIN
 
   IF NOT FOUND THEN RETURN 0; END IF;
 
-  -- Calcular período
-  SELECT * INTO v_period FROM public.get_package_period(v_cp.validity_type, v_cp.validity_weeks);
+  -- Calcular período baseado no dia preferencial se houver
+  -- Se já tiver um period_start (renovação), usamos ele. Senão, calculamos.
+  IF v_cp.period_start IS NOT NULL AND v_cp.period_start >= v_now_date THEN
+     SELECT v_cp.period_start AS period_start, v_cp.period_end AS period_end INTO v_period;
+  ELSE
+     -- Cálculo inicial: encontra primeiro dia útil
+     SELECT * INTO v_period FROM public.get_package_period(v_cp.validity_type, v_cp.validity_weeks, v_now_date, v_cp.preferred_day_of_week);
+  END IF;
 
   -- Atualizar período no customer_package
   UPDATE public.customer_packages
@@ -90,32 +97,19 @@ BEGIN
   LOOP
     -- Criar v_items.quantity sessões
     FOR i IN 1..v_items.quantity LOOP
-      -- Se tem dia preferencial, calcular a data
       IF v_cp.preferred_day_of_week IS NOT NULL THEN
-        -- Calcular ocorrência do dia dentro do período
+        -- Como period_start já é o primeiro dia de sessão (ou a segunda daquela semana)
+        -- o offset deve ser zero se usarmos a lógica de get_package_period acima.
         v_day_offset := (v_cp.preferred_day_of_week - EXTRACT(DOW FROM v_period.period_start)::INTEGER + 7) % 7;
         
-        -- Distribuir as sessões pelas semanas do pacote
-        -- Se temos 4 sessões num pacote de 4 semanas, cada uma vai para uma semana
-        -- Se temos mais, elas se amontoam (ex: 8 sessões em 4 semanas = 2 por semana)
-        -- Mas aqui usamos i-1 para distribuir? 
-        -- v_items.quantity / v_cp.validity_weeks é a base?
-        -- Simplificando: vamos distribuir linearmente i sessões em validity_weeks
+        -- Distribuir i sessões nas semanas disponíveis
         v_session_date := v_period.period_start + v_day_offset + (FLOOR((i - 1)::FLOAT / (v_items.quantity::FLOAT / v_cp.validity_weeks::FLOAT))::INTEGER * 7);
         
-        -- Pular datas passadas em relação ao dia da compra (v_cp.purchased_at)
-        -- Apenas para a primeira geração do pacote.
-        -- Se a data calculada for antes de hoje, ignoramos.
-        IF v_session_date < v_now_date THEN
-          CONTINUE;
-        END IF;
-
         -- Garantir que a data está dentro do período
         IF v_session_date > v_period.period_end THEN
           v_session_date := NULL;
         END IF;
 
-        -- Montar timestamp com horário preferencial
         IF v_session_date IS NOT NULL AND v_cp.preferred_time IS NOT NULL THEN
           v_session_ts := (v_session_date::TEXT || ' ' || v_cp.preferred_time::TEXT || '-03:00')::TIMESTAMPTZ;
         ELSE
@@ -126,9 +120,7 @@ BEGIN
         v_session_ts := NULL;
       END IF;
 
-      -- Verificar se esta sessão específica já existe (para evitar duplicidade em re-execuções)
-      -- Nota: Esta verificação é básica, pois sessões não tem identificador único de 'qual banho é'
-      -- Mas ajuda se rodar duas vezes seguidas no mesmo dia.
+      -- Evitar duplicidade
       IF v_session_ts IS NOT NULL THEN
         IF EXISTS (
           SELECT 1 FROM public.package_sessions 
@@ -154,7 +146,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 4. Atualizar get_pet_package_summary para refletir as mudanças
+-- 5. Atualizar get_pet_package_summary para refletir as mudanças
 DROP FUNCTION IF EXISTS public.get_pet_package_summary(UUID);
 CREATE OR REPLACE FUNCTION public.get_pet_package_summary(
   p_pet_id UUID
