@@ -379,7 +379,7 @@ export default function PackagesPage() {
                                         )}
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                        {cp.paused && <span style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '8px' }}>⏸ Pausado</span>}
+                                        {cp.paused && <span style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: '0.75rem', padding: '3px 8px', borderRadius: '8px' }}>⏸️ Pausado</span>}
                                         <button onClick={() => openSessions(cp)} style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-primary)' }}>
                                             📋 Sessões
                                         </button>
@@ -391,7 +391,7 @@ export default function PackagesPage() {
                                             }}
                                             style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-primary)' }}
                                         >
-                                            {cp.paused ? '▶ Reativar' : '⏸ Pausar'}
+                                            {cp.paused ? '▶️ Reativar' : '⏸️ Pausar'}
                                         </button>
                                         <button
                                             onClick={async () => {
