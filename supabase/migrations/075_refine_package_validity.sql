@@ -4,17 +4,17 @@
 -- Garante que agendamentos automáticos não sejam criados no passado
 -- =====================================================
 
--- 1. Alterar restrição de validity_type e adicionar validity_weeks
-ALTER TABLE public.service_packages DROP CONSTRAINT IF EXISTS service_packages_validity_type_check;
-ALTER TABLE public.service_packages ADD CONSTRAINT service_packages_validity_type_check 
-  CHECK (validity_type IN ('weekly', 'unlimited'));
-
+-- 1. Migrar dados existentes e adicionar validity_weeks
 ALTER TABLE public.service_packages ADD COLUMN IF NOT EXISTS validity_weeks INTEGER DEFAULT 1;
 
--- Migrar 'monthly' para 'weekly' com 4 semanas
 UPDATE public.service_packages 
 SET validity_type = 'weekly', validity_weeks = 4 
 WHERE validity_type = 'monthly';
+
+-- 2. Alterar restrição de validity_type
+ALTER TABLE public.service_packages DROP CONSTRAINT IF EXISTS service_packages_validity_type_check;
+ALTER TABLE public.service_packages ADD CONSTRAINT service_packages_validity_type_check 
+  CHECK (validity_type IN ('weekly', 'unlimited'));
 
 -- 2. Atualizar funções para suportar weeks e evitar datas passadas
 DROP FUNCTION IF EXISTS public.get_package_period(TEXT, INTEGER, DATE);
