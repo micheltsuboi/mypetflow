@@ -1,0 +1,77 @@
+{
+  "id": "T9SUV3RmaHJz22jr",
+  "name": "🐾 Pet Flow - Agendamento Confirmado",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pet-agendamento",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "72307c1f-2a2e-4b13-8590-61b7872f115d",
+      "name": "Webhook - Agendamento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "pet-agendamento"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = (input.body && input.body.body) ? input.body.body : (input.body || {});\nconst pet = body.petName || 'seu pet';\nconst service = body.serviceName || 'serviço';\nconst date = body.formattedDate || '';\nconst time = body.formattedTime || '';\nconst phone = (body.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `📅 *Agendamento Confirmado!*\\n\\n🐾 Pet: *${pet}*\\n✂️ Serviço: *${service}*\\n📆 Data: *${date}* às *${time}*\\n\\nEstamos te esperando! Qualquer dúvida, é só chamar. 🐶`,\n    wa_integration_type: body.wa_integration_type || 'system',\n    wa_api_url: body.wa_api_url || '',\n    wa_api_token: body.wa_api_token || ''\n  }\n}];"
+      },
+      "id": "71047dbe-d776-4d29-adfa-fa2c1f7a9308",
+      "name": "Montar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [224, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : 'https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { 
+              "name": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_token ? 'Authorization' : 'Client-Token' }}", 
+              "value": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_token ? ('Bearer ' + $json.wa_api_token) : 'F200243e457104ad79273e20e177311a2S' }}" 
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "phone", "value": "={{ $json.phone }}" },
+            { "name": "message", "value": "={{ $json.message }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5e29ef8f-51aa-40d9-8e7f-19b7bff9b2f8",
+      "name": "Z-API: Enviar Confirmação",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [448, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "ok",
+        "options": {}
+      },
+      "id": "3a224fbf-17d9-4751-bcfd-fd425b893d8a",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [672, 0]
+    }
+  ],
+  "connections": {
+    "Webhook - Agendamento": { "main": [[{ "node": "Montar Mensagem", "type": "main", "index": 0 }]] },
+    "Montar Mensagem": { "main": [[{ "node": "Z-API: Enviar Confirmação", "type": "main", "index": 0 }]] },
+    "Z-API: Enviar Confirmação": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
