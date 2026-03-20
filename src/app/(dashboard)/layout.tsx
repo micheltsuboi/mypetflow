@@ -64,6 +64,7 @@ export default function DashboardLayout({
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
+        { name: 'Integrações', href: '/owner/integracoes', icon: '🔌' },
     ]
 
     const masterAdminNavigation = [
@@ -237,6 +238,7 @@ export default function DashboardLayout({
                 if (item.name === 'Consultas') return planFeat.includes('clinica_vet')
                 if (item.name === 'Questionário') return planFeat.includes('pets')
                 if (item.name === 'Ponto') return planFeat.includes('ponto')
+                if (item.name === 'Integrações') return true
                 return false;
             })
         } else if (user) {

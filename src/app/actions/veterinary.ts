@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 // ==========================================
 // VETERINARIANS
@@ -907,48 +908,28 @@ export async function createVetAlert({
             revalidatePath('/owner/creche')
         }
 
-        // 3. Trigger N8N Webhook directly for Tutor Notification (Conditional)
+        // 3. Trigger WhatsApp Message via Multi-tenant Router
         if (notifyTutor) {
             try {
-                const n8nBaseUrl = process.env.N8N_BASE_URL
-                console.log('N8N TRIGGER: Iniciando processo. URL base:', n8nBaseUrl)
+                const petName = pet?.name || 'seu pet'
+                const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
+                const tutorName = (customerData as any)?.name || 'Cliente'
+                const phoneRaw = (customerData as any)?.phone_1 || ''
 
-                if (n8nBaseUrl) {
-                    const petName = pet?.name || 'seu pet'
-                    console.log('VET ALERT N8N DEBUG: Pet data:', JSON.stringify(pet, null, 2))
-
-                    const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
-                    const tutorName = (customerData as any)?.name || 'Cliente'
-                    const phoneRaw = (customerData as any)?.phone_1 || ''
-
-                    let phone = phoneRaw.toString().replace(/\D/g, '')
-                    if (phone && !phone.startsWith('55')) phone = '55' + phone
-
-                    if (phone && phone.length >= 8) {
-                        const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
-
-                        const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
-                        console.log('N8N TRIGGER: Disparando para:', fullUrl, 'com tutorPhone:', phone)
-
-                        await fetch(fullUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                tutorPhone: phone,
-                                message: message,
-                                tenant_id: profile.org_id,
-                                pet_name: petName,
-                                type: 'vet_alert_suggestion'
-                            })
-                        })
+                if (phoneRaw && phoneRaw.length >= 8) {
+                    const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+                    
+                    const res = await sendWhatsAppMessage(profile.org_id, phoneRaw, message)
+                    if (!res.success) {
+                       console.error('VET ALERT: Failed to send WhatsApp message via Router:', res.error)
                     } else {
-                        console.warn('N8N TRIGGER: Telefone ausente ou inválido no banco.')
+                       console.log('VET ALERT: WhatsApp message sent successfully via Router.')
                     }
                 } else {
-                    console.log('N8N TRIGGER: N8N_BASE_URL não está definida!')
+                    console.warn('VET ALERT: Telefone ausente ou inválido no banco.')
                 }
-            } catch (n8nError: any) {
-                console.error('N8N TRIGGER: Falha fatal no disparo do n8n:', n8nError.message)
+            } catch (err: any) {
+                console.error('VET ALERT: Falha fatal no envio local de notificação:', err.message)
             }
         }
 
