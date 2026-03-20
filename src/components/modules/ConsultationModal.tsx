@@ -100,15 +100,15 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
             if (orgLogo) {
                 try {
                     // Adiciona o logo mantendo a proporção (preserveAspectRatio)
-                    // Usamos um retângulo de 40x25 para o logo não ficar esticado
-                    doc.addImage(orgLogo, 'PNG', 105 - 20, yPos, 40, 25, undefined, 'FAST')
-                    yPos += 30
+                    // Aumentando para 50x30mm para dar mais visibilidade
+                    doc.addImage(orgLogo, 'PNG', 105 - 25, yPos, 50, 30, undefined, 'FAST')
+                    yPos += 35
                 } catch (e) {
                     console.error('Erro ao adicionar logo ao PDF:', e)
                     // Tenta novamente sem especificar formato se falhar
                     try {
-                        doc.addImage(orgLogo, 105 - 20, yPos, 40, 25)
-                        yPos += 30
+                        doc.addImage(orgLogo, 105 - 25, yPos, 50, 30)
+                        yPos += 35
                     } catch(e2) {}
                 }
             }
