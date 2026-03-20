@@ -11,6 +11,7 @@ interface ImageUploadProps {
     onRemove: () => void
     label?: string
     circle?: boolean // For avatars
+    isLogo?: boolean // For organization logos to preserve quality/transparency
 }
 
 export default function ImageUpload({
@@ -19,7 +20,8 @@ export default function ImageUpload({
     onUpload,
     onRemove,
     label = 'Foto',
-    circle = false
+    circle = false,
+    isLogo = false
 }: ImageUploadProps) {
     const supabase = createClient()
     const [uploading, setUploading] = useState(false)
@@ -80,19 +82,24 @@ export default function ImageUpload({
             }
 
             const originalFile = event.target.files[0]
+            let fileToUpload: File | Blob = originalFile
+            let finalFileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`
+            
+            if (!isLogo) {
+                const processedBlob = await processImage(originalFile)
+                finalFileName = `${finalFileName}.webp`
+                fileToUpload = new File([processedBlob], finalFileName, { type: 'image/webp' })
+            } else {
+                const extension = originalFile.name.split('.').pop()
+                finalFileName = `${finalFileName}.${extension}`
+            }
 
-            // Generate filename with .webp extension
-            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.webp`
-            const filePath = `${fileName}`
-
-            // Process image (Resize + WebP)
-            const processedBlob = await processImage(originalFile)
-            const processedFile = new File([processedBlob], fileName, { type: 'image/webp' })
+            const filePath = `${finalFileName}`
 
             // 1. Upload to Supabase
             const { error: uploadError } = await supabase.storage
                 .from(bucket)
-                .upload(filePath, processedFile)
+                .upload(filePath, fileToUpload)
 
             if (uploadError) {
                 throw uploadError

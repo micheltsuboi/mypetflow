@@ -191,6 +191,7 @@ export default function IntegracoesPage() {
                                 onUpload={(url) => setLogoUrl(url)} 
                                 onRemove={() => setLogoUrl(null)}
                                 label=""
+                                isLogo={true}
                             />
                         </div>
                     </div>
