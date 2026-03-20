@@ -1,5 +1,9 @@
--- Add logo_url to organizations table
+-- Add logo_url and notification preferences to organizations table
 ALTER TABLE organizations ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS notify_appointment_confirmed BOOLEAN DEFAULT TRUE;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS notify_service_status BOOLEAN DEFAULT TRUE;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS notify_reminder_24h BOOLEAN DEFAULT TRUE;
+ALTER TABLE organizations ADD COLUMN IF NOT EXISTS notify_vet_alerts BOOLEAN DEFAULT TRUE;
 
 -- Create storage bucket for logos
 INSERT INTO storage.buckets (id, name, public)
