@@ -49,6 +49,7 @@ export default function IntegracoesPage() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        console.log('IntegracoesPage: logoUrl before submit:', logoUrl)
         setSaving(true)
 
         const formData = new FormData()

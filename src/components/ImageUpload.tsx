@@ -95,6 +95,7 @@ export default function ImageUpload({
                 .upload(filePath, processedFile)
 
             if (uploadError) {
+                console.error('ImageUpload: Supabase Error', uploadError)
                 throw uploadError
             }
 
