@@ -27,12 +27,19 @@ import {
     createVetRecord,
     startConsultation,
     createBlankConsultation,
-    getVetAlertsByPet
+    getVetAlertsByPet,
+    getVetExamTypes,
+    getVetExams,
+    createVetExam,
+    deleteVetExam,
+    updateExamPayment
 } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
 import ImageUpload from '@/components/ImageUpload'
+import FileUpload from '@/components/ui/FileUpload'
+import ExamPaymentControls from '@/components/ExamPaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 
@@ -102,6 +109,8 @@ function PetsContent() {
     const [petshopHistory, setPetshopHistory] = useState<any[]>([])
     const [groomingHistory, setGroomingHistory] = useState<any[]>([])
     const [hospitalHistory, setHospitalHistory] = useState<any[]>([])
+    const [petExams, setPetExams] = useState<any[]>([])
+    const [examTypes, setExamTypes] = useState<any[]>([])
     const [showHospitalModal, setShowHospitalModal] = useState(false)
     const [activeAdmission, setActiveAdmission] = useState<any | null>(null)
     const [admissionMeds, setAdmissionMeds] = useState<any[]>([])
@@ -172,6 +181,10 @@ function PetsContent() {
             }
             if (key === 'grooming' as any) {
                 getPetAppointmentsByCategory(selectedPet.id, 'Banho e Tosa').then(setGroomingHistory)
+            }
+            if (key === 'exams') {
+                getVetExams(selectedPet.id).then(setPetExams)
+                getVetExamTypes().then(setExamTypes)
             }
         }
     }
