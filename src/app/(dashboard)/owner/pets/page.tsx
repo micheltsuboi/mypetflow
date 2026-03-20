@@ -542,7 +542,7 @@ function PetsContent() {
                                     </button>
                                     {accordions.exams && (
                                         <div className={styles.accordionContent}>
-                                            {!isReadOnly && (
+                                            {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || currentVet) && (
                                                 <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                                                     <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         🧪 Solicitar / Cadastrar Novo Exame
@@ -617,7 +617,7 @@ function PetsContent() {
                                                                     >
                                                                         📄 Ver Resultado (PDF/Imagem)
                                                                     </a>
-                                                                    {!isReadOnly && (
+                                                                    {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || currentVet) && (
                                                                         <button 
                                                                             className={styles.deleteBtn} 
                                                                             style={{ padding: '4px 8px', fontSize: '0.75rem' }}
@@ -632,7 +632,7 @@ function PetsContent() {
                                                                     )}
                                                                 </div>
                                                             ) : (
-                                                                !isReadOnly && (
+                                                                (userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || currentVet) && (
                                                                     <FileUpload 
                                                                         bucket="vet-exams" 
                                                                         label="Upload de Resultado (PDF ou Imagem)"
@@ -647,7 +647,7 @@ function PetsContent() {
                                                             )}
                                                         </div>
 
-                                                        {!isReadOnly && (
+                                                        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || currentVet) && (
                                                             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
                                                                 <button 
                                                                     className={styles.deleteBtn} 
