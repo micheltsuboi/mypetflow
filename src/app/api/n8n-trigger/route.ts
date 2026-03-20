@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
             scheduled_at,
             status,
             checkout_type,
+            org_id,
             pets ( name ),
             services ( name ),
             customers ( name, phone_1, phone_2, user_id )
@@ -75,6 +76,26 @@ export async function POST(req: NextRequest) {
         customMessage = `✅ O serviço de ${serviceName} do(a) ${petName} foi finalizado!`
     }
 
+    // Busca configurações de roteamento na org
+    const orgId = appointment.org_id
+    let wa_integration_type = 'system'
+    let wa_api_url = ''
+    let wa_api_token = ''
+
+    if (orgId) {
+        const { data: orgParam } = await supabaseAdmin
+            .from('organizations')
+            .select('wa_integration_type, wa_api_url, wa_api_token')
+            .eq('id', orgId)
+            .single()
+        
+        if (orgParam) {
+            wa_integration_type = orgParam.wa_integration_type || 'system'
+            wa_api_url = orgParam.wa_api_url || ''
+            wa_api_token = orgParam.wa_api_token || ''
+        }
+    }
+
     const enrichedPayload = {
         appointmentId,
         newStatus,
@@ -87,6 +108,10 @@ export async function POST(req: NextRequest) {
         checkoutType,
         customMessage,
         eventType: type, // INSERT | UPDATE | DELETE
+        tenant_id: orgId,
+        wa_integration_type,
+        wa_api_url,
+        wa_api_token
     }
 
     // 3. Decide which N8N webhook to call based on the event
