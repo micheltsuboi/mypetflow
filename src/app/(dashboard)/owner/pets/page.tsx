@@ -533,6 +533,142 @@ function PetsContent() {
                                 </div>
                             )}
 
+                            {/* EXAMES */}
+                            {planFeatures.includes('clinica_vet') && (
+                                <div className={styles.accordionItem}>
+                                    <button type="button" onClick={() => toggleAccordion('exams')} className={styles.accordionHeader}>
+                                        <span>🔬 Exames Laboratoriais</span>
+                                        <span>{accordions.exams ? '−' : '+'}</span>
+                                    </button>
+                                    {accordions.exams && (
+                                        <div className={styles.accordionContent}>
+                                            {!isReadOnly && (
+                                                <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        🧪 Solicitar / Cadastrar Novo Exame
+                                                    </h4>
+                                                    <form action={async (formData) => {
+                                                        const examTypeId = formData.get('exam_type_id') as string
+                                                        const selectedType = examTypes.find(t => t.id === examTypeId)
+                                                        if (!selectedType) return alert('Selecione um tipo de exame.')
+                                                        
+                                                        formData.append('exam_type_name', selectedType.name)
+                                                        formData.append('price', selectedType.base_price.toString())
+                                                        
+                                                        const res = await createVetExam(formData)
+                                                        if (res.success) {
+                                                            alert('Exame solicitado com sucesso!')
+                                                            getVetExams(selectedPet!.id).then(setPetExams)
+                                                        } else alert(res.message)
+                                                    }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                                        <input type="hidden" name="pet_id" value={selectedPet!.id} />
+                                                        <div className={styles.formGroup}>
+                                                            <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Tipo de Exame *</label>
+                                                            <select name="exam_type_id" className={styles.select} required>
+                                                                <option value="">Selecione um exame do catálogo...</option>
+                                                                {examTypes.map(t => (
+                                                                    <option key={t.id} value={t.id}>{t.name} (R$ {t.base_price.toFixed(2)})</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Data da Solicitação</label>
+                                                            <input type="date" name="exam_date" className={styles.input} defaultValue={new Date().toISOString().split('T')[0]} />
+                                                        </div>
+                                                        <button type="submit" className={styles.addButton} style={{ width: '100%', marginTop: '0.5rem' }}>
+                                                            ✓ Solicitar Exame
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            )}
+
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {petExams.length === 0 ? <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1rem' }}>Nenhum exame solicitado ou realizado.</p> : petExams.map(exam => (
+                                                    <div key={exam.id} style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                                            <div>
+                                                                <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>{exam.exam_type_name}</strong>
+                                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                    Solicitado em: {new Date(exam.exam_date).toLocaleDateString()}
+                                                                </div>
+                                                            </div>
+                                                            <ExamPaymentControls 
+                                                                examId={exam.id}
+                                                                price={exam.price}
+                                                                discountPercent={exam.discount_percent}
+                                                                discountType={exam.discount_type}
+                                                                discountFixed={exam.discount_fixed}
+                                                                paymentStatus={exam.payment_status}
+                                                                paymentMethod={exam.payment_method}
+                                                                onUpdate={() => getVetExams(selectedPet!.id).then(setPetExams)}
+                                                            />
+                                                        </div>
+
+                                                        {/* RESULTADO / UPLOAD */}
+                                                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                                                            {exam.file_url ? (
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <a 
+                                                                        href={exam.file_url} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer" 
+                                                                        className={styles.actionBtn}
+                                                                        style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                                                                    >
+                                                                        📄 Ver Resultado (PDF/Imagem)
+                                                                    </a>
+                                                                    {!isReadOnly && (
+                                                                        <button 
+                                                                            className={styles.deleteBtn} 
+                                                                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                                                            onClick={async () => {
+                                                                                if (confirm('Deseja remover o arquivo do resultado?')) {
+                                                                                    const supabase = createClient()
+                                                                                    await supabase.from('vet_exams').update({ file_url: null }).eq('id', exam.id)
+                                                                                    getVetExams(selectedPet!.id).then(setPetExams)
+                                                                                 }
+                                                                            }}
+                                                                        >Excluir</button>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                !isReadOnly && (
+                                                                    <FileUpload 
+                                                                        bucket="vet-exams" 
+                                                                        label="Upload de Resultado (PDF ou Imagem)"
+                                                                        onUpload={async (url) => {
+                                                                            const supabase = createClient()
+                                                                            await supabase.from('vet_exams').update({ file_url: url }).eq('id', exam.id)
+                                                                            getVetExams(selectedPet!.id).then(setPetExams)
+                                                                        }}
+                                                                        onRemove={() => {}}
+                                                                    />
+                                                                )
+                                                            )}
+                                                        </div>
+
+                                                        {!isReadOnly && (
+                                                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                                                <button 
+                                                                    className={styles.deleteBtn} 
+                                                                    style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-muted)' }}
+                                                                    onClick={async () => {
+                                                                        if (confirm('Excluir solicitação de exame?')) {
+                                                                            await deleteVetExam(exam.id)
+                                                                            getVetExams(selectedPet!.id).then(setPetExams)
+                                                                        }
+                                                                    }}
+                                                                >Remover Solicitação</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
 
                             {/* HOSPITAL (INTERNAMENTO) */}
                             {planFeatures.includes('clinica_vet') && (
