@@ -1092,3 +1092,30 @@ export async function saveVetAlertObservation(appointmentId: string, petId: stri
         return { success: false, message: error.message }
     }
 }
+
+export async function getOrganizationLogo() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return null
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return null
+
+        const { data: org } = await supabase
+            .from('organizations')
+            .select('logo_url')
+            .eq('id', profile.org_id)
+            .single()
+
+        return org?.logo_url || null
+    } catch (error) {
+        console.error('Error fetching org logo:', error)
+        return null
+    }
+}

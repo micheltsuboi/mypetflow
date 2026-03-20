@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import styles from './ConsultationModal.module.css'
-import { autosaveVetConsultation, getVeterinarians, finishVetConsultation } from '@/app/actions/veterinary'
+import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOrganizationLogo } from '@/app/actions/veterinary'
 import BodyMap from './BodyMap'
 import DateInput from '../ui/DateInput'
 
@@ -93,27 +93,47 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
             const vetName = vet?.name || 'Veterinário não especificado'
             const vetCrmv = vet?.crmv || 'CRMV não especificado'
 
+            // --- Header com Logo ---
+            let yPos = 20
+            const orgLogo = await getOrganizationLogo()
+            
+            if (orgLogo) {
+                try {
+                    // Adiciona o logo centralizado
+                    // jsPDF suporta URLs diretas se o CORS permitir
+                    doc.addImage(orgLogo, 'WEBP', 105 - 15, yPos, 30, 30, undefined, 'FAST')
+                    yPos += 35
+                } catch (e) {
+                    console.error('Erro ao adicionar logo ao PDF:', e)
+                }
+            }
+
             doc.setFontSize(18)
             doc.setFont('helvetica', 'bold')
-            doc.text('RECEITUÁRIO VETERINÁRIO', 105, 20, { align: 'center' })
+            doc.text('RECEITUÁRIO VETERINÁRIO', 105, yPos, { align: 'center' })
+            yPos += 15
 
             doc.setFontSize(12)
             doc.setFont('helvetica', 'normal')
-            doc.text(`Tutor(a): ${tutorName}`, 20, 40)
-            doc.text(`Paciente: ${petName}`, 20, 50)
-            doc.text(`Data: ${dateStr}`, 150, 40)
+            doc.text(`Tutor(a): ${tutorName}`, 20, yPos)
+            doc.text(`Data: ${dateStr}`, 150, yPos)
+            yPos += 10
+            doc.text(`Paciente: ${petName}`, 20, yPos)
+            yPos += 5
 
             doc.setLineWidth(0.5)
-            doc.line(20, 55, 190, 55)
+            doc.line(20, yPos, 190, yPos)
+            yPos += 10
 
             doc.setFontSize(11)
             doc.setFont('helvetica', 'bold')
-            doc.text('Prescrição:', 20, 65)
+            doc.text('Prescrição:', 20, yPos)
+            yPos += 10
 
             doc.setFont('helvetica', 'normal')
             const prescriptionText = formData.prescription || 'Nenhuma prescrição informada.'
             const splitText = doc.splitTextToSize(prescriptionText, 170)
-            doc.text(splitText, 20, 75)
+            doc.text(splitText, 20, yPos)
 
             const pageHeight = doc.internal.pageSize.height
             doc.line(60, pageHeight - 40, 150, pageHeight - 40)

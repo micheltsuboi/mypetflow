@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
 interface ImageUploadProps {
-    bucket: 'products' | 'avatars' | 'pets'
+    bucket: 'products' | 'avatars' | 'pets' | 'logos'
     url?: string | null
     onUpload: (url: string) => void
     onRemove: () => void

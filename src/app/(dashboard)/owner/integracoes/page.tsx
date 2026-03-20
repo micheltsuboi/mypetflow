@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { getWhatsAppConfig, saveWhatsAppConfig } from '@/app/actions/integrations'
+import ImageUpload from '@/components/ImageUpload'
 
 export default function IntegracoesPage() {
     const [integrationType, setIntegrationType] = useState('system')
@@ -14,6 +15,13 @@ export default function IntegracoesPage() {
     const [hasExistingClientToken, setHasExistingClientToken] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
+    const [logoUrl, setLogoUrl] = useState<string | null>(null)
+    const [notifications, setNotifications] = useState({
+        appointmentConfirmed: true,
+        serviceStatus: true,
+        reminder24h: true,
+        vetAlerts: true
+    })
     const router = useRouter()
 
     useEffect(() => {
@@ -25,6 +33,10 @@ export default function IntegracoesPage() {
                     setApiUrl(res.data.apiUrl)
                     setHasExistingToken(res.data.hasToken)
                     setHasExistingClientToken(res.data.hasClientToken || false)
+                    setLogoUrl(res.data.logoUrl || null)
+                    if (res.data.notifications) {
+                        setNotifications(res.data.notifications)
+                    }
                 }
             } catch (err) {
                 console.error('Failed to load whatsapp config:', err)
@@ -47,6 +59,13 @@ export default function IntegracoesPage() {
         // our server action will ignore the blank update and keep the existing.
         formData.append('api_token', apiToken)
         formData.append('client_token', clientToken)
+        formData.append('logo_url', logoUrl || '')
+        
+        // Notifications
+        formData.append('notify_appointment_confirmed', String(notifications.appointmentConfirmed))
+        formData.append('notify_service_status', String(notifications.serviceStatus))
+        formData.append('notify_reminder_24h', String(notifications.reminder24h))
+        formData.append('notify_vet_alerts', String(notifications.vetAlerts))
 
         const res = await saveWhatsAppConfig(formData)
         
@@ -160,6 +179,64 @@ export default function IntegracoesPage() {
                             </div>
                         </div>
                     )}
+
+                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid rgba(140, 180, 201, 0.1)' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#fff' }}>Logo da Clínica / Pet Shop</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Este logo será exibido nos cabeçalhos dos documentos gerados (Receitas, Prontuários, etc).</p>
+                        
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <ImageUpload 
+                                bucket="logos" 
+                                url={logoUrl} 
+                                onUpload={(url) => setLogoUrl(url)} 
+                                onRemove={() => setLogoUrl(null)}
+                                label=""
+                            />
+                        </div>
+                    </div>
+
+                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid rgba(140, 180, 201, 0.1)' }}>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#fff' }}>Preferências de Notificação Automática</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Selecione quais eventos devem disparar mensagens automáticas via WhatsApp.</p>
+                        
+                        <div className={styles.checkboxList}>
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.appointmentConfirmed}
+                                    onChange={(e) => setNotifications({...notifications, appointmentConfirmed: e.target.checked})}
+                                />
+                                <span>Confirmar Novo Agendamento (Ao marcar no calendário)</span>
+                            </label>
+
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.serviceStatus}
+                                    onChange={(e) => setNotifications({...notifications, serviceStatus: e.target.checked})}
+                                />
+                                <span>Status de Banho/Serviço (Início e Conclusão)</span>
+                            </label>
+
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.reminder24h}
+                                    onChange={(e) => setNotifications({...notifications, reminder24h: e.target.checked})}
+                                />
+                                <span>Lembrete de Agendamento (24h antes)</span>
+                            </label>
+
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.vetAlerts}
+                                    onChange={(e) => setNotifications({...notifications, vetAlerts: e.target.checked})}
+                                />
+                                <span>Alertas Veterinários (Vacinas, Vermífugos e Retornos)</span>
+                            </label>
+                        </div>
+                    </div>
 
                     <button type="submit" className={styles.submitBtn} disabled={saving}>
                         {saving ? 'Salvando...' : 'Salvar Configurações'}

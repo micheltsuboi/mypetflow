@@ -30,7 +30,7 @@ export async function getWhatsAppConfig() {
     const adminSupabase = await createAdminClient()
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
-      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
+      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token, logo_url, notify_appointment_confirmed, notify_service_status, notify_reminder_24h, notify_vet_alerts')
       .eq('id', profile.org_id)
       .single()
 
@@ -45,7 +45,14 @@ export async function getWhatsAppConfig() {
         integrationType: org.wa_integration_type || 'system',
         apiUrl: org.wa_api_url || '',
         hasToken: !!org.wa_api_token,
-        hasClientToken: !!org.wa_client_token
+        hasClientToken: !!org.wa_client_token,
+        logoUrl: org.logo_url || null,
+        notifications: {
+          appointmentConfirmed: org.notify_appointment_confirmed ?? true,
+          serviceStatus: org.notify_service_status ?? true,
+          reminder24h: org.notify_reminder_24h ?? true,
+          vetAlerts: org.notify_vet_alerts ?? true
+        }
       }
     }
   } catch (error: any) {
@@ -80,6 +87,13 @@ export async function saveWhatsAppConfig(formData: FormData) {
     const apiUrl = formData.get('api_url') as string
     const apiToken = formData.get('api_token') as string
     const clientToken = formData.get('client_token') as string
+    const logoUrl = formData.get('logo_url') as string
+    
+    // Notifications mapping
+    const notify_appointment_confirmed = formData.get('notify_appointment_confirmed') === 'true'
+    const notify_service_status = formData.get('notify_service_status') === 'true'
+    const notify_reminder_24h = formData.get('notify_reminder_24h') === 'true'
+    const notify_vet_alerts = formData.get('notify_vet_alerts') === 'true'
 
     // Validate
     if (integrationType === 'custom') {
@@ -92,6 +106,11 @@ export async function saveWhatsAppConfig(formData: FormData) {
 
     const payload: any = {
       wa_integration_type: integrationType,
+      logo_url: logoUrl || null,
+      notify_appointment_confirmed,
+      notify_service_status,
+      notify_reminder_24h,
+      notify_vet_alerts
     }
 
     if (integrationType === 'custom') {
