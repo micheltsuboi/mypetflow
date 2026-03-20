@@ -76,17 +76,19 @@ export async function POST(req: NextRequest) {
         customMessage = `✅ O serviço de ${serviceName} do(a) ${petName} foi finalizado!`
     }
 
-    // Busca configurações de roteamento na org
+    // Busca configurações de roteamento e preferências de notificação na org
     const orgId = appointment.org_id
     let wa_integration_type = 'system'
     let wa_api_url = ''
     let wa_api_token = ''
     let wa_client_token = ''
+    let notify_appointment_confirmed = true
+    let notify_service_status = true
 
     if (orgId) {
         const { data: orgParam } = await supabaseAdmin
             .from('organizations')
-            .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
+            .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token, notify_appointment_confirmed, notify_service_status')
             .eq('id', orgId)
             .single()
         
@@ -95,6 +97,8 @@ export async function POST(req: NextRequest) {
             wa_api_url = orgParam.wa_api_url || ''
             wa_api_token = orgParam.wa_api_token || ''
             wa_client_token = orgParam.wa_client_token || ''
+            notify_appointment_confirmed = orgParam.notify_appointment_confirmed ?? true
+            notify_service_status = orgParam.notify_service_status ?? true
         }
     }
 
@@ -117,18 +121,24 @@ export async function POST(req: NextRequest) {
         wa_client_token
     }
 
-    // 3. Decide which N8N webhook to call based on the event
+    // 3. Decide which N8N webhook to call based on the event and preferences
     let webhookPath: string | null = null
 
     if (type === 'INSERT' && (newStatus === 'pending' || newStatus === 'confirmed')) {
-        webhookPath = '/webhook/pet-agendamento'
+        if (notify_appointment_confirmed) {
+            webhookPath = '/webhook/pet-agendamento'
+        } else {
+            console.log(`[N8N Trigger] Skipping appointment confirmation message (disabled in settings) for org ${orgId}`)
+        }
     } else if (type === 'UPDATE') {
         const isStatusChange = newStatus !== oldStatus
 
-        if (isStatusChange && newStatus === 'in_progress') {
-            webhookPath = '/webhook/pet-status'
-        } else if (isStatusChange && newStatus === 'done') {
-            webhookPath = '/webhook/pet-status'
+        if (isStatusChange && (newStatus === 'in_progress' || newStatus === 'done')) {
+            if (notify_service_status) {
+                webhookPath = '/webhook/pet-status'
+            } else {
+                console.log(`[N8N Trigger] Skipping service status message (disabled in settings) for org ${orgId}`)
+            }
         }
     }
 
