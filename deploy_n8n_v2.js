@@ -13,7 +13,8 @@ async function deploy(id, jsPatch) {
          n.parameters.jsCode = "const input = $input.first().json;\nconst body = (input.body && input.body.body) ? input.body.body : (input.body || input);\n" + jsPatch;
       }
       if (n.type === "n8n-nodes-base.httpRequest" && n.name.includes("Z-API")) {
-         n.parameters.url = "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? ($json.wa_api_url.toLowerCase().includes('/token/') ? $json.wa_api_url.replace(/\/$/, '') + '/send-text' : $json.wa_api_url.replace(/\/$/, '') + '/token/' + $json.wa_api_token + '/send-text') : 'https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text' }}";
+        // Correção das barras duplas: \\/\\/ em vez de //
+         n.parameters.url = "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? ($json.wa_api_url.toLowerCase().includes('/token/') ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : $json.wa_api_url.replace(/\\/$/, '') + '/token/' + $json.wa_api_token + '/send-text') : 'https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text' }}";
          n.parameters.headerParameters.parameters = [
            { name: "Content-Type", value: "application/json" },
            { 
