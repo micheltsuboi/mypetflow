@@ -30,7 +30,7 @@ export async function getWhatsAppConfig() {
     const adminSupabase = await createAdminClient()
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
-      .select('wa_integration_type, wa_api_url, wa_api_token')
+      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
       .eq('id', profile.org_id)
       .single()
 
@@ -44,7 +44,8 @@ export async function getWhatsAppConfig() {
       data: {
         integrationType: org.wa_integration_type || 'system',
         apiUrl: org.wa_api_url || '',
-        hasToken: !!org.wa_api_token
+        hasToken: !!org.wa_api_token,
+        hasClientToken: !!org.wa_client_token
       }
     }
   } catch (error: any) {
@@ -78,6 +79,7 @@ export async function saveWhatsAppConfig(formData: FormData) {
     const integrationType = formData.get('integration_type') as string
     const apiUrl = formData.get('api_url') as string
     const apiToken = formData.get('api_token') as string
+    const clientToken = formData.get('client_token') as string
 
     // Validate
     if (integrationType === 'custom') {
@@ -97,10 +99,14 @@ export async function saveWhatsAppConfig(formData: FormData) {
       if (apiToken && apiToken.trim() !== '') {
          payload.wa_api_token = apiToken
       }
+      if (clientToken && clientToken.trim() !== '') {
+         payload.wa_client_token = clientToken
+      }
     } else {
       // Optando pelo sistema, limpamos as credenciais locais
       payload.wa_api_url = null
       payload.wa_api_token = null
+      payload.wa_client_token = null
     }
 
     const adminSupabase = await createAdminClient()

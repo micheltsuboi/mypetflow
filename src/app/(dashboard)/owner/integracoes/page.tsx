@@ -9,7 +9,9 @@ export default function IntegracoesPage() {
     const [integrationType, setIntegrationType] = useState('system')
     const [apiUrl, setApiUrl] = useState('')
     const [apiToken, setApiToken] = useState('')
+    const [clientToken, setClientToken] = useState('')
     const [hasExistingToken, setHasExistingToken] = useState(false)
+    const [hasExistingClientToken, setHasExistingClientToken] = useState(false)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const router = useRouter()
@@ -22,6 +24,7 @@ export default function IntegracoesPage() {
                     setIntegrationType(res.data.integrationType)
                     setApiUrl(res.data.apiUrl)
                     setHasExistingToken(res.data.hasToken)
+                    setHasExistingClientToken(res.data.hasClientToken || false)
                 }
             } catch (err) {
                 console.error('Failed to load whatsapp config:', err)
@@ -43,6 +46,7 @@ export default function IntegracoesPage() {
         // If they left the token blank but there's an existing one, 
         // our server action will ignore the blank update and keep the existing.
         formData.append('api_token', apiToken)
+        formData.append('client_token', clientToken)
 
         const res = await saveWhatsAppConfig(formData)
         
@@ -51,6 +55,10 @@ export default function IntegracoesPage() {
             if (apiToken) {
                 setHasExistingToken(true)
                 setApiToken('') // Clear it after saving so it doesn't stay plaintext on screen
+            }
+            if (clientToken) {
+                setHasExistingClientToken(true)
+                setClientToken('')
             }
         } else {
             alert('Erro: ' + res.error)
@@ -131,6 +139,22 @@ export default function IntegracoesPage() {
                                 {hasExistingToken && !apiToken && (
                                     <span className={styles.inputInfo} style={{ color: 'var(--accent-primary)' }}>
                                         Um token já está configurado. Preencha apenas se quiser alterá-lo.
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label className={styles.label}>Client-Token (Obrigatório para Z-API)</label>
+                                <input 
+                                    className={styles.input} 
+                                    type="password" 
+                                    placeholder={hasExistingClientToken ? "••••••••••••••••" : "Seu Client-Token"}
+                                    value={clientToken}
+                                    onChange={(e) => setClientToken(e.target.value)}
+                                />
+                                {hasExistingClientToken && !clientToken && (
+                                    <span className={styles.inputInfo} style={{ color: 'var(--accent-primary)' }}>
+                                        Client-Token já configurado. Preencha apenas se quiser alterá-lo.
                                     </span>
                                 )}
                             </div>

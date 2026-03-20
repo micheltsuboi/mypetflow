@@ -14,7 +14,7 @@ export async function sendWhatsAppMessage(
     // We use the admin client so we can safely read the `wa_api_token` if needed, although RLS might block normal users.
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
-      .select('wa_integration_type, wa_api_url, wa_api_token')
+      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
       .eq('id', orgId)
       .single()
 
@@ -34,6 +34,7 @@ export async function sendWhatsAppMessage(
     if (integrationType === 'custom') {
       const url = org.wa_api_url
       const token = org.wa_api_token
+      const clientToken = org.wa_client_token
 
       if (!url || !token) {
          console.warn(`sendWhatsAppMessage: Org ${orgId} has 'custom' integration but missing url or token.`)
@@ -54,7 +55,8 @@ export async function sendWhatsAppMessage(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${token}`,
+            'Client-Token': clientToken || ''
           },
           body: JSON.stringify({
             phone: normalizedPhone,

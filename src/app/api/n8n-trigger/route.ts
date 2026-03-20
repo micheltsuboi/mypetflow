@@ -81,11 +81,12 @@ export async function POST(req: NextRequest) {
     let wa_integration_type = 'system'
     let wa_api_url = ''
     let wa_api_token = ''
+    let wa_client_token = ''
 
     if (orgId) {
         const { data: orgParam } = await supabaseAdmin
             .from('organizations')
-            .select('wa_integration_type, wa_api_url, wa_api_token')
+            .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
             .eq('id', orgId)
             .single()
         
@@ -93,6 +94,7 @@ export async function POST(req: NextRequest) {
             wa_integration_type = orgParam.wa_integration_type || 'system'
             wa_api_url = orgParam.wa_api_url || ''
             wa_api_token = orgParam.wa_api_token || ''
+            wa_client_token = orgParam.wa_client_token || ''
         }
     }
 
@@ -111,7 +113,8 @@ export async function POST(req: NextRequest) {
         tenant_id: orgId,
         wa_integration_type,
         wa_api_url,
-        wa_api_token
+        wa_api_token,
+        wa_client_token
     }
 
     // 3. Decide which N8N webhook to call based on the event
