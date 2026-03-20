@@ -135,8 +135,8 @@ export async function saveWhatsAppConfig(formData: FormData) {
       .eq('id', profile.org_id)
 
     if (updateError) {
-      console.error('saveWhatsAppConfig: Update error', updateError)
-      return { success: false, error: 'Erro ao salvar configurações no banco.' }
+      console.error('saveWhatsAppConfig: Supabase Update Detailed Error', updateError)
+      return { success: false, error: `Erro ao salvar no banco: ${updateError.message || updateError.code}` }
     }
 
     revalidatePath('/owner/integracoes')
