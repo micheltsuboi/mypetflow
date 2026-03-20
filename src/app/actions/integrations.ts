@@ -140,7 +140,7 @@ export async function saveWhatsAppConfig(formData: FormData) {
     }
 
     revalidatePath('/owner/integracoes')
-    return { success: true, message: 'Configurações de WhatsApp atualizadas com sucesso.' }
+    return { success: true, message: 'Configurações atualizadas com sucesso.' }
   } catch (error: any) {
     console.error('saveWhatsAppConfig Error:', error)
     return { success: false, error: error.message }
