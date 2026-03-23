@@ -86,81 +86,70 @@ export default function DashboardLayout({
 
     useEffect(() => {
         const getUser = async () => {
-            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-            
-            if (authError || !authUser) {
-                console.log('No session found, redirecting to login...')
-                router.push('/')
-                return
-            }
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                // Fetch profile
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('full_name, role, org_id, avatar_url, is_active, permissions')
+                    .eq('id', user.id)
+                    .single()
 
-            // Fetch profile
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, role, org_id, avatar_url, is_active, permissions')
-                .eq('id', authUser.id)
-                .single()
+                if (profile) {
+                    const permissions = profile.permissions || []
+                    const isVetExpert = permissions.includes('clinica_vet')
 
-            if (profile) {
-                const permissions = profile.permissions || []
-                const isVetExpert = permissions.includes('clinica_vet')
+                    // 1. Verificar se o perfil do usuário está ativo
+                    if (profile.is_active === false) {
+                        await supabase.auth.signOut()
+                        setTimeout(() => {
+                            router.push('/?error=Sua%20conta%20está%20desativada.%20Entre%20em%20contato%20com%20o%20administrador.')
+                        }, 100)
+                        return
+                    }
 
-                // 1. Verificar se o perfil do usuário está ativo
-                if (profile.is_active === false) {
-                    await supabase.auth.signOut()
-                    router.push('/?error=Sua%20conta%20está%20desativada.%20Entre%20em%20contato%20com%20o%20administrador.')
-                    return
-                }
+                    // 2. Verificar se a organização está ativa (Ignorar para Master Admin)
+                    let planFeatures: string[] = []
 
-                // 2. Verificar se a organização está ativa (Ignorar para Master Admin)
-                let planFeatures: string[] = []
+                    if (profile.org_id && profile.role !== 'superadmin') {
+                        const { data: org } = await supabase
+                            .from('organizations')
+                            .select('is_active, saas_plans(features)')
+                            .eq('id', profile.org_id)
+                            .maybeSingle()
 
-                if (profile.org_id && profile.role !== 'superadmin') {
-                    const { data: org } = await supabase
-                        .from('organizations')
-                        .select('is_active, saas_plans(features)')
-                        .eq('id', profile.org_id)
-                        .maybeSingle()
+                        if (org) {
+                            if (org.is_active === false) {
+                                await supabase.auth.signOut()
+                                setTimeout(() => {
+                                    router.push('/?error=O%20acesso%20desta%20empresa%20está%20suspenso.%20Entre%20em%20contato%20com%20a%20MyPet%20Flow.')
+                                }, 100)
+                                return
+                            }
 
-                    if (org) {
-                        if (org.is_active === false) {
-                            await supabase.auth.signOut()
-                            router.push('/?error=O%20acesso%20desta%20empresa%20está%20suspenso.%20Entre%20em%20contato%20com%20a%20MyPet%20Flow.')
-                            return
-                        }
-
-                        // Coletar features do plano se existir
-                        if (org.saas_plans && typeof org.saas_plans === 'object') {
-                            planFeatures = (org.saas_plans as any).features || []
+                            // Coletar features do plano se existir
+                            if (org.saas_plans && typeof org.saas_plans === 'object') {
+                                planFeatures = (org.saas_plans as any).features || []
+                            }
                         }
                     }
-                }
 
-                setUser({
-                    name: profile.full_name || authUser.email?.split('@')[0] || 'Usuário',
-                    role: profile.role === 'superadmin' ? 'Super Admin' :
-                        profile.role === 'admin' ? 'Administrador' :
-                            profile.role === 'staff' ? (isVetExpert ? 'Médico Veterinário' : 'Staff') :
-                                profile.role === 'customer' ? 'Tutor' : 'Usuário',
-                    org_id: profile.org_id,
-                    avatar_url: profile.avatar_url,
-                    permissions: permissions,
-                    planFeatures
-                })
+                    setUser({
+                        name: profile.full_name || user.email?.split('@')[0] || 'Usuário',
+                        role: profile.role === 'superadmin' ? 'Super Admin' :
+                            profile.role === 'admin' ? 'Administrador' :
+                                profile.role === 'staff' ? (isVetExpert ? 'Médico Veterinário' : 'Staff') :
+                                    profile.role === 'customer' ? 'Tutor' : 'Usuário',
+                        org_id: profile.org_id,
+                        avatar_url: profile.avatar_url,
+                        permissions: permissions,
+                        planFeatures
+                    })
+                }
             }
         }
-        
         getUser()
-
-        // Escutar mudanças no estado de autenticação (ex: expiração de token)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_OUT' || !session) {
-                router.push('/')
-            }
-        })
-
-        return () => subscription.unsubscribe()
-    }, [supabase, router])
+    }, [supabase])
 
     const handleSignOut = async () => {
         await supabase.auth.signOut()
