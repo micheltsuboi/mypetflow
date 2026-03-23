@@ -15,7 +15,7 @@ import {
 import { getPetAppointmentsByCategory } from '@/app/actions/appointment'
 import { getPetAssessment } from '@/app/actions/petAssessment'
 import PetAssessmentForm from '@/components/PetAssessmentForm'
-import { getPetPackagesWithUsage, sellPackageToPet } from '@/app/actions/package'
+import { getPetPackagesWithUsage, sellPackageToPet, cancelCustomerPackage, reschedulePackageSession } from '@/app/actions/package'
 import { getPetshopHistory, payPetshopSale } from '@/app/actions/petshop'
 import {
     getVeterinarians,
@@ -857,36 +857,97 @@ function PetsContent() {
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                                 {petPackages.length === 0 ? <p>Nenhum pacote ativo.</p> : petPackages.map((pkg: any, idx: number) => (
-                                                    <div key={idx} style={{ padding: '0.75rem', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 600 }}>
-                                                            <span>📦 {pkg.package_name}: {pkg.service_name}</span>
-                                                            <span style={{ color: pkg.remaining_qty > 0 ? '#10B981' : '#EF4444', fontVariantNumeric: 'tabular-nums' }}>{pkg.remaining_qty} / {pkg.total_qty} restantes</span>
+                                                    <div key={idx} style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                            <div>
+                                                                <div style={{ fontWeight: 700, fontSize: '1rem' }}>📦 {pkg.package_name}</div>
+                                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{pkg.service_name}</div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right' }}>
+                                                                <div style={{ color: pkg.remaining_qty > 0 ? '#10B981' : '#EF4444', fontWeight: 800, fontSize: '0.9rem' }}>
+                                                                    {pkg.remaining_qty} / {pkg.total_qty}
+                                                                </div>
+                                                                <button 
+                                                                    className={styles.deleteBtn} 
+                                                                    style={{ padding: '4px 8px', fontSize: '0.7rem', marginTop: '8px', opacity: 0.6 }}
+                                                                    onClick={async () => {
+                                                                        if (confirm('Deseja realmente CANCELAR este pacote? Os créditos restantes serão desativados.')) {
+                                                                            const res = await cancelCustomerPackage(pkg.customer_package_id)
+                                                                            if (res.success) {
+                                                                                alert(res.message)
+                                                                                getPetPackagesWithUsage(selectedPet!.id).then(setPetPackages)
+                                                                            } else alert(res.message)
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    Cancelar Pacote
+                                                                </button>
+                                                            </div>
                                                         </div>
+
                                                         {pkg.validity_type === 'weekly' && (
-                                                            <div style={{ fontSize: '0.75rem', color: '#8b5cf6', marginTop: '0.25rem' }}>
-                                                                {pkg.validity_weeks === 4 ? '📅 Renovação Mensal' : pkg.validity_weeks === 1 ? '📆 Renovação Semanal' : `📆 Renovação a cada ${pkg.validity_weeks} semanas`}
+                                                            <div style={{ fontSize: '0.8rem', color: '#a78bfa', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <span>{pkg.validity_weeks === 4 ? '📅 Renovação Mensal' : pkg.validity_weeks === 1 ? '📆 Renovação Semanal' : `📆 Renovação a cada ${pkg.validity_weeks} semanas`}</span>
                                                                 {pkg.preferred_day_of_week !== null && pkg.preferred_day_of_week !== undefined && (
-                                                                    <span style={{ marginLeft: '0.5rem' }}>• {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][pkg.preferred_day_of_week]} {pkg.preferred_time}</span>
+                                                                    <span style={{ fontWeight: 700 }}>• {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][pkg.preferred_day_of_week]} {pkg.preferred_time}</span>
                                                                 )}
                                                             </div>
                                                         )}
-                                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+
+                                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                                                             {pkg.period_start && pkg.period_end && (
-                                                                <span>Período: {new Date(pkg.period_start + 'T12:00:00').toLocaleDateString('pt-BR')} – {new Date(pkg.period_end + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
+                                                                <span>Válido até: {new Date(pkg.period_end + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
                                                             )}
                                                         </div>
+
                                                         {/* Sessões do período */}
                                                         {pkg.sessions && pkg.sessions.length > 0 && (
-                                                            <div style={{ marginTop: '0.5rem', borderTop: '1px solid var(--border)', paddingTop: '0.5rem' }}>
-                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.3rem', fontWeight: 600 }}>Sessões do Período:</div>
-                                                                {pkg.sessions.slice(0, 5).map((s: any) => (
-                                                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', padding: '2px 0' }}>
-                                                                        <span>{s.services?.name}</span>
-                                                                        <span style={{ color: s.status === 'done' ? '#10b981' : s.status === 'missed' ? '#ef4444' : '#f59e0b' }}>
-                                                                            {s.status === 'done' ? '✓ Realizado' : s.status === 'missed' ? '✗ Não realizado' : s.scheduled_at ? new Date(s.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '⏳ Pendente'}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
+                                                            <div style={{ marginTop: '1rem', background: 'rgba(0,0,0,0.1)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                                                    Agenda do Período
+                                                                </div>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                                                    {pkg.sessions.map((s: any) => (
+                                                                        <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', padding: '6px', background: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+                                                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                                                <span style={{ fontWeight: 600 }}>
+                                                                                    {s.scheduled_at 
+                                                                                        ? new Date(s.scheduled_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                                                                                        : '⏳ Data não definida'}
+                                                                                </span>
+                                                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{s.services?.name}</span>
+                                                                            </div>
+                                                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                                                                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: s.status === 'done' ? 'rgba(16,185,129,0.2)' : s.status === 'missed' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)', color: s.status === 'done' ? '#10b981' : s.status === 'missed' ? '#ef4444' : '#f59e0b' }}>
+                                                                                    {s.status === 'done' ? 'REALIZADO' : s.status === 'missed' ? 'FALTOU' : 'PENDENTE'}
+                                                                                </span>
+                                                                                {s.status !== 'done' && (
+                                                                                    <button 
+                                                                                        className={styles.actionBtn}
+                                                                                        style={{ fontSize: '0.7rem', padding: '4px 8px' }}
+                                                                                        onClick={async () => {
+                                                                                            const dateStr = prompt('Digite a nova data e hora (Ex: 25/03/2026 14:00)', s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('pt-BR').slice(0, 16) : '')
+                                                                                            if (!dateStr) return
+                                                                                            
+                                                                                            // Parse pt-BR date
+                                                                                            const [d, m, y, h, min] = dateStr.match(/\d+/g) || []
+                                                                                            if (!d || !m || !y || !h || !min) return alert('Formato inválido. Use DD/MM/AAAA HH:MM')
+                                                                                            
+                                                                                            const isoDate = `${y}-${m}-${d}T${h}:${min}:00`
+                                                                                            const res = await reschedulePackageSession(s.id, isoDate, true, selectedPet!.id, pkg.org_id, s.service_id)
+                                                                                            if (res.success) {
+                                                                                                alert(res.message)
+                                                                                                getPetPackagesWithUsage(selectedPet!.id).then(setPetPackages)
+                                                                                            } else alert(res.message)
+                                                                                        }}
+                                                                                    >
+                                                                                        Reagendar
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
