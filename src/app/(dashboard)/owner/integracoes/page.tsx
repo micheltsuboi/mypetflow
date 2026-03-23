@@ -20,6 +20,7 @@ export default function IntegracoesPage() {
         appointmentConfirmed: true,
         serviceStatus: true,
         reminder24h: true,
+        reminderSameDay: false,
         vetAlerts: true
     })
     const router = useRouter()
@@ -35,7 +36,7 @@ export default function IntegracoesPage() {
                     setHasExistingClientToken(res.data.hasClientToken || false)
                     setLogoUrl(res.data.logoUrl || null)
                     if (res.data.notifications) {
-                        setNotifications(res.data.notifications)
+                        setNotifications(res.data.notifications as any)
                     }
                 }
             } catch (err) {
@@ -65,6 +66,7 @@ export default function IntegracoesPage() {
         formData.append('notify_appointment_confirmed', String(notifications.appointmentConfirmed))
         formData.append('notify_service_status', String(notifications.serviceStatus))
         formData.append('notify_reminder_24h', String(notifications.reminder24h))
+        formData.append('notify_reminder_same_day', String(notifications.reminderSameDay))
         formData.append('notify_vet_alerts', String(notifications.vetAlerts))
 
         const res = await saveWhatsAppConfig(formData)
@@ -226,6 +228,15 @@ export default function IntegracoesPage() {
                                     onChange={(e) => setNotifications({...notifications, reminder24h: e.target.checked})}
                                 />
                                 <span>Lembrete de Agendamento (24h antes)</span>
+                            </label>
+
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.reminderSameDay}
+                                    onChange={(e) => setNotifications({...notifications, reminderSameDay: e.target.checked})}
+                                />
+                                <span>Lembrete de Agendamento (No dia)</span>
                             </label>
 
                             <label className={styles.checkboxOption}>
