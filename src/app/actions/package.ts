@@ -454,16 +454,45 @@ export async function cancelCustomerPackage(id: string): Promise<ActionState> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
 
-    const { error } = await supabase
+    // 1. Desativar o pacote
+    const { error: updateError } = await supabase
         .from('customer_packages')
         .update({ is_active: false })
         .eq('id', id)
 
-    if (error) return { message: error.message, success: false }
+    if (updateError) return { message: updateError.message, success: false }
+
+    // 2. Buscar agendamentos pendentes vinculados ao pacote (através das sessões)
+    const { data: sessions } = await supabase
+        .from('package_sessions')
+        .select('appointment_id')
+        .eq('customer_package_id', id)
+        .is('status', 'scheduled')
+        .not('appointment_id', 'is', null)
+
+    if (sessions && sessions.length > 0) {
+        const appointmentIds = sessions.map(s => s.appointment_id)
+
+        // Cancelar os agendamentos no calendário que ainda não foram realizados
+        await supabase
+            .from('appointments')
+            .update({ status: 'cancelled', notes: '🚫 Cancelado por cancelamento do pacote' })
+            .in('id', appointmentIds)
+            .in('status', ['pending', 'confirmed'])
+        
+        // Limpar os IDs nas sessões
+        await supabase
+            .from('package_sessions')
+            .update({ status: 'cancelled' })
+            .eq('customer_package_id', id)
+            .is('status', 'scheduled')
+    }
 
     revalidatePath('/owner/packages')
+    revalidatePath('/owner/pets')
+    revalidatePath('/owner/agenda')
     revalidatePath('/staff')
-    return { message: 'Pacote cancelado.', success: true }
+    return { message: 'Pacote cancelado e agendamentos pendentes removidos.', success: true }
 }
 
 export async function pauseCustomerPackage(id: string, paused: boolean): Promise<ActionState> {
