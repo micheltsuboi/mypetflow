@@ -37,7 +37,7 @@ export async function updateSession(request: NextRequest) {
     // issues with users being randomly logged out.
 
     // Rotas públicas - não requerem autenticação
-    const publicPaths = ['/', '/cadastro', '/cadastro-empresa', '/auth', '/tutor', '/login', '/admin', '/api']
+    const publicPaths = ['/', '/cadastro', '/cadastro-empresa', '/auth', '/login', '/admin', '/api']
     const isPublicPath = publicPaths.some(path =>
         request.nextUrl.pathname === path ||
         request.nextUrl.pathname.startsWith(path + '/')

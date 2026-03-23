@@ -100,18 +100,8 @@ export default async function LoginPage() {
                         <LoginForm />
                     </Suspense>
 
-                    <div className={styles.divider}>
-                        <span>ou</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-                        <Link href="/cadastro" className={styles.backLink}>
-                            Não tem uma conta de tutor? <strong>Cadastre-se aqui</strong>
-                        </Link>
-
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%', margin: '0.5rem 0' }}></div>
-
-                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-sky)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center', marginTop: '1.5rem' }}>
+                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-sky)', fontSize: '0.85rem' }}>
                             &larr; Voltar para a Página Principal
                         </Link>
                     </div>
