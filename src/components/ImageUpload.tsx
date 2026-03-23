@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Image from 'next/image'
 
@@ -27,6 +27,10 @@ export default function ImageUpload({
     const [uploading, setUploading] = useState(false)
     const [previewUrl, setPreviewUrl] = useState<string | null>(url || null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        setPreviewUrl(url || null)
+    }, [url])
 
     const processImage = async (file: File): Promise<Blob> => {
         return new Promise((resolve, reject) => {
@@ -154,7 +158,7 @@ export default function ImageUpload({
                             src={previewUrl}
                             alt="Preview"
                             fill
-                            style={{ objectFit: 'cover' }}
+                            style={{ objectFit: isLogo ? 'contain' : 'cover' }}
                         />
                     ) : (
                         <span style={{ fontSize: '2rem' }}>📷</span>
