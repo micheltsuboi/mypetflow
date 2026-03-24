@@ -14,6 +14,7 @@ import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import { createAppointment } from '@/app/actions/appointment'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
+import EmitirNFModal from '@/components/EmitirNFModal'
 
 interface Appointment {
     id: string
@@ -58,6 +59,10 @@ export default function BanhoTosaPage() {
     const [submitting, setSubmitting] = useState(false)
     const [pets, setPets] = useState<any[]>([])
     const [services, setServices] = useState<any[]>([])
+
+    // NFSe Emission State
+    const [showNFModal, setShowNFModal] = useState(false)
+    const [checkoutNFData, setCheckoutNFData] = useState<any>(null)
 
     const fetchBanhoTosaData = useCallback(async (isBackground = false) => {
         try {
@@ -307,7 +312,25 @@ export default function BanhoTosaPage() {
                                                 discountFixed={appt.discount}
                                                 paymentStatus={appt.payment_status}
                                                 paymentMethod={appt.payment_method}
-                                                onUpdate={() => fetchBanhoTosaData(true)}
+                                                onUpdate={() => {
+                                                    fetchBanhoTosaData(true)
+                                                    // Se acabou de pagar, sugerir emitir nota
+                                                    if (appt.payment_status !== 'paid') {
+                                                        setCheckoutNFData({
+                                                            id: appt.id,
+                                                            total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                            tutor: appt.pets?.customers ? {
+                                                                nome: appt.pets.customers.name,
+                                                                // CPF/CNPJ and address should ideally be fetched from customer record if not in appointment
+                                                            } : undefined,
+                                                            servico: {
+                                                                descricao: appt.services?.name || 'Serviço de Banho e Tosa',
+                                                                valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0
+                                                            }
+                                                        })
+                                                        setShowNFModal(true)
+                                                    }
+                                                }}
                                                 compact
                                             />
                                             <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -505,6 +528,23 @@ export default function BanhoTosaPage() {
                             </form>
                         </div>
                     </div>
+                )}
+                {/* NFSe Modal */}
+                {showNFModal && checkoutNFData && (
+                    <EmitirNFModal
+                        tipo="nfse"
+                        origemTipo="atendimento"
+                        refId={checkoutNFData.id}
+                        total_amount={checkoutNFData.total_amount}
+                        tutor={checkoutNFData.tutor}
+                        servico={checkoutNFData.servico}
+                        onClose={() => setShowNFModal(false)}
+                        onSuccess={(status) => {
+                            alert(`Nota Fiscal de Serviço solicitada! Status: ${status}`)
+                            setShowNFModal(false)
+                            fetchBanhoTosaData(true)
+                        }}
+                    />
                 )}
             </div>
         </PlanGuard>
