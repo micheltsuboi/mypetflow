@@ -37,19 +37,19 @@ alter table public.fiscal_config enable row level security;
 create policy "Users can view their organization's fiscal config"
   on public.fiscal_config for select
   using (org_id in (
-    select org_id from public.organization_members where user_id = auth.uid()
+    select org_id from public.profiles where id = auth.uid()
   ));
 
 create policy "Owners can insert their organization's fiscal config"
   on public.fiscal_config for insert
   with check (org_id in (
-    select org_id from public.organization_members where user_id = auth.uid() and role = 'owner'
+    select org_id from public.profiles where id = auth.uid() and role in ('admin', 'superadmin')
   ));
 
 create policy "Owners can update their organization's fiscal config"
   on public.fiscal_config for update
   using (org_id in (
-    select org_id from public.organization_members where user_id = auth.uid() and role = 'owner'
+    select org_id from public.profiles where id = auth.uid() and role in ('admin', 'superadmin')
   ));
 
 -- Functions
