@@ -6,6 +6,27 @@ export const maskPhone = (value: string) => {
     return value
 }
 
+export const maskCPF = (value: string) => {
+    if (!value) return ""
+    value = value.replace(/\D/g, "")
+    return value
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+        .replace(/(-\d{2})\d+?$/, "$1"); // Limita a 11 dígitos mask
+}
+
+export const maskCNPJ = (value: string) => {
+    if (!value) return ""
+    value = value.replace(/\D/g, "")
+    return value
+        .replace(/^(\d{2})(\d)/, "$1.$2")
+        .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+        .replace(/\.(\d{3})(\d)/, ".$1/$2")
+        .replace(/(\d{4})(\d)/, "$1-$2")
+        .replace(/(-\d{2})\d+?$/, "$1");
+}
+
 export const unmask = (value: string) => {
     return value.replace(/\D/g, "")
 }

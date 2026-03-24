@@ -6,7 +6,7 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 import PlanGuard from '@/components/modules/PlanGuard'
-import { maskPhone } from '@/utils/masks'
+import { maskPhone, maskCPF, maskCNPJ } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
 
 
@@ -18,6 +18,7 @@ interface Customer {
     address: string | null
     neighborhood: string | null
     city: string | null
+    cpf_cnpj: string | null
     instagram: string | null
     birth_date: string | null
     user_id: string | null
@@ -39,6 +40,7 @@ export default function TutorsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [cashbacks, setCashbacks] = useState<Record<string, number>>({});
     const [phone, setPhone] = useState('')
+    const [cpfCnpj, setCpfCnpj] = useState('')
 
 
     // Server Action States
@@ -130,6 +132,7 @@ export default function TutorsPage() {
     const handleRowClick = (tutor: Customer) => {
         setSelectedTutor(tutor)
         setPhone(maskPhone(tutor.phone_1 || ''))
+        setCpfCnpj(tutor.cpf_cnpj || '')
         setShowModal(true)
     }
 
@@ -137,6 +140,7 @@ export default function TutorsPage() {
     const handleNewTutor = () => {
         setSelectedTutor(null)
         setPhone('')
+        setCpfCnpj('')
         setShowModal(true)
     }
 
@@ -354,6 +358,20 @@ export default function TutorsPage() {
                                             value={phone}
                                             onChange={(e) => setPhone(maskPhone(e.target.value))}
                                             maxLength={15}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="cpf_cnpj" className={styles.label}>CPF ou CNPJ</label>
+                                        <input
+                                            id="cpf_cnpj" name="cpf_cnpj" type="text" className={styles.input}
+                                            placeholder="000.000.000-00"
+                                            value={cpfCnpj}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, "")
+                                                if (val.length <= 11) setCpfCnpj(maskCPF(val))
+                                                else setCpfCnpj(maskCNPJ(val))
+                                            }}
+                                            maxLength={18}
                                         />
                                     </div>
                                     <div className={styles.formGroup}>

@@ -13,6 +13,7 @@ import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
+import EmitirNFModal from '@/components/EmitirNFModal'
 
 interface Appointment {
     id: string
@@ -55,6 +56,8 @@ export default function HospedagemPage() {
     const [viewMode, setViewMode] = useState<'active' | 'history'>('active')
     const [searchTerm, setSearchTerm] = useState('')
     const [showNewModal, setShowNewModal] = useState(false)
+    const [showNFModal, setShowNFModal] = useState(false)
+    const [nfAppointment, setNfAppointment] = useState<Appointment | null>(null)
 
     const fetchHospedagemData = useCallback(async (isBackground = false) => {
         try {
@@ -372,6 +375,30 @@ export default function HospedagemPage() {
                                                     onUpdate={() => fetchHospedagemData(true)}
                                                     compact
                                                 />
+                                                {appt.payment_status === 'paid' && (
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setNfAppointment(appt);
+                                                            setShowNFModal(true);
+                                                        }}
+                                                        style={{
+                                                            marginTop: '0.5rem',
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            border: '1px solid #1e293b',
+                                                            background: '#0f172a',
+                                                            color: '#e2e8f0',
+                                                            fontSize: '0.75rem',
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
+                                                        }}
+                                                    >
+                                                        📄 NFSe
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -444,6 +471,27 @@ export default function HospedagemPage() {
                         onSave={() => {
                             fetchHospedagemData()
                             setShowNewModal(false)
+                        }}
+                    />
+                )}
+
+                {showNFModal && nfAppointment && (
+                    <EmitirNFModal
+                        tipo="nfse"
+                        refId={nfAppointment.id}
+                        origemTipo="atendimento"
+                        total_amount={nfAppointment.final_price ?? nfAppointment.calculated_price ?? (nfAppointment.services?.base_price || 0)}
+                        onClose={() => setShowNFModal(false)}
+                        onSuccess={() => {
+                            setShowNFModal(false)
+                            fetchHospedagemData(true)
+                        }}
+                        servico={{
+                            descricao: nfAppointment.services?.name || 'Serviço de Hospedagem',
+                            valor: nfAppointment.final_price ?? nfAppointment.calculated_price ?? (nfAppointment.services?.base_price || 0)
+                        }}
+                        tutor={{
+                            nome: nfAppointment.pets?.customers?.name || 'Cliente',
                         }}
                     />
                 )}
