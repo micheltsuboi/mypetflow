@@ -23,7 +23,7 @@ create policy "Users can view their organization's produtos_fiscal"
     produto_id in (
       select p.id from public.products p
       where p.org_id in (
-        select om.org_id from public.organization_members om where om.user_id = auth.uid()
+        select pr.org_id from public.profiles pr where pr.id = auth.uid()
       )
     )
   );
@@ -34,7 +34,7 @@ create policy "Users can insert their organization's produtos_fiscal"
     produto_id in (
       select p.id from public.products p
       where p.org_id in (
-        select om.org_id from public.organization_members om where om.user_id = auth.uid()
+        select pr.org_id from public.profiles pr where pr.id = auth.uid()
       )
     )
   );
@@ -45,7 +45,7 @@ create policy "Users can update their organization's produtos_fiscal"
     produto_id in (
       select p.id from public.products p
       where p.org_id in (
-        select om.org_id from public.organization_members om where om.user_id = auth.uid()
+        select pr.org_id from public.profiles pr where pr.id = auth.uid()
       )
     )
   );
@@ -56,7 +56,7 @@ create policy "Users can delete their organization's produtos_fiscal"
     produto_id in (
       select p.id from public.products p
       where p.org_id in (
-        select om.org_id from public.organization_members om where om.user_id = auth.uid()
+        select pr.org_id from public.profiles pr where pr.id = auth.uid()
       )
     )
   );

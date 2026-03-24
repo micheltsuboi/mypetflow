@@ -32,19 +32,19 @@ alter table public.notas_fiscais enable row level security;
 create policy "Users can view their organization's notas_fiscais"
   on public.notas_fiscais for select
   using (org_id in (
-    select org_id from public.organization_members where user_id = auth.uid()
+    select org_id from public.profiles where id = auth.uid()
   ));
 
 create policy "Users can insert their organization's notas_fiscais"
   on public.notas_fiscais for insert
   with check (org_id in (
-    select org_id from public.organization_members where user_id = auth.uid()
+    select org_id from public.profiles where id = auth.uid()
   ));
 
 create policy "Owners/admins can update their organization's notas_fiscais"
   on public.notas_fiscais for update
   using (org_id in (
-    select org_id from public.organization_members where user_id = auth.uid()
+    select org_id from public.profiles where id = auth.uid()
   ));
 
 -- Trigger updated_at
