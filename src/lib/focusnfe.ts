@@ -4,6 +4,10 @@
 export const FOCUS_HOMOLOGACAO = 'https://homologacao.focusnfe.com.br/v2';
 export const FOCUS_PRODUCAO = 'https://api.focusnfe.com.br/v2';
 
+// Endpoints p/ NFS-e Nacional (Ex: Curitiba em Homologação)
+export const FOCUS_HOMOLOGACAO_NACIONAL = 'https://homologacao.focusnfe.com.br/v2/nfsen';
+export const FOCUS_PRODUCAO_NACIONAL = 'https://api.focusnfe.com.br/v2/nfsen';
+
 // The Token Master must be provided in ENV
 const MASTER_TOKEN = process.env.FOCUSNFE_TOKEN_MASTER || '';
 
@@ -22,6 +26,7 @@ export interface EmitirNfseRequest {
   data: any; // The full payload for NFSe
   env: FocusEnv;
   token: string;
+  isNacional?: boolean;
 }
 
 export interface EmitirNfeRequest {
@@ -71,8 +76,15 @@ export const FocusNfeApi = {
   /**
    * Emitir NFSe (Serviço)
    */
-  async emitirNfse({ ref, data, env, token }: EmitirNfseRequest) {
-    const url = `${getBaseUrl(env)}/nfse?ref=${encodeURIComponent(ref)}`;
+  async emitirNfse({ ref, data, env, token, isNacional = false }: EmitirNfseRequest) {
+    let url = `${getBaseUrl(env)}/nfse?ref=${encodeURIComponent(ref)}`;
+    
+    // Se for padrão Nacional (ex: Curitiba em homologação)
+    if (isNacional) {
+        url = env === 'producao' 
+            ? `${FOCUS_PRODUCAO_NACIONAL}?ref=${encodeURIComponent(ref)}`
+            : `${FOCUS_HOMOLOGACAO_NACIONAL}?ref=${encodeURIComponent(ref)}`;
+    }
     
     const response = await fetch(url, {
       method: 'POST',

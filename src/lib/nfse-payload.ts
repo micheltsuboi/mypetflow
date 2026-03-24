@@ -46,10 +46,16 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                 logradouro: tutor.endereco.logradouro || 'Sem Rua',
                 numero: tutor.endereco.numero || 'SN',
                 bairro: tutor.endereco.bairro || 'Sem Bairro',
-                codigo_municipio: tutor.endereco.codigo_municipio || config.codigo_municipio,
+                codigo_municipio: (tutor.endereco.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
                 cep: tutor.endereco.cep?.replace(/\D/g, ''),
                 uf: tutor.endereco.uf || config.uf
-            } : undefined
+            } : {
+                logradouro: 'Sem Rua',
+                numero: 'SN',
+                bairro: 'Sem Bairro',
+                codigo_municipio: config.codigo_municipio?.replace(/\D/g, ''),
+                uf: config.uf
+            }
         },
         servico: {
             aliquota: config.aliquota_iss.toFixed(2),

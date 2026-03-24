@@ -73,8 +73,17 @@ export async function POST(req: NextRequest) {
                 servico
             })
 
+            // Caso especial: Curitiba (4106902) exige endpoint Nacional em homologação
+            const isNacional = env === 'homologacao' && config.codigo_municipio?.replace(/\D/g, '') === '4106902'
+
             try {
-                focusResponse = await FocusNfeApi.emitirNfse({ ref: refStr, data: payloadToSend, env, token })
+                focusResponse = await FocusNfeApi.emitirNfse({ 
+                    ref: refStr, 
+                    data: payloadToSend, 
+                    env, 
+                    token,
+                    isNacional
+                })
             } catch (err: any) {
                 console.error("Focus NFSe error:", err)
                 return NextResponse.json({ error: 'Erro ao conectar à Focus NFe (NFSe)', details: err.message }, { status: 400 })
