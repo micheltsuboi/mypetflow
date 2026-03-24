@@ -328,7 +328,8 @@ export async function checkoutCart(checkoutData: CheckoutData) {
 
         return {
             message: 'Venda concluída com sucesso!' + (earnedCashback > 0 ? ` Cashback acumulado: R$ ${earnedCashback.toFixed(2)}` : ''),
-            success: true
+            success: true,
+            orderId: orderData.id
         }
     } catch (err: any) {
         console.error('Error during checkout:', err)

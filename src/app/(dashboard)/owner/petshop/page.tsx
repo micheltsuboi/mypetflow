@@ -10,6 +10,7 @@ import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
 import { getCashbackBalance } from '@/app/actions/cashback'
 import { ShoppingCart, Plus, Minus, Trash2, Search, PackageOpen, Coins } from 'lucide-react'
 import DateInput from '@/components/ui/DateInput'
+import EmitirNFModal from '@/components/EmitirNFModal'
 
 // Interfaces locais para o Carrinho
 interface CartItem {
@@ -65,6 +66,10 @@ export default function PetshopPage() {
     const [cashbackBalance, setCashbackBalance] = useState(0)
     const [useCashbackAmount, setUseCashbackAmount] = useState(0)
     const [isUsingCashback, setIsUsingCashback] = useState(false)
+
+    // Emissão NFe
+    const [showNFModal, setShowNFModal] = useState(false)
+    const [checkoutSaleData, setCheckoutSaleData] = useState<any>(null)
 
     const categories = ['Todas', 'Alimentação', 'Higiene', 'Brinquedos', 'Farmácia', 'Acessórios']
 
@@ -222,27 +227,53 @@ export default function PetshopPage() {
                 // If user used cashback, we need to register it (this is a simplified logic, 
                 // typically checkoutCart would handle this internally in a transaction)
                 if (isUsingCashback && selectedTutor && useCashbackAmount > 0) {
-                    // Logic to deduct from balance would go here or inside checkoutCart
-                    // For now, we assume checkoutCart handles the finalTotal correctly.
-                    // We also need to add the logic to accumulate cashback from this order.
+                // Logic to deduct from balance would go here or inside checkoutCart
+                // For now, we assume checkoutCart handles the finalTotal correctly.
+                // We also need to add the logic to accumulate cashback from this order.
+            }
+
+            // Mapeia itens para a emissão de nota
+            const nfeProducts = cart.map((item, idx) => {
+                return {
+                    id: item.product_id, // Important to map properly 
+                    descricao: item.name,
+                    quantidade: item.quantity,
+                    valor_unitario: item.unit_price,
+                    ncm: '00000000', // You should fetch this from the product/produtos_fiscal or form
+                    cfop: '5102', // Venda de mercadoria adquirida de terceiros
+                    cst: '102', // CSOSN 102
+                    unidade: 'un'
                 }
+            })
 
-                // Accumulate cashback if it's a tutor sale and rules apply
-                // Note: This would best be done inside the checkoutCart action for atomic consistency.
-                // But following the user plan to offer "accumulate for next purchase":
-                // If we select a tutor, we automatically calculate if they earned something.
+            // Popula dados para NFe
+            setCheckoutSaleData({
+                orderId: res.orderId || Math.random().toString(), // Handle properly
+                total_amount: cartTotals.finalTotal,
+                tutor: selectedTutor ? {
+                    nome: selectedTutor.name,
+                    cpf: selectedTutor.cpf || undefined
+                } : undefined,
+                produtos: nfeProducts
+            })
 
-                alert('Venda finalizada com sucesso!')
-                // Reset cart and states
-                setCart([])
-                setSelectedTutor(null)
-                setSelectedPetId('')
-                setGlobalDiscount(0)
-                setTutorQuery('')
-                setIsUsingCashback(false)
-                setUseCashbackAmount(0)
-                fetchProducts() // Update local stock display
-            } else {
+            alert('Venda finalizada com sucesso!')
+            
+            // Pergunta se quer emitir NFe ou exibe o modal
+            if (res.orderId) {
+                setShowNFModal(true)
+            }
+
+            // Reset cart and states
+            setCart([])
+            setSelectedTutor(null)
+            setSelectedPetId('')
+            setGlobalDiscount(0)
+            setTutorQuery('')
+            setIsUsingCashback(false)
+            setUseCashbackAmount(0)
+            fetchProducts() // Update local stock display
+        } else {
                 alert(res.message || 'Erro ao finalizar venda.')
             }
         } catch (error) {
@@ -674,6 +705,22 @@ export default function PetshopPage() {
                             </form>
                         </div>
                     </div>
+                )}
+
+                {showNFModal && checkoutSaleData && (
+                    <EmitirNFModal
+                        tipo="nfe"
+                        origemTipo="pdv"
+                        refId={checkoutSaleData.orderId}
+                        total_amount={checkoutSaleData.total_amount}
+                        tutor={checkoutSaleData.tutor}
+                        produtos={checkoutSaleData.produtos}
+                        onClose={() => setShowNFModal(false)}
+                        onSuccess={(status) => {
+                            alert(`Nota Fiscal solicitada! Status: ${status}`)
+                            setShowNFModal(false)
+                        }}
+                    />
                 )}
             </div>
         </PlanGuard>

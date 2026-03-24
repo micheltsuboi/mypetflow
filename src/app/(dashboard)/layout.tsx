@@ -65,6 +65,7 @@ export default function DashboardLayout({
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
         { name: 'Integrações', href: '/owner/integracoes', icon: '🔌' },
+        { name: 'Notas Fiscais', href: '/owner/nota-fiscal', icon: '🧾' },
     ]
 
     const masterAdminNavigation = [
@@ -239,6 +240,7 @@ export default function DashboardLayout({
                 if (item.name === 'Questionário') return planFeat.includes('pets')
                 if (item.name === 'Ponto') return planFeat.includes('ponto')
                 if (item.name === 'Integrações') return true
+                if (item.name === 'Notas Fiscais') return planFeat.includes('financeiro') // Use financeiro feature temporarily
                 return false;
             })
         } else if (user) {

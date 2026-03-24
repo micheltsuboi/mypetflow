@@ -474,3 +474,78 @@ export interface VetExam {
     created_at: string
     updated_at: string
 }
+
+// =====================================================
+// Focus NFe Types
+// =====================================================
+
+export interface FiscalConfig {
+    id: string
+    org_id: string
+    focus_empresa_id: string | null
+    token_producao: string | null
+    token_homologacao: string | null
+    ambiente: 'homologacao' | 'producao'
+    cnpj: string | null
+    razao_social: string | null
+    inscricao_municipal: string | null
+    inscricao_estadual: string | null
+    regime_tributario: number
+    optante_simples_nacional: boolean
+    codigo_municipio: string | null
+    municipio: string | null
+    uf: string | null
+    cep: string | null
+    item_lista_servico: string | null
+    aliquota_iss: number
+    codigo_tributario_municipio: string | null
+    habilita_nfse: boolean
+    habilita_nfe: boolean
+    certificado_base64: string | null
+    senha_certificado: string | null
+    certificado_valido_ate: string | null
+    ativo: boolean
+    created_at: string
+    updated_at: string
+}
+
+export type NotaFiscalStatus = 'processando' | 'autorizado' | 'cancelado' | 'erro'
+export type NotaFiscalTipo = 'nfse' | 'nfe'
+export type NotaFiscalOrigem = 'atendimento' | 'banho_tosa' | 'creche' | 'pdv'
+
+export interface NotaFiscal {
+    id: string
+    org_id: string
+    referencia: string
+    tipo: NotaFiscalTipo
+    status: NotaFiscalStatus
+    numero_nf: string | null
+    serie: string | null
+    chave_nf: string | null
+    tomador_nome: string | null
+    tomador_cpf_cnpj: string | null
+    valor_total: number | null
+    caminho_xml: string | null
+    caminho_pdf: string | null
+    mensagem_sefaz: string | null
+    origem_tipo: NotaFiscalOrigem | null
+    origem_id: string | null
+    payload_enviado: any | null
+    retorno_focus: any | null
+    created_at: string
+    updated_at: string
+}
+
+export interface ProdutoFiscal {
+    produto_id: string
+    codigo_ncm: string
+    cfop: string
+    icms_situacao_tributaria: string
+    icms_origem: string
+    pis_situacao_tributaria: string
+    cofins_situacao_tributaria: string
+    unidade_comercial: string
+    created_at: string
+    updated_at: string
+}
+
