@@ -2,7 +2,7 @@ import { FiscalConfig } from '@/types/database'
 
 export interface NFSeBuilderParams {
     config: FiscalConfig;
-    ref_uuid: string; // The service UUID
+    ref_uuid: string;
     tutor: {
         nome: string;
         cpf?: string;
@@ -20,94 +20,135 @@ export interface NFSeBuilderParams {
     servico: {
         descricao: string;
         valor: number;
-        codigo?: string; // Código de serviço específico (dinâmico por módulo)
+        codigo?: string; // Ex: "08.02" para Banho e Tosa
     };
 }
 
 /**
  * Builds the payload for Focus NFe API for NFSe
+ *
+ * HISTÓRICO DE ERROS RESOLVIDOS (NÃO REGREDIR):
+ * 1. [RESOLVIDO] verAplic Expected dhEmi → Os campos XML (dhEmi, prest, toma, serv) foram
+ *    substituídos pelos campos da API Focus (data_emissao, cnpj_prestador, etc.).
+ * 2. [RESOLVIDO] prest Missing child elements → Adicionados inscricao_municipal_prestador,
+ *    razao_social_prestador, cep_prestador, codigo_municipio_prestador.
+ * 3. [RESOLVIDO] xNome not expected no tomador → CPF/CNPJ do tomador enviado antes do nome.
+ * 4. [RESOLVIDO] tribMun Missing child elements → Adicionados tipo_retencao_iss e
+ *    percentual_aliquota_relativa_municipio.
+ * 5. [RESOLVIDO] dhEmi com "Z" (UTC) → Substituído por timezone explícito sem ":" (ex: -0300).
  */
 export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuilderParams) {
     const valorFormatado = servico.valor.toFixed(2);
-    const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902';
     const cnpjLimpo = config.cnpj?.replace(/\D/g, '');
     const cpfTomador = tutor.cpf?.replace(/\D/g, '') || undefined;
-    const agora = new Date().toISOString(); 
+    const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902';
 
+    // ================================================================
+    // PADRÃO NACIONAL (Curitiba e outros municípios SPED Nacional)
+    // Endpoint: POST /v2/nfsen
+    // Documentação: https://focusnfe.com.br/doc/#nfse-nacional
+    //
+    // IMPORTANTE: Os campos são da API da Focus NFe em snake_case.
+    // A Focus converte internamente para o XML do governo.
+    // NUNCA enviar campos XML (dhEmi, prest, toma, serv, CNPJ, xNome, etc.)
+    // ================================================================
     if (isNacional) {
-        // ================================================================
-        // PADRÃO NACIONAL (Curitiba) — Endpoint /v2/nfsen da Focus NFe
-        // Documentação: https://focusnfe.com.br/doc/#nfse-nacional
-        // IMPORTANTE: Os campos aqui são da API da Focus NFe, NÃO os campos
-        // XML/SPED. A Focus converte internamente para o XML obrigatório.
-        // ================================================================
-
-        // Formatar data no padrão aceito pela Focus para NFSen: YYYY-MM-DDThh:mm:ss-0300
+        // Helper: data no formato ISO8601 COM timezone sem ":" (ex: -0300)
+        // Focus NFe NFSen exige esse formato exato. Nem "Z", nem "-03:00"!
         const d = new Date();
         const pad = (n: number) => String(n).padStart(2, '0');
-        const offset = -d.getTimezoneOffset();
+        const offset = -d.getTimezoneOffset(); // Offset em minutos
         const sign = offset >= 0 ? '+' : '-';
         const tzHours = pad(Math.floor(Math.abs(offset) / 60));
         const tzMins = pad(Math.abs(offset) % 60);
-        // Focus NFen usa timezone SEM ":" (ex: -0300, não -03:00)
-        const tz = sign + tzHours + tzMins;
-        const dataEmissao = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + tz;
-        const dataCompetencia = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+        const tz = sign + tzHours + tzMins; // Ex: "-0300"
+        const dataEmissao = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${tz}`;
+        const dataCompetencia = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
-        // Código de serviço: formato da CBNSS nacional (ex: "010701" para serviços veterinários)
-        // O código passado do módulo é "08.02" → limpar para "0802" → formatar como nacional "080200"
+        // Código de serviço no formato CBNSS de 6 dígitos
+        // Ex: "08.02" → strip non-digits → "0802" → padEnd(6,'0') → "080200"
         const codigoServicoBruto = servico.codigo || config.item_lista_servico || '080200';
         const codigoServicoNacional = codigoServicoBruto.replace(/\D/g, '').padEnd(6, '0');
 
+        // Código IBGE do município como inteiro (7 dígitos, sem pontos)
+        const codigoIBGE = parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0');
+
+        // Código IBGE do tomador: usa o do tutor se disponível, senão usa o da empresa
+        const codigoMunicipioTomador = parseInt(
+            (tutor.endereco?.codigo_municipio || config.codigo_municipio || '').replace(/\D/g, '') || '0'
+        );
+
         return {
-            ref: `petflow_${ref_uuid}`,
-            // --- Campos de roteamento (raiz) ---
+            // --- Campos de roteamento (identificação na Focus) ---
             cnpj_prestador: cnpjLimpo,
-            codigo_municipio_emissora: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
+            codigo_municipio_emissora: codigoIBGE,
+
             // --- Identificação do DPS ---
-            data_emissao: dataEmissao,
-            data_competencia: dataCompetencia,
-            serie_dps: 1,
-            emitente_dps: 1, // 1 = Prestador
-            // --- Dados completos do Prestador ---
-            inscricao_municipal_prestador: config.inscricao_municipal,
-            razao_social_prestador: config.razao_social,
-            // Endereço do prestador
-            cep_prestador: config.cep?.replace(/\D/g, ''),
-            codigo_municipio_prestador: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
-            // Regime tributário
-            regime_especial_tributacao: config.optante_simples_nacional ? 6 : 0, // 6 = Microempresa Municipal / 0 = Nenhum
-            codigo_opcao_simples_nacional: config.optante_simples_nacional ? 1 : 2, // 1=Sim, 2=Não
+            data_emissao: dataEmissao,            // → dhEmi (xs:dateTime com timezone)
+            data_competencia: dataCompetencia,    // → dCompet (YYYY-MM-DD)
+            serie_dps: 1,                         // → serie
+            emitente_dps: 1,                      // → tpEmit: 1=Prestador
+
+            // --- Dados do Prestador (prest) ---
+            // NUNCA omitir ou a Focus gera <prest> vazio que falha o schema
+            inscricao_municipal_prestador: config.inscricao_municipal,    // → IM
+            razao_social_prestador: config.razao_social,                  // → xNome
+            cep_prestador: config.cep?.replace(/\D/g, ''),               // → end.CEP
+            codigo_municipio_prestador: codigoIBGE,                       // → end.cMun
+            // Regime tributário do prestador
+            codigo_opcao_simples_nacional: config.optante_simples_nacional ? 1 : 2, // 1=Não Optante, 2=Optante MEI/ME
+            regime_especial_tributacao: 0,           // 0=Nenhum (obrigatório pelo schema)
+
             // --- Local de prestação ---
-            codigo_municipio_prestacao: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
-            // --- Dados do Tomador (CPF/CNPJ DEVE vir antes do nome) ---
+            codigo_municipio_prestacao: codigoIBGE,
+
+            // --- Dados do Tomador (toma) ---
+            // ATENÇÃO: CPF/CNPJ DEVE ser enviado (xNome sozinho causa erro 16:0)
             ...(cpfTomador && cpfTomador.length === 14
                 ? { cnpj_tomador: cpfTomador }
                 : { cpf_tomador: cpfTomador || undefined }
             ),
-            razao_social_tomador: tutor.nome,
+            razao_social_tomador: tutor.nome,                            // → xNome
             ...(tutor.email ? { email_tomador: tutor.email } : {}),
+            // Endereço do tomador (obrigatório no padrão Nacional)
+            codigo_municipio_tomador: codigoMunicipioTomador,
+            cep_tomador: (tutor.endereco?.cep || config.cep || '').replace(/\D/g, ''),
+            logradouro_tomador: tutor.endereco?.logradouro || 'Sem informação',
+            numero_tomador: tutor.endereco?.numero || 'SN',
+            bairro_tomador: tutor.endereco?.bairro || 'Sem informação',
+
             // --- Serviço ---
-            codigo_tributacao_nacional_iss: codigoServicoNacional,
-            descricao_servico: servico.descricao,
-            valor_servico: parseFloat(valorFormatado),
-            // --- Tributação ISS (tribMun obrigatório) ---
-            tributacao_iss: 1, // 1 = Tributável no município
-            tipo_retencao_iss: 1, // 1 = Normal (sem retenção)
-            percentual_aliquota_relativa_municipio: config.aliquota_iss || 2.00,
+            codigo_tributacao_nacional_iss: codigoServicoNacional,        // → cTribNac (6 dígitos)
+            descricao_servico: servico.descricao,                         // → xDescServ
+            valor_servico: parseFloat(valorFormatado),                    // → vServ
+
+            // --- Tributação ISS (tribMun) ---
+            // ATENÇÃO: todos os 3 campos abaixo são obrigatórios para não gerar "Missing child element"
+            tributacao_iss: 1,                     // 1=Operação tributável no município
+            tipo_retencao_iss: 1,                  // 1=Não retido (tomador não retém ISS)
+            percentual_aliquota_relativa_municipio: config.aliquota_iss || 2.00, // → pAliq
+
+            // --- Campos adicionais obrigatórios ---
+            finalidade_emissao: 0,                 // 0=Normal
+            consumidor_final: 1,                   // 1=Sim (pessoa física/cliente)
+            indicador_destinatario: 0,             // 0=Tomador identificado
         };
     }
 
+    // ================================================================
+    // PADRÃO TRADICIONAL FOCUS NFE — Endpoint /v2/nfse
+    // Para municípios que NÃO usam o padrão Nacional (SPED)
+    // ================================================================
+    const agora = new Date().toISOString();
+    const valorIss = (servico.valor * ((config.aliquota_iss || 2) / 100)).toFixed(2);
 
-    // PADRÃO TRADICIONAL FOCUS NFE (/nfse)
-    const valorIss = (servico.valor * (config.aliquota_iss / 100)).toFixed(2);
     return {
         ref: `petflow_${ref_uuid}`,
         data_emissao: agora,
         prestador: {
             cnpj: cnpjLimpo,
             inscricao_municipal: config.inscricao_municipal,
-            codigo_municipio: config.codigo_municipio
+            codigo_municipio: config.codigo_municipio?.replace(/\D/g, '')
         },
         tomador: {
             cpf: cpfTomador,
@@ -123,16 +164,16 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             }
         },
         servico: {
-            aliquota: config.aliquota_iss.toFixed(2),
+            aliquota: (config.aliquota_iss || 2).toFixed(2),
             base_calculo: valorFormatado,
             discriminacao: servico.descricao,
-            iss_retido: "0",
+            iss_retido: '0',
             item_lista_servico: config.item_lista_servico,
             valor_iss: valorIss,
             valor_liquido: valorFormatado,
             valor_servicos: valorFormatado
         },
-        natureza_operacao: "1",
-        optante_simples_nacional: config.optante_simples_nacional ? "true" : "false"
+        natureza_operacao: '1',
+        optante_simples_nacional: config.optante_simples_nacional ? 'true' : 'false'
     };
 }
