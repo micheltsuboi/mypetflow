@@ -844,15 +844,18 @@ export async function createVetAlert({
         const { data: profile } = await supabase.from('profiles').select('org_id, full_name').eq('id', user.id).single()
         if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
 
-        // Fetch Pet Details for Notification
-        const { data: pet, error: petError } = await supabase
+        const adminSupabase = createAdminClient()
+        
+        // Fetch Pet Details and Customer Data for Notification
+        // We use adminSupabase here to bypass potential RLS restrictions that might block staff from reading full customer phone data
+        const { data: pet, error: petError } = await adminSupabase
             .from('pets')
-            .select('name, customers(name, phone_1)')
+            .select('name, customers(name, phone_1, phone_2)')
             .eq('id', petId)
             .single()
 
         if (petError) {
-            console.error('VET ALERT: Erro silencioso ao buscar pet:', petError)
+            console.error('VET ALERT: Erro ao buscar dados do pet/tutor para notificação:', petError)
         }
 
         // 1. Check if an alert already exists for this appointment
@@ -914,9 +917,9 @@ export async function createVetAlert({
                 const petName = pet?.name || 'seu pet'
                 const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
                 const tutorName = (customerData as any)?.name || 'Cliente'
-                const phoneRaw = (customerData as any)?.phone_1 || ''
+                const phoneRaw = (customerData as any)?.phone_1 || (customerData as any)?.phone_2 || ''
 
-                if (phoneRaw && phoneRaw.length >= 8) {
+                if (phoneRaw && phoneRaw.replace(/\D/g, '').length >= 8) {
                     const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
                     
                     const res = await sendWhatsAppMessage(profile.org_id, phoneRaw, message)

@@ -84,13 +84,15 @@ export async function sendWhatsAppMessage(
       console.log(`sendWhatsAppMessage [SYSTEM]: Using N8N base URL ${n8nBaseUrl} for phone ${normalizedPhone}`)
 
       if (n8nBaseUrl) {
-         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
+         // O caminho /webhook/vet-alert é o que consta no n8n_vet_alert.json fornecido
+         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert`
          
          const response = await fetch(fullUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                tutorPhone: normalizedPhone,
+                phone: normalizedPhone,       // Campo esperado pelo n8n_vet_alert.json
+                tutorPhone: normalizedPhone,  // Fallback para workflows antigos
                 message: message,
                 tenant_id: orgId,
                 type: 'system_notification'
