@@ -93,6 +93,8 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             // NUNCA omitir ou a Focus gera <prest> vazio que falha o schema
             inscricao_municipal_prestador: config.inscricao_municipal,    // → IM
             razao_social_prestador: config.razao_social,                  // → xNome
+            // Endereço do prestador: xLgr (logradouro) é obrigatório no end do prestador
+            logradouro_prestador: config.municipio || 'Curitiba', // → end.xLgr (municipio como proxy)
             cep_prestador: config.cep?.replace(/\D/g, ''),               // → end.CEP
             codigo_municipio_prestador: codigoIBGE,                       // → end.cMun
             // Regime tributário do prestador
@@ -103,10 +105,14 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             codigo_municipio_prestacao: codigoIBGE,
 
             // --- Dados do Tomador (toma) ---
-            // ATENÇÃO: CPF/CNPJ DEVE ser enviado (xNome sozinho causa erro 16:0)
+            // ATENÇÃO: CPF/CNPJ DEVE vir ANTES do xNome (razao_social_tomador).
+            // Se tutor sem CPF, usar cNaoNIF (consumidor não identificado) como fallback.
+            // Sem um desses campos, o schema rejeita com "xNome not expected".
             ...(cpfTomador && cpfTomador.length === 14
-                ? { cnpj_tomador: cpfTomador }
-                : { cpf_tomador: cpfTomador || undefined }
+                ? { cnpj_tomador: cpfTomador }                // CNPJ (14 dígitos)
+                : cpfTomador && cpfTomador.length === 11
+                    ? { cpf_tomador: cpfTomador }             // CPF (11 dígitos)
+                    : { cnpj_tomador: undefined, cpf_tomador: undefined, cnao_nif_tomador: '9' } // Sem documento → cNaoNIF
             ),
             razao_social_tomador: tutor.nome,                            // → xNome
             ...(tutor.email ? { email_tomador: tutor.email } : {}),
