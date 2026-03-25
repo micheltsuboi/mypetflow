@@ -37,16 +37,30 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
 
     const payload: any = {
         ref: `petflow_${ref_uuid}`,
-        prestador: isNacional ? {
-            cnpj_prestador: cnpjLimpo,
-            inscricao_municipal: config.inscricao_municipal,
-            codigo_municipio: config.codigo_municipio
-        } : {
-            cnpj: cnpjLimpo,
-            inscricao_municipal: config.inscricao_municipal,
-            codigo_municipio: config.codigo_municipio
-        },
-        tomador: {
+        data_emissao: new Date().toISOString(),
+        natureza_operacao: "1", // 1 - Tributação no município
+        optante_simples_nacional: config.optante_simples_nacional ? "true" : "false",
+        servico: {
+            aliquota: config.aliquota_iss.toFixed(2),
+            base_calculo: valorFormatado,
+            discriminacao: servico.descricao,
+            iss_retido: "0",
+            item_lista_servico: config.item_lista_servico,
+            valor_iss: valorIss,
+            valor_liquido: valorFormatado,
+            valor_servicos: valorFormatado
+        }
+    };
+
+    if (isNacional) {
+        // No padrão Nacional (/nfsen), os campos de prestador e tomador são achatados na raiz ou prefixados
+        // conforme a documentação da Focus para o endpoint Nacional.
+        payload.cnpj_prestador = cnpjLimpo;
+        payload.inscricao_municipal_prestador = config.inscricao_municipal;
+        payload.codigo_municipio_prestador = config.codigo_municipio;
+
+        payload.tomador = {
+            cpf_tomador: cpfTomador,
             razao_social: tutor.nome,
             email: tutor.email || undefined,
             endereco: tutor.endereco ? {
@@ -63,26 +77,32 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                 codigo_municipio: config.codigo_municipio?.replace(/\D/g, ''),
                 uf: config.uf
             }
-        },
-        servico: {
-            aliquota: config.aliquota_iss.toFixed(2),
-            base_calculo: valorFormatado,
-            discriminacao: servico.descricao,
-            iss_retido: "0",
-            item_lista_servico: config.item_lista_servico,
-            valor_iss: valorIss,
-            valor_liquido: valorFormatado,
-            valor_servicos: valorFormatado
-        },
-        data_emissao: new Date().toISOString(),
-        natureza_operacao: "1", // 1 - Tributação no município
-        optante_simples_nacional: config.optante_simples_nacional ? "true" : "false"
-    };
-
-    if (isNacional) {
-        payload.tomador.cpf_tomador = cpfTomador;
+        };
     } else {
-        payload.tomador.cpf = cpfTomador;
+        payload.prestador = {
+            cnpj: cnpjLimpo,
+            inscricao_municipal: config.inscricao_municipal,
+            codigo_municipio: config.codigo_municipio
+        };
+        payload.tomador = {
+            cpf: cpfTomador,
+            razao_social: tutor.nome,
+            email: tutor.email || undefined,
+            endereco: tutor.endereco ? {
+                logradouro: tutor.endereco.logradouro || 'Sem Rua',
+                numero: tutor.endereco.numero || 'SN',
+                bairro: tutor.endereco.bairro || 'Sem Bairro',
+                codigo_municipio: (tutor.endereco.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
+                cep: tutor.endereco.cep?.replace(/\D/g, ''),
+                uf: tutor.endereco.uf || config.uf
+            } : {
+                logradouro: 'Sem Rua',
+                numero: 'SN',
+                bairro: 'Sem Bairro',
+                codigo_municipio: config.codigo_municipio?.replace(/\D/g, ''),
+                uf: config.uf
+            }
+        };
     }
 
     return payload;
