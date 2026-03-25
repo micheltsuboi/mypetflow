@@ -70,13 +70,17 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         const codigoServicoBruto = servico.codigo || config.item_lista_servico || '080200';
         const codigoServicoNacional = codigoServicoBruto.replace(/\D/g, '').padEnd(6, '0');
 
-        // Código IBGE do município como inteiro (7 dígitos, sem pontos)
-        const codigoIBGE = parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0');
+        // Código IBGE do município: Garantir 7 dígitos (ex: "4106902")
+        const cleanIBGE = (val: any) => String(val || '').replace(/\D/g, '');
+        const companyIBGE = cleanIBGE(config.codigo_municipio) || '4106902';
+        
+        // Se o IBGE não tiver 7 dígitos, é inválido para o padrão Nacional
+        const codigoIBGE = companyIBGE.length === 7 ? companyIBGE : '4106902';
 
-        // Código IBGE do tomador: usa o do tutor se disponível, senão usa o da empresa
-        const codigoMunicipioTomador = parseInt(
-            (tutor.endereco?.codigo_municipio || config.codigo_municipio || '').replace(/\D/g, '') || '0'
-        );
+        // Código IBGE do tomador: se estiver zerado ou inválido, usa o da empresa como fallback
+        let tutorIBGE = cleanIBGE(tutor.endereco?.codigo_municipio || config.codigo_municipio);
+        if (tutorIBGE.length < 7) tutorIBGE = codigoIBGE;
+        const codigoMunicipioTomador = tutorIBGE;
 
         return {
             // --- Campos de roteamento (identificação na Focus) ---
@@ -118,10 +122,10 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             ...(tutor.email ? { email_tomador: tutor.email } : {}),
             // Endereço do tomador (obrigatório no padrão Nacional)
             codigo_municipio_tomador: codigoMunicipioTomador,
-            cep_tomador: (tutor.endereco?.cep || config.cep || '').replace(/\D/g, ''),
-            logradouro_tomador: tutor.endereco?.logradouro || 'Sem informação',
+            cep_tomador: cleanIBGE(tutor.endereco?.cep || config.cep || '00000000'),
+            logradouro_tomador: tutor.endereco?.logradouro || 'Endereço não informado',
             numero_tomador: tutor.endereco?.numero || 'SN',
-            bairro_tomador: tutor.endereco?.bairro || 'Sem informação',
+            bairro_tomador: tutor.endereco?.bairro || 'Bairro não informado',
 
             // --- Serviço ---
             codigo_tributacao_nacional_iss: codigoServicoNacional,        // → cTribNac (6 dígitos)
@@ -138,6 +142,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             finalidade_emissao: 0,                 // 0=Normal
             consumidor_final: 1,                   // 1=Sim (pessoa física/cliente)
             indicador_destinatario: 0,             // 0=Tomador identificado
+            email_prestador: 'contato@mypetflow.com.br', // Recomendado
         };
     }
 
