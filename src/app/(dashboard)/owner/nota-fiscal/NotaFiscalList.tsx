@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { NotaFiscal } from '@/types/database'
 import styles from './page.module.css'
 
@@ -8,6 +9,8 @@ interface Props {
 }
 
 export default function NotaFiscalList({ notas }: Props) {
+    const [selectedError, setSelectedError] = useState<string | null>(null)
+
     if (!notas || notas.length === 0) {
         return <p style={{ color: 'var(--text-secondary)' }}>Nenhuma nota fiscal foi emitida ainda.</p>
     }
@@ -48,9 +51,20 @@ export default function NotaFiscalList({ notas }: Props) {
                                          nota.status === 'cancelado' ? '🚫 Cancelado' : nota.status}
                                     </span>
                                     {nota.status === 'erro' && nota.mensagem_sefaz && (
-                                        <span className={styles.errorMessage} style={{ fontSize: '0.75rem', color: '#ff6b6b', textAlign: 'center', maxWidth: '200px' }}>
-                                            {nota.mensagem_sefaz}
-                                        </span>
+                                        <button 
+                                            onClick={() => setSelectedError(nota.mensagem_sefaz)}
+                                            style={{ 
+                                                fontSize: '0.7rem', 
+                                                background: 'rgba(231, 76, 60, 0.1)', 
+                                                border: '1px solid rgba(231, 76, 60, 0.3)',
+                                                borderRadius: '4px',
+                                                color: '#ff6b6b',
+                                                cursor: 'pointer',
+                                                padding: '2px 6px'
+                                            }}
+                                        >
+                                            ℹ️ Ver Motivo
+                                        </button>
                                     )}
                                 </div>
                             </td>
@@ -110,6 +124,29 @@ export default function NotaFiscalList({ notas }: Props) {
                     ))}
                 </tbody>
             </table>
+
+            {/* Modal de Erro */}
+            {selectedError && (
+                <div className={styles.modalOverlay} onClick={() => setSelectedError(null)}>
+                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h3 style={{ margin: 0, color: '#ff6b6b' }}>Motivo da Rejeição</h3>
+                            <button className={styles.closeButton} onClick={() => setSelectedError(null)}>&times;</button>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p>{selectedError}</p>
+                        </div>
+                        <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                            <button 
+                                className={styles.primaryButton} 
+                                onClick={() => setSelectedError(null)}
+                            >
+                                Entendido
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
