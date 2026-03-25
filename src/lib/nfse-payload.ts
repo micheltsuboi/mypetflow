@@ -53,14 +53,13 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     };
 
     if (isNacional) {
-        // No padrão Nacional (/nfsen), os campos de prestador e tomador são achatados na raiz ou prefixados
-        // conforme a documentação da Focus para o endpoint Nacional.
+        // No padrão Nacional (/nfsen), os nomes dos campos mudam para o padrão da Receita
         payload.cnpj_prestador = cnpjLimpo;
         payload.inscricao_municipal_prestador = config.inscricao_municipal;
-        payload.codigo_municipio_prestador = config.codigo_municipio;
+        payload.codigo_municipio_emissora = config.codigo_municipio;
 
         payload.tomador = {
-            cpf_tomador: cpfTomador,
+            cpf_cnpj_tomador: cpfTomador,
             razao_social: tutor.nome,
             email: tutor.email || undefined,
             endereco: tutor.endereco ? {
