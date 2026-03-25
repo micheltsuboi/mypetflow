@@ -39,26 +39,45 @@ export default function NotaFiscalList({ notas }: Props) {
                             <td>{nota.numero_nf || '-'}</td>
                             <td>{nota.tomador_nome || 'Consumidor Final'}</td>
                             <td>{formatCurrency(nota.valor_total)}</td>
-                            <td>
+                            <td style={{ textAlign: 'center' }}>
                                 <span className={`${styles.badge} ${styles['badge-' + nota.status]}`}>
-                                    {nota.status}
+                                    {nota.status === 'processando' ? '⏳ Processando' : 
+                                     nota.status === 'autorizado' ? '✅ Autorizado' :
+                                     nota.status === 'erro' ? '❌ Erro' :
+                                     nota.status === 'cancelado' ? '🚫 Cancelado' : nota.status}
                                 </span>
                             </td>
-                            <td>
-                                {nota.status === 'autorizado' && nota.caminho_pdf && (
-                                    <a 
-                                        href={'https://api.focusnfe.com.br' + nota.caminho_pdf} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer" 
-                                        className={styles.actionButton}
-                                    >
-                                        PDF
-                                    </a>
+                            <td style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                                {nota.status === 'autorizado' && (
+                                    <>
+                                        {nota.caminho_pdf && (
+                                            <a 
+                                                href={nota.caminho_pdf.startsWith('http') ? nota.caminho_pdf : `https://api.focusnfe.com.br${nota.caminho_pdf}`} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className={styles.actionButton}
+                                                title="Ver PDF"
+                                            >
+                                                📄 PDF
+                                            </a>
+                                        )}
+                                        {nota.caminho_xml && (
+                                            <a 
+                                                href={nota.caminho_xml.startsWith('http') ? nota.caminho_xml : `https://api.focusnfe.com.br${nota.caminho_xml}`} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className={styles.actionButton}
+                                                title="Ver XML"
+                                            >
+                                                🔗 XML
+                                            </a>
+                                        )}
+                                    </>
                                 )}
                                 {nota.status === 'erro' && nota.mensagem_sefaz && (
-                                    <span title={nota.mensagem_sefaz} className={styles.textError}>
-                                        ⚠️ Motivo
-                                    </span>
+                                    <div className={styles.errorBox} title={nota.mensagem_sefaz}>
+                                        ⚠️ Ver Erro
+                                    </div>
                                 )}
                             </td>
                         </tr>
