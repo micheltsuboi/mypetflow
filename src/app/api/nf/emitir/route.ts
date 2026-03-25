@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
                 servico
             })
 
-            // Caso especial: Curitiba (4106902) exige endpoint Nacional em homologação
-            const isNacional = env === 'homologacao' && config.codigo_municipio?.replace(/\D/g, '') === '4106902'
+            // Curitiba (4106902) e outros municípios exigem endpoint Nacional em qualquer ambiente
+            const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902'
 
             try {
                 focusResponse = await FocusNfeApi.emitirNfse({ 
