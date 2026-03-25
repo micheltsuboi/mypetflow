@@ -69,10 +69,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         if (appointment.id) {
             getVetAlertsByAppointment(appointment.id).then(alerts => {
                 setExistingAlerts(alerts)
-                if (alerts && alerts.length > 0) {
-                    setVetAlertText(alerts[0].observation)
-                    setAlertSent(true)
-                }
+                // We keep alertSent state for immediate visual feedback of the "last" send, 
+                // but we don't block the UI with it anymore.
             })
         }
     }, [appointment.id])
@@ -218,11 +216,15 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
             if (res.success) {
                 if (notifyTutor) {
                     setTutorAlertSent(true)
-                    setAlertSent(true) // If tutor is notified, vet is also alerted by DB
-                } else {
-                    setAlertSent(true)
                 }
-                onSave() // Refresh parent to show alert status if needed
+                setAlertSent(true)
+                setVetAlertText('') // Clear text after successful send
+                
+                // Refresh list of alerts
+                const updatedAlerts = await getVetAlertsByAppointment(appointment.id)
+                setExistingAlerts(updatedAlerts)
+
+                onSave() // Refresh parent
             } else {
                 alert(res.message)
             }
@@ -429,68 +431,69 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             </div>
                         )}
 
-                        {alertSent ? (
-                            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', padding: '1rem', borderRadius: '8px', color: '#34d399', textAlign: 'center', fontWeight: 'bold' }}>
-                                ✅ Alerta enviado com sucesso para os veterinários!
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                <textarea
-                                    value={vetAlertText}
-                                    onChange={(e) => handleVetAlertChange(e.target.value)}
-                                    placeholder="Ex: Encontrei muita secreção na orelha esquerda e o pet reclamou de dor ao tocar."
-                                    rows={3}
-                                    disabled={sendingAlert || sendingTutorAlert}
-                                    style={{
-                                        width: '100%', padding: '0.75rem', borderRadius: '8px',
-                                        background: 'rgba(15, 23, 42, 0.6)', border: '1px solid #475569',
-                                        color: 'white', resize: 'vertical', fontFamily: 'inherit'
-                                    }}
-                                />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
-                                    <button
-                                        onClick={() => handleSendVetAlert(true)}
-                                        disabled={!vetAlertText.trim() || sendingTutorAlert || tutorAlertSent}
-                                        style={{
-                                            flex: 1, padding: '0.75rem',
-                                            background: tutorAlertSent ? '#059669' : (!vetAlertText.trim() || sendingTutorAlert ? '#475569' : '#25d366'),
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            cursor: !vetAlertText.trim() || sendingTutorAlert || tutorAlertSent ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.5rem',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {sendingTutorAlert ? '⏳ Enviando...' : (tutorAlertSent ? '✅ Tutor Alertado' : '💬 Alertar Tutor')}
-                                    </button>
-                                    <button
-                                        onClick={() => handleSendVetAlert(false)}
-                                        disabled={!vetAlertText.trim() || sendingAlert || alertSent}
-                                        style={{
-                                            flex: 1, padding: '0.75rem',
-                                            background: alertSent ? '#059669' : (!vetAlertText.trim() || sendingAlert ? '#475569' : '#ef4444'),
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            cursor: !vetAlertText.trim() || sendingAlert || alertSent ? 'not-allowed' : 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.5rem',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {sendingAlert ? '⏳ Enviando...' : (alertSent ? '✅ Vet Alertado' : '🩺 Alertar Vet')}
-                                    </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {alertSent && (
+                                <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid #10B981', padding: '0.75rem', borderRadius: '8px', color: '#34d399', textAlign: 'center', fontSize: '0.85rem' }}>
+                                    ✓ Alerta enviado com sucesso!
                                 </div>
+                            )}
+
+                            <textarea
+                                value={vetAlertText}
+                                onChange={(e) => handleVetAlertChange(e.target.value)}
+                                placeholder="Descreva o que foi encontrado (feridas, nódulos, etc)..."
+                                rows={3}
+                                disabled={sendingAlert || sendingTutorAlert}
+                                style={{
+                                    width: '100%', padding: '0.75rem', borderRadius: '8px',
+                                    background: 'rgba(15, 23, 42, 0.6)', border: '1px solid #475569',
+                                    color: 'white', resize: 'vertical', fontFamily: 'inherit'
+                                }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
+                                <button
+                                    onClick={() => handleSendVetAlert(true)}
+                                    disabled={!vetAlertText.trim() || sendingTutorAlert}
+                                    style={{
+                                        flex: 1, padding: '0.75rem',
+                                        background: !vetAlertText.trim() || sendingTutorAlert ? '#475569' : '#25d366',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontWeight: 600,
+                                        cursor: !vetAlertText.trim() || sendingTutorAlert ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {sendingTutorAlert ? '⏳ Enviando...' : '📱 Enviar p/ Tutor'}
+                                </button>
+                                <button
+                                    onClick={() => handleSendVetAlert(false)}
+                                    disabled={!vetAlertText.trim() || sendingAlert}
+                                    style={{
+                                        flex: 1,
+                                        padding: '0.75rem',
+                                        background: !vetAlertText.trim() || sendingAlert ? '#475569' : '#0f172a',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontWeight: 600,
+                                        cursor: !vetAlertText.trim() || sendingAlert ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '0.5rem',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {sendingAlert ? '⏳ Enviando...' : '🩺 Alertar Vet'}
+                                </button>
                             </div>
-                        )}
+                        </div>
                     </section>
 
                 </div>

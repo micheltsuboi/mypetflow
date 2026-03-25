@@ -92,7 +92,8 @@ export async function sendWhatsAppMessage(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 phone: normalizedPhone,       // Campo esperado pelo n8n_vet_alert.json
-                tutorPhone: normalizedPhone,  // Fallback para workflows antigos
+                tutorPhone: normalizedPhone,  // Campo relatado pelo usuário como correto no banco/n8n
+                normalizedPhone: normalizedPhone,
                 message: message,
                 tenant_id: orgId,
                 type: 'system_notification'
