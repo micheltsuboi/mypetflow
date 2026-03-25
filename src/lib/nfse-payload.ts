@@ -69,9 +69,18 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             data_competencia: dataCompetencia,
             serie_dps: 1,
             emitente_dps: 1, // 1 = Prestador
+            // --- Dados completos do Prestador ---
+            inscricao_municipal_prestador: config.inscricao_municipal,
+            razao_social_prestador: config.razao_social,
+            // Endereço do prestador
+            cep_prestador: config.cep?.replace(/\D/g, ''),
+            codigo_municipio_prestador: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
+            // Regime tributário
+            regime_especial_tributacao: config.optante_simples_nacional ? 6 : 0, // 6 = Microempresa Municipal / 0 = Nenhum
+            codigo_opcao_simples_nacional: config.optante_simples_nacional ? 1 : 2, // 1=Sim, 2=Não
             // --- Local de prestação ---
             codigo_municipio_prestacao: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
-            // --- Tomador ---
+            // --- Dados do Tomador (CPF/CNPJ DEVE vir antes do nome) ---
             ...(cpfTomador && cpfTomador.length === 14
                 ? { cnpj_tomador: cpfTomador }
                 : { cpf_tomador: cpfTomador || undefined }
@@ -82,7 +91,10 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             codigo_tributacao_nacional_iss: codigoServicoNacional,
             descricao_servico: servico.descricao,
             valor_servico: parseFloat(valorFormatado),
+            // --- Tributação ISS (tribMun obrigatório) ---
             tributacao_iss: 1, // 1 = Tributável no município
+            tipo_retencao_iss: 1, // 1 = Normal (sem retenção)
+            percentual_aliquota_relativa_municipio: config.aliquota_iss || 2.00,
         };
     }
 
