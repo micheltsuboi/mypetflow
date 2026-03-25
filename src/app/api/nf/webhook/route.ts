@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
  * Webhook para receber atualizações de status da Focus NFe.
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing reference' }, { status: 400 })
         }
 
-        const supabase = await createClient()
+        const supabase = createAdminClient()
 
         // 1. Mapear status da Focus para o nosso status interno
         // Focus statuses: autorizado, erro_autorizacao, cancelado, processando_autorizacao
