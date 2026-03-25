@@ -91,7 +91,7 @@ export default function BanhoTosaPage() {
                     calculated_price, checklist,
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
-                    pets ( name, species, breed, customers ( name, cpf_cnpj, email, phone_1, address, neighborhood, city, codigo_municipio, cep, uf ) ),
+                    pets ( name, species, breed, customers ( name ) ),
                     services!inner ( 
                         name, 
                         base_price,
@@ -320,18 +320,7 @@ export default function BanhoTosaPage() {
                                                             id: appt.id,
                                                             total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                             tutor: appt.pets?.customers ? {
-                                                                nome: (appt.pets.customers as any).name,
-                                                                cpf: (appt.pets.customers as any).cpf_cnpj,
-                                                                email: (appt.pets.customers as any).email,
-                                                                telefone: (appt.pets.customers as any).phone_1,
-                                                                endereco: (appt.pets.customers as any).address ? {
-                                                                    logradouro: (appt.pets.customers as any).address,
-                                                                    bairro: (appt.pets.customers as any).neighborhood,
-                                                                    municipio: (appt.pets.customers as any).city,
-                                                                    codigo_municipio: (appt.pets.customers as any).codigo_municipio,
-                                                                    cep: (appt.pets.customers as any).cep,
-                                                                    uf: (appt.pets.customers as any).uf
-                                                                } : undefined
+                                                                nome: appt.pets.customers.name,
                                                             } : undefined,
                                                             servico: {
                                                                 descricao: appt.services?.name || 'Serviço de Banho e Tosa',
