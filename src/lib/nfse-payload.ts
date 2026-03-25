@@ -65,9 +65,24 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         const dataCompetencia = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
         // Código de serviço no formato CBNSS de 6 dígitos
-        // Ex: "08.02" → strip non-digits → "0802" → padEnd(6,'0') → "080200"
-        const codigoServicoBruto = servico.codigo || config.item_lista_servico || '080200';
-        const codigoServicoNacional = codigoServicoBruto.replace(/\D/g, '').padEnd(6, '0');
+        // Ex: "08.02" → strip non-digits → "0802" → padEnd(6,'0')
+        const codigoServicoBruto = servico.codigo || config.item_lista_servico || '0701';
+        const rawCode = codigoServicoBruto.replace(/\D/g, '');
+        
+        // Mapeamento Inteligente LC 116 -> NFS-e Nacional (6 dígitos)
+        // No padrão Nacional, Veterinária moveu de 07.01 para o grupo 05
+        let codigoServicoNacional = rawCode.padEnd(6, '0');
+        
+        if (rawCode.startsWith('0701')) {
+            codigoServicoNacional = '050101'; // Medicina Veterinária
+        } else if (rawCode.startsWith('0508') || rawCode.startsWith('0403')) {
+            codigoServicoNacional = '050801'; // Banho, Tosa, Embelezamento, Alojamento
+        }
+        
+        // Se o usuário já digitou um código de 6 dígitos que começa com 05, mantém
+        if (rawCode.length === 6 && rawCode.startsWith('05')) {
+            codigoServicoNacional = rawCode;
+        }
 
         // Código IBGE do município: Garantir 7 dígitos (ex: "4106902")
         const cleanIBGE = (val: any) => String(val || '').replace(/\D/g, '');
