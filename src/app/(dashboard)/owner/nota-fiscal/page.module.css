@@ -121,3 +121,13 @@
 .textError {
     color: #e74c3c;
 }
+
+.errorMessage {
+    display: block;
+    margin-top: 4px;
+    padding: 4px 8px;
+    background: rgba(231, 76, 60, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid #e74c3c;
+    word-break: break-word;
+}

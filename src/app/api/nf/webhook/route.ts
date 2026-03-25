@@ -33,15 +33,14 @@ export async function POST(req: NextRequest) {
 
         const supabase = createAdminClient()
 
-        // 1. Mapear status da Focus para o nosso status interno
-        // Focus statuses: autorizado, erro_autorizacao, cancelado, processando_autorizacao
+        // 3. Mapear status
         let internalStatus = 'processando'
         if (status === 'autorizado') {
             internalStatus = 'autorizado'
-        } else if (status === 'erro_autorizacao' || status === 'denegado' || status === 'erro_envio' || status === 'recusado') {
-            internalStatus = 'erro'
         } else if (status === 'cancelado') {
             internalStatus = 'cancelado'
+        } else if (status?.includes('erro') || status?.includes('denegado') || status?.includes('recusado') || (errors && errors.length > 0)) {
+            internalStatus = 'erro'
         }
 
         // 2. Atualizar a nota no banco de dados

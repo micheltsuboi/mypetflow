@@ -47,10 +47,10 @@ export async function GET(req: NextRequest) {
         let internalStatus = 'processando'
         if (focusData.status === 'autorizado') {
             internalStatus = 'autorizado'
-        } else if (focusData.status === 'erro_autorizacao' || focusData.status === 'denegado' || focusData.status === 'erro_envio' || focusData.status === 'recusado') {
-            internalStatus = 'erro'
         } else if (focusData.status === 'cancelado') {
             internalStatus = 'cancelado'
+        } else if (focusData.status?.includes('erro') || focusData.status?.includes('denegado') || focusData.status?.includes('recusado') || (focusData.errors && focusData.errors.length > 0)) {
+            internalStatus = 'erro'
         }
 
         const errors = focusData.errors || []
