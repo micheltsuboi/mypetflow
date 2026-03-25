@@ -97,10 +97,14 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             // NUNCA omitir ou a Focus gera <prest> vazio que falha o schema
             inscricao_municipal_prestador: config.inscricao_municipal,    // → IM
             razao_social_prestador: config.razao_social,                  // → xNome
-            // Endereço do prestador: xLgr (logradouro) é obrigatório no end do prestador
-            logradouro_prestador: config.municipio || 'Curitiba', // → end.xLgr (municipio como proxy)
-            cep_prestador: config.cep?.replace(/\D/g, ''),               // → end.CEP
-            codigo_municipio_prestador: codigoIBGE,                       // → end.cMun
+            // Endereço do prestador: xLgr (logradouro), nro (número), xBairro (bairro) são obrigatórios no padrão Nacional
+            logradouro_prestador: config.municipio || 'Curitiba',
+            numero_prestador: 'SN', // Obrigatório no Schema!
+            bairro_prestador: 'Centro', // Obrigatório no Schema!
+            cep_prestador: config.cep?.replace(/\D/g, ''),
+            codigo_municipio_prestador: codigoIBGE,
+            // Adicionando nro_prestador como redundância caso o parser da Focus varie
+            nro_prestador: 'SN',
             // Regime tributário do prestador
             codigo_opcao_simples_nacional: config.optante_simples_nacional ? 1 : 2, // 1=Não Optante, 2=Optante MEI/ME
             regime_especial_tributacao: 0,           // 0=Nenhum (obrigatório pelo schema)
@@ -126,8 +130,8 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             cep_tomador: cleanIBGE(tutor.endereco?.cep || config.cep || '00000000'),
             logradouro_tomador: tutor.endereco?.logradouro || 'Endereço não informado',
             numero_tomador: tutor.endereco?.numero || 'SN',
+            nro_tomador: tutor.endereco?.numero || 'SN', // Redundância para nro
             bairro_tomador: tutor.endereco?.bairro || 'Bairro não informado',
-            uf_tomador: tutor.endereco?.uf || config.uf || 'PR', // UF OBRIGATÓRIO NO SPED!
 
             // --- Serviço ---
             codigo_tributacao_nacional_iss: codigoServicoNacional,        // → cTribNac (6 dígitos)
