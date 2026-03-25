@@ -334,7 +334,7 @@ export default function BanhoTosaPage() {
                                              />
                                              {appt.payment_status === 'paid' && (
                                                 <button
-                                                  onClick={(e) => {
+                                                onClick={(e) => {
                                                       e.stopPropagation();
                                                       setCheckoutNFData({
                                                           id: appt.id,
@@ -345,7 +345,8 @@ export default function BanhoTosaPage() {
                                                           } : undefined,
                                                           servico: {
                                                               descricao: appt.services?.name || 'Serviço de Banho e Tosa',
-                                                              valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0
+                                                              valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                              codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
                                                           }
                                                       });
                                                       setShowNFModal(true);

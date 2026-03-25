@@ -20,6 +20,7 @@ export interface NFSeBuilderParams {
     servico: {
         descricao: string;
         valor: number;
+        codigo?: string; // Código de serviço específico (dinâmico por módulo)
     };
 }
 
@@ -47,11 +48,19 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         payload.dhEmi = agora.split('.')[0] + 'Z'; // Formato ISO sem milissegundos
         payload.dCompet = agora.split('T')[0];
         
-        // 3. Prestador
+        // 3. Prestador - Completo com Endereço (Obrigatório SPED)
         payload.prest = {
             CNPJ: cnpjLimpo,
             IM: config.inscricao_municipal,
             xNome: config.razao_social,
+            end: {
+                xLgr: 'Rua do Estabelecimento', // Placaholder exigido pelo schema
+                nro: 'S/N',
+                xBairro: 'Bairro',
+                cMun: config.codigo_municipio?.replace(/\D/g, ''),
+                CEP: config.cep?.replace(/\D/g, ''),
+                UF: config.uf
+            },
             regTrib: config.optante_simples_nacional ? 1 : 3 
         };
         
@@ -60,18 +69,18 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             [cpfTomador?.length === 14 ? 'CNPJ' : 'CPF']: cpfTomador,
             xNome: tutor.nome,
             end: {
-                logradouro: tutor.endereco?.logradouro || 'Sem Rua',
-                num: tutor.endereco?.numero || 'SN',
-                bairro: tutor.endereco?.bairro || 'Sem Bairro',
+                xLgr: tutor.endereco?.logradouro || 'Sem Rua',
+                nro: tutor.endereco?.numero || 'SN',
+                xBairro: tutor.endereco?.bairro || 'Sem Bairro',
                 cMun: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
                 CEP: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
                 UF: tutor.endereco?.uf || config.uf
             }
         };
         
-        // 5. Serviço
+        // 5. Serviço ('cServ' pode vir do módulo ou pegar o configurado globalmente)
         payload.serv = {
-            cServ: config.item_lista_servico,
+            cServ: servico.codigo?.replace(/\D/g, '') || config.item_lista_servico?.replace(/\D/g, ''),
             xDesc: servico.descricao,
             vServ: {
                 vServ: valorFormatado

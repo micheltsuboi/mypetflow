@@ -17,6 +17,7 @@ interface EmitirNFModalProps {
     servico?: {
         descricao: string
         valor: number
+        codigo?: string
     }
     produtos?: any[]
     onClose: () => void

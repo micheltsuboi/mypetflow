@@ -88,7 +88,7 @@ export default function HospedagemPage() {
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
-                    pets ( name, species, breed, customers ( name ) ),
+                    pets ( name, species, breed, customers ( name, cpf_cnpj ) ),
                     services!inner ( 
                         name, 
                         base_price,
@@ -488,10 +488,12 @@ export default function HospedagemPage() {
                         }}
                         servico={{
                             descricao: nfAppointment.services?.name || 'Serviço de Hospedagem',
-                            valor: nfAppointment.final_price ?? nfAppointment.calculated_price ?? (nfAppointment.services?.base_price || 0)
+                            valor: nfAppointment.final_price ?? nfAppointment.calculated_price ?? (nfAppointment.services?.base_price || 0),
+                            codigo: "08.02" // Hospedagem / Alojamento
                         }}
                         tutor={{
                             nome: nfAppointment.pets?.customers?.name || 'Cliente',
+                            cpf: (nfAppointment.pets?.customers as any)?.cpf_cnpj
                         }}
                     />
                 )}

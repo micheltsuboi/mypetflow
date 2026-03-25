@@ -82,7 +82,7 @@ export default function CrechePage() {
                     id, pet_id, service_id, scheduled_at, status, notes,
                     calculated_price, final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
-                    pets ( name, species, breed, customers ( name ) ),
+                    pets ( name, species, breed, customers ( name, cpf_cnpj ) ),
                     services!inner ( 
                         name, 
                         base_price,
@@ -460,10 +460,12 @@ export default function CrechePage() {
                         }}
                         servico={{
                             descricao: nfAppointment.services?.name || 'Serviço de Creche',
-                            valor: nfAppointment.final_price ?? nfAppointment.calculated_price ?? nfAppointment.services?.base_price ?? 0
+                            valor: nfAppointment.final_price ?? nfAppointment.calculated_price ?? nfAppointment.services?.base_price ?? 0,
+                            codigo: "08.02" // Creche / Alojamento
                         }}
                         tutor={{
                             nome: nfAppointment.pets?.customers?.name || 'Cliente',
+                            cpf: (nfAppointment.pets?.customers as any)?.cpf_cnpj
                         }}
                     />
                 )}
