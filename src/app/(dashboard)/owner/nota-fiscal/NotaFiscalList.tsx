@@ -39,13 +39,20 @@ export default function NotaFiscalList({ notas }: Props) {
                             <td>{nota.numero_nf || '-'}</td>
                             <td>{nota.tomador_nome || 'Consumidor Final'}</td>
                             <td>{formatCurrency(nota.valor_total)}</td>
-                            <td style={{ textAlign: 'center' }}>
-                                <span className={`${styles.badge} ${styles['badge-' + nota.status]}`}>
-                                    {nota.status === 'processando' ? '⏳ Processando' : 
-                                     nota.status === 'autorizado' ? '✅ Autorizado' :
-                                     nota.status === 'erro' ? '❌ Erro' :
-                                     nota.status === 'cancelado' ? '🚫 Cancelado' : nota.status}
-                                </span>
+                            <td style={{ textAlign: 'center', minWidth: '150px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                                    <span className={`${styles.badge} ${styles['badge-' + nota.status]}`}>
+                                        {nota.status === 'processando' ? '⏳ Processando' : 
+                                         nota.status === 'autorizado' ? '✅ Autorizado' :
+                                         nota.status === 'erro' ? '❌ Erro' :
+                                         nota.status === 'cancelado' ? '🚫 Cancelado' : nota.status}
+                                    </span>
+                                    {nota.status === 'erro' && nota.mensagem_sefaz && (
+                                        <span className={styles.errorMessage} style={{ fontSize: '0.75rem', color: '#ff6b6b', textAlign: 'center', maxWidth: '200px' }}>
+                                            {nota.mensagem_sefaz}
+                                        </span>
+                                    )}
+                                </div>
                             </td>
                             <td style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                                 {nota.status === 'autorizado' && (
@@ -86,10 +93,17 @@ export default function NotaFiscalList({ notas }: Props) {
                                         🔄 Sincronizar
                                     </button>
                                 )}
-                                {nota.status === 'erro' && nota.mensagem_sefaz && (
-                                    <div className={styles.errorBox} title={nota.mensagem_sefaz}>
-                                        ⚠️ Ver Erro
-                                    </div>
+                                {nota.status === 'erro' && (
+                                    <button 
+                                        onClick={async () => {
+                                            const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
+                                            if (res.ok) window.location.reload()
+                                        }}
+                                        className={styles.actionButton}
+                                        style={{ backgroundColor: 'var(--primary-main)', opacity: 0.8 }}
+                                    >
+                                        🔄 Re-sincronizar
+                                    </button>
                                 )}
                             </td>
                         </tr>
