@@ -32,13 +32,16 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902';
     const cnpjLimpo = config.cnpj?.replace(/\D/g, '');
     const cpfTomador = tutor.cpf?.replace(/\D/g, '') || undefined;
-    const dataCompetencia = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Padrão Nacional (NFSen) exige data no formato ISO completo com fuso
+    const agora = new Date().toISOString(); 
+    const dataCompetencia = agora.split('T')[0]; // YYYY-MM-DD
 
     if (isNacional) {
-        // Padrão Nacional (/nfsen) exige campos na raiz ou ordem específica
+        // ESTRUTURA RIGOROSA NFSe NACIONAL (CURITIBA)
         return {
             ref: `petflow_${ref_uuid}`,
-            data_emissao: new Date().toISOString(),
+            data_emissao: agora,
             data_competencia: dataCompetencia,
             cnpj_prestador: cnpjLimpo,
             codigo_municipio_emissora: config.codigo_municipio,
@@ -51,7 +54,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                     numero: tutor.endereco?.numero || 'SN',
                     bairro: tutor.endereco?.bairro || 'Sem Bairro',
                     codigo_municipio: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
-                    cep: (tutor.endereco?.cep || config.cep)?.replace(/\D/g, ''),
+                    cep: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
                     uf: tutor.endereco?.uf || config.uf
                 }
             },
@@ -67,10 +70,10 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         };
     }
 
-    // Padrão Tradicional (/nfse)
+    // PADRÃO TRADICIONAL (OUTRAS CIDADES)
     return {
         ref: `petflow_${ref_uuid}`,
-        data_emissao: new Date().toISOString(),
+        data_emissao: agora,
         prestador: {
             cnpj: cnpjLimpo,
             inscricao_municipal: config.inscricao_municipal,
@@ -85,7 +88,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                 numero: tutor.endereco?.numero || 'SN',
                 bairro: tutor.endereco?.bairro || 'Sem Bairro',
                 codigo_municipio: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
-                cep: (tutor.endereco?.cep || config.cep)?.replace(/\D/g, ''),
+                cep: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
                 uf: tutor.endereco?.uf || config.uf
             }
         },
