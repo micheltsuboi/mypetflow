@@ -34,17 +34,12 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const agora = new Date().toISOString(); 
 
     if (isNacional) {
-        // ORDEM CRÍTICA PARA SCHEMA NACIONAL (SPED)
-        // 1. ref (controle focus)
-        // 2. tpAmb (Ambiente)
-        // 3. dhEmi (Data e Hora de Emissão) - OBRIGATÓRIO AGORA!
-        // 4. dCompet (Data de Competência)
-        // 5. prest (Prestador)
-        // 6. toma (Tomador)
-        // 7. serv (Serviço)
+        // ESTRUTURA HÍBRIDA FOCUS NFE NACIONAL (/nfsen)
         return {
             ref: `petflow_${ref_uuid}`,
-            cnpj_prestador: cnpjLimpo, // Mantido fora da ordem por ser parâmetro da Focus, não do XML Nacional
+            cnpj_prestador: cnpjLimpo, // Obrigatório na raiz pela Focus
+            codigo_municipio_emissora: config.codigo_municipio?.replace(/\D/g, ''), // Obrigatório na raiz
+            cpf_cnpj_tomador: cpfTomador, // Algumas prefeituras pedem na raiz
             tpAmb: config.ambiente === 'producao' ? 1 : 2,
             dhEmi: agora,
             dCompet: agora.split('T')[0],
@@ -52,14 +47,6 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                 CNPJ: cnpjLimpo,
                 IM: config.inscricao_municipal,
                 xNome: config.razao_social,
-                end: {
-                    logradouro: 'Rua da Empresa', 
-                    num: 'SN',
-                    bairro: 'Bairro',
-                    cMun: config.codigo_municipio?.replace(/\D/g, ''),
-                    CEP: config.cep?.replace(/\D/g, ''),
-                    UF: config.uf
-                },
                 regTrib: config.optante_simples_nacional ? 1 : 3 
             },
             toma: {
