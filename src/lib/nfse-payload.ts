@@ -118,6 +118,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                     ? { cpf_tomador: cpfTomador }             // CPF (11 dígitos)
                     : { cnpj_tomador: undefined, cpf_tomador: undefined, cnao_nif_tomador: '9' } // Sem documento → cNaoNIF
             ),
+            ref: `petflow_${ref_uuid}`, // Adicionado na raiz conforme padrão Focus v2
             razao_social_tomador: tutor.nome,                            // → xNome
             ...(tutor.email ? { email_tomador: tutor.email } : {}),
             // Endereço do tomador (obrigatório no padrão Nacional)
@@ -126,6 +127,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             logradouro_tomador: tutor.endereco?.logradouro || 'Endereço não informado',
             numero_tomador: tutor.endereco?.numero || 'SN',
             bairro_tomador: tutor.endereco?.bairro || 'Bairro não informado',
+            uf_tomador: tutor.endereco?.uf || config.uf || 'PR', // UF OBRIGATÓRIO NO SPED!
 
             // --- Serviço ---
             codigo_tributacao_nacional_iss: codigoServicoNacional,        // → cTribNac (6 dígitos)
