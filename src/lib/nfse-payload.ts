@@ -34,41 +34,51 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const agora = new Date().toISOString(); 
 
     if (isNacional) {
-        // ESTRUTURA HÍBRIDA FOCUS NFE NACIONAL (/nfsen)
-        return {
-            ref: `petflow_${ref_uuid}`,
-            cnpj_prestador: cnpjLimpo, // Obrigatório na raiz pela Focus
-            codigo_municipio_emissora: config.codigo_municipio?.replace(/\D/g, ''), // Obrigatório na raiz
-            cpf_cnpj_tomador: cpfTomador, // Algumas prefeituras pedem na raiz
-            tpAmb: config.ambiente === 'producao' ? 1 : 2,
-            dhEmi: agora,
-            dCompet: agora.split('T')[0],
-            prest: {
-                CNPJ: cnpjLimpo,
-                IM: config.inscricao_municipal,
-                xNome: config.razao_social,
-                regTrib: config.optante_simples_nacional ? 1 : 3 
-            },
-            toma: {
-                [cpfTomador?.length === 14 ? 'CNPJ' : 'CPF']: cpfTomador,
-                xNome: tutor.nome,
-                end: {
-                    logradouro: tutor.endereco?.logradouro || 'Sem Rua',
-                    num: tutor.endereco?.numero || 'SN',
-                    bairro: tutor.endereco?.bairro || 'Sem Bairro',
-                    cMun: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
-                    CEP: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
-                    UF: tutor.endereco?.uf || config.uf
-                }
-            },
-            serv: {
-                cServ: config.item_lista_servico,
-                xDesc: servico.descricao,
-                vServ: {
-                    vServ: valorFormatado
-                }
+        // Objeto de retorno construído manualmente para garantir a ordem das chaves do JS para o JSON
+        const payload: any = {};
+        
+        // 1. Parâmetros de roteamento Focus (Raiz)
+        payload.ref = `petflow_${ref_uuid}`;
+        payload.cnpj_prestador = cnpjLimpo;
+        payload.codigo_municipio_emissora = config.codigo_municipio?.replace(/\D/g, '');
+        
+        // 2. Cabeçalho do XML Nacional (ORDEM CRÍTICA)
+        payload.tpAmb = config.ambiente === 'producao' ? 1 : 2;
+        payload.dhEmi = agora.split('.')[0] + 'Z'; // Formato ISO sem milissegundos
+        payload.dCompet = agora.split('T')[0];
+        
+        // 3. Prestador
+        payload.prest = {
+            CNPJ: cnpjLimpo,
+            IM: config.inscricao_municipal,
+            xNome: config.razao_social,
+            regTrib: config.optante_simples_nacional ? 1 : 3 
+        };
+        
+        // 4. Tomador
+        payload.toma = {
+            [cpfTomador?.length === 14 ? 'CNPJ' : 'CPF']: cpfTomador,
+            xNome: tutor.nome,
+            end: {
+                logradouro: tutor.endereco?.logradouro || 'Sem Rua',
+                num: tutor.endereco?.numero || 'SN',
+                bairro: tutor.endereco?.bairro || 'Sem Bairro',
+                cMun: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
+                CEP: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
+                UF: tutor.endereco?.uf || config.uf
             }
         };
+        
+        // 5. Serviço
+        payload.serv = {
+            cServ: config.item_lista_servico,
+            xDesc: servico.descricao,
+            vServ: {
+                vServ: valorFormatado
+            }
+        };
+
+        return payload;
     }
 
     // PADRÃO TRADICIONAL FOCUS NFE (/nfse)
