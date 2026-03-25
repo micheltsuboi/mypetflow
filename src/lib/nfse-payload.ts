@@ -55,7 +55,8 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     if (isNacional) {
         // Helper: data no formato ISO8601 COM timezone sem ":" (ex: -0300)
         // Focus NFe NFSen exige esse formato exato. Nem "Z", nem "-03:00"!
-        const d = new Date();
+        // Subtraímos 10 minutos para evitar o erro "Data de emissão posterior à data de processamento"
+        const d = new Date(Date.now() - 10 * 60 * 1000);
         const pad = (n: number) => String(n).padStart(2, '0');
         const offset = -d.getTimezoneOffset(); // Offset em minutos
         const sign = offset >= 0 ? '+' : '-';
