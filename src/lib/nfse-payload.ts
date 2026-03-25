@@ -35,68 +35,57 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const agora = new Date().toISOString(); 
 
     if (isNacional) {
-        // Objeto de retorno construído manualmente para garantir a ordem das chaves do JS para o JSON
-        const payload: any = {};
-        
-        // 1. Parâmetros de roteamento Focus (Raiz)
-        payload.ref = `petflow_${ref_uuid}`;
-        payload.cnpj_prestador = cnpjLimpo;
-        payload.codigo_municipio_emissora = config.codigo_municipio?.replace(/\D/g, '');
-        
-        // Helper para data no formato xs:dateTime do SPED (YYYY-MM-DDThh:mm:ss-03:00)
+        // ================================================================
+        // PADRÃO NACIONAL (Curitiba) — Endpoint /v2/nfsen da Focus NFe
+        // Documentação: https://focusnfe.com.br/doc/#nfse-nacional
+        // IMPORTANTE: Os campos aqui são da API da Focus NFe, NÃO os campos
+        // XML/SPED. A Focus converte internamente para o XML obrigatório.
+        // ================================================================
+
+        // Formatar data no padrão aceito pela Focus para NFSen: YYYY-MM-DDThh:mm:ss-0300
         const d = new Date();
         const pad = (n: number) => String(n).padStart(2, '0');
         const offset = -d.getTimezoneOffset();
         const sign = offset >= 0 ? '+' : '-';
-        const tz = sign + pad(Math.floor(Math.abs(offset) / 60)) + ':' + pad(Math.abs(offset) % 60);
-        const dataEmissaoSPED = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + tz;
-        
-        // 2. Cabeçalho do XML Nacional (ORDEM CRÍTICA)
-        payload.tpAmb = config.ambiente === 'producao' ? 1 : 2;
-        payload.dhEmi = dataEmissaoSPED; // xs:dateTime (Ex: 2024-03-24T15:30:00-03:00)
-        payload.dCompet = dataEmissaoSPED.split('T')[0];
-        
-        // 3. Prestador - Completo com Endereço (Obrigatório SPED)
-        payload.prest = {
-            CNPJ: cnpjLimpo,
-            IM: config.inscricao_municipal,
-            xNome: config.razao_social,
-            end: {
-                xLgr: 'Rua do Estabelecimento', // Placaholder exigido pelo schema
-                nro: 'S/N',
-                xBairro: 'Bairro',
-                cMun: config.codigo_municipio?.replace(/\D/g, ''),
-                CEP: config.cep?.replace(/\D/g, ''),
-                UF: config.uf
-            },
-            regTrib: config.optante_simples_nacional ? 1 : 3 
-        };
-        
-        // 4. Tomador
-        payload.toma = {
-            [cpfTomador?.length === 14 ? 'CNPJ' : 'CPF']: cpfTomador,
-            xNome: tutor.nome,
-            end: {
-                xLgr: tutor.endereco?.logradouro || 'Sem Rua',
-                nro: tutor.endereco?.numero || 'SN',
-                xBairro: tutor.endereco?.bairro || 'Sem Bairro',
-                cMun: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
-                CEP: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
-                UF: tutor.endereco?.uf || config.uf
-            }
-        };
-        
-        // 5. Serviço ('cServ' pode vir do módulo ou pegar o configurado globalmente)
-        payload.serv = {
-            cServ: servico.codigo?.replace(/\D/g, '') || config.item_lista_servico?.replace(/\D/g, ''),
-            xDesc: servico.descricao,
-            vServ: {
-                vServ: valorFormatado
-            }
-        };
+        const tzHours = pad(Math.floor(Math.abs(offset) / 60));
+        const tzMins = pad(Math.abs(offset) % 60);
+        // Focus NFen usa timezone SEM ":" (ex: -0300, não -03:00)
+        const tz = sign + tzHours + tzMins;
+        const dataEmissao = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + tz;
+        const dataCompetencia = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
 
-        return payload;
+        // Código de serviço: formato da CBNSS nacional (ex: "010701" para serviços veterinários)
+        // O código passado do módulo é "08.02" → limpar para "0802" → formatar como nacional "080200"
+        const codigoServicoBruto = servico.codigo || config.item_lista_servico || '080200';
+        const codigoServicoNacional = codigoServicoBruto.replace(/\D/g, '').padEnd(6, '0');
+
+        return {
+            ref: `petflow_${ref_uuid}`,
+            // --- Campos de roteamento (raiz) ---
+            cnpj_prestador: cnpjLimpo,
+            codigo_municipio_emissora: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
+            // --- Identificação do DPS ---
+            data_emissao: dataEmissao,
+            data_competencia: dataCompetencia,
+            serie_dps: 1,
+            emitente_dps: 1, // 1 = Prestador
+            // --- Local de prestação ---
+            codigo_municipio_prestacao: parseInt(config.codigo_municipio?.replace(/\D/g, '') || '0'),
+            // --- Tomador ---
+            ...(cpfTomador && cpfTomador.length === 14
+                ? { cnpj_tomador: cpfTomador }
+                : { cpf_tomador: cpfTomador || undefined }
+            ),
+            razao_social_tomador: tutor.nome,
+            ...(tutor.email ? { email_tomador: tutor.email } : {}),
+            // --- Serviço ---
+            codigo_tributacao_nacional_iss: codigoServicoNacional,
+            descricao_servico: servico.descricao,
+            valor_servico: parseFloat(valorFormatado),
+            tributacao_iss: 1, // 1 = Tributável no município
+        };
     }
+
 
     // PADRÃO TRADICIONAL FOCUS NFE (/nfse)
     const valorIss = (servico.valor * (config.aliquota_iss / 100)).toFixed(2);
