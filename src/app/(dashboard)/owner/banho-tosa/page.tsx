@@ -334,7 +334,8 @@ export default function BanhoTosaPage() {
                                                             } : undefined,
                                                             servico: {
                                                                 descricao: appt.services?.name || 'Serviço de Banho e Tosa',
-                                                                valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0
+                                                                valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                                codigo: '0508'
                                                             }
                                                         })
                                                         setShowNFModal(true)

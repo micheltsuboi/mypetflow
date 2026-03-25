@@ -23,6 +23,7 @@ import { getVeterinarians, startConsultation } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import PaymentControls from '@/components/PaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
+import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'
 import DateInput from '@/components/ui/DateInput'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
@@ -153,6 +154,7 @@ function AgendaContent() {
     const [selectedConsultation, setSelectedConsultation] = useState<any | null>(null)
     const [showConsultationModal, setShowConsultationModal] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
+    const [showNFModal, setShowNFModal] = useState(false)
 
     // Checklist State
     const [currentChecklist, setCurrentChecklist] = useState<any[]>([])
@@ -637,6 +639,31 @@ function AgendaContent() {
                     onUpdate={() => fetchData()}
                     compact
                 />
+
+                {appt.payment_status === 'paid' && (
+                    <button 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedAppointment(appt);
+                            setShowNFModal(true);
+                        }}
+                        style={{
+                            marginTop: '0.5rem',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            border: '1px solid #1e293b',
+                            background: '#0f172a',
+                            color: '#e2e8f0',
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}
+                    >
+                        📄 NFSe
+                    </button>
+                )}
 
                 <div className={styles.quickActions} style={{ marginTop: '1rem' }}>
                     {!appt.actual_check_in && categoryName !== 'Clínica Veterinária' && (
@@ -1429,6 +1456,35 @@ function AgendaContent() {
                             fetchData()
                         }}
                         onSave={() => fetchData()}
+                    />
+                )}
+
+                {showNFModal && selectedAppointment && (
+                    <EmitirNFModal
+                        tipo="nfse"
+                        origemTipo="atendimento"
+                        refId={selectedAppointment.id}
+                        total_amount={selectedAppointment.final_price || selectedAppointment.calculated_price || 0}
+                        tutor={selectedAppointment.pets?.customers ? {
+                            nome: selectedAppointment.pets.customers.name,
+                            cpf: (selectedAppointment.pets.customers as any).cpf_cnpj,
+                            email: (selectedAppointment.pets.customers as any).email,
+                            endereco: {
+                             logradouro: (selectedAppointment.pets.customers as any).address || '',
+                             bairro: (selectedAppointment.pets.customers as any).neighborhood || '',
+                             codigo_municipio: (selectedAppointment.pets.customers as any).city || ''
+                            }
+                        } : undefined}
+                        servico={{
+                            descricao: selectedAppointment.services?.name || 'Serviço Veterinário/Pet',
+                            valor: selectedAppointment.final_price || selectedAppointment.calculated_price || 0,
+                            codigo: (selectedAppointment.services as any)?.service_categories?.name === 'Clínica Veterinária' ? '0701' : '0508'
+                        }}
+                        onClose={() => setShowNFModal(false)}
+                        onSuccess={() => {
+                            setShowNFModal(false)
+                            fetchData()
+                        }}
                     />
                 )}
             </div >

@@ -75,7 +75,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         
         if (rawCode.startsWith('0701')) {
             codigoServicoNacional = '050101'; // Medicina Veterinária
-        } else if (rawCode.startsWith('0508') || rawCode.startsWith('0403')) {
+        } else if (rawCode.startsWith('0508') || rawCode.startsWith('0403') || rawCode.startsWith('0802')) {
             codigoServicoNacional = '050801'; // Banho, Tosa, Embelezamento, Alojamento
         }
         
@@ -109,7 +109,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
 
             // --- Dados do Prestador (prest) ---
             // NUNCA omitir ou a Focus gera <prest> vazio que falha o schema
-            inscricao_municipal_prestador: config.inscricao_municipal,    // → IM
+            // Mas para Curitiba Nacional (E0120), a IM deve ser omitida se não houver registros complementares
             razao_social_prestador: config.razao_social,                  // → xNome
             // Endereço do prestador: xLgr (logradouro), nro (número), xBairro (bairro) são obrigatórios no padrão Nacional
             logradouro_prestador: config.municipio || 'Curitiba',
