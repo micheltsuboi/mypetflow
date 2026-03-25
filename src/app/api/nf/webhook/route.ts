@@ -6,6 +6,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
  * Configure esta URL no painel da Focus NFe em: 
  * Configurações -> Webhooks -> NFSe
  * Ex: https://seudominio.com.br/api/nf/webhook
+ * Trigger Deploy: v1.0.2
  */
 export async function POST(req: NextRequest) {
     try {
