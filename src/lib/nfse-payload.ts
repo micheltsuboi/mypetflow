@@ -43,10 +43,18 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         payload.cnpj_prestador = cnpjLimpo;
         payload.codigo_municipio_emissora = config.codigo_municipio?.replace(/\D/g, '');
         
+        // Helper para data no formato xs:dateTime do SPED (YYYY-MM-DDThh:mm:ss-03:00)
+        const d = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const offset = -d.getTimezoneOffset();
+        const sign = offset >= 0 ? '+' : '-';
+        const tz = sign + pad(Math.floor(Math.abs(offset) / 60)) + ':' + pad(Math.abs(offset) % 60);
+        const dataEmissaoSPED = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + tz;
+        
         // 2. Cabeçalho do XML Nacional (ORDEM CRÍTICA)
         payload.tpAmb = config.ambiente === 'producao' ? 1 : 2;
-        payload.dhEmi = agora.split('.')[0] + 'Z'; // Formato ISO sem milissegundos
-        payload.dCompet = agora.split('T')[0];
+        payload.dhEmi = dataEmissaoSPED; // xs:dateTime (Ex: 2024-03-24T15:30:00-03:00)
+        payload.dCompet = dataEmissaoSPED.split('T')[0];
         
         // 3. Prestador - Completo com Endereço (Obrigatório SPED)
         payload.prest = {
