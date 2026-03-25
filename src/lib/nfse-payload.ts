@@ -31,15 +31,22 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const valorIss = (servico.valor * (config.aliquota_iss / 100)).toFixed(2);
     const valorFormatado = servico.valor.toFixed(2);
 
-    return {
+    const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902';
+    const cnpjLimpo = config.cnpj?.replace(/\D/g, '');
+    const cpfTomador = tutor.cpf?.replace(/\D/g, '') || undefined;
+
+    const payload: any = {
         ref: `petflow_${ref_uuid}`,
-        prestador: {
-            cnpj: config.cnpj?.replace(/\D/g, ''),
+        prestador: isNacional ? {
+            cnpj_prestador: cnpjLimpo,
+            inscricao_municipal: config.inscricao_municipal,
+            codigo_municipio: config.codigo_municipio
+        } : {
+            cnpj: cnpjLimpo,
             inscricao_municipal: config.inscricao_municipal,
             codigo_municipio: config.codigo_municipio
         },
         tomador: {
-            cpf: tutor.cpf?.replace(/\D/g, '') || undefined,
             razao_social: tutor.nome,
             email: tutor.email || undefined,
             endereco: tutor.endereco ? {
@@ -70,5 +77,13 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         data_emissao: new Date().toISOString(),
         natureza_operacao: "1", // 1 - Tributação no município
         optante_simples_nacional: config.optante_simples_nacional ? "true" : "false"
+    };
+
+    if (isNacional) {
+        payload.tomador.cpf_tomador = cpfTomador;
+    } else {
+        payload.tomador.cpf = cpfTomador;
     }
+
+    return payload;
 }

@@ -331,7 +331,43 @@ export default function BanhoTosaPage() {
                                                     }
                                                 }}
                                                 compact
-                                            />
+                                             />
+                                             {appt.payment_status === 'paid' && (
+                                                <button
+                                                  onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setCheckoutNFData({
+                                                          id: appt.id,
+                                                          total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                          tutor: appt.pets?.customers ? {
+                                                              nome: (appt.pets.customers as any).name,
+                                                              cpf: (appt.pets.customers as any).cpf_cnpj,
+                                                          } : undefined,
+                                                          servico: {
+                                                              descricao: appt.services?.name || 'Serviço de Banho e Tosa',
+                                                              valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0
+                                                          }
+                                                      });
+                                                      setShowNFModal(true);
+                                                  }}
+                                                  style={{
+                                                      background: 'rgba(16, 185, 129, 0.1)',
+                                                      color: '#10B981',
+                                                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                      padding: '2px 8px',
+                                                      borderRadius: '4px',
+                                                      fontSize: '0.7rem',
+                                                      fontWeight: 600,
+                                                      cursor: 'pointer',
+                                                      marginTop: '4px',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px'
+                                                  }}
+                                                >
+                                                  🧾 Emitir NF
+                                                </button>
+                                             )}
                                             <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                                 🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
