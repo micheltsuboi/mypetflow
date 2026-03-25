@@ -19,7 +19,9 @@ export async function POST(req: NextRequest) {
             serie, 
             chave_nfe, 
             caminho_xml, 
+            caminho_xml_nota_fiscal,
             caminho_pdf,
+            caminho_danfe,
             mensagem_sefaz 
         } = body
 
@@ -48,8 +50,8 @@ export async function POST(req: NextRequest) {
                 numero_nf: numero || null,
                 serie: serie || null,
                 chave_nf: chave_nfe || null,
-                caminho_xml: caminho_xml || null,
-                caminho_pdf: caminho_pdf || null,
+                caminho_xml: caminho_xml || caminho_xml_nota_fiscal || null,
+                caminho_pdf: caminho_pdf || caminho_danfe || null,
                 mensagem_sefaz: mensagem_sefaz || null,
                 retorno_focus: body,
                 updated_at: new Date().toISOString()

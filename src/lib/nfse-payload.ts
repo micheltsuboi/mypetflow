@@ -56,9 +56,9 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
         // Helper: data no formato ISO8601 COM timezone sem ":" (ex: -0300)
         // Focus NFe NFSen exige esse formato exato. Nem "Z", nem "-03:00"!
         // Subtraímos 10 minutos para evitar o erro "Data de emissão posterior à data de processamento"
-        // Forçar fuso horário de Brasília (-0300) para evitar erros de data futura no governo
-        // Data atual em milissegundos UTC - 3h (Brasília) - 15m (margem de segurança)
-        const d = new Date(Date.now() - (3 * 60 * 60 * 1000) - (15 * 60 * 1000));
+        // Forçar fuso horário de Brasília (-0300) e subtrair 1 HORA para segurança total contra E0008
+        // Alguns servidores de prefeitura/nacional têm atrasos significativos de sincronia.
+        const d = new Date(Date.now() - (3 * 60 * 60 * 1000) - (60 * 60 * 1000)); 
         const pad = (n: number) => String(n).padStart(2, '0');
         const tz = "-0300"; // Padrão Brasilia
         const dataEmissao = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${tz}`;
