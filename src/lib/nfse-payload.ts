@@ -27,50 +27,58 @@ export interface NFSeBuilderParams {
  * Builds the payload for Focus NFe API for NFSe
  */
 export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuilderParams) {
-    const valorIss = (servico.valor * (config.aliquota_iss / 100)).toFixed(2);
     const valorFormatado = servico.valor.toFixed(2);
     const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902';
     const cnpjLimpo = config.cnpj?.replace(/\D/g, '');
     const cpfTomador = tutor.cpf?.replace(/\D/g, '') || undefined;
-    
-    // Padrão Nacional (NFSen) exige data no formato ISO completo com fuso
     const agora = new Date().toISOString(); 
-    const dataCompetencia = agora.split('T')[0]; // YYYY-MM-DD
 
     if (isNacional) {
-        // ESTRUTURA RIGOROSA NFSe NACIONAL (CURITIBA)
+        // ESTRUTURA OFICIAL FOCUS NFE PARA PADRÃO NACIONAL (/nfsen)
+        // Referência: https://focusnfe.com.br/e/nfse-nacional
         return {
             ref: `petflow_${ref_uuid}`,
-            data_emissao: agora,
-            data_competencia: dataCompetencia,
-            cnpj_prestador: cnpjLimpo,
-            codigo_municipio_emissora: config.codigo_municipio,
-            tomador: {
-                cpf_cnpj_tomador: cpfTomador,
-                razao_social: tutor.nome,
-                email: tutor.email || undefined,
-                endereco: {
+            tpAmb: config.ambiente === 'producao' ? 1 : 2,
+            dhEmi: agora,
+            dCompet: agora.split('T')[0],
+            prest: {
+                CNPJ: cnpjLimpo,
+                IM: config.inscricao_municipal,
+                xNome: config.razao_social,
+                end: {
+                    logradouro: 'Rua de Teste', // Placeholder ou buscar da config se existisse
+                    numero: 'SN',
+                    bairro: 'Bairro',
+                    codigo_municipio: config.codigo_municipio?.replace(/\D/g, ''),
+                    cep: config.cep?.replace(/\D/g, ''),
+                    uf: config.uf
+                },
+                regTrib: config.optante_simples_nacional ? 1 : 3 
+            },
+            toma: {
+                [cpfTomador?.length === 14 ? 'CNPJ' : 'CPF']: cpfTomador,
+                xNome: tutor.nome,
+                end: {
                     logradouro: tutor.endereco?.logradouro || 'Sem Rua',
-                    numero: tutor.endereco?.numero || 'SN',
+                    num: tutor.endereco?.numero || 'SN',
                     bairro: tutor.endereco?.bairro || 'Sem Bairro',
-                    codigo_municipio: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
-                    cep: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
-                    uf: tutor.endereco?.uf || config.uf
+                    cMun: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
+                    CEP: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
+                    UF: tutor.endereco?.uf || config.uf
                 }
             },
-            servico: {
-                aliquota: config.aliquota_iss.toFixed(2),
-                base_calculo: valorFormatado,
-                discriminacao: servico.descricao,
-                iss_retido: false,
-                item_lista_servico: config.item_lista_servico,
-                valor_iss: valorIss,
-                valor_servicos: valorFormatado
+            serv: {
+                cServ: config.item_lista_servico,
+                xDesc: servico.descricao,
+                vServ: {
+                    vServ: valorFormatado
+                }
             }
         };
     }
 
-    // PADRÃO TRADICIONAL (OUTRAS CIDADES)
+    // PADRÃO TRADICIONAL FOCUS NFE (/nfse)
+    const valorIss = (servico.valor * (config.aliquota_iss / 100)).toFixed(2);
     return {
         ref: `petflow_${ref_uuid}`,
         data_emissao: agora,
