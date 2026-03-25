@@ -74,6 +74,18 @@ export default function NotaFiscalList({ notas }: Props) {
                                         )}
                                     </>
                                 )}
+                                {nota.status === 'processando' && (
+                                    <button 
+                                        onClick={async () => {
+                                            const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
+                                            if (res.ok) window.location.reload()
+                                        }}
+                                        className={styles.actionButton}
+                                        style={{ backgroundColor: 'var(--primary-main)', color: 'white' }}
+                                    >
+                                        🔄 Sincronizar
+                                    </button>
+                                )}
                                 {nota.status === 'erro' && nota.mensagem_sefaz && (
                                     <div className={styles.errorBox} title={nota.mensagem_sefaz}>
                                         ⚠️ Ver Erro

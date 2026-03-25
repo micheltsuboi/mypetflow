@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
             caminho_xml_nota_fiscal,
             caminho_pdf,
             caminho_danfe,
-            mensagem_sefaz 
+            url_danfse,
+            mensagem_sefaz,
+            errors
         } = body
 
         if (!ref) {
@@ -51,8 +53,8 @@ export async function POST(req: NextRequest) {
                 serie: serie || null,
                 chave_nf: chave_nfe || null,
                 caminho_xml: caminho_xml || caminho_xml_nota_fiscal || null,
-                caminho_pdf: caminho_pdf || caminho_danfe || null,
-                mensagem_sefaz: mensagem_sefaz || null,
+                caminho_pdf: caminho_pdf || caminho_danfe || url_danfse || null,
+                mensagem_sefaz: mensagem_sefaz || (errors && errors.length > 0 ? errors[0].mensagem : null),
                 retorno_focus: body,
                 updated_at: new Date().toISOString()
             })
