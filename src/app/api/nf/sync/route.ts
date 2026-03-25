@@ -61,10 +61,13 @@ export async function GET(req: NextRequest) {
             .update({
                 status: internalStatus,
                 numero_nf: focusData.numero || null,
+                serie: focusData.serie || null,
                 chave_nf: focusData.chave_nfe || null,
                 caminho_xml: focusData.caminho_xml || focusData.caminho_xml_nota_fiscal || null,
                 caminho_pdf: focusData.caminho_pdf || focusData.caminho_danfe || focusData.url_danfse || null,
-                mensagem_sefaz: focusData.mensagem_sefaz || (errors.length > 0 ? errors[0].mensagem : null),
+                mensagem_sefaz: focusData.mensagem_sefaz || focusData.mensagem ||
+                               (errors && errors.length > 0 ? errors[0].mensagem : null) ||
+                               (focusData.erros && focusData.erros.length > 0 ? focusData.erros[0] : null),
                 retorno_focus: focusData,
                 updated_at: new Date().toISOString()
             })
