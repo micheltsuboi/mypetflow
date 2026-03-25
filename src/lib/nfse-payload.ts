@@ -34,10 +34,14 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const agora = new Date().toISOString(); 
 
     if (isNacional) {
-        // ESTRUTURA OFICIAL FOCUS NFE PARA PADRÃO NACIONAL (/nfsen)
-        // Referência: https://focusnfe.com.br/e/nfse-nacional
+        // ESTRUTURA HÍBRIDA FOCUS NFE NACIONAL (/nfsen)
+        // Para evitar o erro "Parâmetro obrigatório não informado", 
+        // incluímos tanto na raiz quanto nos objetos internos.
         return {
             ref: `petflow_${ref_uuid}`,
+            cnpj_prestador: cnpjLimpo, // Essencial para evitar o erro enviado pelo usuário
+            cpf_cnpj_tomador: cpfTomador,
+            codigo_municipio_emissora: config.codigo_municipio,
             tpAmb: config.ambiente === 'producao' ? 1 : 2,
             dhEmi: agora,
             dCompet: agora.split('T')[0],
@@ -46,17 +50,17 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                 IM: config.inscricao_municipal,
                 xNome: config.razao_social,
                 end: {
-                    logradouro: 'Rua de Teste', // Placeholder ou buscar da config se existisse
-                    numero: 'SN',
+                    logradouro: 'Rua da Empresa', 
+                    num: 'SN',
                     bairro: 'Bairro',
-                    codigo_municipio: config.codigo_municipio?.replace(/\D/g, ''),
-                    cep: config.cep?.replace(/\D/g, ''),
-                    uf: config.uf
+                    cMun: config.codigo_municipio?.replace(/\D/g, ''),
+                    CEP: config.cep?.replace(/\D/g, ''),
+                    UF: config.uf
                 },
                 regTrib: config.optante_simples_nacional ? 1 : 3 
             },
             toma: {
-                [cpfTomador?.length === 14 ? 'CNPJ' : 'CPF']: cpfTomador,
+                cpf_cnpj_tomador: cpfTomador, // Repetido aqui por segurança
                 xNome: tutor.nome,
                 end: {
                     logradouro: tutor.endereco?.logradouro || 'Sem Rua',
