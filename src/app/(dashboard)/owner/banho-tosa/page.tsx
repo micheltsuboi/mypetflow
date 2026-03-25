@@ -91,7 +91,10 @@ export default function BanhoTosaPage() {
                     calculated_price, checklist,
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
-                    pets ( name, species, breed, customers ( name ) ),
+                    pets ( 
+                        name, species, breed, 
+                        customers ( id, name, cpf_cnpj, address, neighborhood, city, email ) 
+                    ),
                     services!inner ( 
                         name, 
                         base_price,
@@ -321,6 +324,13 @@ export default function BanhoTosaPage() {
                                                             total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                             tutor: appt.pets?.customers ? {
                                                                 nome: appt.pets.customers.name,
+                                                                cpf: (appt.pets.customers as any).cpf_cnpj,
+                                                                email: (appt.pets.customers as any).email || undefined,
+                                                                endereco: {
+                                                                    logradouro: (appt.pets.customers as any).address || '',
+                                                                    bairro: (appt.pets.customers as any).neighborhood || '',
+                                                                    codigo_municipio: (appt.pets.customers as any).city || ''
+                                                                }
                                                             } : undefined,
                                                             servico: {
                                                                 descricao: appt.services?.name || 'Serviço de Banho e Tosa',
@@ -342,6 +352,12 @@ export default function BanhoTosaPage() {
                                                           tutor: appt.pets?.customers ? {
                                                               nome: (appt.pets.customers as any).name,
                                                               cpf: (appt.pets.customers as any).cpf_cnpj,
+                                                              email: (appt.pets.customers as any).email || undefined,
+                                                              endereco: {
+                                                                  logradouro: (appt.pets.customers as any).address || '',
+                                                                  bairro: (appt.pets.customers as any).neighborhood || '',
+                                                                  codigo_municipio: (appt.pets.customers as any).city || ''
+                                                              }
                                                           } : undefined,
                                                           servico: {
                                                               descricao: appt.services?.name || 'Serviço de Banho e Tosa',

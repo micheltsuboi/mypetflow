@@ -88,7 +88,7 @@ export default function HospedagemPage() {
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
-                    pets ( name, species, breed, customers ( name, cpf_cnpj ) ),
+                    pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email ) ),
                     services!inner ( 
                         name, 
                         base_price,
@@ -493,7 +493,13 @@ export default function HospedagemPage() {
                         }}
                         tutor={{
                             nome: nfAppointment.pets?.customers?.name || 'Cliente',
-                            cpf: (nfAppointment.pets?.customers as any)?.cpf_cnpj
+                            cpf: (nfAppointment.pets?.customers as any)?.cpf_cnpj,
+                            email: (nfAppointment.pets?.customers as any)?.email,
+                            endereco: {
+                                logradouro: (nfAppointment.pets?.customers as any)?.address || '',
+                                bairro: (nfAppointment.pets?.customers as any)?.neighborhood || '',
+                                codigo_municipio: (nfAppointment.pets?.customers as any)?.city || ''
+                            }
                         }}
                     />
                 )}
