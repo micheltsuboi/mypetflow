@@ -14,7 +14,18 @@ export async function GET(req: NextRequest) {
     try {
         const supabase = createAdminClient()
 
-        // 1. Buscar configuração fiscal da org
+        // 1. Buscar nota fiscal para saber o tipo
+        const { data: nota, error: notaError } = await supabase
+            .from('notas_fiscais')
+            .select('tipo')
+            .eq('referencia', ref)
+            .single()
+
+        if (notaError || !nota) {
+            return NextResponse.json({ error: 'Nota fiscal não encontrada no banco de dados.' }, { status: 404 })
+        }
+
+        // 2. Buscar configuração fiscal da org
         const { data: config, error: configError } = await supabase
             .from('fiscal_config')
             .select('*')
@@ -25,25 +36,20 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Configuração fiscal não encontrada.' }, { status: 404 })
         }
 
-        // 2. Consultar na Focus NFe
-        // Decidir se usa endpoint Nacional ou Legado baseado no código do município
-        const isNacional = config.codigo_municipio === '4106902' // Curitiba
-        const token = config.ambiente === 'producao' ? config.token_producao : config.token_homologacao
+        // 3. Consultar na Focus NFe usando o Service
+        const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902' // Curitiba
+        const env = config.ambiente as 'homologacao' | 'producao'
+        const token = env === 'producao' ? config.token_producao : config.token_homologacao
         if (!token) throw new Error('Token Focus não configurado.')
         
-        const response = await fetch(
-            `https://api.focusnfe.com.br/v2/${isNacional ? 'nfsen' : 'nfse'}/${ref}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Basic ${Buffer.from(token + ':').toString('base64')}`
-                }
-            }
-        )
-
-        const focusData = await response.json()
+        let focusData;
+        if (nota.tipo === 'nfse') {
+            focusData = await FocusNfeApi.consultarNfse(ref, env, token, isNacional)
+        } else {
+            focusData = await FocusNfeApi.consultarNfe(ref, env, token)
+        }
         
-        // 3. Mapear status
+        // 4. Mapear status logicamente baseando-se no retorno da Focus
         let internalStatus = 'processando'
         if (focusData.status === 'autorizado') {
             internalStatus = 'autorizado'

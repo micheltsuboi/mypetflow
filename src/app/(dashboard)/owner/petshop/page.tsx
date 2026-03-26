@@ -29,6 +29,10 @@ interface TutorSearchResult {
     id: string
     name: string
     cpf: string | null
+    cpf_cnpj: string | null
+    address: string | null
+    neighborhood: string | null
+    city: string | null
     pets: { id: string, name: string, species: string }[]
 }
 
@@ -252,7 +256,12 @@ export default function PetshopPage() {
                 total_amount: cartTotals.finalTotal,
                 tutor: selectedTutor ? {
                     nome: selectedTutor.name,
-                    cpf: selectedTutor.cpf || undefined
+                    cpf: selectedTutor.cpf_cnpj || selectedTutor.cpf || undefined,
+                    endereco: {
+                        logradouro: selectedTutor.address || undefined,
+                        bairro: selectedTutor.neighborhood || undefined,
+                        city: selectedTutor.city || undefined
+                    }
                 } : undefined,
                 produtos: nfeProducts
             })

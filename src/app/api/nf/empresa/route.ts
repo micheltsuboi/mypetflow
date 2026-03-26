@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
             inscricao_municipal: empresa.inscricao_municipal,
             inscricao_estadual: empresa.inscricao_estadual,
             regime_tributario: Number(empresa.regime_tributario || 1),
-            optante_simples_nacional: true,
+            optante_simples_nacional: Number(empresa.regime_tributario) === 1 || Number(empresa.regime_tributario) === 2 || Number(empresa.regime_tributario) === 4,
             codigo_municipio: empresa.codigo_municipio,
             municipio: empresa.municipio,
             uf: empresa.uf,

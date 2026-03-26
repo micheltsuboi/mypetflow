@@ -5,6 +5,7 @@ import styles from './ConsultationModal.module.css'
 import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOrganizationLogo } from '@/app/actions/veterinary'
 import BodyMap from './BodyMap'
 import DateInput from '../ui/DateInput'
+import EmitirNFModal from '../EmitirNFModal'
 
 interface ConsultationModalProps {
     consultation: any
@@ -18,6 +19,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const [vets, setVets] = useState<any[]>([])
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
+    const [showNFModal, setShowNFModal] = useState(false)
     const autosaveTimer = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
@@ -361,10 +363,47 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                 <div className={styles.footer}>
                     {!readOnly && <p className={styles.hint}>Os dados são salvos automaticamente conforme você digita. ☁️</p>}
                     <div className={styles.footerBtns}>
+                        {!readOnly && (
+                            <button 
+                                className={styles.nfBtn} 
+                                style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                onClick={() => setShowNFModal(true)}
+                            >
+                                📄 Emitir Nota Fiscal
+                            </button>
+                        )}
                         <button className={styles.saveBtn} onClick={onClose}>{readOnly ? 'Fechar' : 'Salvar e Sair'}</button>
                         {!readOnly && <button className={styles.finishBtn} onClick={handleFinish}>Finalizar Consulta</button>}
                     </div>
                 </div>
+
+                {showNFModal && (
+                    <EmitirNFModal
+                        tipo="nfse"
+                        origemTipo="atendimento"
+                        refId={consultation.id}
+                        total_amount={formData.consultation_fee || 0}
+                        tutor={{
+                            nome: consultation.pets?.customers?.name || 'Cliente não identificado',
+                            cpf: consultation.pets?.customers?.cpf_cnpj || consultation.pets?.customers?.cpf || undefined,
+                            email: consultation.pets?.customers?.email || undefined,
+                            endereco: {
+                                logradouro: consultation.pets?.customers?.address || undefined,
+                                bairro: consultation.pets?.customers?.neighborhood || undefined,
+                                city: consultation.pets?.customers?.city || undefined
+                            }
+                        }}
+                        servico={{
+                            descricao: `Consulta Veterinária - Pet: ${consultation.pets?.name}`,
+                            valor: formData.consultation_fee || 0
+                        }}
+                        onClose={() => setShowNFModal(false)}
+                        onSuccess={(status) => {
+                            alert(`Nota Fiscal solicitada! Status: ${status}`)
+                            setShowNFModal(false)
+                        }}
+                    />
+                )}
             </div>
         </div>
     )

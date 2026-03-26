@@ -134,8 +134,11 @@ export const FocusNfeApi = {
   /**
    * Consultar NFSe
    */
-  async consultarNfse(ref: string, env: FocusEnv, token: string) {
-    const url = `${getBaseUrl(env)}/nfse/${encodeURIComponent(ref)}`;
+  async consultarNfse(ref: string, env: FocusEnv, token: string, isNacional: boolean = false) {
+    const url = isNacional 
+      ? (env === 'producao' ? FOCUS_PRODUCAO_NACIONAL : FOCUS_HOMOLOGACAO_NACIONAL) + `/${encodeURIComponent(ref)}`
+      : `${getBaseUrl(env)}/nfse/${encodeURIComponent(ref)}`;
+      
     const response = await fetch(url, {
       method: 'GET',
       headers: { 'Authorization': getAuthHeader(token) }

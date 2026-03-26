@@ -119,8 +119,9 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             codigo_municipio_prestador: codigoIBGE,
             // Adicionando nro_prestador como redundância caso o parser da Focus varie
             nro_prestador: 'SN',
-            // Regime tributário do prestador
-            codigo_opcao_simples_nacional: config.optante_simples_nacional ? 1 : 2, // 1=Não Optante, 2=Optante MEI/ME
+            // Regime tributário do prestador (1=Não Optante, 2=Optante MEI, 3=Optante ME/EPP)
+            codigo_opcao_simples_nacional: config.regime_tributario === 4 ? 2 : (config.optante_simples_nacional ? 3 : 1),
+            regime_tributario_simples_nacional: (config.optante_simples_nacional || config.regime_tributario === 4) ? 1 : undefined,
             regime_especial_tributacao: 0,           // 0=Nenhum (obrigatório pelo schema)
 
             // --- Local de prestação ---

@@ -160,7 +160,8 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
                                 <div className={styles.formGroup}>
                                     <label>Regime Tributário</label>
                                     <select className={styles.select} name="regime_tributario" value={formData.regime_tributario} onChange={handleChange}>
-                                        <option value="1">Simples Nacional</option>
+                                        <option value="1">Simples Nacional (ME/EPP)</option>
+                                        <option value="4">Simples Nacional (MEI)</option>
                                         <option value="2">Simples Nacional - Excesso de Sublimite</option>
                                         <option value="3">Regime Normal (Lucro Real ou Presumido)</option>
                                     </select>

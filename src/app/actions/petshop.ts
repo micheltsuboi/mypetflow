@@ -46,6 +46,10 @@ export async function searchTutorsForPDV(query: string) {
                 id,
                 name,
                 cpf,
+                cpf_cnpj,
+                address,
+                neighborhood,
+                city,
                 pets (
                     id,
                     name,
@@ -56,9 +60,9 @@ export async function searchTutorsForPDV(query: string) {
             .order('name')
             .limit(10)
 
-        // Se query não for vazia, buscar por ILIKE no nome ou cpf
+        // Se query não for vazia, buscar por ILIKE no nome, cpf ou cpf_cnpj
         if (query && query.trim() !== '') {
-            dbQuery = dbQuery.or(`name.ilike.%${query}%,cpf.ilike.%${query}%`)
+            dbQuery = dbQuery.or(`name.ilike.%${query}%,cpf.ilike.%${query}%,cpf_cnpj.ilike.%${query}%`)
         }
 
         const { data, error } = await dbQuery

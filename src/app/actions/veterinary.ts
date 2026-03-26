@@ -642,7 +642,7 @@ export async function getVetDashboardAppointments() {
             .from('appointments')
             .select(`
                 *,
-                pets (id, name, species, breed, customers (name)),
+                pets (id, name, species, breed, customers (id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1)),
                 services (id, name, base_price)
             `)
             .eq('service_category_id', category.id)
@@ -731,8 +731,13 @@ export async function startConsultation(appointmentId: string) {
         // Check if consultation record already exists for this appointment
         const { data: existing } = await supabase
             .from('vet_consultations')
-            .select('*')
-            .eq('appointment_id', appointmentId)
+            .select(`
+                *,
+                pets (
+                    id, name, species, breed,
+                    customers (id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1)
+                )
+            `)
             .maybeSingle()
 
         if (existing) {
@@ -754,7 +759,13 @@ export async function startConsultation(appointmentId: string) {
                 payment_method: appt.payment_method || 'cash',
                 created_by: user.id
             })
-            .select()
+            .select(`
+                *,
+                pets (
+                    id, name, species, breed,
+                    customers (id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1)
+                )
+            `)
             .single()
 
         if (insertError) throw insertError
