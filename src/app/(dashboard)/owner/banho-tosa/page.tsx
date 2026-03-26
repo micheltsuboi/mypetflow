@@ -63,6 +63,7 @@ export default function BanhoTosaPage() {
     // NFSe Emission State
     const [showNFModal, setShowNFModal] = useState(false)
     const [checkoutNFData, setCheckoutNFData] = useState<any>(null)
+    const [nfMap, setNfMap] = useState<Record<string, any>>({})
 
     const fetchBanhoTosaData = useCallback(async (isBackground = false) => {
         try {
@@ -135,7 +136,33 @@ export default function BanhoTosaPage() {
             if (error) {
                 console.error('Error fetching banho e tosa:', error)
             } else if (appts) {
-                setAppointments(appts as unknown as Appointment[])
+                const apptsTyped = appts as unknown as Appointment[]
+                setAppointments(apptsTyped)
+
+                // NOVO: Buscar Notas Fiscais para estes agendamentos
+                if (apptsTyped.length > 0) {
+                    const apptIds = apptsTyped.map(a => a.id)
+                    const { data: nfs } = await supabase
+                        .from('notas_fiscais')
+                        .select('id, status, caminho_pdf, origem_id, referencia')
+                        .in('origem_id', apptIds)
+                        .eq('origem_tipo', 'atendimento') // Banho e tosa usa tipo atendimento na emissão
+
+                    if (nfs) {
+                        // Mapear NFs para os agendamentos (vincular ao objeto no estado se necessário, 
+                        // ou manter um estado separado de NF map)
+                        setNfMap(current => {
+                            const newMap = { ...current }
+                            nfs.forEach(nf => {
+                                // Preferir o autorizado se houver múltiplos
+                                if (!newMap[nf.origem_id] || nf.status === 'autorizado') {
+                                    newMap[nf.origem_id] = nf
+                                }
+                            })
+                            return newMap
+                        })
+                    }
+                }
             }
 
         } catch (error) {
@@ -321,6 +348,7 @@ export default function BanhoTosaPage() {
                                                     if (appt.payment_status !== 'paid') {
                                                         setCheckoutNFData({
                                                             id: appt.id,
+                                                            petName: appt.pets?.name,
                                                             total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                             tutor: appt.pets?.customers ? {
                                                                 nome: appt.pets.customers.name,
@@ -343,49 +371,130 @@ export default function BanhoTosaPage() {
                                                 }}
                                                 compact
                                              />
-                                             {appt.payment_status === 'paid' && (
-                                                <button
-                                                onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setCheckoutNFData({
-                                                          id: appt.id,
-                                                          total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
-                                                          tutor: appt.pets?.customers ? {
-                                                              nome: (appt.pets.customers as any).name,
-                                                              cpf: (appt.pets.customers as any).cpf_cnpj,
-                                                              email: (appt.pets.customers as any).email || undefined,
-                                                              endereco: {
-                                                                  logradouro: (appt.pets.customers as any).address || '',
-                                                                  bairro: (appt.pets.customers as any).neighborhood || '',
-                                                                  codigo_municipio: (appt.pets.customers as any).city || ''
-                                                              }
-                                                          } : undefined,
-                                                          servico: {
-                                                              descricao: appt.services?.name || 'Serviço de Banho e Tosa',
-                                                              valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
-                                                              codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
-                                                          }
-                                                      });
-                                                      setShowNFModal(true);
-                                                  }}
-                                                  style={{
-                                                      background: 'rgba(16, 185, 129, 0.1)',
-                                                      color: '#10B981',
-                                                      border: '1px solid rgba(16, 185, 129, 0.2)',
-                                                      padding: '2px 8px',
-                                                      borderRadius: '4px',
-                                                      fontSize: '0.7rem',
-                                                      fontWeight: 600,
-                                                      cursor: 'pointer',
-                                                      marginTop: '4px',
-                                                      display: 'inline-flex',
-                                                      alignItems: 'center',
-                                                      gap: '4px'
-                                                  }}
-                                                >
-                                                  🧾 Emitir NF
-                                                </button>
-                                             )}
+                                              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                                   {appt.payment_status === 'paid' && !nfMap[appt.id] && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setCheckoutNFData({
+                                                                    id: appt.id,
+                                                                    petName: appt.pets?.name, // NOVO: Passando nome do pet
+                                                                    total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                                    tutor: appt.pets?.customers ? {
+                                                                        nome: (appt.pets.customers as any).name,
+                                                                        cpf: (appt.pets.customers as any).cpf_cnpj,
+                                                                        email: (appt.pets.customers as any).email || undefined,
+                                                                        endereco: {
+                                                                            logradouro: (appt.pets.customers as any).address || '',
+                                                                            bairro: (appt.pets.customers as any).neighborhood || '',
+                                                                            codigo_municipio: (appt.pets.customers as any).city || ''
+                                                                        }
+                                                                    } : undefined,
+                                                                    servico: {
+                                                                        descricao: appt.services?.name || 'Serviço de Banho e Tosa',
+                                                                        valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                                        codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
+                                                                    }
+                                                                });
+                                                                setShowNFModal(true);
+                                                            }}
+                                                            style={{
+                                                                background: 'rgba(16, 185, 129, 0.1)',
+                                                                color: '#10B981',
+                                                                border: '1px solid rgba(16, 185, 129, 0.2)',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: 600,
+                                                                cursor: 'pointer',
+                                                                marginTop: '4px',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '4px'
+                                                            }}
+                                                        >
+                                                            🧾 Emitir NF
+                                                        </button>
+                                                   )}
+
+                                                   {nfMap[appt.id] && (
+                                                       <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                                                           <span 
+                                                               className={`${styles.badge}`} 
+                                                               style={{ 
+                                                                   fontSize: '0.65rem', 
+                                                                   padding: '2px 6px',
+                                                                   backgroundColor: nfMap[appt.id].status === 'autorizado' ? '#10B981' : 
+                                                                                    nfMap[appt.id].status === 'erro' ? '#EF4444' : '#64748B',
+                                                                   color: 'white'
+                                                               }}
+                                                           >
+                                                               NF: {nfMap[appt.id].status.toUpperCase()}
+                                                           </span>
+                                                           {nfMap[appt.id].status === 'autorizado' && nfMap[appt.id].caminho_pdf && (
+                                                               <a 
+                                                                   href={nfMap[appt.id].caminho_pdf.startsWith('http') ? nfMap[appt.id].caminho_pdf : `https://api.focusnfe.com.br${nfMap[appt.id].caminho_pdf}`}
+                                                                   target="_blank"
+                                                                   rel="noopener noreferrer"
+                                                                   style={{
+                                                                       background: 'rgba(59, 130, 246, 0.1)',
+                                                                       color: '#3B82F6',
+                                                                       border: '1px solid rgba(59, 130, 246, 0.2)',
+                                                                       padding: '2px 8px',
+                                                                       borderRadius: '4px',
+                                                                       fontSize: '0.7rem',
+                                                                       fontWeight: 600,
+                                                                       textDecoration: 'none',
+                                                                       display: 'inline-flex',
+                                                                       alignItems: 'center'
+                                                                   }}
+                                                               >
+                                                                   📄 Ver NF
+                                                               </a>
+                                                           )}
+                                                            {/* Se deu erro, permitir tentar de novo */}
+                                                            {nfMap[appt.id].status === 'erro' && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setCheckoutNFData({
+                                                                            id: appt.id,
+                                                                            total_amount: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                                            tutor: appt.pets?.customers ? {
+                                                                                nome: (appt.pets.customers as any).name,
+                                                                                cpf: (appt.pets.customers as any).cpf_cnpj,
+                                                                                email: (appt.pets.customers as any).email || undefined,
+                                                                                endereco: {
+                                                                                    logradouro: (appt.pets.customers as any).address || '',
+                                                                                    bairro: (appt.pets.customers as any).neighborhood || '',
+                                                                                    codigo_municipio: (appt.pets.customers as any).city || ''
+                                                                                }
+                                                                            } : undefined,
+                                                                            servico: {
+                                                                                descricao: appt.services?.name || 'Serviço de Banho e Tosa',
+                                                                                valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
+                                                                                codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
+                                                                            }
+                                                                        });
+                                                                        setShowNFModal(true);
+                                                                    }}
+                                                                    style={{
+                                                                        background: 'rgba(239, 68, 68, 0.1)',
+                                                                        color: '#EF4444',
+                                                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '0.7rem',
+                                                                        fontWeight: 600,
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    🔄 Re-emitir
+                                                                </button>
+                                                            )}
+                                                       </div>
+                                                   )}
+                                              </div>
                                             <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                                 🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>

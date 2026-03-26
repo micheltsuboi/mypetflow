@@ -20,6 +20,7 @@ interface EmitirNFModalProps {
         codigo?: string
     }
     produtos?: any[]
+    petName?: string
     onClose: () => void
     onSuccess: (status: string) => void
 }
@@ -32,6 +33,7 @@ export default function EmitirNFModal({
     tutor, 
     servico, 
     produtos, 
+    petName,
     onClose, 
     onSuccess 
 }: EmitirNFModalProps) {
@@ -50,7 +52,8 @@ export default function EmitirNFModal({
                 total_amount,
                 tutor,
                 servico,
-                produtos
+                produtos,
+                petName
             }
 
             const response = await fetch('/api/nf/emitir', {
@@ -94,7 +97,10 @@ export default function EmitirNFModal({
                     <p><strong>Valor Total:</strong> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total_amount)}</p>
                     
                     {tipo === 'nfse' && servico && (
-                        <p style={{ marginTop: '0.5rem' }}><strong>Serviço:</strong> {servico.descricao}</p>
+                        <>
+                            <p style={{ marginTop: '0.5rem' }}><strong>Serviço:</strong> {servico.descricao}</p>
+                            {petName && <p><strong>Pet:</strong> {petName}</p>}
+                        </>
                     )}
                     
                     {tipo === 'nfe' && produtos && (

@@ -95,7 +95,10 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                         <th>Data</th>
                         <th>Tipo</th>
                         <th>Número</th>
-                        <th>Tutor/Cliente</th>
+                        <th>Referência</th>
+                        <th>Tutor</th>
+                        <th>Pet</th>
+                        <th>Serviço</th>
                         <th>Valor</th>
                         <th>Status</th>
                         <th>Ações</th>
@@ -107,8 +110,15 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                             <td>{new Date(nota.created_at).toLocaleDateString('pt-BR')}</td>
                             <td style={{ textTransform: 'uppercase' }}>{nota.tipo}</td>
                             <td>{nota.numero_nf || '-'}</td>
-                            <td>{nota.tomador_nome || 'Consumidor Final'}</td>
-                            <td>{formatCurrency(nota.valor_total)}</td>
+                            <td style={{ padding: '0.75rem 1rem' }}>{nota.referencia}</td>
+                            <td style={{ padding: '0.75rem 1rem' }}>{nota.tomador_nome || 'Consumidor Final'}</td>
+                            <td style={{ padding: '0.75rem 1rem' }}>
+                                {(nota as any).pet_name || (nota.payload_enviado as any)?.petName || '-'}
+                            </td>
+                            <td style={{ padding: '0.75rem 1rem' }}>
+                                {(nota as any).servico_name || (nota.payload_enviado as any)?.discriminacao?.substring(0, 30) || (nota.payload_enviado as any)?.items?.[0]?.nome || '-'}
+                            </td>
+                            <td style={{ padding: '0.75rem 1rem' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(nota.valor_total || 0)}</td>
                             <td style={{ textAlign: 'center', minWidth: '150px' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                                     <span className={`${styles.badge} ${styles['badge-' + nota.status]}`}>
