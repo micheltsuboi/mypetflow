@@ -106,7 +106,7 @@ export default function ServicesPage() {
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
         if (!profile?.org_id) return
 
-        const { data: cats } = await supabase.from('service_categories').select('*').eq('org_id', profile.org_id).order('name')
+        const { data: cats } = await supabase.from('service_categories').select('*').order('name')
         if (cats) setCategories(cats)
 
         const { data: svcs } = await supabase.from('services').select(`
