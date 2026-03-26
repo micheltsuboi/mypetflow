@@ -85,7 +85,7 @@ export async function sendWhatsAppMessage(
 
       if (n8nBaseUrl) {
          // Atualizado para o path 'vet-alert-final-v5' que consta no workflow ativo no n8n
-         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
+         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert`
          
          const response = await fetch(fullUrl, {
             method: 'POST',

@@ -911,6 +911,9 @@ export async function createVetAlert({
             revalidatePath('/owner/creche')
         }
 
+        let whatsappSuccess = true
+        let whatsappError = ''
+        
         // 3. Trigger WhatsApp Message via Multi-tenant Router
         if (notifyTutor) {
             try {
@@ -920,40 +923,33 @@ export async function createVetAlert({
                 const phoneRaw = (customerData as any)?.phone_1 || (customerData as any)?.phone_2 || ''
 
                 if (phoneRaw && phoneRaw.replace(/\D/g, '').length >= 8) {
-                    const message = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+                    const messageString = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
                     
-                    const res = await sendWhatsAppMessage(profile.org_id, phoneRaw, message)
-                    if (!res.success) {
-                       console.error('VET ALERT: Failed to send WhatsApp message via Router:', res.error)
+                    const waRes = await sendWhatsAppMessage(profile.org_id, phoneRaw, messageString)
+                    whatsappSuccess = waRes.success
+                    whatsappError = waRes.error || ''
+                    
+                    if (!waRes.success) {
+                       console.error('VET ALERT: Failed to send WhatsApp message via Router:', waRes.error)
                     } else {
                        console.log('VET ALERT: WhatsApp message sent successfully via Router.')
                     }
                 } else {
-                    console.warn('VET ALERT: Telefone ausente ou inválido no banco.')
+                    whatsappSuccess = false
+                    whatsappError = 'Telefone do tutor ausente ou inválido.'
                 }
             } catch (err: any) {
-                console.error('VET ALERT: Falha fatal no envio local de notificação:', err.message)
+                whatsappSuccess = false
+                whatsappError = err.message
             }
         }
 
         revalidatePath('/owner/consultas') // Refresh vet dashboard
         
-        let tutorPhone = ''
-        let whatsappMessage = ''
-        if (notifyTutor && pet) {
-            const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
-            tutorPhone = (customerData as any)?.phone_1 || (customerData as any)?.phone_2 || ''
-            const petName = pet?.name || 'seu pet'
-            const tutorName = (customerData as any)?.name || 'Cliente'
-            whatsappMessage = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
-        }
-
         return { 
             success: true, 
-            message: notifyTutor ? 'Alerta enviado para a equipe e tutor!' : 'Alerta salvo e enviado para a equipe veterinária!', 
-            data: alert,
-            tutorPhone,
-            whatsappMessage
+            message: whatsappSuccess ? 'Alerta registrado e enviado para o tutor!' : `Alerta registrado, mas houve erro no WhatsApp: ${whatsappError}`, 
+            id: alert.id 
         }
 
     } catch (error: any) {

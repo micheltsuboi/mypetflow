@@ -216,12 +216,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
             if (res.success) {
                 if (notifyTutor) {
                     setTutorAlertSent(true)
-                    // Fallback to direct link for confidence if returned
-                    if (res.tutorPhone && res.whatsappMessage) {
-                        const phoneRaw = res.tutorPhone.replace(/\D/g, '')
-                        const url = `https://wa.me/55${phoneRaw}?text=${encodeURIComponent(res.whatsappMessage)}`
-                        window.open(url, '_blank')
-                    }
+                    // O alerta agora é disparado exclusivamente pelo servidor (sendWhatsAppMessage)
+                    // evitando abrir o app do WhatsApp manualmente para o atendente.
                 }
                 setAlertSent(true)
                 setVetAlertText('') // Clear text after successful send
