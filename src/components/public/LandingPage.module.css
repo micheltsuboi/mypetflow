@@ -873,12 +873,15 @@
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: transparent;
-    transition: background 0.3s ease;
-    border-radius: 48px 48px 0 0;
+    left: 48px;
+    right: 48px;
+    height: 3px;
+    background: var(--gradient-primary);
+    transition: all 0.3s ease;
+    border-radius: 0 0 8px 8px;
+    opacity: 0;
+    z-index: 2;
+    box-shadow: 0 2px 10px rgba(0, 228, 206, 0.3);
 }
 
 .pricingCard:hover {
@@ -889,7 +892,7 @@
 }
 
 .pricingCard:hover::before {
-    background: var(--gradient-primary);
+    opacity: 1;
 }
 
 .pricingCard.popular {
@@ -901,7 +904,10 @@
 }
 
 .pricingCard.popular::before {
-    background: var(--gradient-primary);
+    opacity: 1;
+    left: 20%;
+    right: 20%;
+    height: 4px;
 }
 
 .pricingCard.popular:hover {
