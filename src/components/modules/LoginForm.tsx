@@ -94,7 +94,9 @@ export default function LoginForm() {
 
             setError(errorMessage.includes('Invalid login credentials')
                 ? 'Email ou senha incorretos.'
-                : 'Ocorreu um erro ao fazer login.')
+                : (errorMessage.includes('Email not confirmed') 
+                    ? 'Por favor, confirme seu email antes de acessar.'
+                    : `Erro: ${errorMessage}`))
         } finally {
             setLoading(false)
         }
