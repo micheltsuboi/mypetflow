@@ -13,7 +13,7 @@ export default async function LandingPage() {
             {/* Top Banner */}
             <div className={styles.topBanner}>
                 <span>Já possui uma conta MyPetFlow?</span>
-                <Link href="/admin" className={styles.topBannerLink}>Acessar meu Pet Shop &rarr;</Link>
+                <Link href="/admin" className={styles.topBannerLink}>Acessar meu Negócio &rarr;</Link>
             </div>
 
             {/* Header */}
@@ -24,9 +24,9 @@ export default async function LandingPage() {
                 <div className={styles.container}>
                     <div className={styles.heroGrid}>
                         <div className={styles.heroContent}>
-                            <h1 className={styles.heroTitle}>A Plataforma Definitiva para Gestão do seu Pet Shop</h1>
+                            <h1 className={styles.heroTitle}>A Plataforma Definitiva para Gestão do seu Pet Shop ou Clínica</h1>
                             <p className={styles.heroSubtitle}>
-                                Automatize mensagens pelo WhatsApp, controle financeiro, agenda, banho e tosa, creche e hospedagem em um único sistema feito para o sucesso do seu negócio.
+                                Automatize mensagens pelo WhatsApp, controle financeiro, agenda, consultas veterinárias, banho e tosa, creche e hospedagem em um único sistema feito para o sucesso do seu negócio.
                             </p>
                             <div className={styles.heroActions}>
                                 <Link href={whatsappLink} className={styles.primaryBtn}>Testar Grátis Agora</Link>
@@ -140,7 +140,7 @@ export default async function LandingPage() {
                                         <Image src="/logo.png" alt="MyPet Flow" width={30} height={30} />
                                     </div>
                                     <div className={styles.waHeaderInfo}>
-                                        <strong>Seu Pet Shop</strong>
+                                        <strong>Seu Negócio Pet</strong>
                                         <span>bot</span>
                                     </div>
                                 </div>
@@ -204,11 +204,11 @@ export default async function LandingPage() {
             {/* Contact CTA Section */}
             <section id="contato" className={styles.pricingSection}>
                 <div className={styles.container}>
-                    <div className={styles.pricingCard} style={{ margin: '0 auto', maxWidth: '800px', textAlign: 'center', alignItems: 'center' }}>
+                    <div className={`${styles.pricingCard} ${styles.popular}`} style={{ margin: '0 auto', maxWidth: '800px', textAlign: 'center', alignItems: 'center' }}>
                         <div className={styles.popularBadge}>Oportunidade</div>
                         <h2 className={styles.sectionTitle}>Pronto para transformar seu negócio?</h2>
                         <p className={styles.sectionSubtitle} style={{ marginBottom: '2.5rem', color: 'rgba(255,255,255,0.8)' }}>
-                            Estamos em uma fase especial de liberação do sistema. Se você deseja testar a MyPetFlow no seu Pet Shop e ser um dos nossos parceiros, entre em contato agora mesmo.
+                            Estamos em uma fase especial de liberação do sistema. Se você deseja testar a MyPetFlow no seu Pet Shop, Clínica Veterinária ou Creche e ser um dos nossos parceiros, entre em contato agora mesmo.
                         </p>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>

@@ -859,7 +859,7 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(140, 180, 201, 0.1);
-    border-radius: 32px;
+    border-radius: 48px;
     padding: 3.5rem 2.5rem;
     display: flex;
     flex-direction: column;
@@ -878,7 +878,7 @@
     height: 4px;
     background: transparent;
     transition: background 0.3s ease;
-    border-radius: 32px 32px 0 0;
+    border-radius: 48px 48px 0 0;
 }
 
 .pricingCard:hover {
@@ -987,8 +987,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 1.25rem 2rem;
-    border-radius: 16px;
+    padding: 1.25rem 2.2rem;
+    border-radius: var(--radius-full);
     font-weight: 700;
     font-size: 1rem;
     text-decoration: none;
