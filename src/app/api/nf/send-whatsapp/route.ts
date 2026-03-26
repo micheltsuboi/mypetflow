@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
         // 1. Buscar dados da NF
         const { data: nf, error: nfError } = await supabase
             .from('notas_fiscais')
-            .select('*')
+            .select('referencia, valor_total, status, caminho_pdf, origem_id, origem_tipo')
             .eq('referencia', referencia)
             .single()
 
@@ -26,20 +26,37 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Nota fiscal ainda não autorizada ou sem PDF' }, { status: 400 })
         }
 
-        if (!nf.tutor_phone) {
-            return NextResponse.json({ error: 'Telefone do tutor não cadastrado nesta nota' }, { status: 400 })
+        let phone = null
+        let petName = 'seu pet'
+
+        // 2. Buscar telefone baseado na origem
+        if (nf.origem_tipo === 'atendimento' || nf.origem_tipo === 'banho_tosa') {
+            const { data: appt } = await supabase
+                .from('appointments')
+                .select('pets(name, customers(phone_1))')
+                .eq('id', nf.origem_id)
+                .single()
+            
+            if (appt) {
+                phone = (appt.pets as any)?.customers?.phone_1
+                petName = (appt.pets as any)?.name || 'seu pet'
+            }
         }
 
-        // 2. Disparar N8N
-        console.log(`Manual trigger: WhatsApp automation for NF ${referencia}`)
+        if (!phone) {
+            return NextResponse.json({ error: 'Telefone do tutor não encontrado para esta nota' }, { status: 400 })
+        }
+
+        // 3. Disparar N8N
+        console.log(`Manual trigger: WhatsApp automation for NF ${referencia} to ${phone}`)
         
         const n8nResponse = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                phone: nf.tutor_phone,
+                phone: phone,
                 pdfUrl: nf.caminho_pdf,
-                petName: nf.pet_name || 'seu pet',
+                petName: petName,
                 valor: nf.valor_total,
                 ref: nf.referencia
             })

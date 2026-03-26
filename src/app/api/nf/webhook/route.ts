@@ -72,27 +72,50 @@ export async function POST(req: NextRequest) {
         // NOVO: Disparar Automação de WhatsApp se autorizado
         if (internalStatus === 'autorizado' && pdfUrl) {
             try {
-                // Buscar dados para a mensagem (nome do pet, valor, telefone)
+                // 1. Buscar dados da NF (origem para saber de onde buscar o telefone)
                 const { data: nf } = await supabase
                     .from('notas_fiscais')
-                    .select('pet_name, valor_total, tutor_phone, referencia')
+                    .select('referencia, valor_total, origem_id, origem_tipo')
                     .eq('referencia', ref)
                     .single()
 
-                if (nf && nf.tutor_phone) {
-                    console.log(`Triggering WhatsApp automation for NF ${ref}`)
-                    // Não aguardamos o n8n para não atrasar o webhook da Focus
-                    fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            phone: nf.tutor_phone,
-                            pdfUrl: pdfUrl,
-                            petName: nf.pet_name || 'seu pet',
-                            valor: nf.valor_total,
-                            ref: nf.referencia
-                        })
-                    }).catch(e => console.error('Error triggering N8N:', e))
+                if (nf) {
+                    let phone = null
+                    let petName = 'seu pet'
+
+                    // 2. Buscar telefone baseado na origem
+                    if (nf.origem_tipo === 'atendimento' || nf.origem_tipo === 'banho_tosa') {
+                        const { data: appt } = await supabase
+                            .from('appointments')
+                            .select('pets(name, customers(phone_1))')
+                            .eq('id', nf.origem_id)
+                            .single()
+                        
+                        if (appt) {
+                            phone = (appt.pets as any)?.customers?.phone_1
+                            petName = (appt.pets as any)?.name || 'seu pet'
+                        }
+                    } else if (nf.origem_tipo === 'pdv') {
+                        // TODO: Implementar busca de telefone se for venda direta no PDV
+                    }
+
+                    if (phone) {
+                        console.log(`Triggering WhatsApp automation for NF ${ref} to ${phone}`)
+                        // Não aguardamos o n8n para não atrasar o webhook da Focus
+                        fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                phone: phone,
+                                pdfUrl: pdfUrl,
+                                petName: petName,
+                                valor: nf.valor_total,
+                                ref: nf.referencia
+                            })
+                        }).catch(e => console.error('Error triggering N8N:', e))
+                    } else {
+                        console.log(`Telefone do tutor não encontrado para NF ${ref} (Origem: ${nf.origem_tipo})`)
+                    }
                 }
             } catch (err) {
                 console.error('Error in WhatsApp trigger logic:', err)

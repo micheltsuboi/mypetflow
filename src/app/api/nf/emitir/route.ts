@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
             initialStatus = 'autorizado'
         }
 
+        // 3. Salvar na Tabela notas_fiscais
         const dbData: any = {
             org_id: orgId,
             referencia: refStr,
@@ -142,26 +143,12 @@ export async function POST(req: NextRequest) {
             mensagem_sefaz: focusResponse.mensagem_sefaz || null
         }
 
-        // Tentar salvar com colunas novas se existirem
         const { error: dbError } = await supabase
             .from('notas_fiscais')
-            .upsert({
-                ...dbData,
-                pet_name: petName,
-                servico_name: servico?.descricao,
-                tutor_phone: tutorPhone // NOVO
-            }, { onConflict: 'referencia' })
+            .upsert(dbData, { onConflict: 'referencia' })
 
         if (dbError) {
-            console.error("Fail saving nota in DB (trying fallback):", dbError)
-            // Fallback para colunas básicas se as novas falharem (ex: coluna não existe no banco)
-            const { error: fallbackError } = await supabase
-                .from('notas_fiscais')
-                .upsert(dbData, { onConflict: 'referencia' })
-            
-            if (fallbackError) {
-                console.error("Critical fail saving nota:", fallbackError)
-            }
+            console.error("Critical fail saving nota:", dbError)
         }
 
         return NextResponse.json({ success: true, message: 'Nota fiscal enviada para processamento', status: initialStatus })
