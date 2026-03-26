@@ -11,10 +11,23 @@ export async function POST(req: NextRequest) {
 
         const supabase = createAdminClient()
 
-        // 1. Buscar dados da NF
+        // 1. Buscar dados da NF e da Organização
         const { data: nf, error: nfError } = await supabase
             .from('notas_fiscais')
-            .select('referencia, valor_total, status, caminho_pdf, origem_id, origem_tipo')
+            .select(`
+                referencia, 
+                valor_total, 
+                status, 
+                caminho_pdf, 
+                origem_id, 
+                origem_tipo,
+                organizations (
+                    wa_api_url,
+                    wa_api_token,
+                    wa_client_token,
+                    wa_integration_type
+                )
+            `)
             .eq('referencia', referencia)
             .single()
 
@@ -50,6 +63,8 @@ export async function POST(req: NextRequest) {
         // 3. Disparar N8N
         console.log(`Manual trigger: WhatsApp automation for NF ${referencia} to ${phone}`)
         
+        const org = (nf.organizations as any) || {}
+        
         const n8nResponse = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -58,7 +73,12 @@ export async function POST(req: NextRequest) {
                 pdfUrl: nf.caminho_pdf,
                 petName: petName,
                 valor: nf.valor_total,
-                ref: nf.referencia
+                ref: nf.referencia,
+                // Enviar credenciais do WhatsApp
+                wa_api_url: org.wa_api_url,
+                wa_api_token: org.wa_api_token,
+                wa_client_token: org.wa_client_token,
+                wa_integration_type: org.wa_integration_type
             })
         })
 

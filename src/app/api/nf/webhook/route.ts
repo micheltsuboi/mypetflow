@@ -72,13 +72,23 @@ export async function POST(req: NextRequest) {
         // NOVO: Disparar Automação de WhatsApp se autorizado
         if (internalStatus === 'autorizado' && pdfUrl) {
             try {
-                // 1. Buscar dados da NF (origem para saber de onde buscar o telefone)
+                // 1. Buscar dados da NF e da Organização (para credenciais do WhatsApp)
                 const { data: nf } = await supabase
                     .from('notas_fiscais')
-                    .select('referencia, valor_total, origem_id, origem_tipo')
+                    .select(`
+                        referencia, 
+                        valor_total, 
+                        origem_id, 
+                        origem_tipo,
+                        organizations (
+                            wa_api_url,
+                            wa_api_token,
+                            wa_client_token,
+                            wa_integration_type
+                        )
+                    `)
                     .eq('referencia', ref)
                     .single()
-
                 if (nf) {
                     let phone = null
                     let petName = 'seu pet'
@@ -95,12 +105,12 @@ export async function POST(req: NextRequest) {
                             phone = (appt.pets as any)?.customers?.phone_1
                             petName = (appt.pets as any)?.name || 'seu pet'
                         }
-                    } else if (nf.origem_tipo === 'pdv') {
-                        // TODO: Implementar busca de telefone se for venda direta no PDV
                     }
 
                     if (phone) {
-                        console.log(`Triggering WhatsApp automation for NF ${ref} to ${phone}`)
+                        const org = (nf.organizations as any) || {}
+                        console.log(`Triggering WhatsApp automation for NF ${ref} to ${phone} (Org Integration: ${org.wa_integration_type || 'system'})`)
+                        
                         // Não aguardamos o n8n para não atrasar o webhook da Focus
                         fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
                             method: 'POST',
@@ -110,7 +120,12 @@ export async function POST(req: NextRequest) {
                                 pdfUrl: pdfUrl,
                                 petName: petName,
                                 valor: nf.valor_total,
-                                ref: nf.referencia
+                                ref: nf.referencia,
+                                // Enviar credenciais do WhatsApp
+                                wa_api_url: org.wa_api_url,
+                                wa_api_token: org.wa_api_token,
+                                wa_client_token: org.wa_client_token,
+                                wa_integration_type: org.wa_integration_type
                             })
                         }).catch(e => console.error('Error triggering N8N:', e))
                     } else {
