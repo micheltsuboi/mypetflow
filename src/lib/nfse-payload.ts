@@ -109,21 +109,14 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
 
             // --- Dados do Prestador (prest) ---
             // NUNCA omitir ou a Focus gera <prest> vazio que falha o schema
-            // Mas para Curitiba Nacional (E0120), a IM deve ser omitida se não houver registros complementares
-            razao_social_prestador: config.razao_social,                  // → xNome
-            // Erro E0128: O endereço nacional do prestador não deve ser informado se ele for o emitente.
-            /*
-            logradouro_prestador: config.municipio || 'Curitiba',
-            numero_prestador: 'SN',
-            bairro_prestador: 'Centro',
-            cep_prestador: config.cep?.replace(/\D/g, ''),
-            codigo_municipio_prestador: codigoIBGE,
-            nro_prestador: 'SN',
-            */
+            // Mas Erros E0121/E0128 proíbem Razão Social e Endereço se o Prestador for o Emitente.
+            
             // Regime tributário do prestador (1=Não Optante, 2=Optante MEI, 3=Optante ME/EPP)
             codigo_opcao_simples_nacional: config.regime_tributario === 4 ? 2 : (config.optante_simples_nacional ? 3 : 1),
             regime_tributario_simples_nacional: (config.optante_simples_nacional || config.regime_tributario === 4) ? 1 : undefined,
             regime_especial_tributacao: 0,           // 0=Nenhum (obrigatório pelo schema)
+            // email_prestador: 'contato@mypetflow.com.br', // Omitido para evitar erros similares de "não deve informar"
+            
 
             // --- Local de prestação ---
             codigo_municipio_prestacao: codigoIBGE,
