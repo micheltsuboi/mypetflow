@@ -7,11 +7,9 @@ export async function sendWhatsAppMessage(
   message: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = await createClient()
     const adminSupabase = await createAdminClient()
 
     // 1. Identify organization integration type and API credentials using the admin client
-    // We use the admin client so we can safely read the `wa_api_token` if needed, although RLS might block normal users.
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
       .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
@@ -31,94 +29,56 @@ export async function sendWhatsAppMessage(
        normalizedPhone = '55' + normalizedPhone
     }
 
-    if (integrationType === 'custom') {
-      const url = org.wa_api_url
-      const token = org.wa_api_token
-      const clientToken = org.wa_client_token
+    // DISPATCHER MASTER: Usamos o N8N como roteador universal para todos os envios.
+    // Isso permite centralizar logs, tratar erros e usar instâncias dinâmicas.
+    const n8nBaseUrl = process.env.N8N_BASE_URL
+    console.log(`sendWhatsAppMessage: Routing via N8N Master Router (${integrationType}) for phone ${normalizedPhone}`)
 
-      if (!url || !token) {
-         console.warn(`sendWhatsAppMessage: Org ${orgId} has 'custom' integration but missing url or token.`)
-         return { success: false, error: 'Configuração de WhatsApp customizada incompleta.' }
-      }
+    if (!n8nBaseUrl) {
+       console.warn('sendWhatsAppMessage: N8N_BASE_URL undefined')
+       return { success: false, error: 'Serviço global de mensagens não configurado.' }
+    }
 
-      // 2. Dispatch custom integration
-      // Expected payload based on common API providers like Z-API / Evolution:
-      // Typically: { phone: string, message: string }
-      // This might need adjustments based on the exact customer's API payload format.
-      // We will assume Z-API standard format for custom APIs as well: { phone, message }
-      
-      const endpoint = `${url.replace(/\/$/, '')}/send-text`
-      console.log(`sendWhatsAppMessage [CUSTOM]: Sending to ${endpoint} with phone ${normalizedPhone}`)
-      
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'Client-Token': clientToken || ''
-          },
-          body: JSON.stringify({
-            phone: normalizedPhone,
-            message: message
-          })
+    // O path 'vet-alert' é o webhook ativo no n8n que processa tanto instâncias globais quanto customizadas.
+    const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert`
+    
+    // Payload unificado que o N8N vai processar
+    const payload = {
+        phone: normalizedPhone,
+        tutorPhone: normalizedPhone,
+        normalizedPhone: normalizedPhone,
+        message: message,
+        tenant_id: orgId,
+        type: 'system_notification',
+        // Repassamos as credenciais (que podem ser NULL se for o sistema padrão)
+        // O N8N decide qual usar (a sua própria ou a enviada)
+        wa_api_url: org.wa_api_url,
+        wa_api_token: org.wa_api_token,
+        wa_client_token: org.wa_client_token || org.wa_api_token,
+        wa_integration_type: integrationType
+    }
+
+    try {
+        const response = await fetch(fullUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         })
 
         if (!response.ok) {
-           const errText = await response.text()
-           console.error('sendWhatsAppMessage [CUSTOM] error response:', response.status, errText)
-           return { success: false, error: `Erro na API customizada: ${response.status} - ${errText}` }
+            const errText = await response.text()
+            console.error('sendWhatsAppMessage [N8N] error response:', response.status, errText)
+            return { success: false, error: `Erro no Roteador N8N: ${response.status}` }
         }
 
         return { success: true }
-      } catch (fetchErr: any) {
-        console.error('sendWhatsAppMessage [CUSTOM] fetch error:', fetchErr)
-        return { success: false, error: `Falha ao tentar conectar na API customizada: ${fetchErr.message}` }
-      }
-
-    } else {
-      // 3. Dispatch system integration
-      // Currently, the system uses Z-API directly or via N8N for notifications.
-      // We'll map it to the global environment variables or existing N8N logic.
-      const n8nBaseUrl = process.env.N8N_BASE_URL
-      console.log(`sendWhatsAppMessage [SYSTEM]: Using N8N base URL ${n8nBaseUrl} for phone ${normalizedPhone}`)
-
-      if (n8nBaseUrl) {
-         // Atualizado para o path 'vet-alert-final-v5' que consta no workflow ativo no n8n
-         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert`
-         
-         const response = await fetch(fullUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                phone: normalizedPhone,
-                tutorPhone: normalizedPhone,
-                normalizedPhone: normalizedPhone,
-                message: message,
-                tenant_id: orgId,
-                type: 'system_notification',
-                // Novos campos para suporte dinâmico no N8N
-                wa_api_url: org.wa_api_url,
-                wa_api_token: org.wa_api_token,
-                wa_client_token: org.wa_client_token || org.wa_api_token,
-                wa_integration_type: integrationType
-            })
-         })
-
-         if (!response.ok) {
-            console.error('sendWhatsAppMessage [SYSTEM] error response:', response.statusText)
-            return { success: false, error: 'Erro ao disparar notificação pelo sistema.' }
-         }
-
-         return { success: true }
-      } else {
-         console.warn('sendWhatsAppMessage [SYSTEM]: N8N_BASE_URL undefined')
-         return { success: false, error: 'Serviço global de mensagens não configurado.' }
-      }
+    } catch (fetchErr: any) {
+        console.error('sendWhatsAppMessage [N8N] fetch exception:', fetchErr)
+        return { success: false, error: `Falha na conexão com o Roteador N8N: ${fetchErr.message}` }
     }
 
   } catch (error: any) {
-    console.error('sendWhatsAppMessage Exception:', error)
+    console.error('sendWhatsAppMessage Global Exception:', error)
     return { success: false, error: error.message }
   }
 }
