@@ -157,7 +157,12 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             // ATENÇÃO: todos os 3 campos abaixo são obrigatórios para não gerar "Missing child element"
             tributacao_iss: 1,                     // 1=Operação tributável no município
             tipo_retencao_iss: 1,                  // 1=Não retido (tomador não retém ISS)
-            percentual_aliquota_relativa_municipio: config.aliquota_iss || 2.00, // → pAliq
+            // Erro E0625: Não informar alíquota para Simples Nacional (ME/EPP) quando não há retenção
+            ...(
+                (config.optante_simples_nacional || config.regime_tributario === 4)
+                ? {}
+                : { percentual_aliquota_relativa_municipio: config.aliquota_iss || 2.00 }
+            ),
 
             // --- Tributos Totais (nó XML "trib" → obrigatório; exige filhos tribFed ou totTrib) ---
             // NOVO [2026-03]: A versão atual do schema NFS-e Nacional EXIGE este grupo.
