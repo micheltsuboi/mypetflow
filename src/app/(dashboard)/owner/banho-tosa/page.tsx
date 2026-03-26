@@ -94,7 +94,7 @@ export default function BanhoTosaPage() {
                     actual_check_in, actual_check_out,
                     pets ( 
                         name, species, breed, 
-                        customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone ) 
+                        customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) 
                     ),
                     services!inner ( 
                         name, 
@@ -384,7 +384,7 @@ export default function BanhoTosaPage() {
                                                                 valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                                 codigo: '0508'
                                                             },
-                                                            tutorPhone: (appt.pets.customers as any).phone // NOVO
+                                                            tutorPhone: (appt.pets.customers as any).phone_1 // NOVO: Corrigido para phone_1
                                                         })
                                                         setShowNFModal(true)
                                                     }
@@ -415,7 +415,7 @@ export default function BanhoTosaPage() {
                                                                         valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                                         codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
                                                                     },
-                                                                    tutorPhone: (appt.pets.customers as any).phone // NOVO
+                                                                    tutorPhone: (appt.pets.customers as any).phone_1 // NOVO: Corrigido para phone_1
                                                                 });
                                                                 setShowNFModal(true);
                                                             }}
@@ -517,7 +517,8 @@ export default function BanhoTosaPage() {
                                                                                 descricao: appt.services?.name || 'Serviço de Banho e Tosa',
                                                                                 valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                                                 codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
-                                                                            }
+                                                                            },
+                                                                            tutorPhone: (appt.pets.customers as any).phone_1 // NOVO: Corrigido para phone_1
                                                                         });
                                                                         setShowNFModal(true);
                                                                     }}
