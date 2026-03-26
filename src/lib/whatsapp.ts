@@ -84,19 +84,24 @@ export async function sendWhatsAppMessage(
       console.log(`sendWhatsAppMessage [SYSTEM]: Using N8N base URL ${n8nBaseUrl} for phone ${normalizedPhone}`)
 
       if (n8nBaseUrl) {
-         // O caminho /webhook/vet-alert é o que consta no n8n_vet_alert.json fornecido
-         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert`
+         // Atualizado para o path 'vet-alert-final-v5' que consta no workflow ativo no n8n
+         const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert-final-v5`
          
          const response = await fetch(fullUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                phone: normalizedPhone,       // Campo esperado pelo n8n_vet_alert.json
-                tutorPhone: normalizedPhone,  // Campo relatado pelo usuário como correto no banco/n8n
+                phone: normalizedPhone,
+                tutorPhone: normalizedPhone,
                 normalizedPhone: normalizedPhone,
                 message: message,
                 tenant_id: orgId,
-                type: 'system_notification'
+                type: 'system_notification',
+                // Novos campos para suporte dinâmico no N8N
+                wa_api_url: org.wa_api_url,
+                wa_api_token: org.wa_api_token,
+                wa_client_token: org.wa_client_token || org.wa_api_token,
+                wa_integration_type: integrationType
             })
          })
 

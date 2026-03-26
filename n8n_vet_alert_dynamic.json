@@ -1,0 +1,128 @@
+{
+    "name": "🐾 Pet Flow - Alerta Veterinário (Dinâmico)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "vet-alert",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "e5f8f877-e2f0-4fc7-bff4-20ec938d21b0",
+            "name": "Webhook - Vet Alert",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                352
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const body = $json.body || $json;\nconst phone = (body.phone || body.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\n\n// Extração das credenciais dinâmicas enviadas pelo PetFlow\nconst wa_api_url = body.wa_api_url;\nconst wa_api_token = body.wa_api_token;\nconst wa_client_token = body.wa_client_token;\n\nreturn [{ json: { \n    phone: phone55, \n    message: body.message, \n    wa_api_url, \n    wa_api_token, \n    wa_client_token \n} }];"
+            },
+            "id": "f1a8c3d0-c3d3-48b4-8db6-e8838fc890f6",
+            "name": "Mensagem Formatada",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                512,
+                352
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $json.wa_api_url }}/send-text",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        },
+                        {
+                            "name": "Client-Token",
+                            "value": "={{ $json.wa_client_token }}"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "phone",
+                            "value": "={{ $json.phone }}"
+                        },
+                        {
+                            "name": "message",
+                            "value": "={{ $json.message }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "54a32f6a-e8d1-41db-859a-1cce8a6e87a2",
+            "name": "Z-API Dinâmico",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                768,
+                352
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "ok",
+                "options": {}
+            },
+            "id": "72fb8b28-1b08-46fb-a0e2-63ea81fa11ec",
+            "name": "Respond",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                1024,
+                352
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Vet Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Mensagem Formatada",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Mensagem Formatada": {
+            "main": [
+                [
+                    {
+                        "node": "Z-API Dinâmico",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Z-API Dinâmico": {
+            "main": [
+                [
+                    {
+                        "node": "Respond",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

@@ -937,7 +937,24 @@ export async function createVetAlert({
         }
 
         revalidatePath('/owner/consultas') // Refresh vet dashboard
-        return { success: true, message: notifyTutor ? 'Alerta enviado para a equipe e tutor!' : 'Alerta salvo e enviado para a equipe veterinária!', data: alert }
+        
+        let tutorPhone = ''
+        let whatsappMessage = ''
+        if (notifyTutor && pet) {
+            const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
+            tutorPhone = (customerData as any)?.phone_1 || (customerData as any)?.phone_2 || ''
+            const petName = pet?.name || 'seu pet'
+            const tutorName = (customerData as any)?.name || 'Cliente'
+            whatsappMessage = `Olá, ${tutorName}! 🐾\nNossa equipe de atendimento notou algo importante durante a visita do ${petName}: "${observation}".\n\nNossa equipe veterinária já foi sinalizada. Gostaria de agendar uma consulta para o(a) ${petName} ou falar com um de nossos especialistas?`
+        }
+
+        return { 
+            success: true, 
+            message: notifyTutor ? 'Alerta enviado para a equipe e tutor!' : 'Alerta salvo e enviado para a equipe veterinária!', 
+            data: alert,
+            tutorPhone,
+            whatsappMessage
+        }
 
     } catch (error: any) {
         console.error('Error creating vet alert:', error)
