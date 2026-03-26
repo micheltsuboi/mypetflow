@@ -69,6 +69,36 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Database update failed' }, { status: 500 })
         }
 
+        // NOVO: Disparar Automação de WhatsApp se autorizado
+        if (internalStatus === 'autorizado' && pdfUrl) {
+            try {
+                // Buscar dados para a mensagem (nome do pet, valor, telefone)
+                const { data: nf } = await supabase
+                    .from('notas_fiscais')
+                    .select('pet_name, valor_total, tutor_phone, referencia')
+                    .eq('referencia', ref)
+                    .single()
+
+                if (nf && nf.tutor_phone) {
+                    console.log(`Triggering WhatsApp automation for NF ${ref}`)
+                    // Não aguardamos o n8n para não atrasar o webhook da Focus
+                    fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            phone: nf.tutor_phone,
+                            pdfUrl: pdfUrl,
+                            petName: nf.pet_name || 'seu pet',
+                            valor: nf.valor_total,
+                            ref: nf.referencia
+                        })
+                    }).catch(e => console.error('Error triggering N8N:', e))
+                }
+            } catch (err) {
+                console.error('Error in WhatsApp trigger logic:', err)
+            }
+        }
+
         return NextResponse.json({ success: true, ref, status: internalStatus })
 
     } catch (error: any) {

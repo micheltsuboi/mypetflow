@@ -21,6 +21,7 @@ interface EmitirNFModalProps {
     }
     produtos?: any[]
     petName?: string
+    tutorPhone?: string // NOVO
     onClose: () => void
     onSuccess: (status: string) => void
 }
@@ -34,6 +35,7 @@ export default function EmitirNFModal({
     servico, 
     produtos, 
     petName,
+    tutorPhone, // NOVO
     onClose, 
     onSuccess 
 }: EmitirNFModalProps) {
@@ -53,7 +55,8 @@ export default function EmitirNFModal({
                 tutor,
                 servico,
                 produtos,
-                petName
+                petName,
+                tutorPhone // NOVO
             }
 
             const response = await fetch('/api/nf/emitir', {

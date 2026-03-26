@@ -94,7 +94,7 @@ export default function BanhoTosaPage() {
                     actual_check_in, actual_check_out,
                     pets ( 
                         name, species, breed, 
-                        customers ( id, name, cpf_cnpj, address, neighborhood, city, email ) 
+                        customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone ) 
                     ),
                     services!inner ( 
                         name, 
@@ -201,6 +201,25 @@ export default function BanhoTosaPage() {
             fetchBanhoTosaData()
         } else {
             alert(result.message)
+        }
+    }
+
+    const handleSendWhatsApp = async (referencia: string) => {
+        try {
+            const res = await fetch('/api/nf/send-whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ referencia })
+            })
+            const data = await res.json()
+            if (res.ok) {
+                alert('✅ NF enviada com sucesso para o WhatsApp do tutor!')
+            } else {
+                alert('❌ Erro ao enviar: ' + data.error)
+            }
+        } catch (error) {
+            console.error(error)
+            alert('❌ Erro de conexão ao tentar enviar WhatsApp.')
         }
     }
 
@@ -364,7 +383,8 @@ export default function BanhoTosaPage() {
                                                                 descricao: appt.services?.name || 'Serviço de Banho e Tosa',
                                                                 valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                                 codigo: '0508'
-                                                            }
+                                                            },
+                                                            tutorPhone: (appt.pets.customers as any).phone // NOVO
                                                         })
                                                         setShowNFModal(true)
                                                     }
@@ -394,7 +414,8 @@ export default function BanhoTosaPage() {
                                                                         descricao: appt.services?.name || 'Serviço de Banho e Tosa',
                                                                         valor: appt.final_price || appt.calculated_price || appt.services?.base_price || 0,
                                                                         codigo: "08.02" // Alojamento, embelezamento, banho, tosa, etc.
-                                                                    }
+                                                                    },
+                                                                    tutorPhone: (appt.pets.customers as any).phone // NOVO
                                                                 });
                                                                 setShowNFModal(true);
                                                             }}
@@ -452,6 +473,28 @@ export default function BanhoTosaPage() {
                                                                    📄 Ver NF
                                                                </a>
                                                            )}
+                                                            {nfMap[appt.id].status === 'autorizado' && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        handleSendWhatsApp(nfMap[appt.id].referencia)
+                                                                    }}
+                                                                    style={{
+                                                                        background: 'rgba(37, 211, 102, 0.1)',
+                                                                        color: '#25D366',
+                                                                        border: '1px solid rgba(37, 211, 102, 0.2)',
+                                                                        padding: '2px 8px',
+                                                                        borderRadius: '4px',
+                                                                        fontSize: '0.7rem',
+                                                                        fontWeight: 600,
+                                                                        cursor: 'pointer',
+                                                                        display: 'inline-flex',
+                                                                        alignItems: 'center'
+                                                                    }}
+                                                                >
+                                                                    📲 Enviar Zap
+                                                                </button>
+                                                            )}
                                                             {/* Se deu erro, permitir tentar de novo */}
                                                             {nfMap[appt.id].status === 'erro' && (
                                                                 <button

@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
             servico, 
             produtos,
             total_amount,
-            petName // NOVO
+            petName,
+            tutorPhone // NOVO
         } = body as any
 
         // 1. Check Se config existe
@@ -147,7 +148,8 @@ export async function POST(req: NextRequest) {
             .upsert({
                 ...dbData,
                 pet_name: petName,
-                servico_name: servico?.descricao
+                servico_name: servico?.descricao,
+                tutor_phone: tutorPhone // NOVO
             }, { onConflict: 'referencia' })
 
         if (dbError) {
