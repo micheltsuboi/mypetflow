@@ -1,15 +1,12 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './LandingPage.module.css'
-import { fetchPlans } from '@/app/actions/plans'
-import { Check, Droplet, Home, Calendar, Store, PieChart } from 'lucide-react'
+import { Check, Droplet, Home, Calendar, Store, PieChart, MessageCircle } from 'lucide-react'
 import InstallAppButton from './InstallAppButton'
 import LandingHeader from './LandingHeader'
 
 export default async function LandingPage() {
-    // Busca os planos do banco de dados e filtra apenas os ativos
-    const plansData = await fetchPlans()
-    const activePlans = plansData.filter(p => p.is_active).sort((a, b) => a.price - b.price)
+    const whatsappLink = "https://api.whatsapp.com/send/?phone=5544999481217&text&type=phone_number&app_absent=0"
 
     return (
         <main className={styles.main}>
@@ -32,7 +29,7 @@ export default async function LandingPage() {
                                 Automatize mensagens pelo WhatsApp, controle financeiro, agenda, banho e tosa, creche e hospedagem em um único sistema feito para o sucesso do seu negócio.
                             </p>
                             <div className={styles.heroActions}>
-                                <Link href="/cadastro-empresa" className={styles.primaryBtn}>Testar Grátis Agora</Link>
+                                <Link href={whatsappLink} className={styles.primaryBtn}>Testar Grátis Agora</Link>
                                 <InstallAppButton />
                             </div>
                         </div>
@@ -196,7 +193,7 @@ export default async function LandingPage() {
                                 </li>
                             </ul>
 
-                            <Link href="/cadastro-empresa" className={styles.primaryBtn} style={{ display: 'inline-block' }}>
+                            <Link href={whatsappLink} className={styles.primaryBtn} style={{ display: 'inline-block' }}>
                                 Quero no meu Pet Shop
                             </Link>
                         </div>
@@ -204,69 +201,25 @@ export default async function LandingPage() {
                 </div>
             </section>
 
-            {/* Pricing Section */}
-            <section id="planos" className={styles.pricingSection}>
+            {/* Contact CTA Section */}
+            <section id="contato" className={styles.pricingSection}>
                 <div className={styles.container}>
-                    <div className={styles.sectionHeader}>
-                        <h2 className={styles.sectionTitle}>Planos Simples e Transparentes</h2>
-                        <p className={styles.sectionSubtitle}>Escolha o plano ideal para o momento do seu negócio. Sem surpresas.</p>
-                    </div>
-
-                    <div className={styles.pricingGrid}>
-                        {activePlans.length > 0 ? activePlans.map((plan, index) => {
-                            // Define if it is the "Popular" plan (middle one or index 1, usually the 'Crescimento' or Pro)
-                            const isPopular = activePlans.length >= 3 ? index === 1 : index === 0;
-
-                            return (
-                                <div key={plan.id} className={`${styles.pricingCard} ${isPopular ? styles.popular : ''}`}>
-                                    {isPopular && <div className={styles.popularBadge}>Mais Escolhido</div>}
-                                    <h3 className={styles.planName}>{plan.name}</h3>
-                                    <div className={styles.planPrice}>
-                                        <span>R$</span>{plan.price}<span className={styles.period}>/mês</span>
-                                    </div>
-                                    <ul className={styles.pricingFeatures}>
-                                        {plan.features && plan.features.length > 0 ? (
-                                            plan.features.map((feature: any) => {
-                                                const featureNames: Record<string, string> = {
-                                                    'agenda': 'Agenda inteligente',
-                                                    'customers': 'Gestão de tutores e pets',
-                                                    'services': 'Catálogo de serviços',
-                                                    'finance': 'Financeiro completo',
-                                                    'timeclock': 'Ponto de funcionários',
-                                                    'creche': 'Creche & hospedagem',
-                                                    'banho_tosa': 'Banho e tosa',
-                                                    'pacotes': 'Pacotes recorrentes',
-                                                    'petshop': 'PDV / Pet shop',
-                                                    'relatorios': 'Relatórios avançados',
-                                                    'whatsapp': 'Automação de WhatsApp'
-                                                };
-                                                let displayName = featureNames[feature as string] || feature;
-                                                // Garantir que a primeira letra seja sempre maiúscula
-                                                displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
-                                                return (
-                                                    <li key={feature}>
-                                                        <Check size={18} />
-                                                        <span>{displayName}</span>
-                                                    </li>
-                                                )
-                                            })
-                                        ) : (
-                                            <>
-                                                <li><Check size={18} /> <span>Todas as funcionalidades base</span></li>
-                                                <li><Check size={18} /> <span>Suporte via Chat</span></li>
-                                            </>
-                                        )}
-                                    </ul>
-                                    <Link href={`/cadastro-empresa?planId=${plan.id}`} className={`${styles.pricingBtn} ${isPopular ? styles.btnSolid : styles.btnOutline}`}>
-                                        {isPopular ? 'Assinar Plano' : 'Começar Grátis'}
-                                    </Link>
-                                </div>
-                            )
-                        }) : (
-                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#718096', padding: '2rem' }}>
-                                Não há planos disponíveis no momento.
-                            </div>
-                        )}
+                    <div className={styles.pricingCard} style={{ margin: '0 auto', maxWidth: '800px', textAlign: 'center', alignItems: 'center' }}>
+                        <div className={styles.popularBadge}>Oportunidade</div>
+                        <h2 className={styles.sectionTitle}>Pronto para transformar seu negócio?</h2>
+                        <p className={styles.sectionSubtitle} style={{ marginBottom: '2.5rem', color: 'rgba(255,255,255,0.8)' }}>
+                            Estamos em uma fase especial de liberação do sistema. Se você deseja testar a MyPetFlow no seu Pet Shop e ser um dos nossos parceiros, entre em contato agora mesmo.
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+                            <Link href={whatsappLink} className={styles.btnSolid} style={{ padding: '1.5rem 3rem', fontSize: '1.2rem', gap: '0.75rem', display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
+                                <MessageCircle size={24} />
+                                Falar com Consultor no WhatsApp
+                            </Link>
+                            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>
+                                Nosso time está pronto para te ajudar com a configuração inicial.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -284,7 +237,7 @@ export default async function LandingPage() {
                             <div className={styles.socialLinks}>
                                 <a href="#" aria-label="Instagram" className={styles.socialIcon}>IG</a>
                                 <a href="#" aria-label="Facebook" className={styles.socialIcon}>FB</a>
-                                <a href="#" aria-label="WhatsApp" className={styles.socialIcon}>WA</a>
+                                <a href={whatsappLink} aria-label="WhatsApp" className={styles.socialIcon}>WA</a>
                             </div>
                         </div>
 
@@ -292,7 +245,7 @@ export default async function LandingPage() {
                             <h4>Produto</h4>
                             <ul>
                                 <li><a href="#modulos">Funcionalidades</a></li>
-                                <li><a href="#planos">Planos e Preços</a></li>
+                                <li><a href="#contato">Falar com Consultor</a></li>
                                 <li><a href="#diferenciais">Por que o MyPetFlow?</a></li>
                                 <li><a href="#">Atualizações</a></li>
                             </ul>
@@ -301,9 +254,9 @@ export default async function LandingPage() {
                         <div className={styles.footerLinks}>
                             <h4>Links Úteis</h4>
                             <ul>
-                                <li><Link href="/cadastro-empresa">Cadastrar Empresa</Link></li>
+                                <li><Link href={whatsappLink}>Testar Sistema</Link></li>
                                 <li><Link href="/cadastro">Sou Tutor (Cliente)</Link></li>
-                                <li><a href="mailto:contato@mypetflow.com.br">Suporte (Contato)</a></li>
+                                <li><a href="mailto:contato@mypetflow.com.br">Suporte (E-mail)</a></li>
                                 <li><a href="#">Termos de Uso</a></li>
                             </ul>
                         </div>

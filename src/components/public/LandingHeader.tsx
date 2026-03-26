@@ -29,11 +29,11 @@ export default function LandingHeader() {
                     <nav className={styles.desktopNav}>
                         <Link href="#modulos">Módulos</Link>
                         <Link href="#diferenciais">Diferenciais</Link>
-                        <Link href="#planos">Planos</Link>
+                        <Link href="#contato">Contato</Link>
                     </nav>
 
                     <div className={styles.authButtons}>
-                        <Link href="/cadastro-empresa" className={styles.signupBtn}>Cadastrar Empresa</Link>
+                        <Link href="https://api.whatsapp.com/send/?phone=5544999481217&text&type=phone_number&app_absent=0" className={styles.signupBtn}>Falar com Consultor</Link>
                         <button 
                             className={styles.menuToggle} 
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -48,10 +48,10 @@ export default function LandingHeader() {
                     <div className={styles.mobileNav}>
                         <Link href="#modulos" onClick={() => setIsMenuOpen(false)}>Módulos</Link>
                         <Link href="#diferenciais" onClick={() => setIsMenuOpen(false)}>Diferenciais</Link>
-                        <Link href="#planos" onClick={() => setIsMenuOpen(false)}>Planos</Link>
+                        <Link href="#contato" onClick={() => setIsMenuOpen(false)}>Contato</Link>
                         <hr className={styles.menuDivider} />
-                        <Link href="/cadastro-empresa" className={styles.mobileMenuBtn} onClick={() => setIsMenuOpen(false)}>
-                            Cadastrar Empresa
+                        <Link href="https://api.whatsapp.com/send/?phone=5544999481217&text&type=phone_number&app_absent=0" className={styles.mobileMenuBtn} onClick={() => setIsMenuOpen(false)}>
+                            Falar com Consultor
                         </Link>
                     </div>
                 )}
