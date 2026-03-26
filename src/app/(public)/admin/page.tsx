@@ -1,10 +1,33 @@
 import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { createAdminClient } from '@/lib/supabase/admin'
 import styles from '@/app/page.module.css'
 import LoginForm from '@/components/modules/LoginForm'
 
-export default function AdminLoginPage() {
+export default async function AdminLoginPage() {
+    const headerStack = await headers()
+    const supabaseAdmin = createAdminClient()
+
+    const { data: { user } } = await supabaseAdmin.auth.getUser(headerStack.get('cookie') || '')
+    if (user) {
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        if (profile) {
+            let target = '/owner'
+            if (profile.role === 'customer') target = '/tutor'
+            else if (profile.role === 'staff') target = '/staff'
+            else if (profile.role === 'superadmin') target = '/master-admin'
+            redirect(target)
+        }
+    }
+
     return (
         <main className={styles.main}>
             {/* Background gradient orbs */}

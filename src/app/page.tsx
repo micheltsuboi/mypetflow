@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { headers } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/admin'
 import styles from './page.module.css'
+import { redirect } from 'next/navigation'
 import LoginForm from '@/components/modules/LoginForm'
 import LandingPage from '@/components/public/LandingPage'
 
@@ -29,6 +30,27 @@ export default async function LoginPage() {
     // Se estiver na raiz, renderiza a Landing Page (Institucional)
     if (!subdomain || subdomain === 'www') {
         return <LandingPage />
+    }
+
+    // --- NOVO: Redirecionamento Automático para usuários logados no subdomínio ---
+    // Se o usuário já tiver uma sessão válida, não mostramos o login, mandamos pro dashboard
+    const { data: { user } } = await supabaseAdmin.auth.getUser(headerStack.get('cookie') || '')
+    if (user) {
+        // Buscar o perfil para saber para onde mandar
+        const { data: profile } = await supabaseAdmin
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        if (profile) {
+            let target = '/owner'
+            if (profile.role === 'customer') target = '/tutor'
+            else if (profile.role === 'staff') target = '/staff'
+            else if (profile.role === 'superadmin') target = '/master-admin'
+            
+            redirect(target)
+        }
     }
 
     // A partir daqui, TEM subdomínio! Tratar página de Login do Inquilino SaaS
