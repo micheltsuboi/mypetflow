@@ -156,7 +156,7 @@ export default function PackagesPage() {
         } catch (error) {
             console.error(error)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => { fetchData() }, [fetchData])
 

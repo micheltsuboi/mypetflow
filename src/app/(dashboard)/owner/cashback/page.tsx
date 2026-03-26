@@ -77,7 +77,7 @@ export default function CashbackManagementPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchData()

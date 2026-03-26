@@ -59,7 +59,7 @@ export default function TimeClock() {
             const active = data.find(e => !e.clock_out)
             setCurrentEntry(active || null)
         }
-    }, [supabase])
+    }, [])
 
     // Calculate elapsed time when clocked in
     useEffect(() => {

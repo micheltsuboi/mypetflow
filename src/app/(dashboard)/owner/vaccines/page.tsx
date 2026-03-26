@@ -67,7 +67,7 @@ export default function VaccinesPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchData()

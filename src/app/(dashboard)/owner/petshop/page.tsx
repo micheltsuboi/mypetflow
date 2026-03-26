@@ -106,7 +106,7 @@ export default function PetshopPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchProducts()

@@ -130,7 +130,7 @@ export default function StaffDashboard() {
         }
 
         fetchDashboardData()
-    }, [supabase])
+    }, [])
 
     const filteredPets = selectedArea === 'all'
         ? petsToday

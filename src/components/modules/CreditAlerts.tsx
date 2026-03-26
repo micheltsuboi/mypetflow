@@ -95,7 +95,7 @@ export default function CreditAlerts() {
         }
 
         fetchLowCredits()
-    }, [supabase])
+    }, [])
 
     const handleWhatsApp = (phone: string | null, petName: string, serviceType: string, remaining: number) => {
         if (!phone) {

@@ -175,7 +175,7 @@ export default function TutorPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchData()

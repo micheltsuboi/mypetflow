@@ -110,7 +110,7 @@ export default function BookingPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchData()

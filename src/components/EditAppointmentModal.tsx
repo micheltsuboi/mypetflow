@@ -56,7 +56,7 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
             if (data) setServices(data)
         }
         fetchServices()
-    }, [supabase])
+    }, [])
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()

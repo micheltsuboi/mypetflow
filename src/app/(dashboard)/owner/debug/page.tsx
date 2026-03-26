@@ -51,7 +51,7 @@ export default function DebugPage() {
             setLoading(false)
         }
         fetchDebugData()
-    }, [supabase])
+    }, [])
 
     if (loading) return <div style={{ padding: '2rem' }}>Carregando...</div>
 

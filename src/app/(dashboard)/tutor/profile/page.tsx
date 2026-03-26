@@ -63,7 +63,7 @@ export default function TutorProfilePage() {
         }
 
         fetchProfile()
-    }, [supabase])
+    }, [])
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()

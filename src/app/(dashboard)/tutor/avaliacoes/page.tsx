@@ -75,7 +75,7 @@ export default function AssessmentsPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchData()

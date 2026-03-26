@@ -253,7 +253,7 @@ export default function OwnerDashboard() {
         }
 
         fetchDashboardData()
-    }, [supabase])
+    }, [])
 
     const handleOpenExtract = (type: 'revenue' | 'expenses' | 'pending') => {
         setExtractRecords(prev => ({ ...prev, type }))

@@ -46,7 +46,7 @@ export default function AdmitPetModal({ bedId, onClose, onSuccess }: { bedId: st
             setServices(sData || [])
         }
         loadData()
-    }, [supabase])
+    }, [])
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()

@@ -114,7 +114,7 @@ export default function UsuariosPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase])
+    }, [])
 
     useEffect(() => {
         fetchUsers()
