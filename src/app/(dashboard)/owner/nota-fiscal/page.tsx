@@ -58,7 +58,7 @@ export default async function NotaFiscalPage() {
                 </div>
             ) : (
                 <div className={styles.card}>
-                    <NotaFiscalList notas={notas || []} />
+                    <NotaFiscalList notas={notas || []} orgId={profile.org_id} />
                 </div>
             )}
         </div>
