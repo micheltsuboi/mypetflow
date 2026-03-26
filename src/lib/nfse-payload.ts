@@ -159,6 +159,25 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             tipo_retencao_iss: 1,                  // 1=Não retido (tomador não retém ISS)
             percentual_aliquota_relativa_municipio: config.aliquota_iss || 2.00, // → pAliq
 
+            // --- Tributos Totais (nó XML "trib" → obrigatório; exige filhos tribFed ou totTrib) ---
+            // NOVO [2026-03]: A versão atual do schema NFS-e Nacional EXIGE este grupo.
+            // Lei 12.741/2012 - transparência ao consumidor sobre carga tributária aproximada.
+            // Para Simples Nacional: usar percentual_total_tributos_simples_nacional (→ totTrib/pTotTribSN)
+            // Para regime normal: usar percentual_total_tributos_federais + percentual_total_tributos_municipais (→ tribFed)
+            ...(
+                (config.optante_simples_nacional || config.regime_tributario === 4)
+                ? {
+                    // Simples Nacional — percentual informativo, Anexo III faixa 1 = 6%
+                    // (valor declaratório, não altera o apuramento do DAS)
+                    percentual_total_tributos_simples_nacional: 6.0,
+                }
+                : {
+                    // Regime Normal (Lucro Presumido / Real) — tributos federais típicos para serviços
+                    percentual_total_tributos_federais: 3.65,    // PIS 0,65% + COFINS 3,0% acumulativo
+                    percentual_total_tributos_municipais: config.aliquota_iss || 2.00, // ISS do município
+                }
+            ),
+
             // --- Campos adicionais obrigatórios ---
             finalidade_emissao: 0,                 // 0=Normal
             consumidor_final: 1,                   // 1=Sim (pessoa física/cliente)
