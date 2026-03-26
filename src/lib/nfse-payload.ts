@@ -111,14 +111,15 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
             // NUNCA omitir ou a Focus gera <prest> vazio que falha o schema
             // Mas para Curitiba Nacional (E0120), a IM deve ser omitida se não houver registros complementares
             razao_social_prestador: config.razao_social,                  // → xNome
-            // Endereço do prestador: xLgr (logradouro), nro (número), xBairro (bairro) são obrigatórios no padrão Nacional
+            // Erro E0128: O endereço nacional do prestador não deve ser informado se ele for o emitente.
+            /*
             logradouro_prestador: config.municipio || 'Curitiba',
-            numero_prestador: 'SN', // Obrigatório no Schema!
-            bairro_prestador: 'Centro', // Obrigatório no Schema!
+            numero_prestador: 'SN',
+            bairro_prestador: 'Centro',
             cep_prestador: config.cep?.replace(/\D/g, ''),
             codigo_municipio_prestador: codigoIBGE,
-            // Adicionando nro_prestador como redundância caso o parser da Focus varie
             nro_prestador: 'SN',
+            */
             // Regime tributário do prestador (1=Não Optante, 2=Optante MEI, 3=Optante ME/EPP)
             codigo_opcao_simples_nacional: config.regime_tributario === 4 ? 2 : (config.optante_simples_nacional ? 3 : 1),
             regime_tributario_simples_nacional: (config.optante_simples_nacional || config.regime_tributario === 4) ? 1 : undefined,
