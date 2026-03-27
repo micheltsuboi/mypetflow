@@ -36,9 +36,9 @@ export async function POST(req: NextRequest) {
         console.log('FOCUS DATA SYNC:', JSON.stringify(focusData, null, 2))
 
         // 2. Mapear status de habilitação
-        // Focus v2: habilita_nfe, habilita_nfse, habilita_nfce (boolean)
-        const isNFeEnabled = focusData.habilita_nfe === true || focusData.habilitado_nfe === true
-        const isNFSeEnabled = focusData.habilita_nfse === true || focusData.habilitado_nfse === true
+        // Focus v2: habilita_nfe, habilita_nfse, habilita_nfce (boolean, string ou status)
+        const isNFeEnabled = focusData.habilita_nfe == true || focusData.habilitado_nfe == true || focusData.status_nfe === 'habilitado'
+        const isNFSeEnabled = focusData.habilita_nfse == true || focusData.habilitado_nfse == true || focusData.status_nfse === 'habilitado' || focusData.status === 'ativo'
 
         // Debug: Retornar as chaves pra gente ver
         const keysFound = Object.keys(focusData).join(', ')
