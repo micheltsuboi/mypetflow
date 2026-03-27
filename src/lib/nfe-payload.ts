@@ -69,7 +69,9 @@ export function buildNFePayload({ config, ref_uuid, total_amount, tutor, items }
         tipo_documento: 1, // Saída
         finalidade_emissao: 1, // Normal
         cnpj_emitente: config.cnpj?.replace(/\D/g, ''),
-        inscricao_estadual_emitente: config.inscricao_estadual?.replace(/\D/g, ''),
+        inscricao_estadual_emitente: config.inscricao_estadual?.toUpperCase() === 'ISENTO' 
+            ? 'ISENTO' 
+            : config.inscricao_estadual?.replace(/\D/g, ''),
         nome_emitente: config.razao_social,
         // config.logradouro does not exist yet; either add it to the schema or fallback
         logradouro_emitente: 'S/N', 
