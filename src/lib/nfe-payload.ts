@@ -33,25 +33,25 @@ export interface NFeBuilderParams {
  * Builds the payload for Focus NFe API for NFe (Produtos)
  */
 export function buildNFePayload({ config, ref_uuid, total_amount, tutor, items }: NFeBuilderParams) {
-    const totalFormatado = total_amount.toFixed(2);
+    const totalFormatado = (total_amount || 0).toFixed(2);
     
     // Format items
     const formattedItems = items.map((item, index) => {
-        const valorUnitario = item.valor_unitario.toFixed(4)
-        const valorBruto = (item.valor_unitario * item.quantidade).toFixed(2)
+        const valorUnitario = (item.valor_unitario || 0).toFixed(4)
+        const valorBruto = ((item.valor_unitario || 0) * (item.quantidade || 0)).toFixed(2)
 
         return {
             numero_item: index + 1,
-            codigo_produto: item.id.substring(0, 15), // Avoid breaking focus constraint
-            descricao: item.descricao,
+            codigo_produto: (item.id || String(index)).substring(0, 15), // Avoid breaking focus constraint
+            descricao: item.descricao || 'Produto sem descrição',
             cfop: item.cfop || '5102',
             unidade_comercial: item.unidade || 'un',
-            quantidade_comercial: item.quantidade,
+            quantidade_comercial: item.quantidade || 1,
             valor_unitario_comercial: valorUnitario,
             valor_unitario_tributavel: valorUnitario,
             unidade_tributavel: item.unidade || 'un',
-            codigo_ncm: item.ncm,
-            quantidade_tributavel: item.quantidade,
+            codigo_ncm: item.ncm || '00000000',
+            quantidade_tributavel: item.quantidade || 1,
             valor_bruto: valorBruto,
             icms_situacao_tributaria: item.cst || '102', // CSOSN 102 (Tributada pelo SN s/ permissão de crédito)
             icms_origem: "0",

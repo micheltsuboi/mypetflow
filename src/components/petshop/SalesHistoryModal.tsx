@@ -339,11 +339,14 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                         } : undefined,
                                                         produtos: order.order_items.map((it: any) => ({
                                                             id: it.product_id,
-                                                            name: it.product_name,
-                                                            quantity: it.quantity,
+                                                            descricao: it.product_name,
+                                                            quantidade: it.quantity,
                                                             total_price: it.total_price,
-                                                            unit_price: it.unit_price,
-                                                            discount_percent: it.discount_percent
+                                                            valor_unitario: it.unit_price,
+                                                            discount_percent: it.discount_percent,
+                                                            ncm: it.product?.codigo_ncm || '00000000',
+                                                            cfop: it.product?.cfop || '5102',
+                                                            unidade: it.product?.unidade_comercial || 'un'
                                                         }))
                                                     })
                                                     setShowNFModal(true)

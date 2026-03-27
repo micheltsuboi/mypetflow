@@ -38,7 +38,7 @@ export interface NFSeBuilderParams {
  * 5. [RESOLVIDO] dhEmi com "Z" (UTC) → Substituído por timezone explícito sem ":" (ex: -0300).
  */
 export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuilderParams) {
-    const valorFormatado = servico.valor.toFixed(2);
+    const valorFormatado = (servico.valor || 0).toFixed(2);
     const cnpjLimpo = config.cnpj?.replace(/\D/g, '');
     const cpfTomador = tutor.cpf?.replace(/\D/g, '') || undefined;
     const isNacional = config.codigo_municipio?.replace(/\D/g, '') === '4106902';
@@ -190,7 +190,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     // Para municípios que NÃO usam o padrão Nacional (SPED)
     // ================================================================
     const agora = new Date().toISOString();
-    const valorIss = (servico.valor * ((config.aliquota_iss || 2) / 100)).toFixed(2);
+    const valorIss = ((servico.valor || 0) * ((config.aliquota_iss || 2) / 100)).toFixed(2);
 
     return {
         ref: `petflow_${ref_uuid}`,
