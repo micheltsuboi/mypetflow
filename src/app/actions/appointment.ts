@@ -62,6 +62,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             .from('services')
             .select(`
                 id, 
+                name,
                 duration_minutes, 
                 base_price,
                 category_id,
@@ -214,14 +215,20 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
                 : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
             const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
             const formattedTime = isHospedagem ? 'horário de entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-            const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
+            const serviceName = serviceAny.name || (isHospedagem ? 'Hospedagem' : isCreche ? 'Creche' : 'Atendimento')
+            const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceName}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
             
             console.log('[createAppointment] Triggering WhatsApp...')
             await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
                 petName: petData.name,
-                serviceName: serviceAny.name,
+                serviceName: serviceName,
+                service_name: serviceName, // Fallback for snake_case
                 formattedDate,
-                formattedTime
+                formattedTime,
+                date_start: checkInDate || formattedDate,
+                date_end: checkOutDate || null,
+                is_hospedagem: isHospedagem,
+                is_creche: isCreche
             })
             console.log('[createAppointment] WhatsApp trigger call finished')
         } catch (waErr) {
