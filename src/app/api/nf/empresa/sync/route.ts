@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
             success: true, 
             habilita_nfe: isNFeEnabled, 
             habilita_nfse: isNFSeEnabled,
-            message: `Sincronizado! NFe: ${isNFeEnabled ? 'Sim' : 'Não'}, NFSe: ${isNFSeEnabled ? 'Sim' : 'Não'}. (debug: h_nfe=${focusData.habilita_nfe}, h_nfse=${focusData.habilita_nfse}, hn_prod=${focusData.habilita_nfsen_producao}, cod_mun=${focusData.codigo_municipio})`
+            message: `Sincronizado! NFe: ${isNFeEnabled ? 'Sim' : 'Não'}, NFSe: ${isNFSeEnabled ? 'Sim' : 'Não'}.`
         })
 
     } catch (error: any) {
