@@ -5,7 +5,8 @@ export async function sendWhatsAppMessage(
   orgId: string,
   phone: string,
   message: string,
-  webhookPath: string = 'vet-alert'
+  webhookPath: string = 'vet-alert',
+  extraData: any = {}
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const adminSupabase = await createAdminClient()
@@ -49,6 +50,7 @@ export async function sendWhatsAppMessage(
 
     // Payload unificado que o N8N vai processar
     const payload = {
+        ...extraData,
         phone: normalizedPhone,
         tutorPhone: normalizedPhone,
         normalizedPhone: normalizedPhone,

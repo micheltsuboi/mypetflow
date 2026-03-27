@@ -285,7 +285,12 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
     
     // Trigger notification (await to ensure delivery in server action)
-    await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento').catch(e => console.error(e))
+    await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
+        petName: petData.name,
+        serviceName: serviceAny.name,
+        formattedDate,
+        formattedTime
+    }).catch(e => console.error(e))
     // ── Fim WhatsApp ──
 
     revalidatePath('/owner/agenda')
@@ -322,7 +327,11 @@ export async function updateAppointmentStatus(id: string, status: string) {
                 const statusLabel = status === 'confirmed' ? 'Confirmado' : status === 'done' ? 'Finalizado' : 'Cancelado'
                 const msg = `Olá! O status do atendimento de *${pet?.name}* (${(appt.services as any)?.name}) foi atualizado para: *${statusLabel}*.`
                 
-                await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-agendamento').catch(e => console.error(e))
+                await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-agendamento', {
+                    petName: pet?.name,
+                    serviceName: (appt.services as any)?.name,
+                    statusLabel
+                }).catch(e => console.error(e))
             }
         } catch (waErr) {
             console.error('[updateAppointmentStatus] WA notify error:', waErr)
@@ -634,8 +643,8 @@ export async function applyDiscount(id: string, discountVal: number, type: 'perc
 /**
  * Helper to trigger WhatsApp notification via centralized router
  */
-export async function triggerNotification(orgId: string, customerId: string, message: string, path: string = 'vet-alert') {
-    console.log(`[triggerNotification] Starting for org: ${orgId}, customer: ${customerId}, path: ${path}`)
+export async function triggerNotification(orgId: string, customerId: string, message: string, path: string = 'vet-alert', extraData: any = {}) {
+    console.log(`[triggerNotification] Starting for org: ${orgId}, customer: ${customerId}, path: ${path}, extra:`, extraData)
     try {
         const supabase = await createClient()
         const { data: customer } = await supabase
@@ -647,7 +656,7 @@ export async function triggerNotification(orgId: string, customerId: string, mes
         console.log(`[triggerNotification] Customer phone: ${customer?.phone_1}`)
 
         if (customer?.phone_1) {
-            const result = await sendWhatsAppMessage(orgId, customer.phone_1, message, path)
+            const result = await sendWhatsAppMessage(orgId, customer.phone_1, message, path, extraData)
             console.log(`[triggerNotification] sendWhatsAppMessage result:`, result)
         } else {
             console.warn(`[triggerNotification] No phone found for customer ${customerId}`)
