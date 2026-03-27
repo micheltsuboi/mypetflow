@@ -314,13 +314,20 @@ export default function PetshopPage() {
     const handleOpenModal = (product?: Product) => {
         if (product) {
             const p = product as any
-            const fiscal = p.produtos_fiscal?.[0] || p.produtos_fiscal
+            // Handle different shapes of produtos_fiscal (array from select or single if transformed)
+            const fiscal = Array.isArray(p.produtos_fiscal) ? p.produtos_fiscal[0] : p.produtos_fiscal
+            
             setEditingProduct(product)
             setFormData({
-                name: product.name, category: product.category, cost_price: product.cost_price || 0,
-                selling_price: product.price, stock_quantity: product.stock_quantity,
-                expiration_date: product.expiration_date || '', bar_code: product.bar_code || '',
-                description: product.description || '', image_url: product.image_url,
+                name: product.name, 
+                category: product.category, 
+                cost_price: product.cost_price || 0,
+                selling_price: product.price, 
+                stock_quantity: product.stock_quantity,
+                expiration_date: product.expiration_date || '', 
+                bar_code: product.bar_code || '',
+                description: product.description || '', 
+                image_url: product.image_url,
                 codigo_ncm: fiscal?.codigo_ncm || '',
                 cfop: fiscal?.cfop || '5102'
             })
@@ -344,11 +351,18 @@ export default function PetshopPage() {
             if (!profile?.org_id) return
 
             const productData = {
-                org_id: profile.org_id, name: formData.name, category: formData.category,
-                cost_price: formData.cost_price || 0, price: formData.selling_price || 0,
-                stock_quantity: formData.stock_quantity || 0, min_stock_alert: 5,
-                expiration_date: formData.expiration_date || null, description: formData.description || '',
-                image_url: formData.image_url, bar_code: formData.bar_code || '', is_active: true
+                org_id: profile.org_id, 
+                name: formData.name, 
+                category: formData.category,
+                cost_price: formData.cost_price || 0, 
+                price: formData.selling_price || 0,
+                stock_quantity: formData.stock_quantity || 0, 
+                min_stock_alert: 5,
+                expiration_date: formData.expiration_date || null, 
+                description: formData.description || '',
+                image_url: formData.image_url, 
+                bar_code: formData.bar_code || '', 
+                is_active: true
             }
 
             let productId = editingProduct?.id
@@ -362,14 +376,15 @@ export default function PetshopPage() {
                 productId = data.id
             }
 
-            // Salvar dados fiscais
+            // Salvar dados fiscais (Sempre garantir que o produto_id seja passado)
             if (productId) {
                 const { error: fiscalError } = await supabase.from('produtos_fiscal').upsert({
                     produto_id: productId,
-                    codigo_ncm: formData.codigo_ncm || '00000000',
+                    codigo_ncm: formData.codigo_ncm?.replace(/\D/g, '') || '00000000',
                     cfop: formData.cfop || '5102',
                     unidade_comercial: 'un'
-                })
+                }, { onConflict: 'produto_id' })
+                
                 if (fiscalError) {
                     console.error('Erro ao salvar dados fiscais:', fiscalError)
                 }
@@ -377,6 +392,7 @@ export default function PetshopPage() {
 
             await fetchProducts()
             setIsModalOpen(false)
+            alert(editingProduct ? 'Produto atualizado!' : 'Produto cadastrado!')
         } catch (error) {
             console.error('Erro ao salvar produto:', error)
             alert('Erro ao salvar produto.')
@@ -433,42 +449,47 @@ export default function PetshopPage() {
                             </div>
                         ) : (
                             <div className={styles.pdvGrid}>
-                                {filteredProducts.map(product => (
-                                    <div
-                                        key={product.id}
-                                        className={`${styles.pdvProductCard} ${product.stock_quantity <= 0 ? styles.outOfStock : ''}`}
-                                        onClick={() => product.stock_quantity > 0 && addToCart(product)}
-                                    >
-                                        <div className={styles.pdvImageHero}>
-                                            {product.image_url ?
-                                                <img src={product.image_url} alt={product.name} /> :
-                                                <div className={styles.pdvImagePlaceholder}>📦</div>
-                                            }
-                                        </div>
-                                        <div className={styles.pdvProductInfo}>
-                                            <span className={styles.pdvCategory}>{product.category}</span>
-                                            <h3 className={styles.pdvName} title={product.name}>{product.name}</h3>
-                                            <div className={styles.pdvPriceRow}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                    <span className={styles.pdvPrice}>{formatCurrency(product.price)}</span>
-                                                    <span className={`${styles.pdvStock} ${product.stock_quantity < 5 ? styles.lowStock : ''}`}>
-                                                        {product.stock_quantity} un
-                                                    </span>
+                                {filteredProducts.map(product => {
+                                    const outOfStock = product.stock_quantity <= 0
+                                    return (
+                                        <div
+                                            key={product.id}
+                                            className={`${styles.pdvProductCard} ${outOfStock ? styles.outOfStock : ''}`}
+                                            onClick={() => !outOfStock && addToCart(product)}
+                                        >
+                                            <div className={styles.pdvImageHero}>
+                                                {product.image_url ?
+                                                    <img src={product.image_url} alt={product.name} /> :
+                                                    <div className={styles.pdvImagePlaceholder}>📦</div>
+                                                }
+                                            </div>
+                                            <div className={styles.pdvProductInfo}>
+                                                <div className={styles.pdvProductDetails}>
+                                                    <span className={styles.pdvCategory}>{product.category}</span>
+                                                    <h3 className={styles.pdvName} title={product.name}>{product.name}</h3>
                                                 </div>
-                                                <button 
-                                                    className={styles.editButton} 
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        handleOpenModal(product)
-                                                    }}
-                                                    title="Editar Produto"
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
+                                                <div className={styles.pdvPriceRow}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                                                        <span className={styles.pdvPrice}>{formatCurrency(product.price)}</span>
+                                                        <span className={`${styles.pdvStock} ${product.stock_quantity < 5 ? styles.lowStock : ''}`}>
+                                                            {product.stock_quantity} un
+                                                        </span>
+                                                    </div>
+                                                    <button 
+                                                        className={styles.editButton} 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleOpenModal(product)
+                                                        }}
+                                                        title="Editar Produto"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         )}
                     </div>
