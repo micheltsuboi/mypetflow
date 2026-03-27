@@ -83,26 +83,10 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         
         console.log('[createAppointment] Category:', categoryName)
         
-        const isCreche = categoryName === 'Creche'
-        const isHospedagem = categoryName === 'Hospedagem'
-
-        // Validate Assessment for Creche/Hospedagem
-        if (isCreche || isHospedagem) {
-            const { data: assessment } = await supabase
-                .from('pet_assessments')
-                .select('status')
-                .eq('pet_id', petId)
-                .single()
-
-            if (!assessment || assessment.status !== 'approved') {
-                return { message: `Este pet precisa de uma avaliação aprovada para ${categoryName}.`, success: false }
-            }
-        }
-
-        // 3. Get customer & pet data FIRST
+        // 3. Get customer & pet data
         const { data: petData, error: petError } = await supabase
             .from('pets')
-            .select('*, customer_id, weight_kg, species')
+            .select('*, customer_id, weight_kg, species, is_adapted')
             .eq('id', petId)
             .single()
 
@@ -110,6 +94,26 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             console.error('[createAppointment] Pet fetch error:', petError)
             return { message: 'Pet não encontrado.', success: false }
         }
+
+        const isCreche = categoryName === 'Creche'
+        const isHospedagem = categoryName === 'Hospedagem'
+
+        // Validate Assessment for Creche/Hospedagem
+        if (isCreche || isHospedagem) {
+            // Se o pet já está marcado como adaptado na ficha, liberamos direto
+            if (!petData.is_adapted) {
+                const { data: assessment } = await supabase
+                    .from('pet_assessments')
+                    .select('status')
+                    .eq('pet_id', petId)
+                    .single()
+
+                if (!assessment || assessment.status !== 'approved') {
+                    return { message: `Este pet precisa de uma avaliação aprovada ou ser marcado como 'Adaptado' para ${categoryName}.`, success: false }
+                }
+            }
+        }
+
 
         // Prepare Date Range
         let scheduledAt: string
