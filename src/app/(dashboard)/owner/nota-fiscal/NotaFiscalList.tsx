@@ -249,10 +249,10 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                         <span>PDF</span>
                                                     </button>
                                                 )}
-                                                {(nota as any).caminho_xml && (
+                                                {nota.caminho_xml && (
                                                     <button 
                                                         className={`${styles.actionBtn} ${styles.xmlBtn}`}
-                                                        onClick={() => window.open((nota as any).caminho_xml, '_blank')}
+                                                        onClick={() => window.open(nota.caminho_xml!.startsWith('http') ? nota.caminho_xml! : `https://api.focusnfe.com.br${nota.caminho_xml}`, '_blank')}
                                                         title="Baixar XML"
                                                     >
                                                         <FileCode size={16} />

@@ -1146,7 +1146,7 @@ export default function FinanceiroPage() {
                                                                         {nf.caminho_xml && (
                                                                             <button 
                                                                                 className={`${styles.nfActionBtn} ${styles.xmlBtn}`}
-                                                                                onClick={() => window.open(nf.caminho_xml, '_blank')}
+                                                                                onClick={() => window.open(nf.caminho_xml!.startsWith('http') ? nf.caminho_xml! : `https://api.focusnfe.com.br${nf.caminho_xml}`, '_blank')}
                                                                                 title="Baixar XML"
                                                                             >
                                                                                 <FileCode size={16} />
