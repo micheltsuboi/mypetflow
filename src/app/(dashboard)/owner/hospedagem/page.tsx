@@ -60,26 +60,27 @@ export default function HospedagemPage() {
     const [nfAppointment, setNfAppointment] = useState<Appointment | null>(null)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string, ref?: string }>>({})
 
-    const handleSendWhatsApp = async (appt: Appointment) => {
-        const nf = nfMap[appt.id]
-        if (!nf) return
-
+    const handleSendWhatsApp = async (referencia: string) => {
+        if (!referencia) {
+            alert('Referência da NF não encontrada.')
+            return
+        }
         try {
             const response = await fetch('/api/nf/send-whatsapp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nfId: nf.id })
+                body: JSON.stringify({ referencia })
             })
 
             if (response.ok) {
-                alert('Mensagem enviada para o WhatsApp do tutor!')
+                alert('✅ NF enviada com sucesso para o WhatsApp do tutor!')
             } else {
                 const err = await response.json()
-                alert('Erro ao enviar WhatsApp: ' + (err.message || 'Erro desconhecido'))
+                alert('❌ Erro ao enviar: ' + (err.error || 'Erro desconhecido'))
             }
         } catch (error) {
             console.error('Erro ao chamar send-whatsapp:', error)
-            alert('Erro ao comunicar com o servidor.')
+            alert('❌ Erro de conexão ao tentar enviar WhatsApp.')
         }
     }
 
@@ -177,6 +178,32 @@ export default function HospedagemPage() {
     useEffect(() => {
         fetchHospedagemData()
     }, [fetchHospedagemData])
+
+    // Realtime: atualizar status da NF automaticamente
+    useEffect(() => {
+        const channel = supabase
+            .channel('nf-updates-hospedagem')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'notas_fiscais' },
+                (payload) => {
+                    const nf = payload.new as any
+                    if (nf && nf.origem_id) {
+                        setNfMap(prev => ({
+                            ...prev,
+                            [nf.origem_id]: {
+                                id: nf.id,
+                                status: nf.status,
+                                pdf_url: nf.caminho_pdf,
+                                ref: nf.referencia
+                            }
+                        }))
+                    }
+                }
+            )
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [supabase])
 
     const handleCheckIn = async (appointmentId: string) => {
         const result = await checkInAppointment(appointmentId)
@@ -419,9 +446,10 @@ export default function HospedagemPage() {
                                                     discountFixed={appt.discount}
                                                     paymentStatus={appt.payment_status}
                                                     paymentMethod={appt.payment_method}
-                                                    onUpdate={() => fetchHospedagemData(true)}
-                                                    onPaymentAuthorized={() => {
-                                                        if (confirm('Pagamento confirmado! Deseja emitir a Nota Fiscal agora?')) {
+                                                    onUpdate={() => {
+                                                        fetchHospedagemData(true)
+                                                        // Se acabou de pagar, abrir modal de NF
+                                                        if (appt.payment_status !== 'paid') {
                                                             setNfAppointment(appt)
                                                             setShowNFModal(true)
                                                         }
@@ -490,7 +518,7 @@ export default function HospedagemPage() {
                                                                     <button
                                                                         onClick={(e) => {
                                                                             e.stopPropagation()
-                                                                            handleSendWhatsApp(appt)
+                                                                            handleSendWhatsApp(nfMap[appt.id].ref || '')
                                                                         }}
                                                                         style={{
                                                                             padding: '4px 8px',

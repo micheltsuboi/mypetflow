@@ -176,6 +176,33 @@ export default function BanhoTosaPage() {
         fetchBanhoTosaData()
     }, [fetchBanhoTosaData])
 
+    // Realtime: atualizar status da NF automaticamente
+    useEffect(() => {
+        const channel = supabase
+            .channel('nf-updates-banho-tosa')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'notas_fiscais' },
+                (payload) => {
+                    const nf = payload.new as any
+                    if (nf && nf.origem_id) {
+                        setNfMap(prev => ({
+                            ...prev,
+                            [nf.origem_id]: {
+                                ...prev[nf.origem_id],
+                                ...nf,
+                                caminho_pdf: nf.caminho_pdf,
+                                referencia: nf.referencia,
+                                status: nf.status
+                            }
+                        }))
+                    }
+                }
+            )
+            .subscribe()
+        return () => { supabase.removeChannel(channel) }
+    }, [supabase])
+
     const handleCheckIn = async (appointmentId: string) => {
         const result = await checkInAppointment(appointmentId)
         if (result.success) {
