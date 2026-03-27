@@ -6,7 +6,7 @@ import styles from './page.module.css'
 import Link from 'next/link'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
-import { deleteAppointment } from '@/app/actions/appointment'
+import { deleteAppointment, createAppointment } from '@/app/actions/appointment'
 import DailyReportModal from '@/components/DailyReportModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PaymentControls from '@/components/PaymentControls'
@@ -631,29 +631,26 @@ function NewCrecheAppointmentModal({ onClose, onSave }: { onClose: () => void, o
             return
         }
 
-        setLoading(true)
+        const formData = new FormData()
+        formData.append('petId', selectedPetId)
+        formData.append('serviceId', selectedServiceId)
+        formData.append('date', selectedDate)
+        formData.append('time', selectedTime)
+        if (notes) formData.append('notes', notes)
 
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-
-        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-
-        const { error } = await supabase.from('appointments').insert({
-            org_id: profile?.org_id,
-            pet_id: selectedPetId,
-            service_id: selectedServiceId,
-            scheduled_at: `${selectedDate}T${selectedTime}:00`,
-            status: 'confirmed',
-            notes: notes || null
-        })
-
-        setLoading(false)
-
-        if (error) {
-            alert('Erro ao criar agendamento: ' + error.message)
-        } else {
-            alert('Agendamento criado com sucesso!')
-            onSave()
+        try {
+            const result = await createAppointment({ message: '', success: false }, formData)
+            if (result.success) {
+                alert('Agendamento criado com sucesso!')
+                onSave()
+            } else {
+                alert('Erro ao criar agendamento: ' + result.message)
+            }
+        } catch (err: any) {
+            console.error(err)
+            alert('Erro inesperado: ' + err.message)
+        } finally {
+            setLoading(false)
         }
     }
 

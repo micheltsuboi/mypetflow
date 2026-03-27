@@ -205,11 +205,11 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
 
         // WhatsApp notify
         try {
-            const dateObj = isHospedagem
+            const dateObj = (isHospedagem || isCreche)
                 ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
                 : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
             const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            const formattedTime = isHospedagem ? 'entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            const formattedTime = isHospedagem ? 'horário de entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
             const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
             
             console.log('[createAppointment] Triggering WhatsApp...')
