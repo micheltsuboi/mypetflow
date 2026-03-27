@@ -42,7 +42,7 @@ export async function checkInAppointment(appointmentId: string) {
             if (appt) {
                 const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
                 const msg = `Olá! *${pet?.name}* acabou de fazer o *Check-in* para o serviço de *${(appt.services as any)?.name}*. Já estamos cuidando com muito carinho! ❤️`
-                triggerNotification(appt.org_id, appt.customer_id, msg).catch(e => console.error(e))
+                await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-agendamento').catch(e => console.error(e))
             }
         } catch (waErr) {
             console.error('[checkIn] WA notify error:', waErr)
@@ -115,7 +115,7 @@ export async function checkOutAppointment(appointmentId: string, checkoutType?: 
             if (appt) {
                 const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
                 const msg = `Olá! *${pet?.name}* finalizou o serviço de *${(appt.services as any)?.name}* e está pronto para o *Check-out*. Até logo! 👋🐾`
-                triggerNotification(appt.org_id, appt.customer_id, msg).catch(e => console.error(e))
+                await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-agendamento').catch(e => console.error(e))
             }
         } catch (waErr) {
             console.error('[checkOut] WA notify error:', waErr)

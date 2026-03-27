@@ -4,7 +4,8 @@ import { createAdminClient } from './supabase/admin'
 export async function sendWhatsAppMessage(
   orgId: string,
   phone: string,
-  message: string
+  message: string,
+  webhookPath: string = 'vet-alert'
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const adminSupabase = await createAdminClient()
@@ -39,8 +40,8 @@ export async function sendWhatsAppMessage(
        return { success: false, error: 'Serviço global de mensagens não configurado.' }
     }
 
-    // O path 'vet-alert' é o webhook ativo no n8n que processa tanto instâncias globais quanto customizadas.
-    const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/vet-alert`
+    // O path padrão é 'vet-alert', mas permitimos outros como 'pet-agendamento'
+    const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/${webhookPath}`
     
     // Payload unificado que o N8N vai processar
     const payload = {
