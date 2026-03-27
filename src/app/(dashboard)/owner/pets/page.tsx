@@ -42,6 +42,23 @@ import FileUpload from '@/components/ui/FileUpload'
 import ExamPaymentControls from '@/components/ExamPaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
+import { 
+    X, 
+    User, 
+    Calendar, 
+    Dog, 
+    History, 
+    ClipboardCheck, 
+    Package, 
+    Activity, 
+    Stethoscope, 
+    FileText,
+    Syringe,
+    CreditCard,
+    Scissors,
+    ShieldAlert,
+    Building2
+} from 'lucide-react'
 
 interface Pet {
     id: string
@@ -385,17 +402,22 @@ function PetsContent() {
             {showModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                        <button onClick={() => setShowModal(false)} className={styles.closeBtn}>
+                            <X size={24} />
+                        </button>
                         <div className={styles.modalHeader}>
                             <h2>{selectedPet ? `Ficha Pet: ${selectedPet.name}` : 'Novo Pet'}</h2>
-                            <button onClick={() => setShowModal(false)} className={styles.closeBtn}>&times;</button>
                         </div>
 
-                        <div className={styles.modalContent} style={{ overflowY: 'auto', maxHeight: 'calc(90vh - 120px)', padding: '1rem' }}>
+                        <div className={styles.modalContent}>
 
                             {/* DADOS CADASTRAIS */}
                             <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('details')} className={styles.accordionHeader}>
-                                    <span>👤 Dados Cadastrais</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <User size={18} color="var(--primary)" />
+                                        <span>Dados Cadastrais</span>
+                                    </div>
                                     <span>{accordions.details ? '−' : '+'}</span>
                                 </button>
                                 {accordions.details && (
@@ -499,7 +521,10 @@ function PetsContent() {
                             {planFeatures.includes('clinica_vet') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('medical')} className={styles.accordionHeader}>
-                                        <span>🩺 Ficha Médica (Consultas)</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Stethoscope size={18} color="var(--primary)" />
+                                            <span>Ficha Médica (Consultas)</span>
+                                        </div>
                                         <span>{accordions.medical ? '−' : '+'}</span>
                                     </button>
                                     {accordions.medical && (
@@ -537,7 +562,10 @@ function PetsContent() {
                             {planFeatures.includes('clinica_vet') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('exams')} className={styles.accordionHeader}>
-                                        <span>🔬 Exames Laboratoriais</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <ClipboardCheck size={18} color="var(--primary)" />
+                                            <span>Exames Laboratoriais</span>
+                                        </div>
                                         <span>{accordions.exams ? '−' : '+'}</span>
                                     </button>
                                     {accordions.exams && (
@@ -674,7 +702,10 @@ function PetsContent() {
                             {planFeatures.includes('clinica_vet') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('hospital' as any)} className={styles.accordionHeader}>
-                                        <span>🏥 Histórico de Internamento</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Activity size={18} color="var(--primary)" />
+                                            <span>Histórico de Internamento</span>
+                                        </div>
                                         <span>{(accordions as any).hospital ? '−' : '+'}</span>
                                     </button>
                                     {(accordions as any).hospital && (
@@ -713,8 +744,9 @@ function PetsContent() {
                             {(planFeatures.includes('creche') || planFeatures.includes('hospedagem')) && (
                                 <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('assessment')} className={styles.accordionHeader}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <span>📋 Avaliação Comportamental</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <ClipboardCheck size={18} color="var(--primary)" />
+                                        <span>Avaliação Comportamental</span>
                                         {petAssessment && <span style={{ fontSize: '0.75rem', background: 'var(--success)', color: 'white', padding: '1px 6px', borderRadius: '4px' }}>FEITA</span>}
                                     </div>
                                     <span>{accordions.assessment ? '−' : '+'}</span>
@@ -738,7 +770,10 @@ function PetsContent() {
                             {planFeatures.includes('banho_tosa') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('grooming' as any)} className={styles.accordionHeader}>
-                                        <span>🛁 Histórico de Banho e Tosa</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Scissors size={18} color="var(--primary)" />
+                                            <span>Histórico de Banho e Tosa</span>
+                                        </div>
                                         <span>{(accordions as any).grooming ? '−' : '+'}</span>
                                     </button>
                                     {(accordions as any).grooming && (
@@ -765,7 +800,10 @@ function PetsContent() {
                             {planFeatures.includes('pacotes') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('packages')} className={styles.accordionHeader}>
-                                        <span>📦 Pacotes do Pet</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Package size={18} color="var(--primary)" />
+                                            <span>Pacotes do Pet</span>
+                                        </div>
                                         <span>{accordions.packages ? '−' : '+'}</span>
                                     </button>
                                     {accordions.packages && (
@@ -962,7 +1000,10 @@ function PetsContent() {
                             {planFeatures.includes('creche') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('creche')} className={styles.accordionHeader}>
-                                        <span>🎾 Histórico de Creche</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Dog size={18} color="var(--primary)" />
+                                            <span>Histórico de Creche</span>
+                                        </div>
                                         <span>{accordions.creche ? '−' : '+'}</span>
                                     </button>
                                     {accordions.creche && (
@@ -984,7 +1025,10 @@ function PetsContent() {
                             {planFeatures.includes('hospedagem') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('hotel')} className={styles.accordionHeader}>
-                                        <span>🏠 Histórico de Hospedagem</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <Building2 size={18} color="var(--primary)" />
+                                            <span>Histórico de Hospedagem</span>
+                                        </div>
                                         <span>{accordions.hotel ? '−' : '+'}</span>
                                     </button>
                                     {accordions.hotel && (
@@ -1006,7 +1050,10 @@ function PetsContent() {
                             {(planFeatures.includes('clinica_vet') || planFeatures.includes('banho_tosa')) && (
                                 <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('vetAlerts' as any)} className={styles.accordionHeader}>
-                                    <span>🚨 Alertas Veterinários</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <ShieldAlert size={18} color="var(--primary)" />
+                                        <span>Alertas Veterinários</span>
+                                    </div>
                                     <span>{accordions.vetAlerts ? '−' : '+'}</span>
                                 </button>
                                 {accordions.vetAlerts && (
@@ -1035,7 +1082,10 @@ function PetsContent() {
                             {planFeatures.includes('petshop') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('petshop')} className={styles.accordionHeader}>
-                                        <span>🛍️ Histórico de Compras (Petshop)</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <History size={18} color="var(--primary)" />
+                                            <span>Histórico de Compras (Petshop)</span>
+                                        </div>
                                         <span>{accordions.petshop ? '−' : '+'}</span>
                                     </button>
                                     {accordions.petshop && (
