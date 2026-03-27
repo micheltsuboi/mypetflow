@@ -25,7 +25,7 @@ export async function getVeterinarians() {
 
         const { data, error } = await supabase
             .from('veterinarians')
-            .select('*')
+            .select('id, name, specialty, phone, email, is_active, crmv')
             .eq('org_id', profile.org_id)
             .order('name')
 
@@ -178,7 +178,9 @@ export async function getVetConsultations(petId: string) {
         const { data, error } = await supabase
             .from('vet_consultations')
             .select(`
-                *,
+                id, consultation_date, reason, diagnosis, treatment, prescription, notes, 
+                consultation_fee, discount_type, discount_percent, discount_fixed, 
+                payment_status, payment_method, pet_id,
                 veterinarians:veterinarian_id(name, crmv)
             `)
             .eq('pet_id', petId)
@@ -369,7 +371,7 @@ export async function getVetRecords(petId: string) {
         const { data, error } = await supabase
             .from('vet_records')
             .select(`
-                *,
+                id, record_date, title, content, pet_id,
                 veterinarians:veterinarian_id(name)
             `)
             .eq('pet_id', petId)
@@ -445,7 +447,7 @@ export async function getVetExamTypes() {
 
         const { data, error } = await supabase
             .from('vet_exam_types')
-            .select('*')
+            .select('id, name, base_price, description, is_active')
             .eq('org_id', profile.org_id)
             .eq('is_active', true)
             .order('name')
@@ -504,7 +506,8 @@ export async function getVetExams(petId: string) {
         const { data, error } = await supabase
             .from('vet_exams')
             .select(`
-                *,
+                id, exam_date, exam_type_name, result_notes, file_url, price, 
+                discount_type, discount_percent, discount_fixed, payment_status, payment_method,
                 veterinarians:veterinarian_id(name)
             `)
             .eq('pet_id', petId)
@@ -641,8 +644,8 @@ export async function getVetDashboardAppointments() {
         let query = supabase
             .from('appointments')
             .select(`
-                *,
-                pets (id, name, species, breed, customers (id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1)),
+                id, scheduled_at, status, final_price, calculated_price, payment_status, notes,
+                pets (id, name, species, breed, customers (id, name, email, phone_1)),
                 services (id, name, base_price)
             `)
             .eq('service_category_id', category.id)

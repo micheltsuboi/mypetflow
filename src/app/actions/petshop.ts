@@ -100,7 +100,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
             // Buscar transações válidas e com saldo
             const { data: transactions, error: txFetchErr } = await supabase
                 .from('cashback_transactions')
-                .select('*')
+                .select('id, amount, expires_at')
                 .eq('tutor_id', checkoutData.customerId)
                 .gt('expires_at', new Date().toISOString())
                 .gt('amount', 0)
@@ -162,7 +162,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                     created_by: user.id,
                     date: new Date().toISOString()
                 })
-                .select()
+                .select('id')
                 .single()
 
             if (txError) throw txError
@@ -183,7 +183,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
                 financial_transaction_id: transactionId,
                 created_by: user.id
             })
-            .select()
+            .select('id')
             .single()
 
         if (orderError) throw orderError
@@ -222,7 +222,7 @@ export async function checkoutCart(checkoutData: CheckoutData) {
         // Buscar regras de cashback
         const { data: rules } = await supabase
             .from('cashback_rules')
-            .select('*')
+            .select('id, type, target_id, percent, validity_months')
             .eq('org_id', profile.org_id);
 
         // Coeficiente de desconto global: se houver desconto no total da venda ou uso de cashback,
@@ -393,8 +393,9 @@ export async function getPetshopOrders(filters: {
         let query = supabase
             .from('orders')
             .select(`
-                *,
-                order_items (*),
+                id, total_amount, discount_amount, payment_status, payment_method, created_at,
+                customer_id, pet_id, financial_transaction_id,
+                order_items (product_name, quantity, unit_price, total_price, product_id, discount_percent),
                 customers (name, cpf, cpf_cnpj, phone_1, email, address, neighborhood, city),
                 pets (name)
             `)
@@ -421,7 +422,8 @@ export async function getPetshopOrders(filters: {
         if (filters.searchTerm) {
             const term = filters.searchTerm.toLowerCase()
             filteredOrders = filteredOrders.filter(order => {
-                const customerMatch = order.customers?.name?.toLowerCase().includes(term)
+                const customer = Array.isArray(order.customers) ? order.customers[0] : order.customers
+                const customerMatch = customer?.name?.toLowerCase().includes(term)
                 const productMatch = order.order_items?.some((item: any) => 
                     item.product_name?.toLowerCase().includes(term)
                 )
@@ -434,7 +436,7 @@ export async function getPetshopOrders(filters: {
         if (orderIds.length > 0) {
             const { data: nfs } = await supabase
                 .from('notas_fiscais')
-                .select('*')
+                .select('id, status, referencia, caminho_pdf, origem_id')
                 .in('origem_id', orderIds)
                 .eq('origem_tipo', 'pdv')
 
