@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const petName = (appointment.pets as any)?.name ?? 'seu pet'
-    const serviceName = (appointment.services as any)?.name ?? 'serviço'
+    const serviceName = (appointment.services as any)?.name ?? 'atendimento'
     const customer = appointment.customers as any
     const tutorPhone = customer?.phone_1 || customer?.phone_2 || null
     const scheduledAt = appointment.scheduled_at
@@ -124,6 +124,10 @@ export async function POST(req: NextRequest) {
     // 3. Decide which N8N webhook to call based on the event and preferences
     let webhookPath: string | null = null
 
+    // NOTE: We are disabling these triggers because they are already handled
+    // by the Server Actions (createAppointment, updateAppointmentStatus, checkIn/Out)
+    // with better context and localized messages.
+    /*
     if (type === 'INSERT' && (newStatus === 'pending' || newStatus === 'confirmed')) {
         if (notify_appointment_confirmed) {
             webhookPath = '/webhook/pet-agendamento'
@@ -141,6 +145,7 @@ export async function POST(req: NextRequest) {
             }
         }
     }
+    */
 
     if (webhookPath) {
         console.log(`[N8N Trigger TEST MODE] Event detected: ${type} status ${oldStatus} -> ${newStatus}. Calling ${webhookPath}`)
