@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
 import { getCashbackBalance } from '@/app/actions/cashback'
-import { ShoppingCart, Plus, Minus, Trash2, Search, PackageOpen, Coins } from 'lucide-react'
+import { ShoppingCart, Plus, Minus, Trash2, Search, PackageOpen, Coins, Edit2 } from 'lucide-react'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 
@@ -48,7 +48,8 @@ export default function PetshopPage() {
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const [formData, setFormData] = useState<ProductFormData>({
         name: '', category: 'Alimentação', cost_price: 0, selling_price: 0,
-        stock_quantity: 0, expiration_date: '', bar_code: '', description: ''
+        stock_quantity: 0, expiration_date: '', bar_code: '', description: '',
+        codigo_ncm: '', cfop: '5102'
     })
 
     // Carrinho de Compras (PDV)
@@ -99,12 +100,12 @@ export default function PetshopPage() {
         try {
             const { data, error } = await supabase
                 .from('products')
-                .select('*')
+                .select('*, produtos_fiscal(*)')
                 .eq('is_active', true)
                 .order('name')
 
             if (error) throw error
-            if (data) setProducts(data)
+            if (data) setProducts(data as any)
         } catch (error) {
             console.error('Erro ao buscar produtos:', error)
         } finally {
@@ -238,15 +239,18 @@ export default function PetshopPage() {
 
             // Mapeia itens para a emissão de nota
             const nfeProducts = cart.map((item, idx) => {
+                const productEntity = products.find(p => p.id === item.product_id) as any
+                const fiscal = productEntity?.produtos_fiscal?.[0] || productEntity?.produtos_fiscal
+
                 return {
-                    id: item.product_id, // Important to map properly 
+                    id: item.product_id,
                     descricao: item.name,
                     quantidade: item.quantity,
                     valor_unitario: item.unit_price,
-                    ncm: '00000000', // You should fetch this from the product/produtos_fiscal or form
-                    cfop: '5102', // Venda de mercadoria adquirida de terceiros
-                    cst: '102', // CSOSN 102
-                    unidade: 'un'
+                    ncm: fiscal?.codigo_ncm || '00000000',
+                    cfop: fiscal?.cfop || '5102',
+                    cst: '102',
+                    unidade: fiscal?.unidade_comercial || 'un'
                 }
             })
 
@@ -309,18 +313,23 @@ export default function PetshopPage() {
     // ======== Gerência de Produtos ========
     const handleOpenModal = (product?: Product) => {
         if (product) {
+            const p = product as any
+            const fiscal = p.produtos_fiscal?.[0] || p.produtos_fiscal
             setEditingProduct(product)
             setFormData({
                 name: product.name, category: product.category, cost_price: product.cost_price || 0,
                 selling_price: product.price, stock_quantity: product.stock_quantity,
                 expiration_date: product.expiration_date || '', bar_code: product.bar_code || '',
-                description: product.description || '', image_url: product.image_url
+                description: product.description || '', image_url: product.image_url,
+                codigo_ncm: fiscal?.codigo_ncm || '',
+                cfop: fiscal?.cfop || '5102'
             })
         } else {
             setEditingProduct(null)
             setFormData({
                 name: '', category: 'Alimentação', cost_price: 0, selling_price: 0,
-                stock_quantity: 0, expiration_date: '', bar_code: '', description: '', image_url: null
+                stock_quantity: 0, expiration_date: '', bar_code: '', description: '', image_url: null,
+                codigo_ncm: '', cfop: '5102'
             })
         }
         setIsModalOpen(true)
@@ -338,14 +347,32 @@ export default function PetshopPage() {
                 org_id: profile.org_id, name: formData.name, category: formData.category,
                 cost_price: formData.cost_price || 0, price: formData.selling_price || 0,
                 stock_quantity: formData.stock_quantity || 0, min_stock_alert: 5,
-                expiration_date: formData.expiration_date || null, description: formData.description,
-                image_url: formData.image_url, bar_code: formData.bar_code, is_active: true
+                expiration_date: formData.expiration_date || null, description: formData.description || '',
+                image_url: formData.image_url, bar_code: formData.bar_code || '', is_active: true
             }
 
+            let productId = editingProduct?.id
+
             if (editingProduct) {
-                await supabase.from('products').update(productData).eq('id', editingProduct.id)
+                const { error } = await supabase.from('products').update(productData).eq('id', editingProduct.id)
+                if (error) throw error
             } else {
-                await supabase.from('products').insert(productData)
+                const { data, error } = await supabase.from('products').insert(productData).select('id').single()
+                if (error) throw error
+                productId = data.id
+            }
+
+            // Salvar dados fiscais
+            if (productId) {
+                const { error: fiscalError } = await supabase.from('produtos_fiscal').upsert({
+                    produto_id: productId,
+                    codigo_ncm: formData.codigo_ncm || '00000000',
+                    cfop: formData.cfop || '5102',
+                    unidade_comercial: 'un'
+                })
+                if (fiscalError) {
+                    console.error('Erro ao salvar dados fiscais:', fiscalError)
+                }
             }
 
             await fetchProducts()
@@ -422,10 +449,22 @@ export default function PetshopPage() {
                                             <span className={styles.pdvCategory}>{product.category}</span>
                                             <h3 className={styles.pdvName} title={product.name}>{product.name}</h3>
                                             <div className={styles.pdvPriceRow}>
-                                                <span className={styles.pdvPrice}>{formatCurrency(product.price)}</span>
-                                                <span className={`${styles.pdvStock} ${product.stock_quantity < 5 ? styles.lowStock : ''}`}>
-                                                    {product.stock_quantity} un
-                                                </span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                    <span className={styles.pdvPrice}>{formatCurrency(product.price)}</span>
+                                                    <span className={`${styles.pdvStock} ${product.stock_quantity < 5 ? styles.lowStock : ''}`}>
+                                                        {product.stock_quantity} un
+                                                    </span>
+                                                </div>
+                                                <button 
+                                                    className={styles.editButton} 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        handleOpenModal(product)
+                                                    }}
+                                                    title="Editar Produto"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -701,6 +740,29 @@ export default function PetshopPage() {
                                             onChange={val => setFormData({ ...formData, expiration_date: val })}
                                             className={styles.input}
                                             yearRange={[new Date().getFullYear(), new Date().getFullYear() + 10]}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className={styles.row}>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>NCM (Fiscal)</label>
+                                        <input 
+                                            className={styles.input} 
+                                            type="text" 
+                                            placeholder="Ex: 1234.56.78"
+                                            value={formData.codigo_ncm} 
+                                            onChange={e => setFormData({ ...formData, codigo_ncm: e.target.value })} 
+                                        />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>CFOP (Fiscal)</label>
+                                        <input 
+                                            className={styles.input} 
+                                            type="text" 
+                                            placeholder="Ex: 5102"
+                                            value={formData.cfop} 
+                                            onChange={e => setFormData({ ...formData, cfop: e.target.value })} 
                                         />
                                     </div>
                                 </div>

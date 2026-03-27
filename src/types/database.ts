@@ -394,6 +394,8 @@ export interface ProductFormData {
     image_url?: string | null
     bar_code?: string
     description?: string
+    codigo_ncm?: string
+    cfop?: string
 }
 
 // =====================================================

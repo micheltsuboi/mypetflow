@@ -231,6 +231,28 @@
     background: rgba(239, 68, 68, 0.1);
 }
 
+.editButton {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.editButton:hover {
+    background: var(--bg-hover);
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: scale(1.1);
+}
+
 .emptyStateContainer {
     display: flex;
     flex-direction: column;
