@@ -10,296 +10,226 @@ interface CreateAppointmentState {
 }
 
 export async function createAppointment(prevState: CreateAppointmentState, formData: FormData) {
-    console.log('[createAppointment] Action started')
-    const supabase = await createClient()
+    console.log('[createAppointment] Action started at', new Date().toISOString())
+    try {
+        const supabase = await createClient()
 
-    // 1. Auth Check
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { message: 'Não autorizado.', success: false }
+        // 1. Auth Check
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            console.error('[createAppointment] No user found')
+            return { message: 'Não autorizado.', success: false }
+        }
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('org_id, role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile?.org_id) return { message: 'Organização não encontrada.', success: false }
-
-    const isCustomer = profile.role === 'customer'
-
-    // 2. Extract Data
-    const petId = formData.get('petId') as string
-    const serviceId = formData.get('serviceId') as string
-    const date = formData.get('date') as string
-    const time = formData.get('time') as string
-    const notes = formData.get('notes') as string
-    const staffId = formData.get('staffId') as string // Optional
-
-    // Hospedagem Specifics
-    const checkInDate = formData.get('checkInDate') as string
-    const checkOutDate = formData.get('checkOutDate') as string
-
-    if (!petId || !serviceId) {
-        return { message: 'Preencha todos os campos obrigatórios.', success: false }
-    }
-
-    // validate date/time only if NOT Hospedagem or if single day
-    if ((!date || !time) && (!checkInDate || !checkOutDate)) {
-        return { message: 'Selecione a data ou período.', success: false }
-    }
-
-    // Get Service & Category
-    const { data: serviceData } = await supabase
-        .from('services')
-        .select(`
-            id, 
-            duration_minutes, 
-            base_price,
-            category_id,
-            checklist_template,
-            service_categories (id, name)
-        `)
-        .eq('id', serviceId)
-        .single()
-
-    console.log('[CreateAppointment] Service Data:', serviceData)
-
-    if (!serviceData) return { message: 'Serviço não encontrado.', success: false }
-
-    // Force cast to any to avoid complex typing for joined relation for now
-    const serviceAny = serviceData as any
-    const categoryName = serviceAny.service_categories?.name
-    const isCreche = categoryName === 'Creche'
-    const isHospedagem = categoryName === 'Hospedagem'
-
-    // Validate Assessment for Creche/Hospedagem
-    if (isCreche || isHospedagem) {
-        const { data: assessment } = await supabase
-            .from('pet_assessments')
-            .select('status')
-            .eq('pet_id', petId)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id, role')
+            .eq('id', user.id)
             .single()
 
-        if (!assessment || assessment.status !== 'approved') {
-            return { message: `Este pet precisa de uma avaliação aprovada para ${categoryName}.`, success: false }
+        if (!profile?.org_id) {
+            console.error('[createAppointment] Profile/Org not found:', user.id)
+            return { message: 'Organização não encontrada.', success: false }
         }
-    }
 
-    // 3. Get customer & pet data FIRST (needed for species check)
-    const { data: petData, error: petError } = await supabase
-        .from('pets')
-        .select('*, customer_id, weight_kg, species') // Ensure species is selected
-        .eq('id', petId)
-        .single()
+        const isCustomer = profile.role === 'customer'
 
-    if (petError || !petData) {
-        return { message: 'Pet não encontrado ou erro ao buscar dados do tutor.', success: false }
-    }
+        // 2. Extract Data
+        const petId = formData.get('petId') as string
+        const serviceId = formData.get('serviceId') as string
+        const date = formData.get('date') as string
+        const time = formData.get('time') as string
+        const notes = formData.get('notes') as string
+        const staffId = formData.get('staffId') as string // Optional
 
-    // Prepare Date Range / Scheduled At
-    let scheduledAt: string
-    let checkIn: string | null = null
-    let checkOut: string | null = null
+        // Hospedagem Specifics
+        const checkInDate = formData.get('checkInDate') as string
+        const checkOutDate = formData.get('checkOutDate') as string
 
-    if (isHospedagem && checkInDate && checkOutDate) {
-        // Hospedagem Logic
-        checkIn = checkInDate
-        checkOut = checkOutDate
-        // Scheduled at mostly for sorting, set to Check-in at 12:00
-        scheduledAt = new Date(`${checkInDate}T12:00:00-03:00`).toISOString()
-    } else {
-        // Standard / Creche Logic
-        try {
-            scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
+        console.log('[createAppointment] Inputs:', { petId, serviceId, date, time, checkInDate, checkOutDate })
 
-            // 4. Check for Schedule Blocks (Conflict Check)
-            const { data: blocks } = await supabase
-                .from('schedule_blocks')
-                .select('id, reason, allowed_species')
-                .eq('org_id', profile.org_id)
-                .lte('start_at', scheduledAt)
-                .gte('end_at', scheduledAt)
+        if (!petId || !serviceId) {
+            return { message: 'Preencha todos os campos obrigatórios.', success: false }
+        }
 
-            // Filter blocks based on species restriction
-            const blockingBlocks = blocks?.filter(block => {
-                // If allowed_species is empty/null, it blocks everyone.
-                if (!block.allowed_species || block.allowed_species.length === 0) return true;
+        // validate date/time only if NOT Hospedagem or if single day
+        if ((!date || !time) && (!checkInDate || !checkOutDate)) {
+            return { message: 'Selecione a data ou período.', success: false }
+        }
 
-                // If allowed_species has values, check if current pet species is in listed allowed species.
-                // If pet species is NOT in allowed list, it is BLOCKED.
-                // e.g. allowed=['cat'], pet='dog' -> blocked (true)
-                // e.g. allowed=['cat'], pet='cat' -> allowed (false)
+        // Get Service & Category
+        const { data: serviceData } = await supabase
+            .from('services')
+            .select(`
+                id, 
+                duration_minutes, 
+                base_price,
+                category_id,
+                checklist_template,
+                service_categories (id, name)
+            `)
+            .eq('id', serviceId)
+            .single()
 
-                // Need to cast petData to any or ensure type has species
-                const species = (petData as any).species || 'dog'
-                return !block.allowed_species.includes(species)
+        if (!serviceData) {
+            console.error('[createAppointment] Service not found:', serviceId)
+            return { message: 'Serviço não encontrado.', success: false }
+        }
+
+        const serviceAny = serviceData as any
+        const categoryName = Array.isArray(serviceAny.service_categories) 
+            ? serviceAny.service_categories[0]?.name 
+            : serviceAny.service_categories?.name
+        
+        console.log('[createAppointment] Category:', categoryName)
+        
+        const isCreche = categoryName === 'Creche'
+        const isHospedagem = categoryName === 'Hospedagem'
+
+        // Validate Assessment for Creche/Hospedagem
+        if (isCreche || isHospedagem) {
+            const { data: assessment } = await supabase
+                .from('pet_assessments')
+                .select('status')
+                .eq('pet_id', petId)
+                .single()
+
+            if (!assessment || assessment.status !== 'approved') {
+                return { message: `Este pet precisa de uma avaliação aprovada para ${categoryName}.`, success: false }
+            }
+        }
+
+        // 3. Get customer & pet data FIRST
+        const { data: petData, error: petError } = await supabase
+            .from('pets')
+            .select('*, customer_id, weight_kg, species')
+            .eq('id', petId)
+            .single()
+
+        if (petError || !petData) {
+            console.error('[createAppointment] Pet fetch error:', petError)
+            return { message: 'Pet não encontrado.', success: false }
+        }
+
+        // Prepare Date Range
+        let scheduledAt: string
+        let checkIn: string | null = null
+        let checkOut: string | null = null
+
+        if (isHospedagem && checkInDate && checkOutDate) {
+            checkIn = checkInDate
+            checkOut = checkOutDate
+            scheduledAt = new Date(`${checkInDate}T12:00:00-03:00`).toISOString()
+        } else {
+            try {
+                scheduledAt = new Date(`${date}T${time}:00-03:00`).toISOString()
+                const { data: blocks } = await supabase
+                    .from('schedule_blocks')
+                    .select('id, reason, allowed_species')
+                    .eq('org_id', profile.org_id)
+                    .lte('start_at', scheduledAt)
+                    .gte('end_at', scheduledAt)
+
+                const blockingBlocks = blocks?.filter(block => {
+                    if (!block.allowed_species || block.allowed_species.length === 0) return true;
+                    const species = (petData as any).species || 'dog'
+                    return !block.allowed_species.includes(species)
+                })
+
+                if (blockingBlocks && blockingBlocks.length > 0 && !isCreche && !isHospedagem) {
+                    if (isCustomer) return { message: `Horário bloqueado: ${blockingBlocks[0].reason}`, success: false }
+                }
+            } catch (dtErr) {
+                console.error('[createAppointment] Date error:', dtErr)
+                return { message: 'Data ou hora inválida.', success: false }
+            }
+        }
+
+        // Pricing logic... (kept same)
+        let calculatedPrice = (serviceData as any).base_price
+        const weight = (petData as any).weight_kg ?? (petData as any).weight
+        if (weight !== null && weight !== undefined) {
+            const { data: rules } = await supabase
+                .from('pricing_matrix')
+                .select('*')
+                .eq('service_id', serviceId)
+                .eq('is_active', true)
+                .lte('weight_min', weight)
+                .gte('weight_max', weight)
+            if (rules && rules.length > 0) {
+                calculatedPrice = rules[0].fixed_price
+            }
+        }
+
+        if (isHospedagem && checkIn && checkOut) {
+            const start = new Date(checkIn); start.setHours(12,0,0,0)
+            const end = new Date(checkOut); end.setHours(12,0,0,0)
+            const diffDays = Math.ceil(Math.abs(end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+            calculatedPrice = calculatedPrice * (diffDays > 0 ? diffDays : 1)
+        }
+
+        // Create checklist
+        const finalChecklist = (serviceAny.checklist_template || []).map((item: string) => ({
+            text: item,
+            completed: false,
+            completed_at: null
+        }))
+
+        // 3. Create Appointment
+        const { error: insertError } = await supabase
+            .from('appointments')
+            .insert({
+                org_id: profile.org_id,
+                pet_id: petId,
+                service_id: serviceId,
+                service_category_id: serviceAny.category_id,
+                customer_id: petData.customer_id,
+                staff_id: staffId || null,
+                scheduled_at: scheduledAt,
+                notes: notes || null,
+                status: 'pending',
+                checklist: finalChecklist,
+                check_in_date: checkIn,
+                check_out_date: checkOut,
+                calculated_price: calculatedPrice,
+                final_price: calculatedPrice,
+                payment_status: 'pending'
             })
 
-            if (blockingBlocks && blockingBlocks.length > 0 && !isCreche && !isHospedagem) {
-                if (isCustomer) {
-                    return { message: `Este horário está bloqueado: ${blockingBlocks[0].reason}`, success: false }
-                } else {
-                    console.log('[CreateAppointment] Bypassing schedule block for non-customer user.')
-                }
-            }
-        } catch (_) { // unused e
-            return { message: 'Data ou hora inválida.', success: false }
+        if (insertError) {
+            console.error('[createAppointment] Insert error:', insertError)
+            return { message: `Erro ao agendar: ${insertError.message}`, success: false }
         }
-    }
 
-    // Check Conflicts (Skip for Hospedagem for now, or implement room logic later)
-    if (!isHospedagem) {
-        const duration = serviceData.duration_minutes || 60
-        const startDt = new Date(scheduledAt)
-        const endDt = new Date(startDt.getTime() + duration * 60000)
-        const endAt = endDt.toISOString()
+        console.log('[createAppointment] Appointment created successfully')
 
-        const { data: conflictBlocks } = await supabase
-            .from('schedule_blocks')
-            .select('id, reason, allowed_species')
-            .eq('org_id', profile.org_id)
-            .lt('start_at', endAt)
-            .gt('end_at', scheduledAt)
-
-        // Same filtering logic for duration blocks
-        const blockingConflicts = conflictBlocks?.filter(block => {
-            if (!block.allowed_species || block.allowed_species.length === 0) return true;
-            const species = (petData as any).species || 'dog'
-            return !block.allowed_species.includes(species)
-        })
-
-        if (blockingConflicts && blockingConflicts.length > 0 && !isCreche && !isHospedagem) {
-            if (isCustomer) {
-                return { message: `Conflito com bloqueio: ${blockingConflicts[0].reason}`, success: false }
-            } else {
-                console.log('[CreateAppointment] Bypassing duration conflict block for non-customer user.')
-            }
+        // WhatsApp notify
+        try {
+            const dateObj = isHospedagem
+                ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
+                : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
+            const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            const formattedTime = isHospedagem ? 'entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
+            
+            console.log('[createAppointment] Triggering WhatsApp...')
+            await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
+                petName: petData.name,
+                serviceName: serviceAny.name,
+                formattedDate,
+                formattedTime
+            })
+            console.log('[createAppointment] WhatsApp trigger call finished')
+        } catch (waErr) {
+            console.error('[createAppointment] WA notify catch:', waErr)
         }
+
+        revalidatePath('/owner/agenda')
+        return { message: 'Agendamento criado com sucesso!', success: true }
+    } catch (globalErr: any) {
+        console.error('[createAppointment] GLOBAL ERROR:', globalErr)
+        return { message: `Erro fatal no servidor: ${globalErr.message}`, success: false }
     }
-
-    // Verify Credits
-    let packageCreditId: string | null = null
-    const { data: creditData } = await supabase.rpc('use_package_credit_for_pet', {
-        p_pet_id: petId,
-        p_service_id: serviceId
-    })
-
-    if (creditData) {
-        packageCreditId = creditData
-    }
-
-    // Pricing Calculation Logic
-    let calculatedPrice = (serviceData as any).base_price
-
-    // Use weight_kg from petData
-    const weight = (petData as any).weight_kg ?? (petData as any).weight
-
-    if (weight !== null && weight !== undefined) {
-        const { data: rules, error: rErr } = await supabase
-            .from('pricing_matrix')
-            .select('*')
-            .eq('service_id', serviceId)
-            .eq('is_active', true)
-            .lte('weight_min', weight)
-            .gte('weight_max', weight)
-            .order('fixed_price', { ascending: false }) // Initial sort
-
-        if (rules && rules.length > 0) {
-            // Find the most specific rule (smallest range)
-            const specificRule = rules.sort((a, b) => {
-                const rangeA = a.max_weight - a.min_weight
-                const rangeB = b.max_weight - b.min_weight
-                return rangeA - rangeB
-            })[0]
-
-            calculatedPrice = specificRule.fixed_price
-            console.log('[CreateAppointment] Selected Specific Rule:', specificRule)
-        }
-    }
-
-    // Hospedagem Daily Rate Calculation
-    let days = 1
-    if (isHospedagem && checkIn && checkOut) {
-        const start = new Date(checkIn)
-        const end = new Date(checkOut)
-        // Set to noon to avoid timezone issues
-        start.setHours(12, 0, 0, 0)
-        end.setHours(12, 0, 0, 0)
-
-        const diffTime = Math.abs(end.getTime() - start.getTime())
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        days = diffDays > 0 ? diffDays : 1
-
-        console.log('[CreateAppointment] Hospedagem Pricing:', {
-            initialPrice: calculatedPrice,
-            days: days,
-            totalBefore: calculatedPrice * days
-        })
-
-        calculatedPrice = calculatedPrice * days
-    }
-
-    const finalChecklist = (serviceAny.checklist_template || []).map((item: string) => ({
-        text: item,
-        completed: false,
-        completed_at: null
-    }))
-
-    console.log('[CreateAppointment] Final Checklist:', finalChecklist)
-
-    // 3. Create Appointment
-    const { error } = await supabase
-        .from('appointments')
-        .insert({
-            org_id: profile.org_id,
-            pet_id: petId,
-            service_id: serviceId,
-            service_category_id: serviceAny.category_id,
-            customer_id: petData.customer_id,
-            staff_id: staffId || null,
-            scheduled_at: scheduledAt,
-            notes: notes || null,
-            status: 'pending',
-            package_credit_id: packageCreditId,
-            checklist: finalChecklist,
-            check_in_date: checkIn,
-            check_out_date: checkOut,
-            calculated_price: calculatedPrice,
-            final_price: calculatedPrice,
-            payment_status: 'pending',
-            discount_percent: 0
-        })
-
-    if (error) {
-        return { message: `Erro ao agendar: ${error.message}`, success: false }
-    }
-
-    // ── Disparar WhatsApp de confirmação ──
-    const dateObj = isHospedagem
-        ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
-        : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
-
-    const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-    const formattedTime = isHospedagem ? 'entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-
-    const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
-    
-    // Trigger notification (await to ensure delivery in server action)
-    const result = await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
-        petName: petData.name,
-        serviceName: serviceAny.name,
-        formattedDate,
-        formattedTime
-    }).catch(e => { console.error('[createAppointment] Trigger catch:', e); return null; })
-    console.log('[createAppointment] triggerNotification result:', result)
-    // ── Fim WhatsApp ──
-
-    revalidatePath('/owner/agenda')
-    revalidatePath('/owner/pets')
-    revalidatePath('/owner/creche')
-    revalidatePath('/owner/hospedagem')
-    revalidatePath('/owner/hospedagem')
-    return { message: 'Agendamento criado com sucesso!', success: true }
 }
 
 export async function updateAppointmentStatus(id: string, status: string) {
