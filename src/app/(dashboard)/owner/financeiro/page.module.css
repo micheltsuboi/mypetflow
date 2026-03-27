@@ -394,11 +394,12 @@
     border-radius: 20px;
     padding: 2rem;
     width: 100%;
-    max-width: 600px;
-    max-height: 80vh;
+    max-width: 800px;
+    max-height: 90vh;
     overflow-y: auto;
     position: relative;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    font-family: var(--font-montserrat), sans-serif;
 }
 
 .closeButton {
@@ -410,6 +411,7 @@
     color: var(--text-secondary);
     font-size: 2rem;
     cursor: pointer;
+    z-index: 10;
 }
 
 .extractList {
@@ -420,24 +422,36 @@
 }
 
 .extractItem {
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
+    padding: 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.extractItem:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .extractInfo {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.35rem;
+    flex: 1;
+    min-width: 0;
 }
 
 .extractInfo strong {
     color: var(--text-primary);
     font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .extractInfo span {
@@ -452,59 +466,200 @@
     gap: 0.5rem;
 }
 
-.extractAmount {
-    font-weight: 700;
-    color: #2ecc71;
-    font-size: 1.1rem;
+/* NF Dashboard Specific Styles */
+.nfDashboard {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-.expenses .extractAmount {
-    color: #e74c3c;
+.nfFiltersRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-.confirmPayBtn {
-    padding: 0.6rem 1.25rem;
-    border: none;
-    border-radius: 8px;
-    background: var(--gradient-primary);
-    color: white;
-    font-size: 0.85rem;
-    font-weight: 700;
+.nfSearch {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+}
+
+.searchIcon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.nfSearch input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.8rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.nfSearch input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.nfStatusSelect {
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 0.9rem;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(240, 140, 152, 0.3);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    min-width: 180px;
+}
+
+.nfTableWrapper {
+    overflow-x: auto;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.nfTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 700px;
+}
+
+.nfTable th {
+    text-align: left;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
     text-transform: uppercase;
+    font-size: 0.75rem;
     letter-spacing: 0.5px;
 }
 
-.confirmPayBtn:hover {
-    box-shadow: 0 6px 18px rgba(240, 140, 152, 0.5);
-    transform: translateY(-2px) scale(1.05);
-    filter: brightness(1.1);
+.nfTable td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
 }
 
-.deleteBtn {
-    padding: 0.4rem 0.8rem;
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-size: 0.75rem;
+.nfClientInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.nfClientInfo strong {
+    color: #fff;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
+}
+
+.nfClientInfo span {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+}
+
+.nfBadge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.nfBadge.nfse {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+
+.nfBadge.nfe {
+    background: rgba(155, 89, 182, 0.2);
+    color: #9b59b2;
+}
+
+.nfValue {
+    font-weight: 700;
+    color: #fff;
+}
+
+.statusBadge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.statusBadge.autorizado {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+
+.statusBadge.processando {
+    background: rgba(241, 196, 15, 0.2);
+    color: #f1c40f;
+}
+
+.statusBadge.erro {
     background: rgba(231, 76, 60, 0.2);
     color: #e74c3c;
-    border: 1px solid rgba(231, 76, 60, 0.3);
 }
 
-.deleteBtn:hover {
-    background: #e74c3c;
-    color: white;
+.statusBadge.cancelado {
+    background: rgba(149, 165, 166, 0.2);
+    color: #95a5a6;
 }
 
-.emptyExtract {
-    text-align: center;
-    color: var(--text-secondary);
-    padding: 2rem;
-    opacity: 0.7;
+.nfActionsRow {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.nfActionBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.nfActionBtn:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.nfActionBtn span {
+    display: none;
+}
+
+@media (min-width: 900px) {
+    .nfActionBtn span {
+        display: inline;
+    }
+}
+
+.xmlBtn:hover {
+    background: #e67e22 !important;
+    border-color: #e67e22 !important;
+}
+
+.cancelNFBtn:hover {
+    background: #e74c3c !important;
+    border-color: #e74c3c !important;
 }

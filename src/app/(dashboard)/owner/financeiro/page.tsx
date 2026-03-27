@@ -13,6 +13,8 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { NotaFiscalTipo, NotaFiscalOrigem } from '@/types/database'
+import { Search, Filter, Download, XCircle, FileText, ExternalLink, Send, Trash2, ChevronRight, FileCode } from 'lucide-react'
+import CancelamentoNFModal from '@/components/CancelamentoNFModal'
 
 interface MonthlyData {
     month: string
@@ -59,6 +61,13 @@ export default function FinanceiroPage() {
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string }>>({})
     const [showNFModal, setShowNFModal] = useState(false)
     const [nfConfig, setNfConfig] = useState<any>(null)
+
+    // NF Dashboard / Filters
+    const [modalTab, setModalTab] = useState<'extrato' | 'nfs'>('extrato')
+    const [nfSearchTerm, setNfSearchTerm] = useState('')
+    const [nfStatusFilter, setNfStatusFilter] = useState('all')
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+    const [selectedNfToCancel, setSelectedNfToCancel] = useState<{ id: string, numero?: string, refId: string } | null>(null)
 
     const fetchFinancials = useCallback(async () => {
         try {
@@ -252,6 +261,47 @@ export default function FinanceiroPage() {
             setLoading(false)
         }
     }, [supabase, startDate, endDate])
+
+    // Helper para buscar notas fiscais filtradas
+    const getFilteredNFs = () => {
+        // Unifica todas as origens que possuem NF
+        const allItems = [
+            ...extractRecords.appointments.map(a => ({
+                id: a.id,
+                cliente: a.pets?.customers?.name || 'Cliente',
+                pet: a.pets?.name,
+                tipo: 'NFSe',
+                data: a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at,
+                valor: a.final_price || a.calculated_price || 0,
+                status: nfMap[a.id]?.status || 'pendente',
+                nfId: nfMap[a.id]?.id,
+                pdf_url: nfMap[a.id]?.pdf_url,
+                caminho_xml: (nfMap[a.id] as any)?.caminho_xml,
+                numero: (nfMap[a.id] as any)?.numero_nf
+            })),
+            ...extractRecords.paidSales.map(s => ({
+                id: s.id,
+                cliente: s.pets?.customers?.name || 'Consumidor Final',
+                pet: s.pets?.name,
+                tipo: 'NFe',
+                data: s.created_at,
+                valor: s.total_amount,
+                status: nfMap[s.id]?.status || 'pendente',
+                nfId: nfMap[s.id]?.id,
+                pdf_url: nfMap[s.id]?.pdf_url,
+                caminho_xml: (nfMap[s.id] as any)?.caminho_xml,
+                numero: (nfMap[s.id] as any)?.numero_nf
+            }))
+        ]
+
+        return allItems.filter(item => {
+            const matchesSearch = item.cliente.toLowerCase().includes(nfSearchTerm.toLowerCase()) || 
+                               (item.pet && item.pet.toLowerCase().includes(nfSearchTerm.toLowerCase()))
+            const matchesStatus = nfStatusFilter === 'all' || item.status === nfStatusFilter
+            // Só mostra itens que pelo menos tentaram emissão (têm status diferente de pendente) se estiver no tab de NFs
+            return matchesSearch && matchesStatus && item.status !== 'pendente'
+        }).sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+    }
 
     useEffect(() => {
         fetchFinancials()
@@ -449,6 +499,32 @@ export default function FinanceiroPage() {
             petName: appt.pets?.name
         })
         setShowNFModal(true)
+    }
+
+    const handleOpenCancelNF = (item: any) => {
+        setSelectedNfToCancel({
+            id: item.nfId,
+            numero: item.numero,
+            refId: item.id
+        })
+        setIsCancelModalOpen(true)
+    }
+
+    const handleAccountingExport = () => {
+        const filtered = getFilteredNFs().filter(n => n.status === 'autorizado')
+        const headers = ['Data', 'Tipo', 'Número', 'Cliente', 'Valor', 'Status', 'PDF', 'XML']
+        const rows = filtered.map(n => [
+            new Date(n.data).toLocaleDateString('pt-BR'),
+            n.tipo,
+            n.numero || '-',
+            n.cliente,
+            n.valor.toFixed(2).replace('.', ','),
+            n.status.toUpperCase(),
+            n.pdf_url || '',
+            n.caminho_xml || ''
+        ])
+
+        exportToCsv(`relatorio_contabilidade_${startDate}_${endDate}`, headers, rows)
     }
 
     const handleOpenNFe = (sale: any) => {
@@ -779,21 +855,46 @@ export default function FinanceiroPage() {
                                 </h2>
                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                     <button
-                                        onClick={handleExportCSV}
-                                        style={{ padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                        onClick={() => setModalTab(modalTab === 'extrato' ? 'nfs' : 'extrato')}
+                                        style={{ 
+                                            padding: '0.4rem 0.8rem', 
+                                            background: modalTab === 'nfs' ? 'var(--primary)' : 'rgba(255,255,255,0.1)', 
+                                            border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
+                                            marginRight: '1rem'
+                                        }}
                                     >
-                                        Exportar CSV
+                                        {modalTab === 'extrato' ? '📄 Ver Notas Fiscais' : '⬅️ Ver Lançamentos'}
                                     </button>
-                                    <button
-                                        onClick={handleExportPDF}
-                                        style={{ padding: '0.4rem 0.8rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
-                                    >
-                                        Exportar PDF
-                                    </button>
+                                    
+                                    {modalTab === 'extrato' ? (
+                                        <>
+                                            <button
+                                                onClick={handleExportCSV}
+                                                style={{ padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                                            >
+                                                Exportar CSV
+                                            </button>
+                                            <button
+                                                onClick={handleExportPDF}
+                                                style={{ padding: '0.4rem 0.8rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
+                                            >
+                                                Exportar PDF
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <button
+                                            onClick={handleAccountingExport}
+                                            style={{ padding: '0.4rem 0.8rem', background: '#27ae60', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                                        >
+                                            <Download size={14} style={{ marginRight: '4px' }} />
+                                            Exportar p/ Contabilidade
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
-                            <div className={styles.extractList}>
+                            {modalTab === 'extrato' ? (
+                                <div className={styles.extractList}>
                                 {/* Appointments list (for Revenue and Pending) */}
                                 {extractRecords.type !== 'expenses' && extractRecords.appointments
                                     .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
@@ -968,6 +1069,131 @@ export default function FinanceiroPage() {
                                         <p className={styles.emptyExtract}>Nenhum registro encontrado para este período/categoria.</p>
                                     )}
                             </div>
+                            ) : (
+                                <div className={styles.nfDashboard}>
+                                    {/* NF Filters */}
+                                    <div className={styles.nfFiltersRow}>
+                                        <div className={styles.nfSearch}>
+                                            <Search size={18} className={styles.searchIcon} />
+                                            <input 
+                                                type="text" 
+                                                placeholder="Buscar por cliente ou pet..." 
+                                                value={nfSearchTerm}
+                                                onChange={e => setNfSearchTerm(e.target.value)}
+                                            />
+                                        </div>
+                                        <select 
+                                            value={nfStatusFilter} 
+                                            onChange={e => setNfStatusFilter(e.target.value)}
+                                            className={styles.nfStatusSelect}
+                                        >
+                                            <option value="all">Todos os Status</option>
+                                            <option value="autorizado">Autorizadas</option>
+                                            <option value="processando">Processando</option>
+                                            <option value="erro">Com Erro</option>
+                                            <option value="cancelado">Canceladas</option>
+                                        </select>
+                                    </div>
+
+                                    {/* NF Table */}
+                                    <div className={styles.nfTableWrapper}>
+                                        <table className={styles.nfTable}>
+                                            <thead>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Cliente</th>
+                                                    <th>Tipo</th>
+                                                    <th>Valor</th>
+                                                    <th>Status</th>
+                                                    <th style={{ textAlign: 'right' }}>Ações</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {getFilteredNFs().map(nf => (
+                                                    <tr key={nf.id}>
+                                                        <td>{new Date(nf.data).toLocaleDateString('pt-BR')}</td>
+                                                        <td>
+                                                            <div className={styles.nfClientInfo}>
+                                                                <strong>{nf.cliente}</strong>
+                                                                <span>{nf.pet}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <span className={`${styles.nfBadge} ${styles[nf.tipo.toLowerCase()]}`}>
+                                                                {nf.tipo}
+                                                            </span>
+                                                        </td>
+                                                        <td className={styles.nfValue}>{formatCurrency(nf.valor)}</td>
+                                                        <td>
+                                                            <span className={`${styles.statusBadge} ${styles[nf.status]}`}>
+                                                                {nf.status.toUpperCase()}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <div className={styles.nfActionsRow}>
+                                                                {nf.status === 'autorizado' && (
+                                                                    <>
+                                                                        {nf.pdf_url && (
+                                                                            <button 
+                                                                                className={styles.nfActionBtn} 
+                                                                                onClick={() => window.open(nf.pdf_url, '_blank')}
+                                                                                title="Ver PDF (DANFE)"
+                                                                            >
+                                                                                <FileText size={16} />
+                                                                                <span>PDF</span>
+                                                                            </button>
+                                                                        )}
+                                                                        {nf.caminho_xml && (
+                                                                            <button 
+                                                                                className={`${styles.nfActionBtn} ${styles.xmlBtn}`}
+                                                                                onClick={() => window.open(nf.caminho_xml, '_blank')}
+                                                                                title="Baixar XML"
+                                                                            >
+                                                                                <FileCode size={16} />
+                                                                                <span>XML</span>
+                                                                            </button>
+                                                                        )}
+                                                                        <button 
+                                                                            className={styles.nfActionBtn}
+                                                                            onClick={() => handleSendWhatsApp(nf.id)}
+                                                                            title="Enviar WhatsApp"
+                                                                        >
+                                                                            <Send size={16} />
+                                                                        </button>
+                                                                        <button 
+                                                                            className={`${styles.nfActionBtn} ${styles.cancelNFBtn}`}
+                                                                            onClick={() => handleOpenCancelNF(nf)}
+                                                                            title="Cancelar Nota"
+                                                                        >
+                                                                            <XCircle size={16} />
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                {nf.status === 'erro' && (
+                                                                    <button 
+                                                                        className={styles.nfActionBtn} 
+                                                                        onClick={() => alert('Verifique os erros no retorno da SEFAZ.')}
+                                                                        title="Ver Erro"
+                                                                    >
+                                                                        ⚠️
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {getFilteredNFs().length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.4)' }}>
+                                                            Nenhuma nota fiscal encontrada com estes filtros.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div >
                 )
@@ -1046,6 +1272,19 @@ export default function FinanceiroPage() {
                         onSuccess={() => {
                             setShowNFModal(false)
                             fetchFinancials()
+                        }}
+                    />
+                )}
+
+                {isCancelModalOpen && selectedNfToCancel && (
+                    <CancelamentoNFModal
+                        nfId={selectedNfToCancel.id}
+                        numeroNf={selectedNfToCancel.numero}
+                        onClose={() => setIsCancelModalOpen(false)}
+                        onSuccess={() => {
+                            setIsCancelModalOpen(false)
+                            fetchFinancials()
+                            alert('Nota fiscal cancelada com sucesso!')
                         }}
                     />
                 )}

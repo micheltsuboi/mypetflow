@@ -90,7 +90,8 @@ export default function EmitirNFModal({
             <div style={{
                 background: '#1a2235', padding: '2rem', borderRadius: '12px',
                 width: '100%', maxWidth: '500px',
-                border: '1px solid rgba(255,255,255,0.1)'
+                border: '1px solid rgba(255,255,255,0.1)',
+                fontFamily: 'var(--font-montserrat), sans-serif'
             }}>
                 <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', color: '#fff' }}>{title}</h2>
                 
