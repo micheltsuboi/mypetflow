@@ -126,8 +126,35 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.title}>Configurações Fiscais</h1>
-            <p className={styles.subtitle}>Ative a emissão de cupons e notas fiscais do seu sistema</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                    <h1 className={styles.title}>Configurações Fiscais</h1>
+                    <p className={styles.subtitle}>Ative a emissão de cupons e notas fiscais do seu sistema</p>
+                </div>
+                {initialConfig && (
+                    <button 
+                        type="button" 
+                        onClick={async () => {
+                            setLoading(true)
+                            try {
+                                const res = await fetch('/api/nf/empresa/sync', { method: 'POST' })
+                                const data = await res.json()
+                                alert(data.message)
+                                if (res.ok) router.refresh()
+                            } catch (err: any) {
+                                alert('Erro: ' + err.message)
+                            } finally {
+                                setLoading(false)
+                            }
+                        }}
+                        disabled={loading}
+                        className={styles.backButton}
+                        style={{ border: '1px solid #FF6B6B', color: '#FF6B6B' }}
+                    >
+                        {loading ? 'Sincronizando...' : 'Sincronizar com Focus NFe'}
+                    </button>
+                )}
+            </div>
 
             {message && (
                 <div className={message.type === 'error' ? styles.errorCard : styles.statusCard}>

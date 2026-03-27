@@ -193,5 +193,20 @@ export const FocusNfeApi = {
     });
     if (!response.ok) throw new Error('Falha ao buscar município');
     return response.json();
+  },
+
+  /**
+   * Consultar Empresa na Focus NFe
+   */
+  async consultarEmpresa(id: string) {
+    if (!MASTER_TOKEN) {
+        throw new Error("FOCUSNFE_TOKEN_MASTER not configured.");
+    }
+    const url = `${FOCUS_PRODUCAO}/empresas/${id}`;
+    const response = await fetch(url, {
+        headers: { 'Authorization': getAuthHeader(MASTER_TOKEN) }
+    });
+    if (!response.ok) throw new Error('Falha ao consultar empresa na Focus NFe');
+    return response.json();
   }
 };

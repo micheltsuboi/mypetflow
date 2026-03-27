@@ -115,6 +115,33 @@ export default function EmitirNFModal({
                 {error && (
                     <div style={{ color: '#e74c3c', background: 'rgba(231, 76, 60, 0.1)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                         {error}
+                        {error.includes('não está habilitada') && (
+                            <button 
+                                onClick={async () => {
+                                    setLoading(true)
+                                    try {
+                                        const res = await fetch('/api/nf/empresa/sync', { method: 'POST' })
+                                        const data = await res.json()
+                                        if (res.ok) {
+                                            alert(data.message)
+                                            setError(null)
+                                        } else {
+                                            alert('Erro ao sincronizar: ' + data.error)
+                                        }
+                                    } catch (err: any) {
+                                        alert('Erro na requisição: ' + err.message)
+                                    } finally {
+                                        setLoading(false)
+                                    }
+                                }}
+                                style={{
+                                    display: 'block', marginTop: '0.5rem', background: '#e74c3c', color: '#fff', 
+                                    border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'
+                                }}
+                            >
+                                Sincronizar agora com a Focus NFe
+                            </button>
+                        )}
                     </div>
                 )}
 
