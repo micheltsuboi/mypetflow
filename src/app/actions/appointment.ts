@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 interface CreateAppointmentState {
     message: string
@@ -273,55 +274,17 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     }
 
     // ── Disparar WhatsApp de confirmação ──
-    try {
-        const { data: customer } = await supabase
-            .from('customers')
-            .select('phone_1')
-            .eq('id', petData.customer_id)
-            .single()
+    const dateObj = isHospedagem
+        ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
+        : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
 
-        const { data: orgData } = await supabase
-            .from('organizations')
-            .select('name, wa_api_url, wa_api_token, wa_client_token, wa_integration_type')
-            .eq('id', profile.org_id)
-            .single()
+    const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const formattedTime = isHospedagem ? 'entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
-        const tutorPhone = customer?.phone_1
-        if (tutorPhone) {
-            const { data: serviceForMsg } = await supabase
-                .from('services')
-                .select('name')
-                .eq('id', serviceId)
-                .single()
-
-            // Format data/hora
-            const dateObj = isHospedagem
-                ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
-                : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
-
-            const formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            const formattedTime = isHospedagem ? 'entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-
-            // Fire-and-forget
-            fetch('http://72.62.107.69:5678/webhook/pet-agendamento', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tutorPhone,
-                    petName: petData.name,
-                    serviceName: serviceForMsg?.name || '',
-                    formattedDate,
-                    formattedTime,
-                    wa_api_url: (orgData as any)?.wa_api_url,
-                    wa_api_token: (orgData as any)?.wa_api_token,
-                    wa_client_token: (orgData as any)?.wa_client_token,
-                    wa_integration_type: (orgData as any)?.wa_integration_type
-                })
-            }).catch(e => console.error('[createAppointment] WhatsApp trigger failed:', e))
-        }
-    } catch (waErr) {
-        console.error('[createAppointment] Error in WhatsApp notification:', waErr)
-    }
+    const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
+    
+    // Trigger notification (async)
+    triggerNotification(profile.org_id, petData.customer_id, msg).catch(e => console.error(e))
     // ── Fim WhatsApp ──
 
     revalidatePath('/owner/agenda')
@@ -344,7 +307,31 @@ export async function updateAppointmentStatus(id: string, status: string) {
 
     if (error) return { message: error.message, success: false }
 
+    // WhatsApp status notification
+    if (['confirmed', 'done', 'canceled'].includes(status)) {
+        try {
+            const { data: appt } = await supabase
+                .from('appointments')
+                .select('pet_id, customer_id, org_id, services(name)')
+                .eq('id', id)
+                .single()
+            
+            if (appt) {
+                const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
+                const statusLabel = status === 'confirmed' ? 'Confirmado' : status === 'done' ? 'Finalizado' : 'Cancelado'
+                const msg = `Olá! O status do atendimento de *${pet?.name}* (${(appt.services as any)?.name}) foi atualizado para: *${statusLabel}*.`
+                
+                triggerNotification(appt.org_id, appt.customer_id, msg).catch(e => console.error(e))
+            }
+        } catch (waErr) {
+            console.error('[updateAppointmentStatus] WA notify error:', waErr)
+        }
+    }
+
     revalidatePath('/owner/agenda')
+    revalidatePath('/owner/banho-tosa')
+    revalidatePath('/owner/creche')
+    revalidatePath('/owner/hospedagem')
     return { message: 'Status atualizado.', success: true }
 }
 
@@ -641,4 +628,24 @@ export async function applyDiscount(id: string, discountVal: number, type: 'perc
     revalidatePath('/owner/hospedagem')
     revalidatePath('/owner')
     return { message: `Desconto aplicado! Valor final: R$ ${finalPrice.toFixed(2)}`, success: true }
+}
+
+/**
+ * Helper to trigger WhatsApp notification via centralized router
+ */
+export async function triggerNotification(orgId: string, customerId: string, message: string) {
+    try {
+        const supabase = await createClient()
+        const { data: customer } = await supabase
+            .from('customers')
+            .select('phone_1')
+            .eq('id', customerId)
+            .single()
+
+        if (customer?.phone_1) {
+            await sendWhatsAppMessage(orgId, customer.phone_1, message)
+        }
+    } catch (err) {
+        console.error('[triggerNotification] Failed:', err)
+    }
 }

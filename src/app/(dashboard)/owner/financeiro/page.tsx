@@ -11,6 +11,8 @@ import autoTable from 'jspdf-autotable'
 import { payPetshopSale } from '@/app/actions/petshop'
 import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
+import EmitirNFModal from '@/components/EmitirNFModal'
+import { NotaFiscalTipo, NotaFiscalOrigem } from '@/types/database'
 
 interface MonthlyData {
     month: string
@@ -45,13 +47,18 @@ export default function FinanceiroPage() {
         appointments: any[];
         transactions: any[];
         pendingSales: any[];
+        paidSales: any[];
     }>({
         type: null,
         appointments: [],
         transactions: [],
-        pendingSales: []
+        pendingSales: [],
+        paidSales: []
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
+    const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string }>>({})
+    const [showNFModal, setShowNFModal] = useState(false)
+    const [nfConfig, setNfConfig] = useState<any>(null)
 
     const fetchFinancials = useCallback(async () => {
         try {
@@ -79,12 +86,15 @@ export default function FinanceiroPage() {
             prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
             const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            const [apptsResponse, txsResponse, pendingSalesResponse] = await Promise.all([
+            const [apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse] = await Promise.all([
                 supabase
                     .from('appointments')
                     .select(`
                         id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
-                        pets ( name ),
+                        pets ( 
+                            name,
+                            customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 )
+                        ),
                         services (
                             name,
                             service_categories ( name )
@@ -100,19 +110,28 @@ export default function FinanceiroPage() {
                     .gte('date', fetchStart),
                 supabase
                     .from('orders')
-                    .select('id, total_amount, payment_status, created_at, pets ( name ), order_items(product_name)')
+                    .select('id, total_amount, payment_status, created_at, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), order_items(product_name)')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'pending')
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('orders')
+                    .select('id, total_amount, payment_status, created_at, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), order_items(product_name)')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'paid')
+                    .gte('created_at', fetchStart)
                     .order('created_at', { ascending: true })
             ])
 
             if (apptsResponse.error) throw apptsResponse.error
             if (txsResponse.error) throw txsResponse.error
             if (pendingSalesResponse.error) throw pendingSalesResponse.error
+            if (paidSalesResponse.error) throw paidSalesResponse.error
 
             const appointments = apptsResponse.data || []
             const transactions = txsResponse.data || []
             const pendingSales = pendingSalesResponse.data || []
+            const paidSales = paidSalesResponse.data || []
 
             // --- Process Monthly Chart Data (Last 6 Months) ---
             const monthMap = new Map<string, MonthlyData>()
@@ -147,6 +166,32 @@ export default function FinanceiroPage() {
             })
             setMonthlyData(Array.from(monthMap.values()))
 
+            // Fetch NF Status for all revenue items
+            const allRevenueIds = [
+                ...appointments.filter(a => a.payment_status === 'paid').map(a => a.id),
+                ...pendingSales.map(s => s.id),
+                ...paidSales.map(s => s.id)
+            ]
+
+            if (allRevenueIds.length > 0) {
+                const { data: nfs } = await supabase
+                    .from('notas_fiscais')
+                    .select('id, origem_id, status, caminho_pdf')
+                    .in('origem_id', allRevenueIds)
+
+                if (nfs) {
+                    const map: any = {}
+                    nfs.forEach(nf => {
+                        map[nf.origem_id] = {
+                            id: nf.id,
+                            status: nf.status,
+                            pdf_url: nf.caminho_pdf
+                        }
+                    })
+                    setNfMap(map)
+                }
+            }
+
             // --- Process Summary and Categories (filtered by startDate/endDate) ---
             const filterByPeriod = (dateStr: string) => {
                 const d = new Date(dateStr)
@@ -155,6 +200,7 @@ export default function FinanceiroPage() {
 
             const activeAppts = appointments.filter(a => filterByPeriod(a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at))
             const activeTxs = transactions.filter(t => filterByPeriod(t.date))
+            const activePaidSales = paidSales.filter(s => filterByPeriod(s.created_at))
 
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
@@ -196,7 +242,8 @@ export default function FinanceiroPage() {
                 type: null,
                 appointments: activeAppts,
                 transactions: activeTxs,
-                pendingSales
+                pendingSales,
+                paidSales: activePaidSales
             })
 
         } catch (error) {
@@ -269,6 +316,83 @@ export default function FinanceiroPage() {
             console.error('Erro ao excluir transação:', error)
             alert('Erro ao excluir transação.')
         }
+    }
+
+    const handleSendWhatsApp = async (id: string) => {
+        const nf = nfMap[id]
+        if (!nf) return
+
+        try {
+            const response = await fetch('/api/nf/send-whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nfId: nf.id })
+            })
+
+            if (response.ok) {
+                alert('Mensagem enviada para o WhatsApp do tutor!')
+            } else {
+                const err = await response.json()
+                alert('Erro ao enviar WhatsApp: ' + (err.message || 'Erro desconhecido'))
+            }
+        } catch (error) {
+            console.error('Erro ao chamar send-whatsapp:', error)
+            alert('Erro ao comunicar com o servidor.')
+        }
+    }
+
+    const handleOpenNFSe = (appt: any) => {
+        setNfConfig({
+            tipo: 'nfse',
+            origemTipo: 'atendimento',
+            refId: appt.id,
+            total_amount: appt.final_price || appt.calculated_price || 0,
+            tutor: {
+                nome: appt.pets?.customers?.name || 'Cliente',
+                cpf: appt.pets?.customers?.cpf_cnpj || appt.pets?.customers?.cpf,
+                email: appt.pets?.customers?.email,
+                endereco: {
+                    logradouro: appt.pets?.customers?.address,
+                    bairro: appt.pets?.customers?.neighborhood,
+                    city: appt.pets?.customers?.city
+                }
+            },
+            servico: {
+                descricao: appt.services?.name || 'Serviço',
+                valor: appt.final_price || appt.calculated_price || 0
+            },
+            petName: appt.pets?.name
+        })
+        setShowNFModal(true)
+    }
+
+    const handleOpenNFe = (sale: any) => {
+        const desc = sale.order_items && sale.order_items.length > 0 
+            ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') 
+            : 'Venda de Produtos';
+
+        setNfConfig({
+            tipo: 'nfe',
+            origemTipo: 'venda',
+            refId: sale.id,
+            total_amount: sale.total_amount,
+            tutor: {
+                nome: sale.pets?.customers?.name || 'Consumidor Final',
+                cpf: sale.pets?.customers?.cpf_cnpj || sale.pets?.customers?.cpf,
+                email: sale.pets?.customers?.email,
+                endereco: {
+                    logradouro: sale.pets?.customers?.address,
+                    bairro: sale.pets?.customers?.neighborhood,
+                    city: sale.pets?.customers?.city
+                }
+            },
+            produtos: sale.order_items?.map((i: any) => ({
+                nome: i.product_name,
+                quantidade: 1,
+                preco_unitario: sale.total_amount / (sale.order_items?.length || 1)
+            }))
+        })
+        setShowNFModal(true)
     }
 
     const currentMonthData = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1] : { revenue: 0, expenses: 0, profit: 0 }
@@ -596,6 +720,28 @@ export default function FinanceiroPage() {
                                                 <span>{new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
                                             </div>
                                             <div className={styles.extractActions}>
+                                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginRight: '1rem' }}>
+                                                    {!nfMap[appt.id] ? (
+                                                        <button 
+                                                            style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                                            onClick={() => handleOpenNFSe(appt)}
+                                                        >
+                                                            🧾 NFSe
+                                                        </button>
+                                                    ) : (
+                                                        <>
+                                                            <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: nfMap[appt.id].status === 'autorizado' ? '#059669' : '#d97706', color: 'white', borderRadius: '3px' }}>
+                                                                {nfMap[appt.id].status.toUpperCase()}
+                                                            </span>
+                                                            {nfMap[appt.id].pdf_url && (
+                                                                <button onClick={() => window.open(nfMap[appt.id].pdf_url, '_blank')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📄</button>
+                                                            )}
+                                                            {nfMap[appt.id].status === 'autorizado' && (
+                                                                <button onClick={() => handleSendWhatsApp(appt.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📲</button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                                 <span className={styles.extractAmount}>
                                                     {formatCurrency(appt.final_price || appt.calculated_price || 0)}
                                                 </span>
@@ -623,6 +769,28 @@ export default function FinanceiroPage() {
                                                     <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
                                                 </div>
                                                 <div className={styles.extractActions}>
+                                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginRight: '1rem' }}>
+                                                        {!nfMap[sale.id] ? (
+                                                            <button 
+                                                                style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                                                onClick={() => handleOpenNFe(sale)}
+                                                            >
+                                                                🧾 NFe
+                                                            </button>
+                                                        ) : (
+                                                            <>
+                                                                <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: nfMap[sale.id].status === 'autorizado' ? '#059669' : '#d97706', color: 'white', borderRadius: '3px' }}>
+                                                                    {nfMap[sale.id].status.toUpperCase()}
+                                                                </span>
+                                                                {nfMap[sale.id].pdf_url && (
+                                                                    <button onClick={() => window.open(nfMap[sale.id].pdf_url, '_blank')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📄</button>
+                                                                )}
+                                                                {nfMap[sale.id].status === 'autorizado' && (
+                                                                    <button onClick={() => handleSendWhatsApp(sale.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📲</button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                     <span className={styles.extractAmount}>
                                                         {formatCurrency(sale.total_amount)}
                                                     </span>
@@ -632,6 +800,48 @@ export default function FinanceiroPage() {
                                                     >
                                                         Confirmar Pago
                                                     </button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+
+                                {/* Paid Pet Shop Sales list (Revenue list) */}
+                                {extractRecords.type === 'revenue' && extractRecords.paidSales
+                                    .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
+                                    .map(sale => {
+                                        const desc = sale.order_items && sale.order_items.length > 0 ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') : 'Venda';
+                                        return (
+                                            <div key={sale.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>{sale.pets?.name || 'Cliente Avulso'} • {desc}</strong>
+                                                    <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginRight: '1rem' }}>
+                                                        {!nfMap[sale.id] ? (
+                                                            <button 
+                                                                style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                                                                onClick={() => handleOpenNFe(sale)}
+                                                            >
+                                                                🧾 NFe
+                                                            </button>
+                                                        ) : (
+                                                            <>
+                                                                <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: nfMap[sale.id].status === 'autorizado' ? '#059669' : '#d97706', color: 'white', borderRadius: '3px' }}>
+                                                                    {nfMap[sale.id].status.toUpperCase()}
+                                                                </span>
+                                                                {nfMap[sale.id].pdf_url && (
+                                                                    <button onClick={() => window.open(nfMap[sale.id].pdf_url, '_blank')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📄</button>
+                                                                )}
+                                                                {nfMap[sale.id].status === 'autorizado' && (
+                                                                    <button onClick={() => handleSendWhatsApp(sale.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📲</button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <span className={styles.extractAmount}>
+                                                        {formatCurrency(sale.total_amount)}
+                                                    </span>
                                                 </div>
                                             </div>
                                         )
@@ -743,6 +953,17 @@ export default function FinanceiroPage() {
                 </div>
 
                 {/* Quick Stats - Removed fake stats */}
+
+                {showNFModal && nfConfig && (
+                    <EmitirNFModal
+                        {...nfConfig}
+                        onClose={() => setShowNFModal(false)}
+                        onSuccess={() => {
+                            setShowNFModal(false)
+                            fetchFinancials()
+                        }}
+                    />
+                )}
             </div>
         </PlanGuard>
     )

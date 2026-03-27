@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { triggerNotification } from './appointment'
 
 /**
  * Check-in an appointment (mark actual arrival time)
@@ -28,9 +29,25 @@ export async function checkInAppointment(appointmentId: string) {
             return { success: false, message: 'Erro ao fazer check-in' }
         }
 
-        revalidatePath('/owner/creche')
         revalidatePath('/owner/banho-tosa')
         revalidatePath('/owner/agenda')
+
+        // WhatsApp notification
+        try {
+            const { data: appt } = await supabase
+                .from('appointments')
+                .select('pet_id, customer_id, org_id, services(name)')
+                .eq('id', appointmentId)
+                .single()
+            if (appt) {
+                const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
+                const msg = `Olá! *${pet?.name}* acabou de fazer o *Check-in* para o serviço de *${(appt.services as any)?.name}*. Já estamos cuidando com muito carinho! ❤️`
+                triggerNotification(appt.org_id, appt.customer_id, msg).catch(e => console.error(e))
+            }
+        } catch (waErr) {
+            console.error('[checkIn] WA notify error:', waErr)
+        }
+
         return { success: true, message: 'Check-in realizado com sucesso!' }
 
     } catch (error) {
@@ -85,10 +102,25 @@ export async function checkOutAppointment(appointmentId: string, checkoutType?: 
                 .eq('id', session.id)
         }
 
-        revalidatePath('/owner/creche')
-        revalidatePath('/owner/banho-tosa')
         revalidatePath('/owner/agenda')
         revalidatePath('/owner/pets')
+
+        // WhatsApp notification
+        try {
+            const { data: appt } = await supabase
+                .from('appointments')
+                .select('pet_id, customer_id, org_id, services(name)')
+                .eq('id', appointmentId)
+                .single()
+            if (appt) {
+                const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
+                const msg = `Olá! *${pet?.name}* finalizou o serviço de *${(appt.services as any)?.name}* e está pronto para o *Check-out*. Até logo! 👋🐾`
+                triggerNotification(appt.org_id, appt.customer_id, msg).catch(e => console.error(e))
+            }
+        } catch (waErr) {
+            console.error('[checkOut] WA notify error:', waErr)
+        }
+
         return { success: true, message: 'Check-out realizado com sucesso!' }
 
     } catch (error) {

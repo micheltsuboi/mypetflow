@@ -20,14 +20,59 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const [saving, setSaving] = useState(false)
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
     const [showNFModal, setShowNFModal] = useState(false)
+    const [nfData, setNfData] = useState<{ id: string, status: string, pdf_url?: string } | null>(null)
     const autosaveTimer = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
         getVeterinarians().then(setVets)
+        
+        // Fetch NF Status
+        const fetchNF = async () => {
+            const { createClient } = await import('@/lib/supabase/client')
+            const supabase = createClient()
+            const { data: nf } = await supabase
+                .from('notas_fiscais')
+                .select('id, status, caminho_pdf')
+                .eq('origem_tipo', 'atendimento')
+                .eq('origem_id', consultation.id)
+                .maybeSingle()
+            
+            if (nf) {
+                setNfData({
+                    id: nf.id,
+                    status: nf.status,
+                    pdf_url: nf.caminho_pdf
+                })
+            }
+        }
+        fetchNF()
+
         return () => {
             if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
         }
-    }, [])
+    }, [consultation.id])
+
+    const handleSendWhatsApp = async () => {
+        if (!nfData) return
+
+        try {
+            const response = await fetch('/api/nf/send-whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nfId: nfData.id })
+            })
+
+            if (response.ok) {
+                alert('Mensagem enviada para o WhatsApp do tutor!')
+            } else {
+                const err = await response.json()
+                alert('Erro ao enviar WhatsApp: ' + (err.message || 'Erro desconhecido'))
+            }
+        } catch (error) {
+            console.error('Erro ao chamar send-whatsapp:', error)
+            alert('Erro ao comunicar com o servidor.')
+        }
+    }
 
     const handleFieldChange = (field: string, value: any) => {
         if (readOnly) return;
@@ -364,13 +409,50 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                     {!readOnly && <p className={styles.hint}>Os dados são salvos automaticamente conforme você digita. ☁️</p>}
                     <div className={styles.footerBtns}>
                         {!readOnly && (
-                            <button 
-                                className={styles.nfBtn} 
-                                style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                                onClick={() => setShowNFModal(true)}
-                            >
-                                📄 Emitir Nota Fiscal
-                            </button>
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                {!nfData ? (
+                                    <button 
+                                        className={styles.nfBtn} 
+                                        style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                                        onClick={() => setShowNFModal(true)}
+                                    >
+                                        🧾 Emitir NF
+                                    </button>
+                                ) : (
+                                    <>
+                                        <div style={{
+                                            fontSize: '0.85rem',
+                                            padding: '6px 12px',
+                                            borderRadius: '6px',
+                                            background: nfData.status === 'autorizado' ? '#059669' : '#d97706',
+                                            color: 'white',
+                                            fontWeight: 600
+                                        }}>
+                                            NF: {nfData.status.toUpperCase()}
+                                        </div>
+
+                                        {nfData.pdf_url && (
+                                            <button 
+                                                className={styles.nfBtn} 
+                                                style={{ background: '#1e293b', color: '#10b981', border: '1px solid #10b981', padding: '0.6rem 1rem', borderRadius: '6px', fontWeight: 600 }}
+                                                onClick={() => window.open(nfData.pdf_url, '_blank')}
+                                            >
+                                                📄 Ver NF
+                                            </button>
+                                        )}
+
+                                        {nfData.status === 'autorizado' && (
+                                            <button 
+                                                className={styles.nfBtn} 
+                                                style={{ background: 'transparent', color: '#10b981', border: '1px solid #10b981', padding: '0.6rem 1rem', borderRadius: '6px', fontWeight: 600 }}
+                                                onClick={handleSendWhatsApp}
+                                            >
+                                                📲 Enviar Zap
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         )}
                         <button className={styles.saveBtn} onClick={onClose}>{readOnly ? 'Fechar' : 'Salvar e Sair'}</button>
                         {!readOnly && <button className={styles.finishBtn} onClick={handleFinish}>Finalizar Consulta</button>}
@@ -401,6 +483,8 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                         onSuccess={(status) => {
                             alert(`Nota Fiscal solicitada! Status: ${status}`)
                             setShowNFModal(false)
+                            // Re-fetch NF status (simplified by reloading modal data or direct fetch)
+                            window.location.reload() // Or just setNfData if you prefer a cleaner update
                         }}
                     />
                 )}

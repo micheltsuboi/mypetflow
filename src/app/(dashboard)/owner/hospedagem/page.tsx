@@ -58,6 +58,30 @@ export default function HospedagemPage() {
     const [showNewModal, setShowNewModal] = useState(false)
     const [showNFModal, setShowNFModal] = useState(false)
     const [nfAppointment, setNfAppointment] = useState<Appointment | null>(null)
+    const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string, ref?: string }>>({})
+
+    const handleSendWhatsApp = async (appt: Appointment) => {
+        const nf = nfMap[appt.id]
+        if (!nf) return
+
+        try {
+            const response = await fetch('/api/nf/send-whatsapp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nfId: nf.id })
+            })
+
+            if (response.ok) {
+                alert('Mensagem enviada para o WhatsApp do tutor!')
+            } else {
+                const err = await response.json()
+                alert('Erro ao enviar WhatsApp: ' + (err.message || 'Erro desconhecido'))
+            }
+        } catch (error) {
+            console.error('Erro ao chamar send-whatsapp:', error)
+            alert('Erro ao comunicar com o servidor.')
+        }
+    }
 
     const fetchHospedagemData = useCallback(async (isBackground = false) => {
         try {
@@ -88,7 +112,7 @@ export default function HospedagemPage() {
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
-                    pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email ) ),
+                    pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
                     services!inner ( 
                         name, 
                         base_price,
@@ -118,6 +142,29 @@ export default function HospedagemPage() {
                     return checkIn <= endISO && checkOut >= startISO
                 })
                 setAppointments(filtered as unknown as Appointment[])
+
+                // Buscar Notas Fiscais vinculadas
+                const apptIds = filtered.map((a: any) => a.id)
+                if (apptIds.length > 0) {
+                    const { data: nfs } = await supabase
+                        .from('notas_fiscais')
+                        .select('id, origem_id, status, caminho_pdf, referencia')
+                        .eq('origem_tipo', 'atendimento')
+                        .in('origem_id', apptIds)
+
+                    if (nfs) {
+                        const map: any = {}
+                        nfs.forEach(nf => {
+                            map[nf.origem_id] = {
+                                id: nf.id,
+                                status: nf.status,
+                                pdf_url: nf.caminho_pdf,
+                                ref: nf.referencia
+                            }
+                        })
+                        setNfMap(map)
+                    }
+                }
             }
 
         } catch (error) {
@@ -376,28 +423,85 @@ export default function HospedagemPage() {
                                                     compact
                                                 />
                                                 {appt.payment_status === 'paid' && (
-                                                    <button 
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setNfAppointment(appt);
-                                                            setShowNFModal(true);
-                                                        }}
-                                                        style={{
-                                                            marginTop: '0.5rem',
-                                                            padding: '4px 8px',
-                                                            borderRadius: '4px',
-                                                            border: '1px solid #1e293b',
-                                                            background: '#0f172a',
-                                                            color: '#e2e8f0',
-                                                            fontSize: '0.75rem',
-                                                            cursor: 'pointer',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px'
-                                                        }}
-                                                    >
-                                                        📄 NFSe
-                                                    </button>
+                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                                        {!nfMap[appt.id] ? (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setNfAppointment(appt);
+                                                                    setShowNFModal(true);
+                                                                }}
+                                                                style={{
+                                                                    padding: '4px 8px',
+                                                                    borderRadius: '4px',
+                                                                    border: '1px solid #1e293b',
+                                                                    background: '#0f172a',
+                                                                    color: '#e2e8f0',
+                                                                    fontSize: '0.75rem',
+                                                                    cursor: 'pointer',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '4px'
+                                                                }}
+                                                            >
+                                                                🧾 Emitir NF
+                                                            </button>
+                                                        ) : (
+                                                            <>
+                                                                <div style={{
+                                                                    fontSize: '0.7rem',
+                                                                    padding: '2px 6px',
+                                                                    borderRadius: '4px',
+                                                                    background: nfMap[appt.id].status === 'autorizado' ? '#065f46' : '#92400e',
+                                                                    color: 'white',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center'
+                                                                }}>
+                                                                    NF: {nfMap[appt.id].status.toUpperCase()}
+                                                                </div>
+
+                                                                {nfMap[appt.id].pdf_url && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            window.open(nfMap[appt.id].pdf_url, '_blank')
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '4px 8px',
+                                                                            borderRadius: '4px',
+                                                                            border: '1px solid #1e293b',
+                                                                            background: '#1e293b',
+                                                                            color: '#34d399',
+                                                                            fontSize: '0.75rem',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        📄 Ver NF
+                                                                    </button>
+                                                                )}
+
+                                                                {nfMap[appt.id].status === 'autorizado' && (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation()
+                                                                            handleSendWhatsApp(appt)
+                                                                        }}
+                                                                        style={{
+                                                                            padding: '4px 8px',
+                                                                            borderRadius: '4px',
+                                                                            border: '1px solid #065f46',
+                                                                            background: 'transparent',
+                                                                            color: '#34d399',
+                                                                            fontSize: '0.75rem',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        📲 Enviar Zap
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
