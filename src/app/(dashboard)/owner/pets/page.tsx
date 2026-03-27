@@ -60,6 +60,9 @@ import {
     Building2
 } from 'lucide-react'
 
+import { useDebounce } from '@/hooks/useDebounce'
+
+
 interface Pet {
     id: string
     name: string
@@ -104,6 +107,7 @@ function PetsContent() {
     const [showModal, setShowModal] = useState(false)
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const debouncedSearchTerm = useDebounce(searchTerm, 500)
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
     const [vetAlertsForPet, setVetAlertsForPet] = useState<any[]>([])
 
@@ -234,7 +238,7 @@ function PetsContent() {
                     color, characteristics,
                     customers!inner ( id, name, org_id, phone_1 )
                 `).eq('customers.org_id', profile.org_id).order('name')
-            if (searchTerm) query = query.or(`name.ilike.%${searchTerm}%,breed.ilike.%${searchTerm}%`)
+            if (debouncedSearchTerm) query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
             else query = query.limit(50)
 
             const petsPromise = query.then(({ data: petsData }) => {
@@ -264,7 +268,7 @@ function PetsContent() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, searchTerm])
+    }, [supabase, debouncedSearchTerm])
 
     useEffect(() => {
         fetchData()

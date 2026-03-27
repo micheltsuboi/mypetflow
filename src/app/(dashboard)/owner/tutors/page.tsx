@@ -9,6 +9,8 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import { maskPhone, maskCPF, maskCNPJ } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
 
+import { useDebounce } from '@/hooks/useDebounce'
+
 
 interface Customer {
     id: string
@@ -38,6 +40,7 @@ export default function TutorsPage() {
     const [showModal, setShowModal] = useState(false)
     const [selectedTutor, setSelectedTutor] = useState<Customer | null>(null)
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const [cashbacks, setCashbacks] = useState<Record<string, number>>({});
     const [phone, setPhone] = useState('')
     const [cpfCnpj, setCpfCnpj] = useState('')
@@ -50,9 +53,9 @@ export default function TutorsPage() {
     // Derived state for feedback handling
     const isPending = isCreatePending || isUpdatePending
 
-    const fetchTutors = useCallback(async () => {
+    const fetchTutors = useCallback(async (isInitial = false) => {
         try {
-            setLoading(true)
+            if (isInitial) setLoading(true)
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
@@ -70,8 +73,8 @@ export default function TutorsPage() {
                 .eq('org_id', profile.org_id)
                 .order('name')
 
-            if (searchTerm) {
-                query = query.or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone_1.ilike.%${searchTerm}%`)
+            if (debouncedSearchTerm) {
+                query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone_1.ilike.%${debouncedSearchTerm}%`)
             } else {
                 query = query.limit(50)
             }
@@ -98,12 +101,12 @@ export default function TutorsPage() {
         } catch (error) {
             console.error('Erro ao buscar tutores:', error)
         } finally {
-            setLoading(false)
+            if (isInitial) setLoading(false)
         }
-    }, [supabase, searchTerm])
+    }, [supabase, debouncedSearchTerm])
 
     useEffect(() => {
-        fetchTutors()
+        fetchTutors(tutors.length === 0)
     }, [fetchTutors])
 
     // Success/Error Handling
