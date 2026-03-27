@@ -37,8 +37,14 @@ export async function POST(req: NextRequest) {
 
         // 2. Mapear status de habilitação
         // Focus v2: habilita_nfe, habilita_nfse, habilita_nfce (boolean, string ou status)
+        // Adicionada detecção de NFSe Nacional (habilita_nfsen_producao/homologacao)
         const isNFeEnabled = focusData.habilita_nfe == true || focusData.habilitado_nfe == true || focusData.status_nfe === 'habilitado'
-        const isNFSeEnabled = focusData.habilita_nfse == true || focusData.habilitado_nfse == true || focusData.status_nfse === 'habilitado' || focusData.status === 'ativo'
+        const isNFSeEnabled = focusData.habilita_nfse == true || 
+                             focusData.habilitado_nfse == true || 
+                             focusData.status_nfse === 'habilitado' || 
+                             focusData.status === 'ativo' ||
+                             focusData.habilita_nfsen_producao == true ||
+                             focusData.habilita_nfsen_homologacao == true
 
         // Debug: Retornar as chaves pra gente ver
         const keysFound = Object.keys(focusData).join(', ')
@@ -67,7 +73,7 @@ export async function POST(req: NextRequest) {
             success: true, 
             habilita_nfe: isNFeEnabled, 
             habilita_nfse: isNFSeEnabled,
-            message: `Sincronizado! NFe: ${isNFeEnabled ? 'Sim' : 'Não'}, NFSe: ${isNFSeEnabled ? 'Sim' : 'Não'}. (debug: h_nfe=${focusData.habilita_nfe}, h_nfse=${focusData.habilita_nfse}, status_nfse=${focusData.status_nfse}, status=${focusData.status})`
+            message: `Sincronizado! NFe: ${isNFeEnabled ? 'Sim' : 'Não'}, NFSe: ${isNFSeEnabled ? 'Sim' : 'Não'}. (debug: h_nfe=${focusData.habilita_nfe}, h_nfse=${focusData.habilita_nfse}, hn_prod=${focusData.habilita_nfsen_producao}, cod_mun=${focusData.codigo_municipio})`
         })
 
     } catch (error: any) {
