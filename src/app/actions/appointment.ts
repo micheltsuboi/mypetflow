@@ -10,6 +10,7 @@ interface CreateAppointmentState {
 }
 
 export async function createAppointment(prevState: CreateAppointmentState, formData: FormData) {
+    console.log('[createAppointment] Action started')
     const supabase = await createClient()
 
     // 1. Auth Check
@@ -634,6 +635,7 @@ export async function applyDiscount(id: string, discountVal: number, type: 'perc
  * Helper to trigger WhatsApp notification via centralized router
  */
 export async function triggerNotification(orgId: string, customerId: string, message: string, path: string = 'vet-alert') {
+    console.log(`[triggerNotification] Starting for org: ${orgId}, customer: ${customerId}, path: ${path}`)
     try {
         const supabase = await createClient()
         const { data: customer } = await supabase
@@ -642,10 +644,15 @@ export async function triggerNotification(orgId: string, customerId: string, mes
             .eq('id', customerId)
             .single()
 
+        console.log(`[triggerNotification] Customer phone: ${customer?.phone_1}`)
+
         if (customer?.phone_1) {
-            await sendWhatsAppMessage(orgId, customer.phone_1, message, path)
+            const result = await sendWhatsAppMessage(orgId, customer.phone_1, message, path)
+            console.log(`[triggerNotification] sendWhatsAppMessage result:`, result)
+        } else {
+            console.warn(`[triggerNotification] No phone found for customer ${customerId}`)
         }
     } catch (err) {
-        console.error('[triggerNotification] Failed:', err)
+        console.error('[triggerNotification] Global error:', err)
     }
 }

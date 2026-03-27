@@ -22,7 +22,7 @@ export async function sendWhatsAppMessage(
       return { success: false, error: 'Configuração da organização não encontrada.' }
     }
 
-    const integrationType = org.wa_integration_type || 'system'
+    const integrationType = org?.wa_integration_type || 'system'
     
     // Normalize phone number (must be just numbers, removing +, -, spaces, etc.)
     let normalizedPhone = phone.replace(/\D/g, '')
@@ -30,19 +30,23 @@ export async function sendWhatsAppMessage(
        normalizedPhone = '55' + normalizedPhone
     }
 
-    // DISPATCHER MASTER: Usamos o N8N como roteador universal para todos os envios.
-    // Isso permite centralizar logs, tratar erros e usar instâncias dinâmicas.
-    const n8nBaseUrl = process.env.N8N_BASE_URL
-    console.log(`sendWhatsAppMessage: Routing via N8N Master Router (${integrationType}) for phone ${normalizedPhone}`)
+    const n8nBaseUrl = process.env.N8N_BASE_URL || 'http://72.62.107.69:5678'
+    const baseUrlFormatted = n8nBaseUrl?.replace(/\/$/, '')
+    const fullUrl = `${baseUrlFormatted}/webhook/${webhookPath}`
+    
+    console.log(`[sendWhatsAppMessage] n8nBaseUrl: ${process.env.N8N_BASE_URL ? 'from env' : 'FALLBACK USED'} (${n8nBaseUrl})`)
+    console.log(`[sendWhatsAppMessage] Full URL: ${fullUrl}`)
 
-    if (!n8nBaseUrl) {
-       console.warn('sendWhatsAppMessage: N8N_BASE_URL undefined')
+    if (!baseUrlFormatted) {
+       console.warn('sendWhatsAppMessage: N8N_BASE_URL undefined and fallback failed')
        return { success: false, error: 'Serviço global de mensagens não configurado.' }
     }
 
-    // O path padrão é 'vet-alert', mas permitimos outros como 'pet-agendamento'
-    const fullUrl = `${n8nBaseUrl.replace(/\/$/, '')}/webhook/${webhookPath}`
-    
+    if (!org) {
+        console.error(`[sendWhatsAppMessage] Organization ${orgId} not found in DB`)
+        return { success: false, error: 'Organização não encontrada.' }
+    }
+
     // Payload unificado que o N8N vai processar
     const payload = {
         phone: normalizedPhone,
@@ -51,20 +55,23 @@ export async function sendWhatsAppMessage(
         message: message,
         tenant_id: orgId,
         type: 'system_notification',
-        // Repassamos as credenciais (que podem ser NULL se for o sistema padrão)
-        // O N8N decide qual usar (a sua própria ou a enviada)
         wa_api_url: org.wa_api_url,
         wa_api_token: org.wa_api_token,
         wa_client_token: org.wa_client_token || org.wa_api_token,
         wa_integration_type: integrationType
     }
 
+    console.log(`[sendWhatsAppMessage] Payload ready for phone: ${normalizedPhone}`)
+
     try {
+        console.log(`[sendWhatsAppMessage] Fetching ${fullUrl}...`)
         const response = await fetch(fullUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         })
+
+        console.log(`[sendWhatsAppMessage] Response status: ${response.status}`)
 
         if (!response.ok) {
             const errText = await response.text()
@@ -72,6 +79,7 @@ export async function sendWhatsAppMessage(
             return { success: false, error: `Erro no Roteador N8N: ${response.status}` }
         }
 
+        console.log(`[sendWhatsAppMessage] Success!`)
         return { success: true }
     } catch (fetchErr: any) {
         console.error('sendWhatsAppMessage [N8N] fetch exception:', fetchErr)
