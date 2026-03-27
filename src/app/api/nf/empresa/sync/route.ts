@@ -33,11 +33,15 @@ export async function POST(req: NextRequest) {
 
         // 1. Consultar na Focus NFe
         const focusData = await FocusNfeApi.consultarEmpresa(config.focus_empresa_id)
+        console.log('FOCUS DATA SYNC:', JSON.stringify(focusData, null, 2))
 
         // 2. Mapear status de habilitação
-        // Na Focus v2, habilitado_nfe e habilitado_nfse são booleanos no retorno da empresa
-        const isNFeEnabled = focusData.habilitado_nfe === true
-        const isNFSeEnabled = focusData.habilitado_nfse === true
+        // Focus v2: habilita_nfe, habilita_nfse, habilita_nfce (boolean)
+        const isNFeEnabled = focusData.habilita_nfe === true || focusData.habilitado_nfe === true
+        const isNFSeEnabled = focusData.habilita_nfse === true || focusData.habilitado_nfse === true
+
+        // Debug: Retornar as chaves pra gente ver
+        const keysFound = Object.keys(focusData).join(', ')
 
         // 3. Atualizar banco local apenas se houver mudança ou para garantir
         const { error: updateError } = await supabase
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest) {
             success: true, 
             habilita_nfe: isNFeEnabled, 
             habilita_nfse: isNFSeEnabled,
-            message: 'Configurações sincronizadas com a Focus NFe!'
+            message: `Sincronizado! NFe: ${isNFeEnabled ? 'Sim' : 'Não'}, NFSe: ${isNFSeEnabled ? 'Sim' : 'Não'}. (Campos: ${keysFound})`
         })
 
     } catch (error: any) {
