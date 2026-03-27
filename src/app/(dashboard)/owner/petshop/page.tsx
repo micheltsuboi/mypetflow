@@ -11,6 +11,8 @@ import { getCashbackBalance } from '@/app/actions/cashback'
 import { ShoppingCart, Plus, Minus, Trash2, Search, PackageOpen, Coins, Edit2 } from 'lucide-react'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
+import SalesHistoryModal from '@/components/petshop/SalesHistoryModal'
+import { ReceiptText } from 'lucide-react'
 
 // Interfaces locais para o Carrinho
 interface CartItem {
@@ -46,6 +48,7 @@ export default function PetshopPage() {
     // Gerenciador de Produtos (CRUD Modal)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+    const [showHistoryModal, setShowHistoryModal] = useState(false)
     const [formData, setFormData] = useState<ProductFormData>({
         name: '', category: 'Alimentação', cost_price: 0, selling_price: 0,
         stock_quantity: 0, expiration_date: '', bar_code: '', description: '',
@@ -416,9 +419,18 @@ export default function PetshopPage() {
                             <h1 className={styles.title}>🛒 Ponto de Venda</h1>
                             <p className={styles.subtitle}>Selecione os produtos para adicionar ao carrinho</p>
                         </div>
-                        <button className={styles.addButton} onClick={() => handleOpenModal()}>
-                            + Produto
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button 
+                                className={styles.addButton} 
+                                style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+                                onClick={() => setShowHistoryModal(true)}
+                            >
+                                <ReceiptText size={18} /> Extrato
+                            </button>
+                            <button className={styles.addButton} onClick={() => handleOpenModal()}>
+                                + Produto
+                            </button>
+                        </div>
                     </div>
 
                     <div className={styles.filters}>
@@ -815,6 +827,10 @@ export default function PetshopPage() {
                             setShowNFModal(false)
                         }}
                     />
+                )}
+
+                {showHistoryModal && (
+                    <SalesHistoryModal onClose={() => setShowHistoryModal(false)} />
                 )}
             </div>
         </PlanGuard>

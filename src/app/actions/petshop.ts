@@ -370,6 +370,89 @@ export async function getPetshopHistory(petId: string) {
     }
 }
 
+export async function getPetshopOrders(filters: {
+    startDate?: string,
+    endDate?: string,
+    customerId?: string,
+    searchTerm?: string
+}) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Não autorizado' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('org_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.org_id) return { success: false, error: 'Org not found' }
+
+    try {
+        let query = supabase
+            .from('orders')
+            .select(`
+                *,
+                order_items (*),
+                customers (name, cpf, cpf_cnpj, phone_1, email, address, neighborhood, city),
+                pets (name)
+            `)
+            .eq('org_id', profile.org_id)
+            .order('created_at', { ascending: false })
+
+        if (filters.startDate) {
+            query = query.gte('created_at', filters.startDate)
+        }
+        if (filters.endDate) {
+            query = query.lte('created_at', filters.endDate)
+        }
+        if (filters.customerId) {
+            query = query.eq('customer_id', filters.customerId)
+        }
+
+        const { data: orders, error } = await query
+
+        if (error) throw error
+
+        let filteredOrders = orders || []
+
+        // Search term filter (clients or products)
+        if (filters.searchTerm) {
+            const term = filters.searchTerm.toLowerCase()
+            filteredOrders = filteredOrders.filter(order => {
+                const customerMatch = order.customers?.name?.toLowerCase().includes(term)
+                const productMatch = order.order_items?.some((item: any) => 
+                    item.product_name?.toLowerCase().includes(term)
+                )
+                return customerMatch || productMatch
+            })
+        }
+
+        // Fetch NF info separately to avoid complex joins if needed, or just map it
+        const orderIds = filteredOrders.map(o => o.id)
+        if (orderIds.length > 0) {
+            const { data: nfs } = await supabase
+                .from('notas_fiscais')
+                .select('*')
+                .in('origem_id', orderIds)
+                .eq('origem_tipo', 'pdv')
+
+            if (nfs) {
+                filteredOrders = filteredOrders.map(order => ({
+                    ...order,
+                    nf: nfs.find(nf => nf.origem_id === order.id) || null
+                }))
+            }
+        }
+
+        return { success: true, data: filteredOrders }
+    } catch (error) {
+        console.error('Error fetching orders:', error)
+        return { success: false, error: 'Erro ao buscar extrato.' }
+    }
+}
+
 export async function payPetshopSale(orderId: string, paymentMethod: string) {
     const supabase = await createClient()
 
