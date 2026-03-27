@@ -12,6 +12,7 @@ export interface NFeBuilderParams {
             numero?: string;
             bairro?: string;
             codigo_municipio?: string;
+            city?: string;
             cep?: string;
             uf?: string;
         };
@@ -86,14 +87,14 @@ export function buildNFePayload({ config, ref_uuid, total_amount, tutor, items }
         root.cpf_destinatario = numTutorCpf;
         root.nome_destinatario = tutor.nome;
         root.indicador_inscricao_estadual_destinatario = 9; // Não contribuinte
-        // NFe for consumers requires destination address
-        if (tutor.endereco && tutor.endereco.cep) {
+        if (tutor.endereco) {
             root.logradouro_destinatario = tutor.endereco.logradouro || '-';
             root.numero_destinatario = tutor.endereco.numero || 'SN';
             root.bairro_destinatario = tutor.endereco.bairro || '-';
-            root.municipio_destinatario = tutor.endereco.codigo_municipio || '-'; // Requerer código IBGE
-            root.uf_destinatario = tutor.endereco.uf || config.uf;
-            root.cep_destinatario = tutor.endereco.cep?.replace(/\D/g, '');
+            // municipio_destinatario prefers codigo_municipio (IBGE) but falls back to city name if needed
+            root.municipio_destinatario = tutor.endereco.codigo_municipio || tutor.endereco.city || config.municipio || '-';
+            root.uf_destinatario = tutor.endereco.uf || config.uf || '-';
+            root.cep_destinatario = tutor.endereco.cep?.replace(/\D/g, '') || '00000000';
         }
     } else {
         // Consumer Note without identification (Cupom NFCe usually, but we use NFe here if allowed by UF, otherwise CPF is strictly required).

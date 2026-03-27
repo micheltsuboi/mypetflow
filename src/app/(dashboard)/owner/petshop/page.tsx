@@ -264,7 +264,9 @@ export default function PetshopPage() {
                     endereco: {
                         logradouro: selectedTutor.address || undefined,
                         bairro: selectedTutor.neighborhood || undefined,
-                        city: selectedTutor.city || undefined
+                        city: selectedTutor.city || undefined,
+                        cep: (selectedTutor as any).cep || undefined,
+                        uf: (selectedTutor as any).uf || undefined
                     }
                 } : undefined,
                 produtos: nfeProducts
