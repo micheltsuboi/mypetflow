@@ -5,6 +5,9 @@ import { getPetshopOrders } from '@/app/actions/petshop'
 import { Search, Calendar, User, ShoppingBag, X, FileText, Send, RefreshCw, Eye } from 'lucide-react'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { Download, FileDown } from 'lucide-react'
 
 interface SalesHistoryModalProps {
     onClose: () => void
@@ -55,6 +58,64 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
             console.error(error)
             alert('❌ Erro de conexão ao tentar enviar WhatsApp.')
         }
+    }
+
+    const exportCSV = () => {
+        if (orders.length === 0) return
+        
+        const headers = ['Data', 'Cliente', 'Pet', 'Total', 'Metodo Pagamento', 'Status Pagamento', 'Itens']
+        const rows = orders.map(order => [
+            format(new Date(order.created_at), 'dd/MM/yyyy HH:mm'),
+            order.customers?.name || 'Venda Avulsa',
+            order.pets?.name || '-',
+            order.total_amount,
+            order.payment_method,
+            order.payment_status,
+            order.order_items?.map((i: any) => `${i.quantity}x ${i.product_name}`).join('; ')
+        ])
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        ].join('\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+        link.setAttribute('href', url)
+        link.setAttribute('download', `extrato_petshop_${format(new Date(), 'dd_MM_yyyy')}.csv`)
+        link.style.visibility = 'hidden'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+
+    const exportPDF = () => {
+        if (orders.length === 0) return
+        
+        const doc = new jsPDF()
+        doc.text('Extrato de Vendas - Petshop', 14, 15)
+        doc.setFontSize(10)
+        doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 22)
+        
+        const tableData = orders.map(order => [
+            format(new Date(order.created_at), 'dd/MM/yy HH:mm'),
+            order.customers?.name || 'Venda Avulsa',
+            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount),
+            order.payment_method?.toUpperCase() || '-',
+            order.order_items?.map((i: any) => `${i.quantity}x ${i.product_name}`).join(', ')
+        ])
+
+        autoTable(doc, {
+            head: [['Data', 'Cliente', 'Total', 'Pagamento', 'Itens']],
+            body: tableData,
+            startY: 30,
+            theme: 'striped',
+            headStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0] },
+            styles: { fontSize: 8 }
+        })
+
+        doc.save(`extrato_petshop_${format(new Date(), 'dd_MM_yyyy')}.pdf`)
     }
 
     const nfeStatusBadge = (status: string) => {
@@ -316,16 +377,40 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                     <div style={{ color: '#64748b', fontSize: '0.85rem' }}>
                         Mostrando <strong>{orders.length}</strong> vendas recentes
                     </div>
-                    <button 
-                        onClick={fetchOrders}
-                        style={{ 
-                            display: 'flex', alignItems: 'center', gap: '0.5rem', 
-                            background: 'transparent', border: 'none', color: '#60a5fa', 
-                            cursor: 'pointer', fontSize: '0.85rem' 
-                        }}
-                    >
-                        <RefreshCw size={14} /> Atualizar Lista
-                    </button>
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                        <button 
+                            onClick={exportCSV}
+                            disabled={orders.length === 0}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', 
+                                padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' 
+                            }}
+                        >
+                            <Download size={14} /> CSV
+                        </button>
+                        <button 
+                            onClick={exportPDF}
+                            disabled={orders.length === 0}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: '#94a3b8', 
+                                padding: '0.4rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' 
+                            }}
+                        >
+                            <FileDown size={14} /> PDF
+                        </button>
+                        <button 
+                            onClick={fetchOrders}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem', 
+                                background: 'transparent', border: 'none', color: '#60a5fa', 
+                                cursor: 'pointer', fontSize: '0.85rem', marginLeft: '0.5rem'
+                            }}
+                        >
+                            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Atualizar
+                        </button>
+                    </div>
                 </div>
             </div>
 
