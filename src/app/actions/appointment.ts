@@ -285,12 +285,13 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
     const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceAny.name}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
     
     // Trigger notification (await to ensure delivery in server action)
-    await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
+    const result = await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
         petName: petData.name,
         serviceName: serviceAny.name,
         formattedDate,
         formattedTime
-    }).catch(e => console.error(e))
+    }).catch(e => { console.error('[createAppointment] Trigger catch:', e); return null; })
+    console.log('[createAppointment] triggerNotification result:', result)
     // ── Fim WhatsApp ──
 
     revalidatePath('/owner/agenda')

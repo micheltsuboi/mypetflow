@@ -11,7 +11,7 @@ export async function sendWhatsAppMessage(
   try {
     const adminSupabase = await createAdminClient()
 
-    // 1. Identify organization integration type and API credentials using the admin client
+    console.log(`[sendWhatsAppMessage] Fetching org configuration for orgId: ${orgId}`)
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
       .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token')
@@ -19,9 +19,10 @@ export async function sendWhatsAppMessage(
       .single()
 
     if (orgError) {
-      console.error('sendWhatsAppMessage: Error fetching org configuration:', orgError)
-      return { success: false, error: 'Configuração da organização não encontrada.' }
+      console.error('[sendWhatsAppMessage] Org fetch error:', orgError)
+      return { success: false, error: 'Configuração da organização não encontrada no banco.' }
     }
+    console.log('[sendWhatsAppMessage] Org config found:', org ? 'YES' : 'NO')
 
     const integrationType = org?.wa_integration_type || 'system'
     
