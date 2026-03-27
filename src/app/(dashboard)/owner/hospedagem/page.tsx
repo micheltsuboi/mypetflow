@@ -420,6 +420,12 @@ export default function HospedagemPage() {
                                                     paymentStatus={appt.payment_status}
                                                     paymentMethod={appt.payment_method}
                                                     onUpdate={() => fetchHospedagemData(true)}
+                                                    onPaymentAuthorized={() => {
+                                                        if (confirm('Pagamento confirmado! Deseja emitir a Nota Fiscal agora?')) {
+                                                            setNfAppointment(appt)
+                                                            setShowNFModal(true)
+                                                        }
+                                                    }}
                                                     compact
                                                 />
                                                 {appt.payment_status === 'paid' && (

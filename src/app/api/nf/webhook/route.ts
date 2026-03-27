@@ -105,6 +105,17 @@ export async function POST(req: NextRequest) {
                             phone = (appt.pets as any)?.customers?.phone_1
                             petName = (appt.pets as any)?.name || 'seu pet'
                         }
+                    } else if (nf.origem_tipo === 'venda' || nf.origem_tipo === 'pdv') {
+                        const { data: order } = await supabase
+                            .from('orders')
+                            .select('pets(name, customers(phone_1))')
+                            .eq('id', nf.origem_id)
+                            .single()
+                        
+                        if (order) {
+                            phone = (order.pets as any)?.customers?.phone_1
+                            petName = (order.pets as any)?.name || 'seu pet'
+                        }
                     }
 
                     if (phone) {

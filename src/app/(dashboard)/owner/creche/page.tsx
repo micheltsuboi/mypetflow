@@ -390,6 +390,12 @@ export default function CrechePage() {
                                             paymentStatus={appt.payment_status}
                                                 paymentMethod={(appt as any).payment_method}
                                                 onUpdate={() => fetchCrecheData(true)}
+                                                onPaymentAuthorized={() => {
+                                                    if (confirm('Pagamento confirmado! Deseja emitir a Nota Fiscal agora?')) {
+                                                        setNfAppointment(appt)
+                                                        setShowNFModal(true)
+                                                    }
+                                                }}
                                                 compact
                                             />
                                             <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>

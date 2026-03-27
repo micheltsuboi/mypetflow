@@ -257,6 +257,34 @@ export default function FinanceiroPage() {
         fetchFinancials()
     }, [fetchFinancials])
 
+    // Realtime subscription for NF updates
+    useEffect(() => {
+        const channel = supabase
+            .channel('nf-updates-financeiro')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'notas_fiscais' },
+                (payload) => {
+                    const newNf = payload.new as any
+                    if (newNf && newNf.origem_id) {
+                        setNfMap(prev => ({
+                            ...prev,
+                            [newNf.origem_id]: {
+                                id: newNf.id,
+                                status: newNf.status,
+                                pdf_url: newNf.caminho_pdf
+                            }
+                        }))
+                    }
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [supabase])
+
     const handleOpenExtract = (type: 'revenue' | 'expenses' | 'pending') => {
         setExtractRecords(prev => ({ ...prev, type }))
         setIsExtractModalOpen(true)
@@ -274,8 +302,37 @@ export default function FinanceiroPage() {
 
             if (error) throw error
 
-            alert('Pagamento confirmado com sucesso!')
             fetchFinancials() // Direct refresh
+
+            if (confirm('Pagamento confirmado com sucesso! Deseja emitir a Nota Fiscal agora?')) {
+                const appt = extractRecords.appointments.find(a => a.id === appointmentId)
+                if (appt) {
+                    setNfConfig({
+                        tipo: 'nfse',
+                        origemTipo: 'atendimento',
+                        refId: appt.id,
+                        total_amount: appt.final_price ?? appt.calculated_price ?? 0,
+                        tutor: {
+                            nome: appt.pets?.customers?.name,
+                            cpf: appt.pets?.customers?.cpf || appt.pets?.customers?.cpf_cnpj,
+                            email: appt.pets?.customers?.email,
+                            endereco: {
+                                logradouro: appt.pets?.customers?.address,
+                                bairro: appt.pets?.customers?.neighborhood,
+                                codigo_municipio: appt.pets?.customers?.city
+                            }
+                        },
+                        servico: {
+                            descricao: appt.services?.name || 'Serviço Veterinário/Estética',
+                            valor: appt.final_price ?? appt.calculated_price ?? 0,
+                            codigo: "08.02"
+                        },
+                        petName: appt.pets?.name,
+                        tutorPhone: appt.pets?.customers?.phone_1
+                    })
+                    setShowNFModal(true)
+                }
+            }
         } catch (error) {
             console.error('Erro ao confirmar pagamento:', error)
             alert('Erro ao confirmar pagamento.')
@@ -283,13 +340,41 @@ export default function FinanceiroPage() {
     }
 
     const handleConfirmPetshopPayment = async (orderId: string, description: string, price: number) => {
-        if (confirm(`Confirmar pagamento de R$ ${price.toFixed(2).replace('.', ',')} para ${description}?`)) {
+        if (confirm(`Confirmar pagamento de R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para ${description}?`)) {
             const paymentMethod = prompt('Qual a forma de pagamento? (pix, cash, credit, debit)', 'pix')
             if (paymentMethod) {
                 const res = await payPetshopSale(orderId, paymentMethod)
                 if (res.success) {
-                    alert(res.message)
                     fetchFinancials()
+                    if (confirm(res.message + ' Deseja emitir a NFe agora?')) {
+                        const sale = extractRecords.paidSales.find(s => s.id === orderId) || extractRecords.pendingSales.find(s => s.id === orderId)
+                        if (sale) {
+                            setNfConfig({
+                                tipo: 'nfe',
+                                origemTipo: 'pdv',
+                                refId: sale.id,
+                                total_amount: sale.total_amount,
+                                tutor: {
+                                    nome: sale.pets?.customers?.name || 'Consumidor Final',
+                                    cpf: sale.pets?.customers?.cpf || sale.pets?.customers?.cpf_cnpj,
+                                    email: sale.pets?.customers?.email,
+                                    endereco: {
+                                        logradouro: sale.pets?.customers?.address,
+                                        bairro: sale.pets?.customers?.neighborhood,
+                                        codigo_municipio: sale.pets?.customers?.city
+                                    }
+                                },
+                                produtos: sale.order_items?.map((item: any) => ({
+                                    descricao: item.product_name,
+                                    valor_unitario: sale.total_amount / (sale.order_items.length || 1),
+                                    quantidade: 1
+                                })) || [],
+                                petName: sale.pets?.name,
+                                tutorPhone: sale.pets?.customers?.phone_1
+                            })
+                            setShowNFModal(true)
+                        }
+                    }
                 } else {
                     alert(res.message)
                 }

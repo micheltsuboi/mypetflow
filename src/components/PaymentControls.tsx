@@ -15,6 +15,7 @@ interface PaymentControlsProps {
     paymentStatus: string | null
     paymentMethod: string | null
     onUpdate?: () => void
+    onPaymentAuthorized?: (method: string) => void
     compact?: boolean
 }
 
@@ -36,6 +37,7 @@ export default function PaymentControls({
     paymentStatus,
     paymentMethod,
     onUpdate,
+    onPaymentAuthorized,
     compact = false
 }: PaymentControlsProps) {
     const [showModal, setShowModal] = useState(false)
@@ -73,6 +75,7 @@ export default function PaymentControls({
         try {
             await updatePaymentStatus(appointmentId, 'paid', method)
             onUpdate?.()
+            onPaymentAuthorized?.(method)
             setShowModal(false)
         } finally {
             setLoading(false)
