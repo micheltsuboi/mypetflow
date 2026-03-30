@@ -4,6 +4,7 @@ import Link from 'next/link'
 import styles from './page.module.css'
 import { NotaFiscal } from '@/types/database'
 import NotaFiscalList from './NotaFiscalList'
+import PlanGuard from '@/components/modules/PlanGuard'
 
 export default async function NotaFiscalPage() {
     const supabase = await createClient()
@@ -38,29 +39,31 @@ export default async function NotaFiscalPage() {
         .order('created_at', { ascending: false })
 
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div>
-                    <h1 className={styles.title}>Notas Fiscais</h1>
-                    <p className={styles.subtitle}>Gerencie suas notas emitidas pelo sistema</p>
-                </div>
-                <Link href="/owner/configuracoes/nota-fiscal" className={styles.settingsButton}>
-                    ⚙️ Configurações Fiscais
-                </Link>
-            </div>
-
-            {!config ? (
-                <div className={styles.card}>
-                    <p>Você ainda não configurou a emissão de notas fiscais.</p>
-                    <Link href="/owner/configuracoes/nota-fiscal" className={styles.primaryButton} style={{ display: 'inline-block', marginTop: '1rem' }}>
-                        Configurar Agora
+        <PlanGuard requiredModule="nota_fiscal">
+            <div className={styles.container}>
+                <div className={styles.header}>
+                    <div>
+                        <h1 className={styles.title}>Notas Fiscais</h1>
+                        <p className={styles.subtitle}>Gerencie suas notas emitidas pelo sistema</p>
+                    </div>
+                    <Link href="/owner/configuracoes/nota-fiscal" className={styles.settingsButton}>
+                        ⚙️ Configurações Fiscais
                     </Link>
                 </div>
-            ) : (
-                <div className={styles.card}>
-                    <NotaFiscalList notas={notas || []} orgId={profile.org_id} />
-                </div>
-            )}
-        </div>
+
+                {!config ? (
+                    <div className={styles.card}>
+                        <p>Você ainda não configurou a emissão de notas fiscais.</p>
+                        <Link href="/owner/configuracoes/nota-fiscal" className={styles.primaryButton} style={{ display: 'inline-block', marginTop: '1rem' }}>
+                            Configurar Agora
+                        </Link>
+                    </div>
+                ) : (
+                    <div className={styles.card}>
+                        <NotaFiscalList notas={notas || []} orgId={profile.org_id} />
+                    </div>
+                )}
+            </div>
+        </PlanGuard>
     )
 }

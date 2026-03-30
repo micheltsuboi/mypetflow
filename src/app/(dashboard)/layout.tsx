@@ -237,10 +237,10 @@ export default function DashboardLayout({
                 if (item.name === 'Clínica Vet') return planFeat.includes('clinica_vet')
                 if (item.name === 'Hospital') return planFeat.includes('hospital')
                 if (item.name === 'Consultas') return planFeat.includes('clinica_vet')
-                if (item.name === 'Questionário') return planFeat.includes('pets')
+                if (item.name === 'Questionário') return planFeat.includes('assessment')
                 if (item.name === 'Ponto') return planFeat.includes('ponto')
                 if (item.name === 'Integrações') return true
-                if (item.name === 'Notas Fiscais') return planFeat.includes('financeiro') // Use financeiro feature temporarily
+                if (item.name === 'Notas Fiscais') return planFeat.includes('nota_fiscal')
                 return false;
             })
         } else if (user) {

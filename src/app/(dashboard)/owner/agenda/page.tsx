@@ -200,7 +200,7 @@ function AgendaContent() {
 
             // Buscar features do plano
             if (profile.role === 'superadmin') {
-                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa']);
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa', 'assessment', 'nota_fiscal']);
             } else {
                 const { data: org } = await supabase.from('organizations').select('saas_plans(features)').eq('id', profile.org_id).maybeSingle()
                 if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || [])

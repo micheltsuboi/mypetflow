@@ -80,6 +80,92 @@ export async function GET(req: NextRequest) {
             .eq('referencia', ref)
 
         if (updateError) throw updateError
+        
+        // 5. Automação de WhatsApp se acabou de autorizar
+        if (internalStatus === 'autorizado') {
+            console.log(`[Sync] NF ${ref} autorizada. Iniciando automação de WhatsApp...`)
+            try {
+                const pdfUrl = focusData.caminho_pdf || focusData.caminho_danfe || focusData.url_danfse
+                console.log(`[Sync] PDF URL found: ${pdfUrl ? 'Yes' : 'No'}`)
+                
+                if (pdfUrl) {
+                    // Buscar dados do tutor baseado na origem
+                    const { data: nfExt, error: nfExtErr } = await supabase
+                        .from('notas_fiscais')
+                        .select(`
+                            referencia, valor_total, origem_id, origem_tipo,
+                            organizations (wa_api_url, wa_api_token, wa_client_token, wa_integration_type)
+                        `)
+                        .eq('referencia', ref)
+                        .single()
+                    
+                    if (nfExtErr) console.error('[Sync] Error fetching NF data for WhatsApp:', nfExtErr)
+
+                    if (nfExt) {
+                        let phone = null
+                        let petName = 'seu pet'
+                        console.log(`[Sync] Origem: ${nfExt.origem_tipo}, ID: ${nfExt.origem_id}`)
+                        
+                        if (nfExt.origem_tipo === 'atendimento' || nfExt.origem_tipo === 'banho_tosa') {
+                            const { data: appt } = await supabase
+                                .from('appointments')
+                                .select('pets(name, customers(phone_1))')
+                                .eq('id', nfExt.origem_id)
+                                .single()
+                            if (appt) {
+                                phone = (appt.pets as any)?.customers?.phone_1
+                                petName = (appt.pets as any)?.name || 'seu pet'
+                            }
+                        } else if (nfExt.origem_tipo === 'venda' || nfExt.origem_tipo === 'pdv') {
+                            const { data: order } = await supabase
+                                .from('orders')
+                                .select('pets(name, customers(phone_1))')
+                                .eq('id', nfExt.origem_id)
+                                .single()
+                            if (order) {
+                                phone = (order.pets as any)?.customers?.phone_1
+                                petName = (order.pets as any)?.name || 'seu pet'
+                            }
+                        }
+
+                        console.log(`[Sync] Phone: ${phone}, Pet: ${petName}`)
+
+                        if (phone) {
+                            // Garantir que org seja um objeto, tratando se o Supabase retornar array
+                            const orgData = nfExt.organizations;
+                            const org = (Array.isArray(orgData) ? orgData[0] : orgData) || {};
+                            
+                            console.log(`[Sync] Triggering N8N for NF ${ref} to ${phone} (Integration: ${org.wa_integration_type || 'system'})`)
+                            
+                            try {
+                                const n8nRes = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        phone,
+                                        pdfUrl,
+                                        petName,
+                                        valor: nfExt.valor_total,
+                                        ref: nfExt.referencia,
+                                        wa_api_url: org.wa_api_url,
+                                        wa_api_token: org.wa_api_token,
+                                        wa_client_token: org.wa_client_token,
+                                        wa_integration_type: org.wa_integration_type
+                                    })
+                                })
+                                console.log(`[Sync] N8N Response status: ${n8nRes.status}`)
+                            } catch (e) {
+                                console.error('[Sync] Error in fetch N8N:', e)
+                            }
+                        } else {
+                            console.warn(`[Sync] WhatsApp phone not found for NF ${ref}`)
+                        }
+                    }
+                }
+            } catch (awError) {
+                console.error('[Sync] Auto WhatsApp Sync Error:', awError)
+            }
+        }
 
         return NextResponse.json({ success: true, status: internalStatus, data: focusData })
 

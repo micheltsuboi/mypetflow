@@ -16,6 +16,8 @@ export const MODULES_LIST = [
     { id: 'financeiro', label: 'Financeiro', icon: '💰', description: 'Caixa e relatórios' },
     { id: 'usuarios', label: 'Usuários', icon: '👥', description: 'Gestão de equipe' },
     { id: 'ponto', label: 'Ponto', icon: '⏰', description: 'Controle de jornada' },
+    { id: 'nota_fiscal', label: 'Notas Fiscais', icon: '🧾', description: 'Emissão de NFe/NFSe' },
+    { id: 'assessment', label: 'Questionário', icon: '📋', description: 'Avaliações e anamneses' },
 ]
 
 export default function PlanModal({

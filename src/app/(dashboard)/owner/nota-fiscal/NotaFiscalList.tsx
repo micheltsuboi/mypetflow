@@ -37,10 +37,26 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         setNotas(initialNotas)
     }, [initialNotas])
 
+    // Load and refresh function
+    const fetchNotas = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('notas_fiscais')
+                .select('*')
+                .eq('org_id', orgId)
+                .order('created_at', { ascending: false })
+            
+            if (error) throw error
+            if (data) setNotas(data)
+        } catch (error) {
+            console.error('Error fetching notas:', error)
+        }
+    }
+
     // Realtime Integration
     useEffect(() => {
         const channel = supabase
-            .channel(`public:notas_fiscais:org:${orgId}`)
+            .channel(`notas-fiscais-${orgId}`)
             .on(
                 'postgres_changes',
                 {
@@ -50,6 +66,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                     filter: `org_id=eq.${orgId}`
                 },
                 (payload) => {
+                    console.log('Realtime change received:', payload)
                     if (payload.eventType === 'INSERT') {
                         setNotas(current => [payload.new as NotaFiscal, ...current])
                     } else if (payload.eventType === 'UPDATE') {
@@ -61,7 +78,9 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                     }
                 }
             )
-            .subscribe()
+            .subscribe((status) => {
+                console.log('Realtime subscription status:', status)
+            })
 
         return () => {
             supabase.removeChannel(channel)
@@ -108,12 +127,12 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         exportToCsv(`relatorio_fiscal_${startDate}_${endDate}`, headers, rows)
     }
 
-    const handleSendWhatsApp = async (nfId: string) => {
+    const handleSendWhatsApp = async (nota: NotaFiscal) => {
         try {
             const response = await fetch('/api/nf/send-whatsapp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nfId })
+                body: JSON.stringify({ referencia: nota.referencia })
             })
 
             if (response.ok) {
@@ -132,6 +151,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         try {
             const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
             if (!res.ok) throw new Error('Erro ao sincronizar')
+            await fetchNotas() // Fallback se realtime demorar
         } catch (error: any) {
             alert(error.message)
         }
@@ -261,7 +281,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                 )}
                                                 <button 
                                                     className={`${styles.actionBtn} ${styles.whatsappBtn}`}
-                                                    onClick={() => handleSendWhatsApp(nota.id)}
+                                                    onClick={() => handleSendWhatsApp(nota)}
                                                     title="Enviar WhatsApp"
                                                 >
                                                     <Send size={16} />
@@ -333,8 +353,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                     onClose={() => setIsCancelModalOpen(false)}
                     onSuccess={() => {
                         setIsCancelModalOpen(false)
-                        // fetchFinancials não é necessário aqui pois temos props, 
-                        // mas o realtime cuidará do update visual
+                        fetchNotas()
                     }}
                 />
             )}

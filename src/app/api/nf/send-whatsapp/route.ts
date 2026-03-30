@@ -54,6 +54,17 @@ export async function POST(req: NextRequest) {
                 phone = (appt.pets as any)?.customers?.phone_1
                 petName = (appt.pets as any)?.name || 'seu pet'
             }
+        } else if (nf.origem_tipo === 'venda' || nf.origem_tipo === 'pdv') {
+            const { data: order } = await supabase
+                .from('orders')
+                .select('pets(name, customers(phone_1))')
+                .eq('id', nf.origem_id)
+                .single()
+            
+            if (order) {
+                phone = (order.pets as any)?.customers?.phone_1
+                petName = (order.pets as any)?.name || 'seu pet'
+            }
         }
 
         if (!phone) {
@@ -63,7 +74,8 @@ export async function POST(req: NextRequest) {
         // 3. Disparar N8N
         console.log(`Manual trigger: WhatsApp automation for NF ${referencia} to ${phone}`)
         
-        const org = (nf.organizations as any) || {}
+        const orgData = nf.organizations;
+        const org = (Array.isArray(orgData) ? orgData[0] : orgData) || {};
         
         const n8nResponse = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
             method: 'POST',

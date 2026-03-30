@@ -119,27 +119,35 @@ export async function POST(req: NextRequest) {
                     }
 
                     if (phone) {
-                        const org = (nf.organizations as any) || {}
-                        console.log(`Triggering WhatsApp automation for NF ${ref} to ${phone} (Org Integration: ${org.wa_integration_type || 'system'})`)
+                        // Garantir que org seja um objeto, tratando se o Supabase retornar array
+                        const orgData = nf.organizations;
+                        const org = (Array.isArray(orgData) ? orgData[0] : orgData) || {};
                         
-                        // Não aguardamos o n8n para não atrasar o webhook da Focus
-                        fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                phone: phone,
-                                pdfUrl: pdfUrl,
-                                petName: petName,
-                                valor: nf.valor_total,
-                                ref: nf.referencia,
-                                // Enviar credenciais do WhatsApp
-                                wa_api_url: org.wa_api_url,
-                                wa_api_token: org.wa_api_token,
-                                wa_client_token: org.wa_client_token,
-                                wa_integration_type: org.wa_integration_type
+                        console.log(`[Webhook] Triggering WhatsApp for NF ${ref} to ${phone} (Integration: ${org.wa_integration_type || 'system'})`)
+                        
+                        try {
+                            const n8nRes = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    phone: phone,
+                                    pdfUrl: pdfUrl,
+                                    petName: petName,
+                                    valor: nf.valor_total,
+                                    ref: nf.referencia,
+                                    // Enviar credenciais do WhatsApp
+                                    wa_api_url: org.wa_api_url,
+                                    wa_api_token: org.wa_api_token,
+                                    wa_client_token: org.wa_client_token,
+                                    wa_integration_type: org.wa_integration_type
+                                })
                             })
-                        }).catch(e => console.error('Error triggering N8N:', e))
-                    } else {
+                            console.log(`[Webhook] N8N Response status: ${n8nRes.status}`)
+                        } catch (e) {
+                            console.error('[Webhook] Error triggering N8N:', e)
+                        }
+                    }
+ else {
                         console.log(`Telefone do tutor não encontrado para NF ${ref} (Origem: ${nf.origem_tipo})`)
                     }
                 }
