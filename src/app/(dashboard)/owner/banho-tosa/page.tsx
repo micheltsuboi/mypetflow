@@ -64,6 +64,7 @@ export default function BanhoTosaPage() {
     const [showNFModal, setShowNFModal] = useState(false)
     const [checkoutNFData, setCheckoutNFData] = useState<any>(null)
     const [nfMap, setNfMap] = useState<Record<string, any>>({})
+    const [planFeatures, setPlanFeatures] = useState<string[]>([])
 
     const fetchBanhoTosaData = useCallback(async (isBackground = false) => {
         try {
@@ -73,6 +74,16 @@ export default function BanhoTosaPage() {
 
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
             if (!profile?.org_id) return
+
+            // Buscar features do plano
+            const { data: orgData } = await supabase
+                .from('organizations')
+                .select('saas_plans(features)')
+                .eq('id', profile.org_id)
+                .single()
+            if (orgData) {
+                setPlanFeatures((orgData.saas_plans as any)?.features || [])
+            }
 
             // Get Date Range based on filter
             const { start, end } = getDateRange(dateRange)
@@ -419,7 +430,7 @@ export default function BanhoTosaPage() {
                                                 compact
                                              />
                                               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                                   {appt.payment_status === 'paid' && !nfMap[appt.id] && (
+                                                   {appt.payment_status === 'paid' && !nfMap[appt.id] && planFeatures.includes('nota_fiscal') && (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();

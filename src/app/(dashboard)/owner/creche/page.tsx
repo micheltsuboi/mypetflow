@@ -56,6 +56,7 @@ export default function CrechePage() {
     const [showNFModal, setShowNFModal] = useState(false)
     const [nfAppointment, setNfAppointment] = useState<Appointment | null>(null)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string, ref?: string }>>({})
+    const [planFeatures, setPlanFeatures] = useState<string[]>([])
 
     const handleSendWhatsApp = async (referencia: string) => {
         if (!referencia) {
@@ -89,6 +90,16 @@ export default function CrechePage() {
 
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
             if (!profile?.org_id) return
+
+            // Buscar features do plano
+            const { data: orgData } = await supabase
+                .from('organizations')
+                .select('saas_plans(features)')
+                .eq('id', profile.org_id)
+                .single()
+            if (orgData) {
+                setPlanFeatures((orgData.saas_plans as any)?.features || [])
+            }
 
             // Get Date Range based on filter
             const { start, end } = getDateRange(dateRange)
@@ -441,7 +452,7 @@ export default function CrechePage() {
                                             )}
                                             {appt.payment_status === 'paid' && (
                                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                                                    {!nfMap[appt.id] ? (
+                                                    {planFeatures.includes('nota_fiscal') && !nfMap[appt.id] ? (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();

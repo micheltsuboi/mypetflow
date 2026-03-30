@@ -640,7 +640,7 @@ function AgendaContent() {
                     compact
                 />
 
-                {appt.payment_status === 'paid' && (
+                {appt.payment_status === 'paid' && planFeatures.includes('nota_fiscal') && (
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
