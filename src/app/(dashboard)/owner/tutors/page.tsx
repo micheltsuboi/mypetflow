@@ -23,6 +23,7 @@ interface Customer {
     cpf_cnpj: string | null
     instagram: string | null
     birth_date: string | null
+    physical_file_number: string | null
     user_id: string | null
     created_at: string
     pets?: { name: string }[]
@@ -74,7 +75,7 @@ export default function TutorsPage() {
                 .order('name')
 
             if (debouncedSearchTerm) {
-                query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone_1.ilike.%${debouncedSearchTerm}%`)
+                query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone_1.ilike.%${debouncedSearchTerm}%,physical_file_number.ilike.%${debouncedSearchTerm}%`)
             } else {
                 query = query.limit(50)
             }
@@ -205,6 +206,7 @@ export default function TutorsPage() {
                                 <th>Endereço</th>
                                 <th>Portal</th>
                                 <th>Cashback</th>
+                                <th>Ficha Física</th>
                                 <th>Desde</th>
                             </tr>
                         </thead>
@@ -296,6 +298,11 @@ export default function TutorsPage() {
                                         </div>
                                     </td>
                                     <td>
+                                        <span style={{ fontWeight: 600, color: '#64748b' }}>
+                                            {tutor.physical_file_number || '-'}
+                                        </span>
+                                    </td>
+                                    <td>
                                         {new Date(tutor.created_at).toLocaleDateString('pt-BR')}
                                     </td>
                                 </tr>
@@ -324,6 +331,15 @@ export default function TutorsPage() {
                                             id="name" name="name" type="text" className={styles.input} required
                                             placeholder="Ex: Maria Souza"
                                             defaultValue={selectedTutor?.name || ''}
+                                        />
+                                    </div>
+
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="physical_file_number" className={styles.label}>Nº Ficha Física</label>
+                                        <input
+                                            id="physical_file_number" name="physical_file_number" type="text" className={styles.input}
+                                            placeholder="Ex: 1234"
+                                            defaultValue={selectedTutor?.physical_file_number || ''}
                                         />
                                     </div>
 

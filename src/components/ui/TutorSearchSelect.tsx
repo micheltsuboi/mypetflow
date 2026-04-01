@@ -9,6 +9,7 @@ interface Tutor {
     id: string
     name: string
     phone_1: string | null
+    physical_file_number: string | null
 }
 
 interface TutorSearchSelectProps {
@@ -123,7 +124,14 @@ export default function TutorSearchSelect({
                                         <User size={18} />
                                     </div>
                                     <div className={styles.tutorInfo}>
-                                        <div className={styles.tutorName}>{tutor.name}</div>
+                                        <div className={styles.tutorName}>
+                                            {tutor.name}
+                                            {tutor.physical_file_number && (
+                                                <span style={{ fontSize: '0.7rem', color: '#64748b', marginLeft: '0.5rem', fontWeight: 400 }}>
+                                                    (Ficha: {tutor.physical_file_number})
+                                                </span>
+                                            )}
+                                        </div>
                                         {tutor.phone_1 && <div className={styles.tutorPhone}>{tutor.phone_1}</div>}
                                     </div>
                                 </div>

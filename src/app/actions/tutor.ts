@@ -39,6 +39,7 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
     const city = formData.get('city') as string
     const instagram = formData.get('instagram') as string
     const cpf_cnpj = formData.get('cpf_cnpj') as string
+    const physical_file_number = formData.get('physical_file_number') as string
 
     if (!name || !email || !password || !phone) {
         return { message: 'Nome, Email, Senha e Telefone são obrigatórios.', success: false }
@@ -93,6 +94,7 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
         city: city || '',
         instagram: instagram || null,
         cpf_cnpj: cpf_cnpj || null,
+        physical_file_number: physical_file_number || null,
     }
 
     if (birthDate) {
@@ -132,6 +134,7 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
     const city = formData.get('city') as string
     const instagram = formData.get('instagram') as string
     const cpf_cnpj = formData.get('cpf_cnpj') as string
+    const physical_file_number = formData.get('physical_file_number') as string
 
     if (!id) return { message: 'ID do tutor não fornecido.', success: false }
 
@@ -188,6 +191,7 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
         city: city || '',
         instagram: instagram || null,
         cpf_cnpj: cpf_cnpj || null,
+        physical_file_number: physical_file_number || null,
         user_id: userId || currentTutor?.user_id // Keep or link new userId
     }
 
