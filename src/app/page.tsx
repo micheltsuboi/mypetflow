@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,6 +9,20 @@ import styles from './page.module.css'
 import { redirect } from 'next/navigation'
 import LoginForm from '@/components/modules/LoginForm'
 import LandingPage from '@/components/public/LandingPage'
+
+const getCachedOrg = unstable_cache(
+    async (sub: string) => {
+        const adminSupabase = createAdminClient()
+        const { data } = await adminSupabase
+            .from('organizations')
+            .select('id, name, is_active')
+            .eq('subdomain', sub)
+            .maybeSingle()
+        return data
+    },
+    ['org-subdomain-lookup'],
+    { revalidate: 300 } // 5 minutos minimizam requisições SQL ao máximo enquanto mantêm frescor
+)
 
 export default async function LoginPage() {
     const headerStack = await headers()
@@ -54,12 +69,8 @@ export default async function LoginPage() {
         return <LandingPage />
     }
 
-    // A partir daqui, TEM subdomínio! Tratar página de Login do Inquilino SaaS
-    const { data: org } = await supabase
-        .from('organizations')
-        .select('id, name, is_active')
-        .eq('subdomain', subdomain)
-        .maybeSingle()
+    // A partir daqui, TEM subdomínio! Tratar página de Login do Inquilino SaaS com CACHE da Vercel
+    const org = await getCachedOrg(subdomain)
 
     // Se a organização não existir, pode ser um subdomínio inválido ou preview do Vercel
     if (!org) {
