@@ -138,7 +138,7 @@ export default function BanhoTosaPage() {
                     .order('name')
 
                 // Filter only Banho e Tosa services
-                const banhoTosaServices = servicesData?.filter(s =>
+                const banhoTosaServices = servicesData?.filter((s: any) =>
                     (s as any).service_categories?.name === 'Banho e Tosa'
                 ) || []
                 if (banhoTosaServices.length > 0) setServices(banhoTosaServices)
@@ -164,7 +164,7 @@ export default function BanhoTosaPage() {
                         // ou manter um estado separado de NF map)
                         setNfMap(current => {
                             const newMap = { ...current }
-                            nfs.forEach(nf => {
+                            nfs.forEach((nf: any) => {
                                 // Preferir o autorizado se houver múltiplos
                                 if (!newMap[nf.origem_id] || nf.status === 'autorizado') {
                                     newMap[nf.origem_id] = nf
@@ -194,7 +194,7 @@ export default function BanhoTosaPage() {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'notas_fiscais' },
-                (payload) => {
+                (payload: any) => {
                     const nf = payload.new as any
                     if (nf && nf.origem_id) {
                         setNfMap(prev => ({
