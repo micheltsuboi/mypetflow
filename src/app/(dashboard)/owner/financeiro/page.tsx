@@ -37,6 +37,10 @@ export default function FinanceiroPage() {
     const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([])
     const [categoryRevenue, setCategoryRevenue] = useState<CategoryRevenue[]>([])
     const [loading, setLoading] = useState(true)
+    const [activeRevenueValue, setActiveRevenueValue] = useState(0)
+    const [activeExpensesValue, setActiveExpensesValue] = useState(0)
+    const [pendingTotalValue, setPendingTotalValue] = useState(0)
+
     const [startDate, setStartDate] = useState(() => {
         const d = new Date()
         return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
@@ -54,6 +58,7 @@ export default function FinanceiroPage() {
         pendingVets: any[];
         pendingExams: any[];
         pendingAdmissions: any[];
+        allPendingAppointments: any[];
     }>({
         type: null,
         appointments: [],
@@ -62,7 +67,8 @@ export default function FinanceiroPage() {
         paidSales: [],
         pendingVets: [],
         pendingExams: [],
-        pendingAdmissions: []
+        pendingAdmissions: [],
+        allPendingAppointments: []
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string }>>({})
@@ -279,6 +285,34 @@ export default function FinanceiroPage() {
                     .sort((a, b) => b.revenue - a.revenue)
             )
 
+            // --- Process Summary Totals ---
+            const activeRevenue = totalRev + activePaidSales.reduce((sum, s) => sum + s.total_amount, 0)
+            const activeExpenses = activeTxs
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0)
+            
+            const pTotal = appointments
+                .filter(a => a.payment_status !== 'paid')
+                .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                + pendingSales.reduce((sum, s) => sum + s.total_amount, 0)
+                + pendingVets.reduce((sum, v) => {
+                    let val = v.consultation_fee || 0;
+                    if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
+                    else val -= (v.discount_fixed || 0);
+                    return sum + Math.max(0, val);
+                }, 0)
+                + pendingExams.reduce((sum, e) => {
+                    let val = e.price || 0;
+                    if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
+                    else val -= (e.discount_fixed || 0);
+                    return sum + Math.max(0, val);
+                }, 0)
+                + pendingAdmissions.reduce((sum, ad) => sum + (ad.total_amount || 0), 0)
+
+            setActiveRevenueValue(activeRevenue)
+            setActiveExpensesValue(activeExpenses)
+            setPendingTotalValue(pTotal)
+
             setExtractRecords({
                 type: null,
                 appointments: activeAppts,
@@ -287,7 +321,8 @@ export default function FinanceiroPage() {
                 paidSales: activePaidSales,
                 pendingVets,
                 pendingExams,
-                pendingAdmissions
+                pendingAdmissions,
+                allPendingAppointments: appointments.filter(a => a.payment_status !== 'paid')
             })
 
         } catch (error) {
@@ -530,14 +565,15 @@ export default function FinanceiroPage() {
         .reduce((sum, t) => sum + t.amount, 0)
 
     const activeProfit = activeRevenue - activeExpenses
-
-    const pendingTotal = extractRecords.appointments
+    
+    // Calcula o total a receber considerando TUDO que foi buscado (sem filtro de período para débitos)
+    const pendingTotal = appointments
         .filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory))
         .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-        + extractRecords.pendingSales
+        + pendingSales
             .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
             .reduce((sum, s) => sum + s.total_amount, 0)
-        + extractRecords.pendingVets
+        + pendingVets
             .filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária')
             .reduce((sum, v) => {
                 let val = v.consultation_fee || 0;
@@ -545,7 +581,7 @@ export default function FinanceiroPage() {
                 else val -= (v.discount_fixed || 0);
                 return sum + Math.max(0, val);
             }, 0)
-        + extractRecords.pendingExams
+        + pendingExams
             .filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário')
             .reduce((sum, e) => {
                 let val = e.price || 0;
@@ -553,9 +589,10 @@ export default function FinanceiroPage() {
                 else val -= (e.discount_fixed || 0);
                 return sum + Math.max(0, val);
             }, 0)
-        + extractRecords.pendingAdmissions
+        + pendingAdmissions
             .filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital')
             .reduce((sum, ad) => sum + (ad.total_amount || 0), 0)
+
 
     const revenueGrowth = previousMonthData.revenue > 0
         ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
@@ -874,7 +911,7 @@ export default function FinanceiroPage() {
                             {modalTab === 'extrato' ? (
                                 <div className={styles.extractList}>
                                 {/* Appointments list (for Revenue and Pending) */}
-                                {extractRecords.type !== 'expenses' && extractRecords.appointments
+                                {(extractRecords.type === 'pending' ? extractRecords.allPendingAppointments : extractRecords.appointments)
                                     .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
                                     .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
                                     .map(appt => (

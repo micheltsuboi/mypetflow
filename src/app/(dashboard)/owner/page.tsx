@@ -156,6 +156,31 @@ export default function OwnerDashboard() {
                     .neq('status', 'cancelled')
                     .order('scheduled_at', { ascending: true })
 
+                // Extra pending types for accurate "A Receber"
+                const pendingSalesPromise = supabase
+                    .from('orders')
+                    .select('total_amount')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
+
+                const pendingVetsPromise = supabase
+                    .from('vet_consultations')
+                    .select('*')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
+
+                const pendingExamsPromise = supabase
+                    .from('vet_exams')
+                    .select('*')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
+
+                const pendingAdmissionsPromise = supabase
+                    .from('hospital_admissions')
+                    .select('total_amount')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
+
                 // Execute all promises in parallel
                 const [
                     { data: currentMonthAppts },
@@ -163,14 +188,22 @@ export default function OwnerDashboard() {
                     { data: transactions },
                     { count: tutorsCount },
                     { count: petsCount },
-                    { data: appts, error: apptError }
+                    { data: appts, error: apptError },
+                    { data: pendingSales },
+                    { data: pendingVets },
+                    { data: pendingExams },
+                    { data: pendingAdmissions }
                 ] = await Promise.all([
                     currentMonthApptsPromise,
                     prevMonthApptsPromise,
                     transactionsPromise,
                     tutorsCountPromise,
                     petsCountPromise,
-                    apptsPromise
+                    apptsPromise,
+                    pendingSalesPromise,
+                    pendingVetsPromise,
+                    pendingExamsPromise,
+                    pendingAdmissionsPromise
                 ])
 
                 if (apptError) {
@@ -184,8 +217,22 @@ export default function OwnerDashboard() {
                 const currentRevenue = paidAppts
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-                const pendingPayments = pendingAppts
-                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                // Sum ALL pending items for accurate "A Receber"
+                const pendingPayments = pendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                    + (pendingSales || []).reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0)
+                    + (pendingVets || []).reduce((sum: number, v: any) => {
+                        let val = v.consultation_fee || 0;
+                        if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
+                        else val -= (v.discount_fixed || 0);
+                        return sum + Math.max(0, val);
+                    }, 0)
+                    + (pendingExams || []).reduce((sum: number, e: any) => {
+                        let val = e.price || 0;
+                        if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
+                        else val -= (e.discount_fixed || 0);
+                        return sum + Math.max(0, val);
+                    }, 0)
+                    + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
 
                 const prevRevenue = (prevMonthAppts || [])
                     .filter((a: any) => a.payment_status === 'paid')
