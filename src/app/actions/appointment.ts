@@ -270,14 +270,24 @@ export async function updateAppointmentStatus(id: string, status: string) {
         try {
             const { data: appt } = await supabase
                 .from('appointments')
-                .select('pet_id, customer_id, org_id, services(name)')
+                .select('pet_id, customer_id, org_id, checklist, services(name)')
                 .eq('id', id)
                 .single()
             
             if (appt) {
                 const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
                 const statusLabel = status === 'confirmed' ? 'Confirmado' : status === 'done' ? 'Finalizado' : 'Cancelado'
-                const msg = `Olá! O status do atendimento de *${pet?.name}* (${(appt.services as any)?.name}) foi atualizado para: *${statusLabel}*.`
+                
+                let checklistSummary = ''
+                if (status === 'done') {
+                    const checklistItems = (appt as any).checklist || []
+                    const completedItems = checklistItems.filter((i: any) => i.completed || i.checked || i.done)
+                    if (completedItems.length > 0) {
+                        checklistSummary = `\n\n*Resumo do atendimento:*\n${completedItems.map((i: any) => `✅ ${i.text || i.label || i.item}`).join('\n')}`
+                    }
+                }
+
+                const msg = `Olá! O status do atendimento de *${pet?.name}* (${(appt.services as any)?.name}) foi atualizado para: *${statusLabel}*.${checklistSummary}`
                 
                 await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-status', {
                     petName: pet?.name,

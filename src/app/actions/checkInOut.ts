@@ -114,12 +114,25 @@ export async function checkOutAppointment(appointmentId: string, checkoutType?: 
         try {
             const { data: appt } = await supabase
                 .from('appointments')
-                .select('pet_id, customer_id, org_id, services(name)')
+                .select('pet_id, customer_id, org_id, checklist, services(name)')
                 .eq('id', appointmentId)
                 .single()
             if (appt) {
                 const { data: pet } = await supabase.from('pets').select('name').eq('id', appt.pet_id).single()
-                const msg = `Olá! *${pet?.name}* finalizou o serviço de *${(appt.services as any)?.name}* e está pronto para o *Check-out*. Até logo! 👋🐾`
+                
+                let statusDetail = 'está pronto para o *Check-out*'
+                if (checkoutType === 'a_caminho') statusDetail = 'prontinho e já está *indo para casa*'
+                else if (checkoutType === 'aguardando_retirada') statusDetail = 'prontinho e está *aguardando você*'
+
+                let checklistSummary = ''
+                const checklistItems = (appt as any).checklist || []
+                const completedItems = checklistItems.filter((i: any) => i.completed || i.checked || i.done)
+                if (completedItems.length > 0) {
+                    checklistSummary = `\n\n*Resumo do atendimento:*\n${completedItems.map((i: any) => `✅ ${i.text || i.label || i.item}`).join('\n')}`
+                }
+
+                const msg = `Olá! *${pet?.name}* finalizou o serviço de *${(appt.services as any)?.name}* e ${statusDetail}! 👋🐾${checklistSummary}\n\nAté logo! ❤️`
+                
                 await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-status', {
                     petName: pet?.name,
                     serviceName: (appt.services as any)?.name,
