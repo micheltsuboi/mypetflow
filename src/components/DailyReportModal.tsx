@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { uploadReportPhoto, saveDailyReport, getDailyReport } from '@/app/actions/dailyReport'
+import { Trash2 } from 'lucide-react'
 
 interface DailyReportModalProps {
     appointmentId: string
@@ -242,20 +243,20 @@ export default function DailyReportModal({
                                                     position: 'absolute',
                                                     top: '4px',
                                                     right: '4px',
-                                                    background: 'rgba(0,0,0,0.6)',
+                                                    background: 'rgba(239, 68, 68, 0.8)',
                                                     color: 'white',
                                                     border: 'none',
                                                     borderRadius: '50%',
-                                                    width: '24px',
-                                                    height: '24px',
+                                                    width: '28px',
+                                                    height: '28px',
                                                     cursor: 'pointer',
-                                                    fontSize: '0.875rem',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'center'
+                                                    justifyContent: 'center',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
                                                 }}
                                             >
-                                                ✕
+                                                <Trash2 size={16} />
                                             </button>
                                         )}
                                     </div>

@@ -14,7 +14,7 @@ import {
     deletePricingRule
 } from '@/app/actions/service'
 import PlanGuard from '@/components/modules/PlanGuard'
-import { Trash2, Edit2, Check, X } from 'lucide-react'
+import { Trash2, Edit2, Check, X, ListChecks, Settings } from 'lucide-react'
 
 interface PricingRule {
     id: string
@@ -288,9 +288,17 @@ export default function ServicesPage() {
                                         {service.target_species === 'both' ? '🐶 e 🐱' : service.target_species === 'dog' ? '🐶 Cães' : '🐱 Gatos'}
                                     </p>
                                 )}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                    <div className={styles.configBadge} title="Possui Checklist">
+                                        <ListChecks size={14} /> <span>{(service.checklist_template?.length || 0)} Itens</span>
+                                    </div>
+                                    <div className={styles.configBadge} title="Possui Regras de Preço">
+                                        <Settings size={14} /> <span>{(service.pricing_matrix?.length || 0)} Regras</span>
+                                    </div>
+                                </div>
                             </div>
                             <button onClick={() => handleEdit(service)} className={styles.editBtn}>
-                                Editar / Regras
+                                <Edit2 size={14} style={{ marginRight: '6px' }} /> Editar Serviço & Configurações
                             </button>
                         </div>
                     ))}

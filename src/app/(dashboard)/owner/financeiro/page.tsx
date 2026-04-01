@@ -115,7 +115,7 @@ export default function FinanceiroPage() {
             prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
             const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            const [apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse, pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse] = await Promise.all([
+            const [apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse, pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse, allPendingApptsResponse] = await Promise.all([
                 supabase
                     .from('appointments')
                     .select(`
@@ -164,7 +164,16 @@ export default function FinanceiroPage() {
                     .from('hospital_admissions')
                     .select('*, pets ( name, customers ( name ) )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .eq('payment_status', 'pending'),
+                supabase
+                    .from('appointments')
+                    .select(`
+                        id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
+                        pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
+                        services ( name, service_categories ( name ) )
+                    `)
+                    .eq('org_id', profile.org_id)
+                    .neq('payment_status', 'paid')
             ])
 
             if (apptsResponse.error) throw apptsResponse.error
@@ -179,6 +188,7 @@ export default function FinanceiroPage() {
             const pendingVets = pendingVetsResponse.data || []
             const pendingExams = pendingExamsResponse.data || []
             const pendingAdmissions = pendingAdmissionsResponse.data || []
+            const allPendingAppts = allPendingApptsResponse?.data || []
 
             // --- Process Monthly Chart Data (Last 6 Months) ---
             const monthMap = new Map<string, MonthlyData>()
@@ -190,7 +200,7 @@ export default function FinanceiroPage() {
             }
 
             // Add Appointments to Chart
-            appointments.forEach(appt => {
+            appointments.forEach((appt: any) => {
                 const dateAt = appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at
                 const date = new Date(dateAt)
                 const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
@@ -291,8 +301,7 @@ export default function FinanceiroPage() {
                 .filter((t: any) => t.type === 'expense')
                 .reduce((sum: number, t: any) => sum + t.amount, 0)
             
-            const pTotal = appointments
-                .filter((a: any) => a.payment_status !== 'paid')
+            const pTotal = allPendingAppts
                 .reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
                 + pendingSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
                 + pendingVets.reduce((sum: number, v: any) => {
@@ -322,7 +331,7 @@ export default function FinanceiroPage() {
                 pendingVets,
                 pendingExams,
                 pendingAdmissions,
-                allPendingAppointments: appointments.filter(a => a.payment_status !== 'paid')
+                allPendingAppointments: allPendingAppts
             })
 
         } catch (error) {

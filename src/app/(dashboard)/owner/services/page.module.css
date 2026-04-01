@@ -259,6 +259,18 @@
     transform: translateY(1px);
 }
 
+.configBadge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
 .editBtn {
     background: transparent;
     border: 1px solid var(--border);

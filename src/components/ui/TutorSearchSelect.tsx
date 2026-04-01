@@ -57,6 +57,8 @@ export default function TutorSearchSelect({
                     setIsOpen(true)
                 }
                 setIsSearching(false)
+            } else if (query.trim().length === 0) {
+                setResults(initialTutors)
             } else {
                 setResults([])
                 setIsOpen(false)
@@ -64,7 +66,7 @@ export default function TutorSearchSelect({
         }, 300)
 
         return () => clearTimeout(timer)
-    }, [query])
+    }, [query, initialTutors])
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -103,7 +105,7 @@ export default function TutorSearchSelect({
                         placeholder={placeholder}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        onFocus={() => query.length >= 2 && setIsOpen(true)}
+                        onFocus={() => setIsOpen(true)}
                     />
                     <div className={styles.iconWrapper}>
                         {isSearching ? <Loader2 className={styles.animateSpin} size={18} /> : <Search size={18} />}

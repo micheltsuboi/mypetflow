@@ -28,6 +28,7 @@ import { format } from 'date-fns'
 import DateInput from '@/components/ui/DateInput'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
 import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
+import { Trash2 } from 'lucide-react'
 
 interface Customer {
     name: string
@@ -766,7 +767,9 @@ function AgendaContent() {
                                 {slotBlocks.map(b => (
                                     <div key={b.id} className={styles.blockedCard}>
                                         🔒 {b.reason}
-                                        <button onClick={() => handleBlockDelete(b.id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit' }}>×</button>
+                                        <button onClick={() => handleBlockDelete(b.id)} style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: '#fca311', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Trash2 size={16} />
+                                        </button>
                                     </div>
                                 ))}
                                 {slotAppts.map(renderAppointmentCard)}

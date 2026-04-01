@@ -7,6 +7,7 @@ import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOu
 import { uploadReportPhoto, saveDailyReport, getDailyReport } from '@/app/actions/dailyReport'
 import { createVetAlert, getVetAlertsByAppointment, saveVetAlertObservation } from '@/app/actions/veterinary'
 import { useRef } from 'react'
+import { Trash2 } from 'lucide-react'
 
 interface ChecklistItem {
     text: string
@@ -391,7 +392,9 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             {photos.map((url, i) => (
                                 <div key={i} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid #334155' }}>
                                     <img src={url} alt="Pet" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    <button onClick={() => handleDeletePhoto(url)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', color: 'white', width: '24px', height: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                    <button onClick={() => handleDeletePhoto(url)} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(239, 68, 68, 0.8)', border: 'none', borderRadius: '50%', color: 'white', width: '28px', height: '28px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             ))}
                         </div>
