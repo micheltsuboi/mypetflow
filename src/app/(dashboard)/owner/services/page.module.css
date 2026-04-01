@@ -150,6 +150,12 @@
     font-size: 0.9rem;
 }
 
+.matrixActions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 .matrixTable th {
     background: var(--bg-secondary);
     font-weight: 600;
@@ -657,6 +663,13 @@
 
     .matrixTable td:nth-child(5)::before {
         content: "";
+        display: none;
+    }
+
+    .matrixTable td.matrixActions {
+        flex-direction: row;
+        gap: 0.75rem;
+        padding-top: 1rem;
     }
 }
 
