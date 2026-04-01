@@ -13,8 +13,9 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { NotaFiscalTipo, NotaFiscalOrigem } from '@/types/database'
-import { Search, Filter, Download, XCircle, FileText, ExternalLink, Send, Trash2, ChevronRight, FileCode } from 'lucide-react'
+import { Search, Filter, Download, XCircle, FileText, ExternalLink, Send, Trash2, ChevronRight, FileCode, DollarSign, Wallet, CreditCard, Banknote } from 'lucide-react'
 import CancelamentoNFModal from '@/components/CancelamentoNFModal'
+import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
 
 interface MonthlyData {
     month: string
@@ -74,6 +75,13 @@ export default function FinanceiroPage() {
     const [nfStatusFilter, setNfStatusFilter] = useState('all')
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
     const [selectedNfToCancel, setSelectedNfToCancel] = useState<{ id: string, numero?: string, refId: string } | null>(null)
+    const [paymentModal, setPaymentModal] = useState<{
+        isOpen: boolean,
+        recordId: string,
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions',
+        title: string,
+        baseAmount: number
+    } | null>(null)
 
     const fetchFinancials = useCallback(async () => {
         try {
@@ -367,97 +375,21 @@ export default function FinanceiroPage() {
         setIsExtractModalOpen(true)
     }
 
-    const handleConfirmPayment = async (appointmentId: string) => {
-        try {
-            const { error } = await supabase
-                .from('appointments')
-                .update({
-                    payment_status: 'paid',
-                    paid_at: new Date().toISOString()
-                })
-                .eq('id', appointmentId)
-
-            if (error) throw error
-
-            fetchFinancials() // Direct refresh
-
-            if (confirm('Pagamento confirmado com sucesso! Deseja emitir a Nota Fiscal agora?')) {
-                const appt = extractRecords.appointments.find(a => a.id === appointmentId)
-                if (appt) {
-                    setNfConfig({
-                        tipo: 'nfse',
-                        origemTipo: 'atendimento',
-                        refId: appt.id,
-                        total_amount: appt.final_price ?? appt.calculated_price ?? 0,
-                        tutor: {
-                            nome: appt.pets?.customers?.name,
-                            cpf: appt.pets?.customers?.cpf || appt.pets?.customers?.cpf_cnpj,
-                            email: appt.pets?.customers?.email,
-                            endereco: {
-                                logradouro: appt.pets?.customers?.address,
-                                bairro: appt.pets?.customers?.neighborhood,
-                                codigo_municipio: appt.pets?.customers?.city
-                            }
-                        },
-                        servico: {
-                            descricao: appt.services?.name || 'Serviço Veterinário/Estética',
-                            valor: appt.final_price ?? appt.calculated_price ?? 0,
-                            codigo: "08.02"
-                        },
-                        petName: appt.pets?.name,
-                        tutorPhone: appt.pets?.customers?.phone_1
-                    })
-                    setShowNFModal(true)
-                }
-            }
-        } catch (error) {
-            console.error('Erro ao confirmar pagamento:', error)
-            alert('Erro ao confirmar pagamento.')
-        }
+    const handleOpenPaymentModal = (
+        recordId: string,
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions',
+        title: string,
+        baseAmount: number
+    ) => {
+        setPaymentModal({
+            isOpen: true,
+            recordId,
+            tableName,
+            title,
+            baseAmount
+        })
     }
 
-    const handleConfirmPetshopPayment = async (orderId: string, description: string, price: number) => {
-        if (confirm(`Confirmar pagamento de R$ ${price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para ${description}?`)) {
-            const paymentMethod = prompt('Qual a forma de pagamento? (pix, cash, credit, debit)', 'pix')
-            if (paymentMethod) {
-                const res = await payPetshopSale(orderId, paymentMethod)
-                if (res.success) {
-                    fetchFinancials()
-                    if (confirm(res.message + ' Deseja emitir a NFe agora?')) {
-                        const sale = extractRecords.paidSales.find(s => s.id === orderId) || extractRecords.pendingSales.find(s => s.id === orderId)
-                        if (sale) {
-                            setNfConfig({
-                                tipo: 'nfe',
-                                origemTipo: 'pdv',
-                                refId: sale.id,
-                                total_amount: sale.total_amount,
-                                tutor: {
-                                    nome: sale.pets?.customers?.name || 'Consumidor Final',
-                                    cpf: sale.pets?.customers?.cpf || sale.pets?.customers?.cpf_cnpj,
-                                    email: sale.pets?.customers?.email,
-                                    endereco: {
-                                        logradouro: sale.pets?.customers?.address,
-                                        bairro: sale.pets?.customers?.neighborhood,
-                                        codigo_municipio: sale.pets?.customers?.city
-                                    }
-                                },
-                                produtos: sale.order_items?.map((item: any) => ({
-                                    descricao: item.product_name,
-                                    valor_unitario: sale.total_amount / (sale.order_items.length || 1),
-                                    quantidade: 1
-                                })) || [],
-                                petName: sale.pets?.name,
-                                tutorPhone: sale.pets?.customers?.phone_1
-                            })
-                            setShowNFModal(true)
-                        }
-                    }
-                } else {
-                    alert(res.message)
-                }
-            }
-        }
-    }
 
     const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
@@ -980,9 +912,14 @@ export default function FinanceiroPage() {
                                                 {extractRecords.type === 'pending' && (
                                                     <button
                                                         className={styles.confirmPayBtn}
-                                                        onClick={() => handleConfirmPayment(appt.id)}
+                                                        onClick={() => handleOpenPaymentModal(
+                                                            appt.id, 
+                                                            'appointments', 
+                                                            `${appt.pets?.name || 'Pet'} • ${appt.services?.name || 'Serviço'}`,
+                                                            appt.final_price || appt.calculated_price || 0
+                                                        )}
                                                     >
-                                                        Confirmar Pago
+                                                        💰 Confirmar Pago
                                                     </button>
                                                 )}
                                             </div>
@@ -1006,9 +943,14 @@ export default function FinanceiroPage() {
                                                     </span>
                                                     <button
                                                         className={styles.confirmPayBtn}
-                                                        onClick={() => handleConfirmPetshopPayment(sale.id, desc, sale.total_amount)}
+                                                        onClick={() => handleOpenPaymentModal(
+                                                            sale.id, 
+                                                            'orders', 
+                                                            `${sale.pets?.name || 'Cliente'} • ${desc}`, 
+                                                            sale.total_amount
+                                                        )}
                                                     >
-                                                        Confirmar Pago
+                                                        💰 Confirmar Pago
                                                     </button>
                                                 </div>
                                             </div>
@@ -1032,6 +974,17 @@ export default function FinanceiroPage() {
                                                     <span className={styles.extractAmount}>
                                                         {formatCurrency(Math.max(0, final))}
                                                     </span>
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => handleOpenPaymentModal(
+                                                            v.id, 
+                                                            'vet_consultations', 
+                                                            `${v.pets?.name || 'Pet'} • Consulta Vet`, 
+                                                            v.consultation_fee
+                                                        )}
+                                                    >
+                                                        💰 Confirmar Pago
+                                                    </button>
                                                 </div>
                                             </div>
                                         )
@@ -1054,6 +1007,17 @@ export default function FinanceiroPage() {
                                                     <span className={styles.extractAmount}>
                                                         {formatCurrency(Math.max(0, final))}
                                                     </span>
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => handleOpenPaymentModal(
+                                                            e.id, 
+                                                            'vet_exams', 
+                                                            `${e.pets?.name || 'Pet'} • Exame (${e.exam_type_name})`, 
+                                                            e.price
+                                                        )}
+                                                    >
+                                                        💰 Confirmar Pago
+                                                    </button>
                                                 </div>
                                             </div>
                                         )
@@ -1072,6 +1036,17 @@ export default function FinanceiroPage() {
                                                 <span className={styles.extractAmount}>
                                                     {formatCurrency(ad.total_amount || 0)}
                                                 </span>
+                                                <button
+                                                    className={styles.confirmPayBtn}
+                                                    onClick={() => handleOpenPaymentModal(
+                                                        ad.id, 
+                                                        'hospital_admissions', 
+                                                        `${ad.pets?.name || 'Pet'} • Internamento`, 
+                                                        ad.total_amount || 0
+                                                    )}
+                                                >
+                                                    💰 Confirmar Pago
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -1146,7 +1121,10 @@ export default function FinanceiroPage() {
                                 {/* Empty State */}
                                 {((extractRecords.type === 'pending' &&
                                     extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
-                                    extractRecords.pendingSales.filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto').length === 0) ||
+                                    extractRecords.pendingSales.filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto').length === 0 &&
+                                    extractRecords.pendingVets.filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária').length === 0 &&
+                                    extractRecords.pendingExams.filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário').length === 0 &&
+                                    extractRecords.pendingAdmissions.filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital').length === 0) ||
                                     (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0) ||
                                     (extractRecords.type === 'revenue' &&
                                         extractRecords.appointments.filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
@@ -1370,6 +1348,20 @@ export default function FinanceiroPage() {
                             setIsCancelModalOpen(false)
                             fetchFinancials()
                             alert('Nota fiscal cancelada com sucesso!')
+                        }}
+                    />
+                )}
+
+                {paymentModal?.isOpen && (
+                    <FinanceiroPaymentModal
+                        recordId={paymentModal.recordId}
+                        tableName={paymentModal.tableName}
+                        title={paymentModal.title}
+                        baseAmount={paymentModal.baseAmount}
+                        onClose={() => setPaymentModal(null)}
+                        onSuccess={() => {
+                            setPaymentModal(null)
+                            fetchFinancials()
                         }}
                     />
                 )}
