@@ -240,3 +240,32 @@ export async function deleteTutor(id: string) {
     revalidatePath('/owner/tutors')
     return { message: 'Tutor excluído com sucesso!', success: true }
 }
+
+export async function searchTutors(query: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
+
+        const { data, error } = await supabase
+            .from('customers')
+            .select('id, name, phone_1')
+            .eq('org_id', profile.org_id)
+            .ilike('name', `%${query}%`)
+            .limit(10)
+
+        if (error) throw error
+        return { success: true, data }
+    } catch (error) {
+        console.error('Error searching tutors:', error)
+        return { success: false, message: 'Erro ao buscar tutores' }
+    }
+}

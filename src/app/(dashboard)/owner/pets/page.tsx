@@ -61,6 +61,7 @@ import {
 } from 'lucide-react'
 
 import { useDebounce } from '@/hooks/useDebounce'
+import TutorSearchSelect from '@/components/ui/TutorSearchSelect'
 
 
 interface Pet {
@@ -101,7 +102,7 @@ function PetsContent() {
     const searchParams = useSearchParams()
 
     const [pets, setPets] = useState<Pet[]>([])
-    const [customers, setCustomers] = useState<{ id: string, name: string }[]>([])
+    const [customers, setCustomers] = useState<{ id: string, name: string, phone_1: string | null }[]>([])
     const [loading, setLoading] = useState(true)
     const [isPending, startTransition] = useTransition()
     const [showModal, setShowModal] = useState(false)
@@ -245,8 +246,8 @@ function PetsContent() {
                 if (petsData) setPets(petsData as unknown as Pet[])
             })
 
-            const customersPromise = supabase.from('customers').select('id, name').eq('org_id', profile.org_id).order('name').then(({ data: customersData }) => {
-                if (customersData) setCustomers(customersData)
+            const customersPromise = supabase.from('customers').select('id, name, phone_1').eq('org_id', profile.org_id).order('name').then(({ data: customersData }) => {
+                if (customersData) setCustomers(customersData as any)
             })
 
             const packagesPromise = supabase.from('service_packages').select('id, name, total_price, description, validity_type, validity_weeks').eq('org_id', profile.org_id).eq('is_active', true).order('total_price').then(({ data: packagesData }) => {
@@ -449,10 +450,12 @@ function PetsContent() {
                                                 </div>
                                                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
                                                     <label>Tutor *</label>
-                                                    <select name="customerId" className={styles.select} required defaultValue={selectedPet?.customer_id || ''}>
-                                                        <option value="">Selecione...</option>
-                                                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                                    </select>
+                                                    <TutorSearchSelect 
+                                                        name="customerId" 
+                                                        defaultValue={selectedPet?.customer_id} 
+                                                        initialTutors={customers} 
+                                                        required 
+                                                    />
                                                 </div>
                                                 <div className={styles.formGroup} style={{ gridColumn: '1 / -1' }}>
                                                     <label>Nome *</label>
