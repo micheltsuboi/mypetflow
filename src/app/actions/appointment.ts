@@ -279,10 +279,11 @@ export async function updateAppointmentStatus(id: string, status: string) {
                 const statusLabel = status === 'confirmed' ? 'Confirmado' : status === 'done' ? 'Finalizado' : 'Cancelado'
                 const msg = `Olá! O status do atendimento de *${pet?.name}* (${(appt.services as any)?.name}) foi atualizado para: *${statusLabel}*.`
                 
-                await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-agendamento', {
+                await triggerNotification(appt.org_id, appt.customer_id, msg, 'pet-status', {
                     petName: pet?.name,
                     serviceName: (appt.services as any)?.name,
-                    statusLabel
+                    statusLabel,
+                    newStatus: status
                 }).catch(e => console.error(e))
             }
         } catch (waErr) {
