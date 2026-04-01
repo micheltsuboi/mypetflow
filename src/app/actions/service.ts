@@ -212,6 +212,31 @@ export async function createPricingRule(prevState: CreateServiceState | null, fo
     return { message: 'Regra de preço adicionada!', success: true }
 }
 
+export async function updatePricingRule(prevState: CreateServiceState | null, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const id = formData.get('id') as string
+    const price = parseFloat(formData.get('price') as string)
+    const weight_min = formData.get('weight_min') ? parseFloat(formData.get('weight_min') as string) : null
+    const weight_max = formData.get('weight_max') ? parseFloat(formData.get('weight_max') as string) : null
+    const size = formData.get('size') as string || null
+    const day_of_week = formData.get('day_of_week') ? parseInt(formData.get('day_of_week') as string) : null
+
+    const { error } = await supabase.from('pricing_matrix').update({
+        fixed_price: price,
+        weight_min,
+        weight_max,
+        size,
+        day_of_week
+    }).eq('id', id)
+
+    if (error) return { message: error.message, success: false }
+    revalidatePath('/owner/services')
+    return { message: 'Regra de preço atualizada!', success: true }
+}
+
 export async function deletePricingRule(id: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

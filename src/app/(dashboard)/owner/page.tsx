@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
+import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
+import { X } from 'lucide-react'
 
 type ServiceArea = 'all' | 'banho_tosa' | 'creche' | 'hotel'
 
@@ -72,13 +74,28 @@ export default function OwnerDashboard() {
         type: 'revenue' | 'expenses' | 'pending' | null;
         appointments: any[];
         transactions: any[];
+        sales: any[];
+        vets: any[];
+        exams: any[];
+        admissions: any[];
     }>({
         type: null,
         appointments: [],
-        transactions: []
+        transactions: [],
+        sales: [],
+        vets: [],
+        exams: [],
+        admissions: []
     })
 
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
+    const [paymentModal, setPaymentModal] = useState<{
+        isOpen: boolean,
+        recordId: string,
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions',
+        title: string,
+        baseAmount: number
+    } | null>(null)
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -151,7 +168,6 @@ export default function OwnerDashboard() {
                     .from('appointments')
                     .select('id, scheduled_at, status, check_in_date, check_out_date, pets ( id, name, breed, species, customers ( name ) ), services ( name, service_categories ( name ) )')
                     .eq('org_id', profile.org_id)
-                    // Match today's single-day spots OR multi-day checking where today is inside the range
                     .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
                     .neq('status', 'cancelled')
                     .order('scheduled_at', { ascending: true })
@@ -181,18 +197,26 @@ export default function OwnerDashboard() {
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'pending')
 
+                // NEW: All pending appointments regardless of date
+                const allPendingApptsPromise = supabase
+                    .from('appointments')
+                    .select('id, final_price, calculated_price, payment_status, scheduled_at, pets ( name ), services ( name )')
+                    .eq('org_id', profile.org_id)
+                    .or('payment_status.neq.paid,payment_status.is.null')
+
                 // Execute all promises in parallel
                 const [
-                    { data: currentMonthAppts },
-                    { data: prevMonthAppts },
-                    { data: transactions },
-                    { count: tutorsCount },
-                    { count: petsCount },
-                    { data: appts, error: apptError },
-                    { data: pendingSales },
-                    { data: pendingVets },
-                    { data: pendingExams },
-                    { data: pendingAdmissions }
+                    currentMonthApptsRes,
+                    prevMonthApptsRes,
+                    transactionsRes,
+                    tutorsCountRes,
+                    petsCountRes,
+                    apptsRes,
+                    pendingSalesRes,
+                    pendingVetsRes,
+                    pendingExamsRes,
+                    pendingAdmissionsRes,
+                    allPendingApptsRes
                 ] = await Promise.all([
                     currentMonthApptsPromise,
                     prevMonthApptsPromise,
@@ -203,22 +227,35 @@ export default function OwnerDashboard() {
                     pendingSalesPromise,
                     pendingVetsPromise,
                     pendingExamsPromise,
-                    pendingAdmissionsPromise
+                    pendingAdmissionsPromise,
+                    allPendingApptsPromise
                 ])
+
+                const currentMonthAppts = currentMonthApptsRes.data || []
+                const prevMonthAppts = prevMonthApptsRes.data || []
+                const transactions = transactionsRes.data || []
+                const tutorsCount = tutorsCountRes.count || 0
+                const petsCount = petsCountRes.count || 0
+                const appts = apptsRes.data || []
+                const apptError = apptsRes.error
+                const pendingSales = pendingSalesRes.data || []
+                const pendingVets = pendingVetsRes.data || []
+                const pendingExams = pendingExamsRes.data || []
+                const pendingAdmissions = pendingAdmissionsRes.data || []
+                const allPendingAppts = allPendingApptsRes.data || []
 
                 if (apptError) {
                     console.error("Error fetching owner appointments:", apptError)
                 }
 
                 // Process financial data after all promises resolved
-                const paidAppts = (currentMonthAppts || []).filter((a: any) => a.payment_status === 'paid')
-                const pendingAppts = (currentMonthAppts || []).filter((a: any) => a.payment_status !== 'paid')
-
+                const paidAppts = currentMonthAppts.filter((a: any) => a.payment_status === 'paid')
+                
                 const currentRevenue = paidAppts
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
                 // Sum ALL pending items for accurate "A Receber"
-                const pendingPayments = pendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                const pendingPayments = allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
                     + (pendingSales || []).reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0)
                     + (pendingVets || []).reduce((sum: number, v: any) => {
                         let val = v.consultation_fee || 0;
@@ -234,7 +271,7 @@ export default function OwnerDashboard() {
                     }, 0)
                     + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
 
-                const prevRevenue = (prevMonthAppts || [])
+                const prevRevenue = prevMonthAppts
                     .filter((a: any) => a.payment_status === 'paid')
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
@@ -259,8 +296,12 @@ export default function OwnerDashboard() {
                 // Store records for extract
                 setExtractRecords({
                     type: null,
-                    appointments: currentMonthAppts || [],
-                    transactions: transactions || []
+                    appointments: currentMonthAppts,
+                    transactions: transactions || [],
+                    sales: pendingSales || [],
+                    vets: pendingVets || [],
+                    exams: pendingExams || [],
+                    admissions: pendingAdmissions || []
                 })
 
                 let mappedPets: PetToday[] = []
@@ -302,30 +343,21 @@ export default function OwnerDashboard() {
         fetchDashboardData()
     }, [])
 
-    const handleOpenExtract = (type: 'revenue' | 'expenses' | 'pending') => {
-        setExtractRecords(prev => ({ ...prev, type }))
-        setIsExtractModalOpen(true)
-    }
-
-    const handleConfirmPayment = async (appointmentId: string) => {
-        try {
-            const { error } = await supabase
+    const handleOpenExtract = async (type: 'revenue' | 'expenses' | 'pending') => {
+        let appointments = extractRecords.appointments
+        
+        if (type === 'pending') {
+            const { data: allPending } = await supabase
                 .from('appointments')
-                .update({
-                    payment_status: 'paid',
-                    paid_at: new Date().toISOString()
-                })
-                .eq('id', appointmentId)
-
-            if (error) throw error
-
-            alert('Pagamento confirmado com sucesso!')
-            router.refresh()
-            setIsExtractModalOpen(false)
-        } catch (error) {
-            console.error('Erro ao confirmar pagamento:', error)
-            alert('Erro ao confirmar pagamento.')
+                .select('id, final_price, calculated_price, payment_status, scheduled_at, pets ( name ), services ( name )')
+                .or('payment_status.neq.paid,payment_status.is.null')
+            if (allPending) appointments = allPending
+        } else if (type === 'revenue') {
+            // Already fetched in currentMonthAppts mostly, but for simplicity let's stick to current logic
         }
+
+        setExtractRecords(prev => ({ ...prev, type, appointments }))
+        setIsExtractModalOpen(true)
     }
 
     const handleDeleteTransaction = async (txId: string) => {
@@ -340,8 +372,7 @@ export default function OwnerDashboard() {
             if (error) throw error
 
             alert('Transação excluída com sucesso!')
-            router.refresh()
-            setIsExtractModalOpen(false)
+            window.location.reload()
         } catch (error) {
             console.error('Erro ao excluir transação:', error)
             alert('Erro ao excluir transação.')
@@ -524,7 +555,7 @@ export default function OwnerDashboard() {
                             <div className={styles.petAvatar}>
                                 <span>{areaIcons[pet.area]}</span>
                             </div>
-                            <div className={styles.petInfo}>
+                            <div className={pet.status === 'done' ? styles.petInfoDone : styles.petInfo}>
                                 <div className={styles.petHeader}>
                                     <span className={styles.petName}>{pet.name}</span>
                                     <span className={`${styles.statusBadge} ${styles[pet.status]}`}>
@@ -551,11 +582,14 @@ export default function OwnerDashboard() {
                     </div>
                 )}
             </div>
+
             {/* Extract Modal */}
             {isExtractModalOpen && extractRecords.type && (
                 <div className={styles.modalOverlay} onClick={() => setIsExtractModalOpen(false)}>
                     <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                        <button className={styles.closeButton} onClick={() => setIsExtractModalOpen(false)}>×</button>
+                        <button className={styles.closeBtn} onClick={() => setIsExtractModalOpen(false)}>
+                            <X size={24} />
+                        </button>
 
                         <h2>
                             {extractRecords.type === 'revenue' && '📜 Extrato de Faturamento'}
@@ -564,57 +598,210 @@ export default function OwnerDashboard() {
                         </h2>
 
                         <div className={styles.extractList}>
-                            {/* Appointments list (for Revenue and Pending) */}
-                            {extractRecords.type !== 'expenses' && extractRecords.appointments
-                                .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
-                                .map(appt => (
-                                    <div key={appt.id} className={styles.extractItem}>
-                                        <div className={styles.extractInfo}>
-                                            <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
-                                            <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
-                                        </div>
-                                        <div className={styles.extractActions}>
-                                            <span className={styles.extractAmount}>
-                                                {formatCurrency(appt.final_price || appt.calculated_price || 0)}
-                                            </span>
-                                            {extractRecords.type === 'pending' && (
+                            {/* Pendências unificadas */}
+                            {extractRecords.type === 'pending' ? (
+                                <>
+                                    {/* Agendamentos Pendentes */}
+                                    {extractRecords.appointments
+                                        .filter(a => a.payment_status !== 'paid' || a.payment_status === null)
+                                        .map(appt => (
+                                            <div key={appt.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>🐾 {appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                    <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                                                    <span className={styles.badgeLabel}>Agendamento</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
+                                                        {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                    </span>
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => setPaymentModal({
+                                                            isOpen: true,
+                                                            recordId: appt.id,
+                                                            tableName: 'appointments',
+                                                            title: `Pagamento: ${appt.pets?.name}`,
+                                                            baseAmount: appt.final_price || appt.calculated_price || 0
+                                                        })}
+                                                    >
+                                                        💰 Confirmar Pago
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                    {/* Vendas Pendentes (PDV) */}
+                                    {extractRecords.sales.map(sale => (
+                                        <div key={sale.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>🛒 Venda #{sale.id.slice(0, 8)}</strong>
+                                                <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
+                                                <span className={styles.badgeLabel}>Petshop / PDV</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
+                                                    {formatCurrency(sale.total_amount)}
+                                                </span>
                                                 <button
                                                     className={styles.confirmPayBtn}
-                                                    onClick={() => handleConfirmPayment(appt.id)}
+                                                    onClick={() => setPaymentModal({
+                                                        isOpen: true,
+                                                        recordId: sale.id,
+                                                        tableName: 'orders',
+                                                        title: `Venda: #${sale.id.slice(0, 8)}`,
+                                                        baseAmount: sale.total_amount
+                                                    })}
                                                 >
-                                                    Confirmar Pago
+                                                    💰 Confirmar Pago
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
 
-                            {/* Transactions list (for Revenue and Expenses) */}
-                            {extractRecords.type !== 'pending' && extractRecords.transactions
-                                .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
-                                .map(tx => (
-                                    <div key={tx.id} className={styles.extractItem}>
-                                        <div className={styles.extractInfo}>
-                                            <strong>{tx.category}</strong>
-                                            <span>{tx.description}</span>
-                                            <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
+                                    {/* Consultas Pendentes */}
+                                    {extractRecords.vets.map(vet => {
+                                        let val = vet.consultation_fee || 0;
+                                        if (vet.discount_type === 'percent') val -= val * ((vet.discount_percent || 0) / 100);
+                                        else val -= (vet.discount_fixed || 0);
+                                        const finalVal = Math.max(0, val);
+                                        return (
+                                            <div key={vet.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>🩺 Consulta Veterinária</strong>
+                                                    <span>{new Date(vet.created_at).toLocaleDateString('pt-BR')}</span>
+                                                    <span className={styles.badgeLabel}>Veterinário</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
+                                                        {formatCurrency(finalVal)}
+                                                    </span>
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => setPaymentModal({
+                                                            isOpen: true,
+                                                            recordId: vet.id,
+                                                            tableName: 'vet_consultations',
+                                                            title: `Consulta Vet`,
+                                                            baseAmount: finalVal
+                                                        })}
+                                                    >
+                                                        💰 Confirmar Pago
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Exames Pendentes */}
+                                    {extractRecords.exams.map(exam => {
+                                        let val = exam.price || 0;
+                                        if (exam.discount_type === 'percent') val -= val * ((exam.discount_percent || 0) / 100);
+                                        else val -= (exam.discount_fixed || 0);
+                                        const finalVal = Math.max(0, val);
+                                        return (
+                                            <div key={exam.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>🔬 Exame: {exam.name}</strong>
+                                                    <span>{new Date(exam.created_at).toLocaleDateString('pt-BR')}</span>
+                                                    <span className={styles.badgeLabel}>Exames</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
+                                                        {formatCurrency(finalVal)}
+                                                    </span>
+                                                    <button
+                                                        className={styles.confirmPayBtn}
+                                                        onClick={() => setPaymentModal({
+                                                            isOpen: true,
+                                                            recordId: exam.id,
+                                                            tableName: 'vet_exams',
+                                                            title: `Exame: ${exam.name}`,
+                                                            baseAmount: finalVal
+                                                        })}
+                                                    >
+                                                        💰 Confirmar Pago
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Internações Pendentes */}
+                                    {extractRecords.admissions.map(adm => (
+                                        <div key={adm.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>🏥 Internação Hospitalar</strong>
+                                                <span>{new Date(adm.created_at).toLocaleDateString('pt-BR')}</span>
+                                                <span className={styles.badgeLabel}>Hospital</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
+                                                    {formatCurrency(adm.total_amount)}
+                                                </span>
+                                                <button
+                                                    className={styles.confirmPayBtn}
+                                                    onClick={() => setPaymentModal({
+                                                        isOpen: true,
+                                                        recordId: adm.id,
+                                                        tableName: 'hospital_admissions',
+                                                        title: `Internação`,
+                                                        baseAmount: adm.total_amount
+                                                    })}
+                                                >
+                                                    💰 Confirmar Pago
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div className={styles.extractActions}>
-                                            <span className={styles.extractAmount}>
-                                                {formatCurrency(tx.amount)}
-                                            </span>
-                                            <button
-                                                className={styles.deleteBtn}
-                                                onClick={() => handleDeleteTransaction(tx.id)}
-                                            >
-                                                Excluir
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </>
+                            ) : (
+                                <>
+                                    {/* Appointments list (for Revenue only if not pending) */}
+                                    {extractRecords.appointments
+                                        .filter(a => a.payment_status === 'paid')
+                                        .map(appt => (
+                                            <div key={appt.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                    <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount}>
+                                                        {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                    {/* Transactions list (for Revenue and Expenses) */}
+                                    {extractRecords.transactions
+                                        .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
+                                        .map(tx => (
+                                            <div key={tx.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>{tx.category}</strong>
+                                                    <span>{tx.description}</span>
+                                                    <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount}>
+                                                        {formatCurrency(tx.amount)}
+                                                    </span>
+                                                    <button
+                                                        className={styles.deleteBtn}
+                                                        onClick={() => handleDeleteTransaction(tx.id)}
+                                                    >
+                                                        Excluir
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </>
+                            )}
 
                             {/* Empty State */}
-                            {((extractRecords.type === 'pending' && extractRecords.appointments.filter(a => a.payment_status !== 'paid').length === 0) ||
+                            {((extractRecords.type === 'pending' && extractRecords.appointments.filter(a => a.payment_status !== 'paid' || a.payment_status === null).length === 0) ||
                                 (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense').length === 0) ||
                                 (extractRecords.type === 'revenue' &&
                                     extractRecords.appointments.filter(a => a.payment_status === 'paid').length === 0 &&
@@ -624,6 +811,22 @@ export default function OwnerDashboard() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Payment Modal */}
+            {paymentModal?.isOpen && (
+                <FinanceiroPaymentModal 
+                    recordId={paymentModal.recordId}
+                    tableName={paymentModal.tableName}
+                    title={paymentModal.title}
+                    baseAmount={paymentModal.baseAmount}
+                    onClose={() => setPaymentModal(null)}
+                    onSuccess={() => {
+                        setPaymentModal(null)
+                        alert('Pagamento registrado com sucesso!')
+                        window.location.reload()
+                    }}
+                />
             )}
         </div>
     )

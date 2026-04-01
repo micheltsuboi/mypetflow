@@ -469,15 +469,24 @@
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
-.closeButton {
+.closeBtn {
     position: absolute;
-    top: 1rem;
+    top: 1.5rem;
     right: 1.5rem;
-    background: none;
+    background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 2rem;
     cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.closeBtn:hover {
+    color: var(--text-primary);
+    transform: scale(1.1);
 }
 
 .extractList {
@@ -511,6 +520,18 @@
 .extractInfo span {
     color: var(--text-secondary);
     font-size: 0.8rem;
+}
+
+.badgeLabel {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-top: 0.25rem;
+    color: var(--primary) !important;
 }
 
 .extractActions {

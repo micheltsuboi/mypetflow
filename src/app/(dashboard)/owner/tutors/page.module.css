@@ -182,6 +182,26 @@
     color: var(--text-primary);
 }
 
+.closeBtn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.closeBtn:hover {
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
 .formGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;

@@ -8,6 +8,7 @@ import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { maskPhone, maskCPF, maskCNPJ } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
+import { X } from 'lucide-react'
 
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -46,6 +47,16 @@ export default function TutorsPage() {
     const [phone, setPhone] = useState('')
     const [cpfCnpj, setCpfCnpj] = useState('')
     const [hasCashbackModule, setHasCashbackModule] = useState(false)
+
+    // Form fields state for persistence
+    const [name, setName] = useState('')
+    const [physicalFileNumber, setPhysicalFileNumber] = useState('')
+    const [email, setEmail] = useState('')
+    const [address, setAddress] = useState('')
+    const [neighborhood, setNeighborhood] = useState('')
+    const [city, setCity] = useState('')
+    const [instagram, setInstagram] = useState('')
+    const [birthDate, setBirthDate] = useState<string | undefined>(undefined)
 
 
     // Server Action States
@@ -129,6 +140,28 @@ export default function TutorsPage() {
         fetchTutors(tutors.length === 0)
     }, [fetchTutors])
 
+    useEffect(() => {
+        if (!showModal) {
+            // Reset form fields only when modal closes
+            if (!createState.success && !updateState.success && (name || email || phone)) {
+                // Keep values if it's an error? No, usually we reset when CLOSING.
+                // If it's an error, the modal STAYS OPEN, so values are kept.
+            }
+            
+            // If the user closed it manually, we reset for the next time
+            setName('')
+            setPhysicalFileNumber('')
+            setEmail('')
+            setAddress('')
+            setNeighborhood('')
+            setCity('')
+            setInstagram('')
+            setBirthDate(undefined)
+            setPhone('')
+            setCpfCnpj('')
+        }
+    }, [showModal])
+
     // Success/Error Handling
     useEffect(() => {
         if (createState.success) {
@@ -156,6 +189,14 @@ export default function TutorsPage() {
         setSelectedTutor(tutor)
         setPhone(maskPhone(tutor.phone_1 || ''))
         setCpfCnpj(tutor.cpf_cnpj || '')
+        setName(tutor.name || '')
+        setPhysicalFileNumber(tutor.physical_file_number || '')
+        setEmail(tutor.email || '')
+        setAddress(tutor.address || '')
+        setNeighborhood(tutor.neighborhood || '')
+        setCity(tutor.city || '')
+        setInstagram(tutor.instagram || '')
+        setBirthDate(tutor.birth_date || undefined)
         setShowModal(true)
     }
 
@@ -164,6 +205,14 @@ export default function TutorsPage() {
         setSelectedTutor(null)
         setPhone('')
         setCpfCnpj('')
+        setName('')
+        setPhysicalFileNumber('')
+        setEmail('')
+        setAddress('')
+        setNeighborhood('')
+        setCity('')
+        setInstagram('')
+        setBirthDate(undefined)
         setShowModal(true)
     }
 
@@ -338,6 +387,9 @@ export default function TutorsPage() {
                 {showModal && (
                     <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
                         <div className={styles.modal} onClick={e => e.stopPropagation()}>
+                            <button onClick={() => setShowModal(false)} className={styles.closeBtn}>
+                                <X size={24} />
+                            </button>
                             <h2 style={{ marginBottom: '1.5rem' }}>
                                 {selectedTutor ? 'Editar Tutor' : 'Cadastrar Novo Tutor'}
                             </h2>
@@ -345,13 +397,14 @@ export default function TutorsPage() {
                             <form action={selectedTutor ? updateAction : createAction}>
                                 {selectedTutor && <input type="hidden" name="id" value={selectedTutor.id} />}
 
-                                <div className={styles.formGrid}>
+                                 <div className={styles.formGrid}>
                                     <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                                         <label htmlFor="name" className={styles.label}>Nome Completo *</label>
                                         <input
                                             id="name" name="name" type="text" className={styles.input} required
                                             placeholder="Ex: Maria Souza"
-                                            defaultValue={selectedTutor?.name || ''}
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
                                         />
                                     </div>
 
@@ -360,7 +413,8 @@ export default function TutorsPage() {
                                         <input
                                             id="physical_file_number" name="physical_file_number" type="text" className={styles.input}
                                             placeholder="Ex: 1234"
-                                            defaultValue={selectedTutor?.physical_file_number || ''}
+                                            value={physicalFileNumber}
+                                            onChange={e => setPhysicalFileNumber(e.target.value)}
                                         />
                                     </div>
 
@@ -369,7 +423,8 @@ export default function TutorsPage() {
                                         <input
                                             id="email" name="email" type="email" className={styles.input} required
                                             placeholder="maria@email.com"
-                                            defaultValue={selectedTutor?.email || ''}
+                                            value={email}
+                                            onChange={e => setEmail(e.target.value)}
                                         />
                                     </div>
 
@@ -419,7 +474,8 @@ export default function TutorsPage() {
                                         <DateInput
                                             name="birthDate"
                                             className={styles.input}
-                                            defaultValue={selectedTutor?.birth_date}
+                                            value={birthDate}
+                                            onChange={setBirthDate}
                                         />
                                     </div>
 
@@ -428,7 +484,8 @@ export default function TutorsPage() {
                                         <input
                                             id="address" name="address" type="text" className={styles.input}
                                             placeholder="Rua das Flores, 123"
-                                            defaultValue={selectedTutor?.address || ''}
+                                            value={address}
+                                            onChange={e => setAddress(e.target.value)}
                                         />
                                     </div>
 
@@ -436,13 +493,16 @@ export default function TutorsPage() {
                                         <label htmlFor="neighborhood" className={styles.label}>Bairro</label>
                                         <input
                                             id="neighborhood" name="neighborhood" type="text" className={styles.input}
-                                            defaultValue={selectedTutor?.neighborhood || ''}
+                                            value={neighborhood}
+                                            onChange={e => setNeighborhood(e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
                                         <label htmlFor="city" className={styles.label}>Cidade</label>
                                         <input
-                                            id="city" name="city" type="text" className={styles.input} defaultValue={selectedTutor?.city || ''}
+                                            id="city" name="city" type="text" className={styles.input} 
+                                            value={city}
+                                            onChange={e => setCity(e.target.value)}
                                         />
                                     </div>
 
@@ -451,7 +511,8 @@ export default function TutorsPage() {
                                         <input
                                             id="instagram" name="instagram" type="text" className={styles.input}
                                             placeholder="@usuario"
-                                            defaultValue={selectedTutor?.instagram || ''}
+                                            value={instagram}
+                                            onChange={e => setInstagram(e.target.value)}
                                         />
                                     </div>
                                 </div>

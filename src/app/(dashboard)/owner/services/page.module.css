@@ -363,14 +363,23 @@
 }
 
 .closeBtn {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 2rem;
-    line-height: 1;
     cursor: pointer;
-    padding: 0;
-    margin: 0;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.closeBtn:hover {
+    color: var(--text-primary);
+    transform: scale(1.1);
 }
 
 .formScroller {
@@ -641,4 +650,76 @@
     .matrixTable td:nth-child(5)::before {
         content: "";
     }
+}
+
+.checklistLi {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    padding: 1rem !important;
+}
+
+.itemText {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: white;
+    font-size: 0.95rem;
+}
+
+.itemIdx {
+    font-weight: 800;
+    color: var(--primary);
+    background: rgba(240, 140, 152, 0.1);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.75rem;
+}
+
+.editBtnItem {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-secondary) !important;
+    padding: 0.4rem 0.8rem !important;
+    border-radius: 6px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.4rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.editBtnItem:hover {
+    background: rgba(43, 108, 176, 0.2) !important;
+    color: white !important;
+    border-color: #3182ce !important;
+}
+
+.removeBtnItem {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    padding: 0.4rem !important;
+    border-radius: 6px !important;
+}
+
+.ruleSubmitBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(240, 140, 152, 0.3);
+}
+
+.ruleSubmitBtn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(240, 140, 152, 0.4);
 }

@@ -12,10 +12,10 @@
 .input {
     width: 100%;
     padding: 0.75rem 2.5rem 0.75rem 0.75rem;
-    background: #0f172a;
-    border: 1px solid #334155;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 0.95rem;
     transition: all 0.2s;
 }
@@ -53,10 +53,10 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: #1e293b;
+    background: var(--bg-tertiary);
     border: 1px solid var(--border);
     border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-lg);
     z-index: 100;
     max-height: 250px;
     overflow-y: auto;
@@ -98,7 +98,7 @@
 
 .tutorName {
     font-weight: 600;
-    color: white;
+    color: var(--text-primary);
 }
 
 .tutorPhone {

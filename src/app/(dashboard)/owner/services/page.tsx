@@ -11,6 +11,7 @@ import {
     updateService,
     deleteService,
     createPricingRule,
+    updatePricingRule,
     deletePricingRule
 } from '@/app/actions/service'
 import PlanGuard from '@/components/modules/PlanGuard'
@@ -75,6 +76,16 @@ export default function ServicesPage() {
     // Loading State
     const [ruleLoading, setRuleLoading] = useState(false)
     const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null)
+    const [editingPricingRule, setEditingPricingRule] = useState<PricingRule | null>(null)
+
+    // Controlled Form State (for persistence on error)
+    const [formName, setFormName] = useState('')
+    const [formCategoryId, setFormCategoryId] = useState('')
+    const [formTargetSpecies, setFormTargetSpecies] = useState<'dog' | 'cat' | 'both'>('both')
+    const [formBasePrice, setFormBasePrice] = useState('')
+    const [formDurationHours, setFormDurationHours] = useState('0')
+    const [formDurationMinutes, setFormDurationMinutes] = useState('30')
+    const [formDescription, setFormDescription] = useState('')
 
     // Form Action States
     const [createState, createAction, isCreatePending] = useActionState(createService, initialState)
@@ -94,6 +105,16 @@ export default function ServicesPage() {
             setNewRuleDay('')
             setNewRuleSpecies([])
             setNewItemText('')
+            setEditingPricingRule(null)
+
+            // Reset Form Fields
+            setFormName('')
+            setFormCategoryId('')
+            setFormTargetSpecies('both')
+            setFormBasePrice('')
+            setFormDurationHours('0')
+            setFormDurationMinutes('30')
+            setFormDescription('')
         }
     }, [showModal])
 
@@ -134,6 +155,16 @@ export default function ServicesPage() {
         setSelectedService(service)
         setSchedulingRules(service.scheduling_rules || [])
         setChecklistTemplate(service.checklist_template || [])
+        
+        // Populate Form Fields
+        setFormName(service.name)
+        setFormCategoryId(service.category_id || '')
+        setFormTargetSpecies(service.target_species || 'both')
+        setFormBasePrice(service.base_price.toString())
+        setFormDurationHours(service.duration_minutes ? Math.floor(service.duration_minutes / 60).toString() : '0')
+        setFormDurationMinutes(service.duration_minutes ? (service.duration_minutes % 60).toString() : '30')
+        setFormDescription(service.description || '')
+
         setIsEditing(true)
         setShowModal(true)
     }
@@ -218,16 +249,27 @@ export default function ServicesPage() {
         if (!selectedService) return
         setRuleLoading(true)
         formData.append('service_id', selectedService.id)
-        await createPricingRule(initialState, formData)
+        
+        if (editingPricingRule) {
+            formData.append('id', editingPricingRule.id)
+            await updatePricingRule(null, formData)
+            setEditingPricingRule(null)
+        } else {
+            await createPricingRule(initialState, formData)
+        }
 
         // Refresh data but keep modal open
         await fetchData()
-        // We need to re-find the selected service to update the matrix in the modal
         const { data } = await supabase.from('services').select('*, pricing_matrix(*)').eq('id', selectedService.id).single()
         if (data) {
-            setSelectedService({ ...data, pricing_matrix: (data as any).pricing_matrix || [] })
+            setSelectedService({ ...data, pricing_matrix: (data as any).pricing_matrix || [] } as any)
         }
         setRuleLoading(false)
+    }
+
+    const handleEditRuleClick = (rule: PricingRule) => {
+        setEditingPricingRule(rule)
+        // Values will be set in the pricing form inputs if we make them controlled or use refs
     }
 
     const handleDeleteRule = async (id: string) => {
@@ -309,7 +351,9 @@ export default function ServicesPage() {
                         <div className={styles.modalContent}>
                             <div className={styles.modalHeader}>
                                 <h2>{isEditing ? 'Editar Serviço' : 'Novo Serviço'}</h2>
-                                <button onClick={() => setShowModal(false)} className={styles.closeBtn}>&times;</button>
+                                <button onClick={() => setShowModal(false)} className={styles.closeBtn}>
+                                    <X size={24} />
+                                </button>
                             </div>
 
                             <form action={isEditing ? updateAction : createAction} id="serviceForm" className={styles.formScroller}>
@@ -322,7 +366,13 @@ export default function ServicesPage() {
                                 <div className={styles.formGrid}>
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Nome do Serviço</label>
-                                        <input name="name" className={styles.input} defaultValue={selectedService?.name || ''} required />
+                                        <input
+                                            name="name"
+                                            className={styles.input}
+                                            value={formName}
+                                            onChange={e => setFormName(e.target.value)}
+                                            required
+                                        />
                                     </div>
 
                                     <div className={styles.inputGroup}>
@@ -330,14 +380,16 @@ export default function ServicesPage() {
                                         <select
                                             name="category_id"
                                             className={styles.select}
-                                            defaultValue={selectedService?.category_id || ''}
-                                            required
+                                            value={formCategoryId}
                                             onChange={(e) => {
-                                                const cat = categories.find(c => c.id === e.target.value)
-                                                // Optional: update hidden category_name if backend requires it
+                                                const catId = e.target.value
+                                                setFormCategoryId(catId)
+                                                const cat = categories.find(c => c.id === catId)
+                                                // Update hidden category_name if backend requires it
                                                 const input = document.getElementById('category_name_input') as HTMLInputElement
                                                 if (input && cat) input.value = cat.name
                                             }}
+                                            required
                                         >
                                             <option value="" disabled>Selecione...</option>
                                             {categories.map(cat => (
@@ -349,7 +401,12 @@ export default function ServicesPage() {
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Espécie Alvo</label>
-                                        <select name="target_species" className={styles.select} defaultValue={selectedService?.target_species || 'both'}>
+                                        <select
+                                            name="target_species"
+                                            className={styles.select}
+                                            value={formTargetSpecies}
+                                            onChange={e => setFormTargetSpecies(e.target.value as any)}
+                                        >
                                             <option value="both">🐶 e 🐱 (Ambos)</option>
                                             <option value="dog">🐶 Cães Apenas</option>
                                             <option value="cat">🐱 Gatos Apenas</option>
@@ -358,7 +415,15 @@ export default function ServicesPage() {
 
                                     <div className={styles.inputGroup}>
                                         <label className={styles.label}>Preço Base (R$)</label>
-                                        <input name="base_price" type="number" step="0.01" className={styles.input} defaultValue={selectedService?.base_price} required />
+                                        <input
+                                            name="base_price"
+                                            type="number"
+                                            step="0.01"
+                                            className={styles.input}
+                                            value={formBasePrice}
+                                            onChange={e => setFormBasePrice(e.target.value)}
+                                            required
+                                        />
                                     </div>
 
                                     <div className={styles.inputGroup}>
@@ -370,7 +435,8 @@ export default function ServicesPage() {
                                                 min="0"
                                                 placeholder="Hrs"
                                                 className={styles.input}
-                                                defaultValue={selectedService?.duration_minutes ? Math.floor(selectedService.duration_minutes / 60) : 0}
+                                                value={formDurationHours}
+                                                onChange={e => setFormDurationHours(e.target.value)}
                                             />
                                             <input
                                                 name="duration_minutes_part"
@@ -379,16 +445,26 @@ export default function ServicesPage() {
                                                 max="59"
                                                 placeholder="Min"
                                                 className={styles.input}
-                                                defaultValue={selectedService?.duration_minutes ? selectedService.duration_minutes % 60 : 30}
+                                                value={formDurationMinutes}
+                                                onChange={e => setFormDurationMinutes(e.target.value)}
                                             />
                                         </div>
                                     </div>
 
                                     <div className={styles.inputGroup} style={{ gridColumn: '1/-1' }}>
                                         <label className={styles.label}>Descrição</label>
-                                        <textarea name="description" className={styles.input} defaultValue={selectedService?.description || ''} rows={3} />
+                                        <textarea
+                                            name="description"
+                                            className={styles.input}
+                                            value={formDescription}
+                                            onChange={e => setFormDescription(e.target.value)}
+                                            rows={3}
+                                        />
                                     </div>
                                 </div>
+                                
+                                {createState.message && !createState.success && <p className={styles.formError}>{createState.message}</p>}
+                                {updateState.message && !updateState.success && <p className={styles.formError}>{updateState.message}</p>}
 
                                 {/* Scheduling Rules UI */}
                                 <div className={styles.sectionBox}>
@@ -433,7 +509,7 @@ export default function ServicesPage() {
                                     </div>
                                     <ul className={styles.checklist}>
                                         {checklistTemplate.map((item, idx) => (
-                                            <li key={idx}>
+                                            <li key={idx} className={styles.checklistLi}>
                                                 {editingChecklistIndex === idx ? (
                                                     <div className={styles.itemEditRow}>
                                                         <input 
@@ -443,15 +519,21 @@ export default function ServicesPage() {
                                                             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSaveChecklistItem(idx))}
                                                             autoFocus
                                                         />
-                                                        <button type="button" onClick={() => handleSaveChecklistItem(idx)} className={styles.saveBtnSmall} title="Salvar"><Check size={16} /></button>
-                                                        <button type="button" onClick={() => setEditingChecklistIndex(null)} className={styles.cancelBtnSmall} title="Cancelar"><X size={16} /></button>
+                                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                                            <button type="button" onClick={() => handleSaveChecklistItem(idx)} className={styles.saveBtnSmall} title="Salvar"><Check size={18} /></button>
+                                                            <button type="button" onClick={() => setEditingChecklistIndex(null)} className={styles.cancelBtnSmall} title="Cancelar"><X size={18} /></button>
+                                                        </div>
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <span>{idx + 1}. {item}</span>
+                                                        <span className={styles.itemText}><span className={styles.itemIdx}>{idx + 1}.</span> {item}</span>
                                                         <div className={styles.itemActions}>
-                                                            <button type="button" onClick={() => handleEditChecklistItem(idx)} className={styles.editBtnItem} title="Editar"><Edit2 size={16} /></button>
-                                                            <button type="button" onClick={() => handleRemoveChecklistItem(idx)} className={styles.removeBtnItem} title="Excluir"><Trash2 size={16} /></button>
+                                                            <button type="button" onClick={() => handleEditChecklistItem(idx)} className={styles.editBtnItem} title="Editar Checklist">
+                                                                <Edit2 size={16} /> <span>Editar</span>
+                                                            </button>
+                                                            <button type="button" onClick={() => handleRemoveChecklistItem(idx)} className={styles.removeBtnItem} title="Excluir Item">
+                                                                <Trash2 size={16} />
+                                                            </button>
                                                         </div>
                                                     </>
                                                 )}
@@ -487,34 +569,44 @@ export default function ServicesPage() {
                                         </thead>
                                         <tbody>
                                             {selectedService.pricing_matrix?.map(rule => (
-                                                <tr key={rule.id}>
+                                                <tr key={rule.id} className={editingPricingRule?.id === rule.id ? styles.editingRow : ''}>
                                                     <td>{rule.weight_min ?? 0} - {rule.weight_max ?? '∞'}</td>
                                                     <td>{rule.size || '-'}</td>
                                                     <td>{rule.day_of_week !== null ? ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][rule.day_of_week] : '-'}</td>
                                                     <td>R$ {rule.fixed_price.toFixed(2)}</td>
-                                                    <td><button type="button" onClick={() => handleDeleteRule(rule.id)} className={styles.deleteBtnSmall} title="Excluir"><Trash2 size={16} /></button></td>
+                                                    <td className={styles.matrixActions}>
+                                                        <button type="button" onClick={() => handleEditRuleClick(rule)} className={styles.editBtnSmall} title="Editar"><Edit2 size={16} /></button>
+                                                        <button type="button" onClick={() => handleDeleteRule(rule.id)} className={styles.deleteBtnSmall} title="Excluir"><Trash2 size={16} /></button>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
 
-                                    {/* Add Rule Form */}
-                                    <form action={handleAddRule} className={styles.matrixForm}>
-                                        <input name="weight_min" type="number" step="0.1" placeholder="Min Kg" className={styles.inputSmall} />
-                                        <input name="weight_max" type="number" step="0.1" placeholder="Max Kg" className={styles.inputSmall} />
-                                        <select name="size" className={styles.selectSmall}>
+                                    <div className={styles.matrixFormHeader}>
+                                        <h4>{editingPricingRule ? 'Editar Regra' : 'Nova Regra'}</h4>
+                                        {editingPricingRule && <button type="button" onClick={() => setEditingPricingRule(null)} className={styles.cancelLink}>Cancelar Edição</button>}
+                                    </div>
+
+                                    {/* Add/Edit Rule Form */}
+                                    <form action={handleAddRule} className={styles.matrixForm} key={editingPricingRule?.id || 'new'}>
+                                        <input name="weight_min" type="number" step="0.1" placeholder="Min Kg" className={styles.inputSmall} defaultValue={editingPricingRule?.weight_min ?? ''} />
+                                        <input name="weight_max" type="number" step="0.1" placeholder="Max Kg" className={styles.inputSmall} defaultValue={editingPricingRule?.weight_max ?? ''} />
+                                        <select name="size" className={styles.selectSmall} defaultValue={editingPricingRule?.size || ''}>
                                             <option value="">Porte...</option>
                                             <option value="small">Peq</option>
                                             <option value="medium">Med</option>
                                             <option value="large">Gnd</option>
                                             <option value="giant">Gig</option>
                                         </select>
-                                        <select name="day_of_week" className={styles.selectSmall}>
+                                        <select name="day_of_week" className={styles.selectSmall} defaultValue={editingPricingRule?.day_of_week ?? ''}>
                                             <option value="">Dia...</option>
                                             {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <option key={i} value={i}>{d}</option>)}
                                         </select>
-                                        <input name="price" type="number" step="0.01" placeholder="R$" className={styles.inputSmall} required />
-                                        <button type="submit" className={styles.addBtnSmall} disabled={ruleLoading}>+</button>
+                                        <input name="price" type="number" step="0.01" placeholder="R$" className={styles.inputSmall} defaultValue={editingPricingRule?.fixed_price ?? ''} required />
+                                        <button type="submit" disabled={ruleLoading} className={styles.ruleSubmitBtn}>
+                                            {editingPricingRule ? 'Salvar Regra' : '+ Adicionar'}
+                                        </button>
                                     </form>
                                 </div>
                             )}

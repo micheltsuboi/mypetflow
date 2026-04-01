@@ -19,19 +19,19 @@ export default async function LoginPage() {
     if (user) {
         const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, org_id')
             .eq('id', user.id)
             .single()
 
         if (profile) {
             let target = '/owner'
             if (profile.role === 'customer') target = '/tutor'
-            else if (profile.role === 'staff') target = '/staff'
-            else if (profile.role === 'superadmin') target = '/master-admin'
+            else if (profile.role === 'staff') target = '/owner' // Staff also uses /owner mostly or /staff dashboard
+            else if (profile.role === 'superadmin' && !profile.org_id) target = '/master-admin'
+            else if (profile.role === 'superadmin' && profile.org_id) target = '/owner' // Superadmin accessing their own store
             
-            // Usar redirecionamento absoluto para evitar loop se for o mesmo path
-            const currentPath = host.includes(':') ? `http://${host}` : `https://${host}${target}`
-            // Mas redirect do next é relativo ou absoluto dependendo da versão
+            // Verificação de segurança: não redirecionar se já estivermos no caminho certo (evita loop simples)
+            // Mas como esta é a página raiz '/', qualquer redirecionamento é para fora daqui.
             redirect(target)
         }
     }

@@ -261,7 +261,7 @@ export async function searchTutors(query: string) {
 
         const { data, error } = await supabase
             .from('customers')
-            .select('id, name, phone_1')
+            .select('id, name, phone_1, physical_file_number')
             .eq('org_id', profile.org_id)
             .ilike('name', `%${query}%`)
             .limit(10)

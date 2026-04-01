@@ -663,3 +663,53 @@
     background: #e74c3c !important;
     border-color: #e74c3c !important;
 }
+
+.categoryBadge {
+    padding: 2px 6px;
+    background: rgba(240, 140, 152, 0.1);
+    color: var(--color-primary);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.confirmPayBtn {
+    background: #059669;
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.confirmPayBtn:hover {
+    background: #047857;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px -1px rgba(0, 0, 0, 0.15);
+}
+
+.extractAmount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.emptyExtract {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    grid-column: 1 / -1;
+}
+
+.closeBtn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}

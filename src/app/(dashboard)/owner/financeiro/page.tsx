@@ -173,7 +173,7 @@ export default function FinanceiroPage() {
                         services ( name, service_categories ( name ) )
                     `)
                     .eq('org_id', profile.org_id)
-                    .neq('payment_status', 'paid')
+                    .or('payment_status.neq.paid,payment_status.is.null')
             ])
 
             if (apptsResponse.error) throw apptsResponse.error
@@ -301,8 +301,9 @@ export default function FinanceiroPage() {
                 .filter((t: any) => t.type === 'expense')
                 .reduce((sum: number, t: any) => sum + t.amount, 0)
             
-            const pTotal = allPendingAppts
-                .reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+            // Garantir que pTotal inclua ABSOLUTAMENTE tudo que não está pago
+            const pTotal = 
+                  allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
                 + pendingSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
                 + pendingVets.reduce((sum: number, v: any) => {
                     let val = v.consultation_fee || 0;
@@ -929,6 +930,37 @@ export default function FinanceiroPage() {
                                         </div>
                                     ))}
 
+                                 {/* Pending Appointments list */}
+                                {extractRecords.type === 'pending' && extractRecords.allPendingAppointments
+                                    .filter(appt => selectedCategory === 'all' || (appt.services as any)?.service_categories?.name === selectedCategory)
+                                    .map(appt => (
+                                        <div key={appt.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span className={styles.categoryBadge}>🛁 Serviço</span>
+                                                    <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                </div>
+                                                <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount}>
+                                                    {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                </span>
+                                                <button
+                                                    className={styles.confirmPayBtn}
+                                                    onClick={() => handleOpenPaymentModal(
+                                                        appt.id, 
+                                                        'appointments', 
+                                                        `${appt.pets?.name || 'Pet'} • ${appt.services?.name || 'Serviço'}`,
+                                                        appt.final_price || appt.calculated_price || 0
+                                                    )}
+                                                >
+                                                    💰 Confirmar Pago
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+
                                 {/* Pending Pet Shop Sales list */}
                                 {extractRecords.type === 'pending' && extractRecords.pendingSales
                                     .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
@@ -937,7 +969,10 @@ export default function FinanceiroPage() {
                                         return (
                                             <div key={sale.id} className={styles.extractItem}>
                                                 <div className={styles.extractInfo}>
-                                                    <strong>{sale.pets?.name || 'Cliente Avulso'} • {desc}</strong>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span className={styles.categoryBadge} style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#0ea5e9' }}>🛒 Venda</span>
+                                                        <strong>{sale.pets?.name || 'Cliente Avulso'} • {desc}</strong>
+                                                    </div>
                                                     <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
                                                 </div>
                                                 <div className={styles.extractActions}>
@@ -970,7 +1005,10 @@ export default function FinanceiroPage() {
                                         return (
                                             <div key={v.id} className={styles.extractItem}>
                                                 <div className={styles.extractInfo}>
-                                                    <strong>{v.pets?.name || 'Pet'} • Consulta Vet</strong>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span className={styles.categoryBadge} style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>🩺 Consulta</span>
+                                                        <strong>{v.pets?.name || 'Pet'} • Consulta Vet</strong>
+                                                    </div>
                                                     <span>{new Date(v.consultation_date).toLocaleDateString('pt-BR')}</span>
                                                 </div>
                                                 <div className={styles.extractActions}>
@@ -1003,7 +1041,10 @@ export default function FinanceiroPage() {
                                         return (
                                             <div key={e.id} className={styles.extractItem}>
                                                 <div className={styles.extractInfo}>
-                                                    <strong>{e.pets?.name || 'Pet'} • Exame ({e.exam_type_name})</strong>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                        <span className={styles.categoryBadge} style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>🔬 Exame</span>
+                                                        <strong>{e.pets?.name || 'Pet'} • {e.exam_type_name}</strong>
+                                                    </div>
                                                     <span>{new Date(e.exam_date).toLocaleDateString('pt-BR')}</span>
                                                 </div>
                                                 <div className={styles.extractActions}>
@@ -1032,7 +1073,10 @@ export default function FinanceiroPage() {
                                     .map(ad => (
                                         <div key={ad.id} className={styles.extractItem}>
                                             <div className={styles.extractInfo}>
-                                                <strong>{ad.pets?.name || 'Pet'} • Internamento</strong>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span className={styles.categoryBadge} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>🏥 Internamento</span>
+                                                    <strong>{ad.pets?.name || 'Pet'} • Internamento</strong>
+                                                </div>
                                                 <span>{new Date(ad.admitted_at).toLocaleDateString('pt-BR')}</span>
                                             </div>
                                             <div className={styles.extractActions}>
