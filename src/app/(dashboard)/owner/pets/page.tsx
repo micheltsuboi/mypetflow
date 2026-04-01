@@ -360,14 +360,14 @@ function PetsContent() {
                                             </div>
                                         )}
                                         <div>
-                                            <div className={styles.itemName}>{pet.name}</div>
+                                            <div className={styles.itemName}>{pet.name} {pet.customers?.name && <span style={{ fontWeight: 400, opacity: 0.8 }}>({pet.customers.name})</span>}</div>
                                             <div className={styles.itemSub}>{pet.breed} {pet.color && `• ${pet.color}`}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        {pet.customers?.name}
+                                        {pet.customers?.name} <span style={{ opacity: 0.7, fontSize: '0.85rem' }}>({pet.name})</span>
                                         {pet.customers?.phone_1 && (
                                             <a
                                                 href={`https://wa.me/55${pet.customers.phone_1.replace(/\D/g, '')}`}

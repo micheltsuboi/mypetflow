@@ -884,7 +884,7 @@ export default function FinanceiroPage() {
                                     .map(appt => (
                                         <div key={appt.id} className={styles.extractItem}>
                                             <div className={styles.extractInfo}>
-                                                <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                <strong>{appt.pets?.name || 'Pet'}{appt.pets?.customers?.name && ` (${appt.pets.customers.name})`} • {appt.services?.name || 'Serviço'}</strong>
                                                 <span>{new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
                                             </div>
                                             <div className={styles.extractActions}>
@@ -919,7 +919,7 @@ export default function FinanceiroPage() {
                                                         onClick={() => handleOpenPaymentModal(
                                                             appt.id, 
                                                             'appointments', 
-                                                            `${appt.pets?.name || 'Pet'} • ${appt.services?.name || 'Serviço'}`,
+                                                            `${appt.pets?.name || 'Pet'}${appt.pets?.customers?.name ? ` (${appt.pets.customers.name})` : ''} • ${appt.services?.name || 'Serviço'}`,
                                                             appt.final_price || appt.calculated_price || 0
                                                         )}
                                                     >
@@ -938,7 +938,7 @@ export default function FinanceiroPage() {
                                             <div className={styles.extractInfo}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <span className={styles.categoryBadge}>🛁 Serviço</span>
-                                                    <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                    <strong>{appt.pets?.name || 'Pet'}{appt.pets?.customers?.name && ` (${appt.pets.customers.name})`} • {appt.services?.name || 'Serviço'}</strong>
                                                 </div>
                                                 <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
                                             </div>
@@ -951,7 +951,7 @@ export default function FinanceiroPage() {
                                                     onClick={() => handleOpenPaymentModal(
                                                         appt.id, 
                                                         'appointments', 
-                                                        `${appt.pets?.name || 'Pet'} • ${appt.services?.name || 'Serviço'}`,
+                                                        `${appt.pets?.name || 'Pet'}${appt.pets?.customers?.name ? ` (${appt.pets.customers.name})` : ''} • ${appt.services?.name || 'Serviço'}`,
                                                         appt.final_price || appt.calculated_price || 0
                                                     )}
                                                 >
@@ -971,7 +971,7 @@ export default function FinanceiroPage() {
                                                 <div className={styles.extractInfo}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                         <span className={styles.categoryBadge} style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#0ea5e9' }}>🛒 Venda</span>
-                                                        <strong>{sale.pets?.name || 'Cliente Avulso'} • {desc}</strong>
+                                                        <strong>{sale.pets?.name || 'Cliente Avulso'}{sale.pets?.customers?.name && ` (${sale.pets.customers.name})`} • {desc}</strong>
                                                     </div>
                                                     <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
                                                 </div>
@@ -984,7 +984,7 @@ export default function FinanceiroPage() {
                                                         onClick={() => handleOpenPaymentModal(
                                                             sale.id, 
                                                             'orders', 
-                                                            `${sale.pets?.name || 'Cliente'} • ${desc}`, 
+                                                            `${sale.pets?.name || 'Cliente'}${sale.pets?.customers?.name ? ` (${sale.pets.customers.name})` : ''} • ${desc}`, 
                                                             sale.total_amount
                                                         )}
                                                     >
@@ -1007,7 +1007,7 @@ export default function FinanceiroPage() {
                                                 <div className={styles.extractInfo}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                         <span className={styles.categoryBadge} style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>🩺 Consulta</span>
-                                                        <strong>{v.pets?.name || 'Pet'} • Consulta Vet</strong>
+                                                        <strong>{v.pets?.name || 'Pet'}{v.pets?.customers?.name && ` (${v.pets.customers.name})`} • Consulta Vet</strong>
                                                     </div>
                                                     <span>{new Date(v.consultation_date).toLocaleDateString('pt-BR')}</span>
                                                 </div>
@@ -1020,7 +1020,7 @@ export default function FinanceiroPage() {
                                                         onClick={() => handleOpenPaymentModal(
                                                             v.id, 
                                                             'vet_consultations', 
-                                                            `${v.pets?.name || 'Pet'} • Consulta Vet`, 
+                                                            `${v.pets?.name || 'Pet'}${v.pets?.customers?.name ? ` (${v.pets.customers.name})` : ''} • Consulta Vet`, 
                                                             v.consultation_fee
                                                         )}
                                                     >
@@ -1043,7 +1043,7 @@ export default function FinanceiroPage() {
                                                 <div className={styles.extractInfo}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                         <span className={styles.categoryBadge} style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>🔬 Exame</span>
-                                                        <strong>{e.pets?.name || 'Pet'} • {e.exam_type_name}</strong>
+                                                        <strong>{e.pets?.name || 'Pet'}{e.pets?.customers?.name && ` (${e.pets.customers.name})`} • {e.exam_type_name}</strong>
                                                     </div>
                                                     <span>{new Date(e.exam_date).toLocaleDateString('pt-BR')}</span>
                                                 </div>
@@ -1056,7 +1056,7 @@ export default function FinanceiroPage() {
                                                         onClick={() => handleOpenPaymentModal(
                                                             e.id, 
                                                             'vet_exams', 
-                                                            `${e.pets?.name || 'Pet'} • Exame (${e.exam_type_name})`, 
+                                                            `${e.pets?.name || 'Pet'}${e.pets?.customers?.name ? ` (${e.pets.customers.name})` : ''} • Exame (${e.exam_type_name})`, 
                                                             e.price
                                                         )}
                                                     >
@@ -1075,7 +1075,7 @@ export default function FinanceiroPage() {
                                             <div className={styles.extractInfo}>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <span className={styles.categoryBadge} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>🏥 Internamento</span>
-                                                    <strong>{ad.pets?.name || 'Pet'} • Internamento</strong>
+                                                    <strong>{ad.pets?.name || 'Pet'}{ad.pets?.customers?.name && ` (${ad.pets.customers.name})`} • Internamento</strong>
                                                 </div>
                                                 <span>{new Date(ad.admitted_at).toLocaleDateString('pt-BR')}</span>
                                             </div>
@@ -1088,7 +1088,7 @@ export default function FinanceiroPage() {
                                                     onClick={() => handleOpenPaymentModal(
                                                         ad.id, 
                                                         'hospital_admissions', 
-                                                        `${ad.pets?.name || 'Pet'} • Internamento`, 
+                                                        `${ad.pets?.name || 'Pet'}${ad.pets?.customers?.name ? ` (${ad.pets.customers.name})` : ''} • Internamento`, 
                                                         ad.total_amount || 0
                                                     )}
                                                 >
@@ -1106,7 +1106,7 @@ export default function FinanceiroPage() {
                                         return (
                                             <div key={sale.id} className={styles.extractItem}>
                                                 <div className={styles.extractInfo}>
-                                                    <strong>{sale.pets?.name || 'Cliente Avulso'} • {desc}</strong>
+                                                    <strong>{sale.pets?.name || 'Cliente Avulso'}{sale.pets?.customers?.name && ` (${sale.pets.customers.name})`} • {desc}</strong>
                                                     <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
                                                 </div>
                                                 <div className={styles.extractActions}>

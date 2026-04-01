@@ -539,7 +539,7 @@ export default function PetshopPage() {
                                                     setTutorQuery('')
                                                 }}
                                             >
-                                                <strong>{tutor.name}</strong>
+                                                <strong>{tutor.name} {tutor.pets.length > 0 && `(🐾 ${tutor.pets.map(p => p.name).join(', ')})`}</strong>
                                                 <small>{tutor.cpf ? `CPF: ${tutor.cpf}` : ''}</small>
                                             </div>
                                         ))}
@@ -549,7 +549,7 @@ export default function PetshopPage() {
                         ) : (
                             <div className={styles.selectedCustomerCard}>
                                 <div>
-                                    <strong>{selectedTutor.name}</strong>
+                                    <strong>{selectedTutor.name} {selectedTutor.pets.length > 0 && `(🐾 ${selectedTutor.pets.map(p => p.name).join(', ')})`}</strong>
                                 </div>
                                 <button className={styles.removeLinkedBtn} onClick={() => {
                                     setSelectedTutor(null)
