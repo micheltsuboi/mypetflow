@@ -18,40 +18,94 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<GlobalStats | null>(null)
     const [loading, setLoading] = useState(true)
     const router = useRouter()
-    const supabase = createClient()
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
+        const supabase = createClient()
         const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) {
-                router.push('/')
-                return
+            try {
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+                
+                if (authError) {
+                    console.error('Auth error:', authError)
+                    if (authError.status === 429) {
+                        setError('Limite de requisições atingido. Por favor, aguarde alguns minutos e tente novamente.')
+                        setLoading(false)
+                        return
+                    }
+                    router.push('/')
+                    return
+                }
+
+                if (!user) {
+                    router.push('/')
+                    return
+                }
+
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .maybeSingle()
+
+                if (profileError) {
+                    console.error('Profile error:', profileError)
+                    setError('Erro ao carregar perfil do usuário.')
+                    setLoading(false)
+                    return
+                }
+
+                if (!profile || profile.role !== 'superadmin') {
+                    router.push('/owner')
+                    return
+                }
+
+                const data = await fetchGlobalStats()
+                setStats(data)
+                setLoading(false)
+            } catch (err: any) {
+                console.error('Unexpected error in checkAuth:', err)
+                setError('Ocorreu um erro inesperado ao carregar o dashboard.')
+                setLoading(false)
             }
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .maybeSingle()
-
-            if (!profile || profile.role !== 'superadmin') {
-                router.push('/owner')
-                return
-            }
-
-            const data = await fetchGlobalStats()
-            setStats(data)
-            setLoading(false)
         }
 
         checkAuth()
-    }, [supabase, router])
+    }, [router])
 
     if (loading) {
         return (
             <div className={styles.loading}>
                 <div className={styles.spinner} />
                 <p>Carregando dashboard...</p>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className={styles.loading}>
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid var(--color-coral)', padding: '2rem', borderRadius: '16px', textAlign: 'center', maxWidth: '400px' }}>
+                    <p style={{ color: 'var(--color-coral)', marginBottom: '1.5rem', fontWeight: 600 }}>{error}</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <button
+                            onClick={() => window.location.reload()}
+                            style={{ background: 'var(--color-sky)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, border: 'none' }}
+                        >
+                            Tentar novamente
+                        </button>
+                        <button
+                            onClick={async () => {
+                                const supabase = createClient()
+                                await supabase.auth.signOut()
+                                router.push('/')
+                            }}
+                            style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer' }}
+                        >
+                            Sair do Sistema
+                        </button>
+                    </div>
+                </div>
             </div>
         )
     }

@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { headers } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import styles from './page.module.css'
 import { redirect } from 'next/navigation'
@@ -11,7 +12,7 @@ import LandingPage from '@/components/public/LandingPage'
 export default async function LoginPage() {
     const headerStack = await headers()
     const host = headerStack.get('host') || ''
-    const supabaseAdmin = createAdminClient()
+    const supabase = await createClient()
 
     // Detectar subdomínio
     let subdomain = ''
@@ -34,10 +35,10 @@ export default async function LoginPage() {
 
     // --- NOVO: Redirecionamento Automático para usuários logados no subdomínio ---
     // Se o usuário já tiver uma sessão válida, não mostramos o login, mandamos pro dashboard
-    const { data: { user } } = await supabaseAdmin.auth.getUser(headerStack.get('cookie') || '')
+    const { data: { user } } = await supabase.auth.getUser()
     if (user) {
         // Buscar o perfil para saber para onde mandar
-        const { data: profile } = await supabaseAdmin
+        const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
@@ -54,7 +55,7 @@ export default async function LoginPage() {
     }
 
     // A partir daqui, TEM subdomínio! Tratar página de Login do Inquilino SaaS
-    const { data: org } = await supabaseAdmin
+    const { data: org } = await supabase
         .from('organizations')
         .select('id, name, is_active')
         .eq('subdomain', subdomain)
