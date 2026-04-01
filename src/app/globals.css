@@ -93,6 +93,23 @@
   --transition-slow: 300ms ease;
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg-primary: #F8FAFC;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F1F5F9;
+    --bg-card: rgba(255, 255, 255, 0.8);
+    --bg-card-hover: rgba(255, 255, 255, 0.95);
+    --border: rgba(27, 59, 90, 0.1);
+    --bg-input: #FFFFFF;
+    --bg-hover: rgba(0, 228, 206, 0.05);
+    --text-primary: #1B3B5A;
+    --text-secondary: #4A5568;
+    --text-muted: #718096;
+    --gradient-dark: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+  }
+}
+
 /* Base styles */
 * {
   box-sizing: border-box;
