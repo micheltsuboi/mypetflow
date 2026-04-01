@@ -29,16 +29,17 @@ export default function AdminDashboard() {
                 if (authError) {
                     console.error('Auth error:', authError)
                     if (authError.status === 429) {
-                        setError('Limite de requisições atingido. Por favor, aguarde alguns minutos e tente novamente.')
-                        setLoading(false)
-                        return
+                        setError('Limite de requisições atingido. O Supabase bloqueou requisições por alguns minutos. Por favor, aguarde e tente novamente.')
+                    } else {
+                        setError(`Erro de Autenticação: ${authError.message}. Por favor, limpe seus cookies ou saia do sistema e entre novamente.`)
                     }
-                    router.push('/')
+                    setLoading(false)
                     return
                 }
 
                 if (!user) {
-                    router.push('/')
+                    setError('Sessão expirada ou não encontrada. Por favor, saia do sistema e faça login novamente.')
+                    setLoading(false)
                     return
                 }
 
