@@ -45,6 +45,7 @@ export default function TutorsPage() {
     const [cashbacks, setCashbacks] = useState<Record<string, number>>({});
     const [phone, setPhone] = useState('')
     const [cpfCnpj, setCpfCnpj] = useState('')
+    const [hasCashbackModule, setHasCashbackModule] = useState(false)
 
 
     // Server Action States
@@ -62,11 +63,29 @@ export default function TutorsPage() {
 
             const { data: profile } = await supabase
                 .from('profiles')
-                .select('org_id')
+                .select('org_id, role')
                 .eq('id', user.id)
                 .single()
 
             if (!profile?.org_id) return
+
+            // Check plan features
+            if (profile.role === 'superadmin') {
+                setHasCashbackModule(true)
+            } else {
+                const { data: org } = await supabase
+                    .from('organizations')
+                    .select('saas_plans(features)')
+                    .eq('id', profile.org_id)
+                    .single()
+                
+                if (org?.saas_plans) {
+                    const features = (org.saas_plans as any).features || []
+                    setHasCashbackModule(features.includes('cashback'))
+                } else {
+                    setHasCashbackModule(true) // Legacy fallback
+                }
+            }
 
             let query = supabase
                 .from('customers')
@@ -86,7 +105,7 @@ export default function TutorsPage() {
             if (data) {
                 setTutors(data)
                 // Fetch cashbacks for these tutors
-                const tutorIds = data.map(t => t.id)
+                const tutorIds = data.map((t: Customer) => t.id)
                 const { data: cbData, error: cbError } = await supabase
                     .from('cashbacks')
                     .select('tutor_id, balance')
@@ -202,11 +221,11 @@ export default function TutorsPage() {
                         <thead>
                             <tr>
                                 <th>Tutor</th>
+                                <th>Ficha Física</th>
                                 <th>Contato</th>
                                 <th>Endereço</th>
                                 <th>Portal</th>
-                                <th>Cashback</th>
-                                <th>Ficha Física</th>
+                                {hasCashbackModule && <th>Cashback</th>}
                                 <th>Desde</th>
                             </tr>
                         </thead>
@@ -261,6 +280,11 @@ export default function TutorsPage() {
                                         </div>
                                     </td>
                                     <td>
+                                        <div style={{ fontWeight: 700, color: 'var(--color-primary)', fontSize: '1.1rem', background: 'rgba(240, 140, 152, 0.1)', padding: '4px 10px', borderRadius: '6px', textAlign: 'center', border: '1px dashed var(--color-primary)' }}>
+                                            {tutor.physical_file_number || '-'}
+                                        </div>
+                                    </td>
+                                    <td>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                             <span style={{ fontSize: '0.9rem' }}>📞 {tutor.phone_1}</span>
                                             <span className={styles.userEmail}>✉️ {tutor.email}</span>
@@ -292,16 +316,13 @@ export default function TutorsPage() {
                                             </span>
                                         </div>
                                     </td>
-                                    <td>
-                                        <div style={{ fontWeight: 600, color: 'var(--color-navy)' }}>
-                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cashbacks[tutor.id] || 0)}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span style={{ fontWeight: 600, color: '#64748b' }}>
-                                            {tutor.physical_file_number || '-'}
-                                        </span>
-                                    </td>
+                                    {hasCashbackModule && (
+                                        <td>
+                                            <div style={{ fontWeight: 600, color: 'var(--color-navy)' }}>
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cashbacks[tutor.id] || 0)}
+                                            </div>
+                                        </td>
+                                    )}
                                     <td>
                                         {new Date(tutor.created_at).toLocaleDateString('pt-BR')}
                                     </td>
