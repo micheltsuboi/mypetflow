@@ -529,7 +529,7 @@ export default function ServicesPage() {
                                                         <span className={styles.itemText}><span className={styles.itemIdx}>{idx + 1}.</span> {item}</span>
                                                         <div className={styles.itemActions}>
                                                             <button type="button" onClick={() => handleEditChecklistItem(idx)} className={styles.editBtnItem} title="Editar Checklist">
-                                                                <Edit2 size={16} /> <span>Editar</span>
+                                                                <Edit2 size={16} />
                                                             </button>
                                                             <button type="button" onClick={() => handleRemoveChecklistItem(idx)} className={styles.removeBtnItem} title="Excluir Item">
                                                                 <Trash2 size={16} />

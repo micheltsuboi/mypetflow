@@ -529,17 +529,25 @@
     width: 100%;
 }
 
+.editBtnSmall,
 .saveBtnSmall,
 .cancelBtnSmall {
-    background: none;
-    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.4rem;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: all 0.2s;
+}
+
+.editBtnSmall { color: var(--text-secondary); }
+.editBtnSmall:hover { 
+    background: rgba(43, 108, 176, 0.2); 
+    color: white; 
+    border-color: #3182ce; 
 }
 
 .saveBtnSmall { color: #22c55e; }
@@ -682,14 +690,13 @@
 .editBtnItem {
     background: rgba(255, 255, 255, 0.05) !important;
     color: var(--text-secondary) !important;
-    padding: 0.4rem 0.8rem !important;
+    padding: 0.4rem !important;
     border-radius: 6px !important;
-    font-size: 0.8rem !important;
-    font-weight: 600 !important;
     display: flex !important;
     align-items: center !important;
-    gap: 0.4rem !important;
+    justify-content: center !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    transition: all 0.2s !important;
 }
 
 .editBtnItem:hover {
