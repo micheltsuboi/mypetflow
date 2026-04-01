@@ -36,6 +36,12 @@ export default function FinanceiroPaymentModal({
     const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent')
     const [finalAmount, setFinalAmount] = useState(baseAmount)
 
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
     useEffect(() => {
         const val = parseFloat(discountValue) || 0
         if (discountType === 'percent') {
@@ -44,6 +50,8 @@ export default function FinanceiroPaymentModal({
             setFinalAmount(Math.max(0, baseAmount - val))
         }
     }, [discountValue, discountType, baseAmount])
+
+    if (!mounted) return null
 
     const handlePayment = async (method: string) => {
         setLoading(true)

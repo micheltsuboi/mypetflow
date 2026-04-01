@@ -201,7 +201,7 @@ export default function FinanceiroPage() {
             })
 
             // Add Transactions to Chart
-            transactions.forEach(t => {
+            transactions.forEach((t: any) => {
                 const date = new Date(t.date)
                 const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
                 const data = monthMap.get(monthKey)
@@ -215,9 +215,9 @@ export default function FinanceiroPage() {
 
             // Fetch NF Status for all revenue items
             const allRevenueIds = [
-                ...appointments.filter(a => a.payment_status === 'paid').map(a => a.id),
-                ...pendingSales.map(s => s.id),
-                ...paidSales.map(s => s.id)
+                ...appointments.filter((a: any) => a.payment_status === 'paid').map((a: any) => a.id),
+                ...pendingSales.map((s: any) => s.id),
+                ...paidSales.map((s: any) => s.id)
             ]
 
             if (allRevenueIds.length > 0) {
@@ -228,7 +228,7 @@ export default function FinanceiroPage() {
 
                 if (nfs) {
                     const map: any = {}
-                    nfs.forEach(nf => {
+                    nfs.forEach((nf: any) => {
                         map[nf.origem_id] = {
                             id: nf.id,
                             status: nf.status,
@@ -245,15 +245,15 @@ export default function FinanceiroPage() {
                 return d >= new Date(startDate) && d <= new Date(endDate + 'T23:59:59')
             }
 
-            const activeAppts = appointments.filter(a => filterByPeriod(a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at))
-            const activeTxs = transactions.filter(t => filterByPeriod(t.date))
-            const activePaidSales = paidSales.filter(s => filterByPeriod(s.created_at))
+            const activeAppts = appointments.filter((a: any) => filterByPeriod(a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at))
+            const activeTxs = transactions.filter((t: any) => filterByPeriod(t.date))
+            const activePaidSales = paidSales.filter((s: any) => filterByPeriod(s.created_at))
 
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
 
             // Combine income sources for categories
-            activeAppts.forEach(a => {
+            activeAppts.forEach((a: any) => {
                 if (a.payment_status === 'paid') {
                     const catName = (a.services as any)?.service_categories?.name || 'Serviços'
                     const amount = a.final_price ?? a.calculated_price ?? 0
@@ -265,7 +265,7 @@ export default function FinanceiroPage() {
                 }
             })
 
-            activeTxs.forEach(t => {
+            activeTxs.forEach((t: any) => {
                 if (t.type === 'income') {
                     const catName = t.category || 'Outros'
                     const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
@@ -278,36 +278,36 @@ export default function FinanceiroPage() {
 
             setCategoryRevenue(
                 Array.from(catMap.values())
-                    .map(c => ({
+                    .map((c: any) => ({
                         ...c,
                         percentage: totalRev > 0 ? parseFloat(((c.revenue / totalRev) * 100).toFixed(1)) : 0
                     }))
-                    .sort((a, b) => b.revenue - a.revenue)
+                    .sort((a: any, b: any) => b.revenue - a.revenue)
             )
 
             // --- Process Summary Totals ---
-            const activeRevenue = totalRev + activePaidSales.reduce((sum, s) => sum + s.total_amount, 0)
+            const activeRevenue = totalRev + activePaidSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
             const activeExpenses = activeTxs
-                .filter(t => t.type === 'expense')
-                .reduce((sum, t) => sum + t.amount, 0)
+                .filter((t: any) => t.type === 'expense')
+                .reduce((sum: number, t: any) => sum + t.amount, 0)
             
             const pTotal = appointments
-                .filter(a => a.payment_status !== 'paid')
-                .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-                + pendingSales.reduce((sum, s) => sum + s.total_amount, 0)
-                + pendingVets.reduce((sum, v) => {
+                .filter((a: any) => a.payment_status !== 'paid')
+                .reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                + pendingSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
+                + pendingVets.reduce((sum: number, v: any) => {
                     let val = v.consultation_fee || 0;
                     if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
                     else val -= (v.discount_fixed || 0);
                     return sum + Math.max(0, val);
                 }, 0)
-                + pendingExams.reduce((sum, e) => {
+                + pendingExams.reduce((sum: number, e: any) => {
                     let val = e.price || 0;
                     if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
                     else val -= (e.discount_fixed || 0);
                     return sum + Math.max(0, val);
                 }, 0)
-                + pendingAdmissions.reduce((sum, ad) => sum + (ad.total_amount || 0), 0)
+                + pendingAdmissions.reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
 
             setActiveRevenueValue(activeRevenue)
             setActiveExpensesValue(activeExpenses)
@@ -553,46 +553,6 @@ export default function FinanceiroPage() {
     const currentMonthData = monthlyData.length > 0 ? monthlyData[monthlyData.length - 1] : { revenue: 0, expenses: 0, profit: 0 }
     const previousMonthData = monthlyData.length > 1 ? monthlyData[monthlyData.length - 2] : { revenue: 0, expenses: 0, profit: 0 }
 
-    const activeRevenue = extractRecords.appointments
-        .filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory))
-        .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0) +
-        extractRecords.transactions
-            .filter(t => t.type === 'income' && (selectedCategory === 'all' || t.category === selectedCategory))
-            .reduce((sum, t) => sum + t.amount, 0)
-
-    const activeExpenses = extractRecords.transactions
-        .filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory))
-        .reduce((sum, t) => sum + t.amount, 0)
-
-    const activeProfit = activeRevenue - activeExpenses
-    
-    // Calcula o total a receber considerando TUDO que foi buscado (sem filtro de período para débitos)
-    const pendingTotal = appointments
-        .filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory))
-        .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-        + pendingSales
-            .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
-            .reduce((sum, s) => sum + s.total_amount, 0)
-        + pendingVets
-            .filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária')
-            .reduce((sum, v) => {
-                let val = v.consultation_fee || 0;
-                if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
-                else val -= (v.discount_fixed || 0);
-                return sum + Math.max(0, val);
-            }, 0)
-        + pendingExams
-            .filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário')
-            .reduce((sum, e) => {
-                let val = e.price || 0;
-                if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
-                else val -= (e.discount_fixed || 0);
-                return sum + Math.max(0, val);
-            }, 0)
-        + pendingAdmissions
-            .filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital')
-            .reduce((sum, ad) => sum + (ad.total_amount || 0), 0)
-
 
     const revenueGrowth = previousMonthData.revenue > 0
         ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
@@ -818,7 +778,7 @@ export default function FinanceiroPage() {
                                 {Number(revenueGrowth) >= 0 ? '+' : ''}{revenueGrowth}%
                             </span>
                         </div>
-                        <span className={styles.cardValue}>{formatCurrency(activeRevenue)}</span>
+                        <span className={styles.cardValue}>{formatCurrency(activeRevenueValue)}</span>
                         <span className={styles.cardLabel}>Faturamento</span>
                     </div>
 
@@ -829,18 +789,15 @@ export default function FinanceiroPage() {
                         <div className={styles.cardHeader}>
                             <span className={styles.cardIcon}>📉</span>
                         </div>
-                        <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(activeExpenses)}</span>
+                        <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(activeExpensesValue)}</span>
                         <span className={styles.cardLabel}>Despesas</span>
                     </div>
 
-                    <div
-                        className={`${styles.summaryCard} ${styles.clickable}`}
-                        onClick={() => handleOpenExtract('revenue')}
-                    >
+                    <div className={styles.summaryCard}>
                         <div className={styles.cardHeader}>
                             <span className={styles.cardIcon}>📈</span>
                         </div>
-                        <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(activeProfit)}</span>
+                        <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(activeRevenueValue - activeExpensesValue)}</span>
                         <span className={styles.cardLabel}>Lucro Líquido</span>
                     </div>
 
@@ -851,7 +808,7 @@ export default function FinanceiroPage() {
                         <div className={styles.cardHeader}>
                             <span className={styles.cardIcon}>⏳</span>
                         </div>
-                        <span className={styles.cardValue} style={{ color: '#f39c12' }}>{formatCurrency(pendingTotal)}</span>
+                        <span className={styles.cardValue} style={{ color: '#f39c12' }}>{formatCurrency(pendingTotalValue)}</span>
                         <span className={styles.cardLabel}>A Receber</span>
                     </div>
                 </div>
