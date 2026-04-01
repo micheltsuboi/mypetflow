@@ -14,30 +14,9 @@ export default async function LoginPage() {
     const host = headerStack.get('host') || ''
     const supabase = await createClient()
 
-    // Detectar subdomínio
-    let subdomain = ''
-    // Os hosts base onde a Landing Page sempre deve ser mostrada
-    const isRootHost =
-        host === 'localhost:3000' ||
-        host === '127.0.0.1:3000' ||
-        host === 'mypetflow.com.br' ||
-        host === 'www.mypetflow.com.br' ||
-        host.includes('vercel.app') && host.split('.').length === 3 // basic check for *.vercel.app
-
-    if (!isRootHost) {
-        subdomain = host.split('.')[0]
-    }
-
-    // Se estiver na raiz, renderiza a Landing Page (Institucional)
-    if (!subdomain || subdomain === 'www') {
-        return <LandingPage />
-    }
-
-    // --- NOVO: Redirecionamento Automático para usuários logados no subdomínio ---
-    // Se o usuário já tiver uma sessão válida, não mostramos o login, mandamos pro dashboard
+    // --- NOVO: Redirecionamento Automático para usuários logados ---
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-        // Buscar o perfil para saber para onde mandar
         const { data: profile } = await supabase
             .from('profiles')
             .select('role')
@@ -50,8 +29,29 @@ export default async function LoginPage() {
             else if (profile.role === 'staff') target = '/staff'
             else if (profile.role === 'superadmin') target = '/master-admin'
             
+            // Usar redirecionamento absoluto para evitar loop se for o mesmo path
+            const currentPath = host.includes(':') ? `http://${host}` : `https://${host}${target}`
+            // Mas redirect do next é relativo ou absoluto dependendo da versão
             redirect(target)
         }
+    }
+
+    // Detectar subdomínio
+    let subdomain = ''
+    const isRootHost =
+        host === 'localhost:3000' ||
+        host === '127.0.0.1:3000' ||
+        host === 'mypetflow.com.br' ||
+        host === 'www.mypetflow.com.br' ||
+        host.includes('vercel.app') && host.split('.').length === 3 
+
+    if (!isRootHost) {
+        subdomain = host.split('.')[0]
+    }
+
+    // Se estiver na raiz e NÃO estiver logado (já passou o check acima), renderiza a Landing Page
+    if (!subdomain || subdomain === 'www') {
+        return <LandingPage />
     }
 
     // A partir daqui, TEM subdomínio! Tratar página de Login do Inquilino SaaS

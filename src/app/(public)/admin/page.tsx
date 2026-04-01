@@ -1,19 +1,17 @@
 import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import styles from '@/app/page.module.css'
 import LoginForm from '@/components/modules/LoginForm'
+import { redirect } from 'next/navigation'
 
 export default async function AdminLoginPage() {
-    const headerStack = await headers()
-    const supabaseAdmin = createAdminClient()
+    const supabase = await createClient()
 
-    const { data: { user } } = await supabaseAdmin.auth.getUser(headerStack.get('cookie') || '')
+    const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-        const { data: profile } = await supabaseAdmin
+        const { data: profile } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
