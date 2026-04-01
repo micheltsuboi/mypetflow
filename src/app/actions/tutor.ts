@@ -41,53 +41,54 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
     const cpf_cnpj = formData.get('cpf_cnpj') as string
     const physical_file_number = formData.get('physical_file_number') as string
 
-    if (!name || !email || !password || !phone) {
-        return { message: 'Nome, Email, Senha e Telefone são obrigatórios.', success: false }
+    if (!name || !phone) {
+        return { message: 'Nome e Telefone são obrigatórios.', success: false }
     }
 
-    // 3. Create User with Admin Client
+    let authUserId: string | null = null;
     const supabaseAdmin = createAdminClient()
 
-    // Create Auth User
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true, // Auto confirm email for immediate login
-        user_metadata: { full_name: name, phone: phone }
-    })
-
-    if (createError) {
-        return { message: `Erro ao criar usuário: ${createError.message}`, success: false }
-    }
-
-    if (!newUser.user) {
-        return { message: 'Erro inesperado ao criar usuário via Admin API.', success: false }
-    }
-
-    // 4. Update Profile (created by trigger)
-    // We update role to 'customer' explicitly and add phone
-    const { error: profileError } = await supabaseAdmin
-        .from('profiles')
-        .update({
-            role: 'customer',
-            phone: phone,
-            full_name: name
+    // 3. Create User with Admin Client ONLY if email AND password are provided
+    if (email && password) {
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true, // Auto confirm email for immediate login
+            user_metadata: { full_name: name, phone: phone }
         })
-        .eq('id', newUser.user.id)
 
-    if (profileError) {
-        // Rollback user creation
-        await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
-        return { message: `Erro ao atualizar perfil do tutor: ${profileError.message}`, success: false }
+        if (createError) {
+            return { message: `Erro ao criar acesso do portal: ${createError.message}`, success: false }
+        }
+
+        if (newUser.user) {
+            authUserId = newUser.user.id
+
+            // 4. Update Profile (created by trigger)
+            const { error: profileError } = await supabaseAdmin
+                .from('profiles')
+                .update({
+                    role: 'customer',
+                    phone: phone,
+                    full_name: name
+                })
+                .eq('id', authUserId)
+
+            if (profileError) {
+                // Rollback user creation
+                await supabaseAdmin.auth.admin.deleteUser(authUserId)
+                return { message: `Erro ao inicializar perfil do tutor: ${profileError.message}`, success: false }
+            }
+        }
     }
 
     // 5. Create Customer Record
     // 5. Create Customer Record
     const customerData: Record<string, string | null> = {
-        user_id: newUser.user.id,
+        user_id: authUserId,
         org_id: profile.org_id,
         name: name,
-        email: email,
+        email: email || null,
         phone_1: phone,
         address: address || null,
         neighborhood: neighborhood || null,
@@ -106,8 +107,10 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
         .insert(customerData)
 
     if (customerError) {
-        // Rollback user creation (and profile update implicitly if rolled back user)
-        await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
+        // Rollback user creation if it was created
+        if (authUserId) {
+            await supabaseAdmin.auth.admin.deleteUser(authUserId)
+        }
         return { message: `Erro ao criar ficha do tutor: ${customerError.message}`, success: false }
     }
 
@@ -149,34 +152,46 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
 
     // 2. Handle Portal Access / Password
     if (password) {
+        // To create or update an Auth user, we need an email. 
+        // If not provided in form, use current email from record.
+        const effectiveEmail = email || currentTutor?.email
+
         if (!userId) {
-            // Create NEW Auth User for existing customer
-            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-                email,
-                password,
-                email_confirm: true,
-                user_metadata: { full_name: name, phone: phone }
-            })
+            if (effectiveEmail) {
+                // Create NEW Auth User for existing customer
+                const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                    email: effectiveEmail,
+                    password,
+                    email_confirm: true,
+                    user_metadata: { full_name: name, phone: phone }
+                })
 
-            if (createError) {
-                return { message: `Erro ao criar acesso: ${createError.message}`, success: false }
+                if (createError) {
+                    return { message: `Erro ao criar acesso: ${createError.message}`, success: false }
+                }
+
+                userId = newUser.user?.id
+
+                // Sync Profile
+                if (userId) {
+                    await supabaseAdmin.from('profiles').update({
+                        role: 'customer',
+                        phone: phone,
+                        full_name: name,
+                        org_id: (await supabase.from('profiles').select('org_id').eq('id', user.id).single()).data?.org_id
+                    }).eq('id', userId)
+                }
+            } else {
+                return { message: 'Para criar acesso ao portal, é necessário informar um e-mail.', success: false }
             }
-
-            userId = newUser.user?.id
-
-            // Sync Profile
-            await supabaseAdmin.from('profiles').update({
-                role: 'customer',
-                phone: phone,
-                full_name: name
-            }).eq('id', userId)
         } else {
             // Update existing user password
             const { error: pwdError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-                password: password
+                password: password,
+                email: email || undefined // Update email if provided
             })
             if (pwdError) {
-                return { message: `Erro ao atualizar senha: ${pwdError.message}`, success: false }
+                return { message: `Erro ao atualizar senha/acesso: ${pwdError.message}`, success: false }
             }
         }
     }

@@ -419,9 +419,9 @@ export default function TutorsPage() {
                                     </div>
 
                                     <div className={styles.formGroup}>
-                                        <label htmlFor="email" className={styles.label}>Email *</label>
+                                        <label htmlFor="email" className={styles.label}>Email (Opcional p/ Portal)</label>
                                         <input
-                                            id="email" name="email" type="email" className={styles.input} required
+                                            id="email" name="email" type="email" className={styles.input}
                                             placeholder="maria@email.com"
                                             value={email}
                                             onChange={e => setEmail(e.target.value)}
@@ -430,12 +430,11 @@ export default function TutorsPage() {
 
                                     <div className={styles.formGroup}>
                                         <label htmlFor="password" className={styles.label}>
-                                            {selectedTutor ? 'Alterar Senha de Acesso' : 'Senha de Acesso *'}
+                                            {selectedTutor ? 'Alterar Senha de Acesso' : 'Senha de Acesso (Opcional)'}
                                         </label>
                                         <input
                                             id="password" name="password" type="password" className={styles.input}
-                                            required={!selectedTutor}
-                                            placeholder={selectedTutor ? "Deixe em branco para não alterar" : "******"}
+                                            placeholder={selectedTutor ? "Deixe em branco para não alterar" : "****** (P/ portal do tutor)"}
                                             minLength={6}
                                         />
                                         {selectedTutor && !selectedTutor.user_id && (
