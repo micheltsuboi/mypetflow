@@ -50,12 +50,18 @@ export default function FinanceiroPage() {
         transactions: any[];
         pendingSales: any[];
         paidSales: any[];
+        pendingVets: any[];
+        pendingExams: any[];
+        pendingAdmissions: any[];
     }>({
         type: null,
         appointments: [],
         transactions: [],
         pendingSales: [],
-        paidSales: []
+        paidSales: [],
+        pendingVets: [],
+        pendingExams: [],
+        pendingAdmissions: []
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string }>>({})
@@ -95,7 +101,7 @@ export default function FinanceiroPage() {
             prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
             const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            const [apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse] = await Promise.all([
+            const [apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse, pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse] = await Promise.all([
                 supabase
                     .from('appointments')
                     .select(`
@@ -129,7 +135,22 @@ export default function FinanceiroPage() {
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', fetchStart)
-                    .order('created_at', { ascending: true })
+                    .order('created_at', { ascending: true }),
+                supabase
+                    .from('vet_consultations')
+                    .select('*, pets ( name, customers ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending'),
+                supabase
+                    .from('vet_exams')
+                    .select('*, pets ( name, customers ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending'),
+                supabase
+                    .from('hospital_admissions')
+                    .select('*, pets ( name, customers ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
             ])
 
             if (apptsResponse.error) throw apptsResponse.error
@@ -141,6 +162,9 @@ export default function FinanceiroPage() {
             const transactions = txsResponse.data || []
             const pendingSales = pendingSalesResponse.data || []
             const paidSales = paidSalesResponse.data || []
+            const pendingVets = pendingVetsResponse.data || []
+            const pendingExams = pendingExamsResponse.data || []
+            const pendingAdmissions = pendingAdmissionsResponse.data || []
 
             // --- Process Monthly Chart Data (Last 6 Months) ---
             const monthMap = new Map<string, MonthlyData>()
@@ -252,7 +276,10 @@ export default function FinanceiroPage() {
                 appointments: activeAppts,
                 transactions: activeTxs,
                 pendingSales,
-                paidSales: activePaidSales
+                paidSales: activePaidSales,
+                pendingVets,
+                pendingExams,
+                pendingAdmissions
             })
 
         } catch (error) {
@@ -578,6 +605,25 @@ export default function FinanceiroPage() {
         + extractRecords.pendingSales
             .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
             .reduce((sum, s) => sum + s.total_amount, 0)
+        + extractRecords.pendingVets
+            .filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária')
+            .reduce((sum, v) => {
+                let val = v.consultation_fee || 0;
+                if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
+                else val -= (v.discount_fixed || 0);
+                return sum + Math.max(0, val);
+            }, 0)
+        + extractRecords.pendingExams
+            .filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário')
+            .reduce((sum, e) => {
+                let val = e.price || 0;
+                if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
+                else val -= (e.discount_fixed || 0);
+                return sum + Math.max(0, val);
+            }, 0)
+        + extractRecords.pendingAdmissions
+            .filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital')
+            .reduce((sum, ad) => sum + (ad.total_amount || 0), 0)
 
     const revenueGrowth = previousMonthData.revenue > 0
         ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
@@ -955,28 +1001,6 @@ export default function FinanceiroPage() {
                                                     <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
                                                 </div>
                                                 <div className={styles.extractActions}>
-                                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginRight: '1rem' }}>
-                                                        {!nfMap[sale.id] ? (
-                                                            <button 
-                                                                style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                                                onClick={() => handleOpenNFe(sale)}
-                                                            >
-                                                                🧾 NFe
-                                                            </button>
-                                                        ) : (
-                                                            <>
-                                                                <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: nfMap[sale.id].status === 'autorizado' ? '#059669' : '#d97706', color: 'white', borderRadius: '3px' }}>
-                                                                    {nfMap[sale.id].status.toUpperCase()}
-                                                                </span>
-                                                                {nfMap[sale.id].pdf_url && (
-                                                                    <button onClick={() => window.open(nfMap[sale.id].pdf_url, '_blank')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📄</button>
-                                                                )}
-                                                                {nfMap[sale.id].status === 'autorizado' && (
-                                                                    <button onClick={() => handleSendWhatsApp(sale.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📲</button>
-                                                                )}
-                                                            </>
-                                                        )}
-                                                    </div>
                                                     <span className={styles.extractAmount}>
                                                         {formatCurrency(sale.total_amount)}
                                                     </span>
@@ -990,6 +1014,67 @@ export default function FinanceiroPage() {
                                             </div>
                                         )
                                     })}
+
+                                {/* Pending Vets */}
+                                {extractRecords.type === 'pending' && extractRecords.pendingVets
+                                    .filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária')
+                                    .map(v => {
+                                        let final = v.consultation_fee || 0;
+                                        if (v.discount_type === 'percent') final -= final * ((v.discount_percent || 0) / 100);
+                                        else final -= (v.discount_fixed || 0);
+                                        return (
+                                            <div key={v.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>{v.pets?.name || 'Pet'} • Consulta Vet</strong>
+                                                    <span>{new Date(v.consultation_date).toLocaleDateString('pt-BR')}</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount}>
+                                                        {formatCurrency(Math.max(0, final))}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+
+                                {/* Pending Exams */}
+                                {extractRecords.type === 'pending' && extractRecords.pendingExams
+                                    .filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário')
+                                    .map(e => {
+                                        let final = e.price || 0;
+                                        if (e.discount_type === 'percent') final -= final * ((e.discount_percent || 0) / 100);
+                                        else final -= (e.discount_fixed || 0);
+                                        return (
+                                            <div key={e.id} className={styles.extractItem}>
+                                                <div className={styles.extractInfo}>
+                                                    <strong>{e.pets?.name || 'Pet'} • Exame ({e.exam_type_name})</strong>
+                                                    <span>{new Date(e.exam_date).toLocaleDateString('pt-BR')}</span>
+                                                </div>
+                                                <div className={styles.extractActions}>
+                                                    <span className={styles.extractAmount}>
+                                                        {formatCurrency(Math.max(0, final))}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+
+                                {/* Pending Admissions */}
+                                {extractRecords.type === 'pending' && extractRecords.pendingAdmissions
+                                    .filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital')
+                                    .map(ad => (
+                                        <div key={ad.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>{ad.pets?.name || 'Pet'} • Internamento</strong>
+                                                <span>{new Date(ad.admitted_at).toLocaleDateString('pt-BR')}</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount}>
+                                                    {formatCurrency(ad.total_amount || 0)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
 
                                 {/* Paid Pet Shop Sales list (Revenue list) */}
                                 {extractRecords.type === 'revenue' && extractRecords.paidSales
