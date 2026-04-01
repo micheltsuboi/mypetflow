@@ -14,6 +14,7 @@ import {
     deletePricingRule
 } from '@/app/actions/service'
 import PlanGuard from '@/components/modules/PlanGuard'
+import { Trash2, Edit2, Check, X } from 'lucide-react'
 
 interface PricingRule {
     id: string
@@ -68,9 +69,12 @@ export default function ServicesPage() {
     // Checklist State
     const [checklistTemplate, setChecklistTemplate] = useState<string[]>([])
     const [newItemText, setNewItemText] = useState('')
+    const [editingChecklistIndex, setEditingChecklistIndex] = useState<number | null>(null)
+    const [editingChecklistText, setEditingChecklistText] = useState('')
 
     // Loading State
     const [ruleLoading, setRuleLoading] = useState(false)
+    const [editingRuleIndex, setEditingRuleIndex] = useState<number | null>(null)
 
     // Form Action States
     const [createState, createAction, isCreatePending] = useActionState(createService, initialState)
@@ -151,20 +155,32 @@ export default function ServicesPage() {
     const handleAddSchedulingRule = () => {
         if (!newRuleDay || newRuleSpecies.length === 0) return
         const day = parseInt(newRuleDay)
-        const existing = schedulingRules.findIndex(r => r.day === day)
-
+        
         const newRule = { day, species: newRuleSpecies }
-
         let updated = [...schedulingRules]
-        if (existing >= 0) {
-            updated[existing] = newRule
+
+        if (editingRuleIndex !== null) {
+            updated[editingRuleIndex] = newRule
+            setEditingRuleIndex(null)
         } else {
-            updated.push(newRule)
+            const existing = schedulingRules.findIndex(r => r.day === day)
+            if (existing >= 0) {
+                updated[existing] = newRule
+            } else {
+                updated.push(newRule)
+            }
         }
 
         setSchedulingRules(updated)
         setNewRuleDay('')
         setNewRuleSpecies([])
+    }
+
+    const handleEditSchedulingRule = (index: number) => {
+        const rule = schedulingRules[index]
+        setNewRuleDay(rule.day.toString())
+        setNewRuleSpecies(rule.species)
+        setEditingRuleIndex(index)
     }
 
     const handleRemoveSchedulingRule = (index: number) => {
@@ -178,8 +194,23 @@ export default function ServicesPage() {
         setNewItemText('')
     }
 
+    const handleEditChecklistItem = (index: number) => {
+        setEditingChecklistIndex(index)
+        setEditingChecklistText(checklistTemplate[index])
+    }
+
+    const handleSaveChecklistItem = (index: number) => {
+        if (!editingChecklistText.trim()) return
+        const updated = [...checklistTemplate]
+        updated[index] = editingChecklistText.trim()
+        setChecklistTemplate(updated)
+        setEditingChecklistIndex(null)
+        setEditingChecklistText('')
+    }
+
     const handleRemoveChecklistItem = (index: number) => {
         setChecklistTemplate(prev => prev.filter((_, i) => i !== index))
+        if (editingChecklistIndex === index) setEditingChecklistIndex(null)
     }
 
     // --- Pricing Rule Actions ---
@@ -367,9 +398,12 @@ export default function ServicesPage() {
                                     </div>
                                     <div className={styles.tagsContainer}>
                                         {schedulingRules.map((rule, idx) => (
-                                            <span key={idx} className={styles.tag}>
+                                            <span key={idx} className={`${styles.tag} ${editingRuleIndex === idx ? styles.activeTag : ''}`}>
                                                 {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][rule.day]}: {rule.species.map(s => s === 'dog' ? '🐶' : '🐱').join(', ')}
-                                                <button type="button" onClick={() => handleRemoveSchedulingRule(idx)}>&times;</button>
+                                                <div className={styles.tagActions}>
+                                                    <button type="button" onClick={() => handleEditSchedulingRule(idx)} className={styles.editBtnTag} title="Editar"><Edit2 size={12} /></button>
+                                                    <button type="button" onClick={() => handleRemoveSchedulingRule(idx)} className={styles.removeBtnTag} title="Excluir"><Trash2 size={12} /></button>
+                                                </div>
                                             </span>
                                         ))}
                                     </div>
@@ -392,8 +426,27 @@ export default function ServicesPage() {
                                     <ul className={styles.checklist}>
                                         {checklistTemplate.map((item, idx) => (
                                             <li key={idx}>
-                                                {idx + 1}. {item}
-                                                <button type="button" onClick={() => handleRemoveChecklistItem(idx)}>&times;</button>
+                                                {editingChecklistIndex === idx ? (
+                                                    <div className={styles.itemEditRow}>
+                                                        <input 
+                                                            className={styles.input} 
+                                                            value={editingChecklistText} 
+                                                            onChange={e => setEditingChecklistText(e.target.value)} 
+                                                            onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSaveChecklistItem(idx))}
+                                                            autoFocus
+                                                        />
+                                                        <button type="button" onClick={() => handleSaveChecklistItem(idx)} className={styles.saveBtnSmall} title="Salvar"><Check size={16} /></button>
+                                                        <button type="button" onClick={() => setEditingChecklistIndex(null)} className={styles.cancelBtnSmall} title="Cancelar"><X size={16} /></button>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span>{idx + 1}. {item}</span>
+                                                        <div className={styles.itemActions}>
+                                                            <button type="button" onClick={() => handleEditChecklistItem(idx)} className={styles.editBtnItem} title="Editar"><Edit2 size={16} /></button>
+                                                            <button type="button" onClick={() => handleRemoveChecklistItem(idx)} className={styles.removeBtnItem} title="Excluir"><Trash2 size={16} /></button>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </li>
                                         ))}
                                     </ul>
@@ -431,7 +484,7 @@ export default function ServicesPage() {
                                                     <td>{rule.size || '-'}</td>
                                                     <td>{rule.day_of_week !== null ? ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][rule.day_of_week] : '-'}</td>
                                                     <td>R$ {rule.fixed_price.toFixed(2)}</td>
-                                                    <td><button type="button" onClick={() => handleDeleteRule(rule.id)} className={styles.deleteBtnSmall}>🗑️</button></td>
+                                                    <td><button type="button" onClick={() => handleDeleteRule(rule.id)} className={styles.deleteBtnSmall} title="Excluir"><Trash2 size={16} /></button></td>
                                                 </tr>
                                             ))}
                                         </tbody>
