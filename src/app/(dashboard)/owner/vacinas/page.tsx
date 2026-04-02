@@ -140,7 +140,7 @@ export default function VacinasPage() {
                                 </div>
                             </div>
                             
-                            <p style={{ fontSize: '0.875rem', color: '#64748b', margin: '0.5rem 0' }}>
+                            <p className={styles.manufacturer} style={{ margin: '0.5rem 0' }}>
                                 {v.target_animals?.join(', ')}
                             </p>
 
@@ -159,7 +159,7 @@ export default function VacinasPage() {
                                 </div>
                                 
                                 {batchesMap[v.id]?.filter(b => b.quantity > 0).length === 0 ? (
-                                    <p style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                                    <p className={styles.emptyText} style={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
                                         Sem estoque disponível
                                     </p>
                                 ) : (
@@ -168,12 +168,12 @@ export default function VacinasPage() {
                                             <div className={styles.batchInfo}>
                                                 <span className={styles.batchNumber}>Lote: {b.batch_number}</span>
                                                 <span className={styles.batchExpiry}>
-                                                    Vence: {format(new Date(b.expiration_date), 'dd/MM/yyyy', { locale: ptBR })}
+                                                    Vence: {format(new Date(b.expiration_date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
                                                 </span>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
                                                 <div className={styles.batchQty}>Qtd: {b.quantity}</div>
-                                                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#059669' }}>
+                                                <div className={styles.priceTag}>
                                                     R$ {b.selling_price?.toFixed(2)}
                                                 </div>
                                             </div>
@@ -190,7 +190,7 @@ export default function VacinasPage() {
             {showVaccineModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
-                        <h2 style={{ marginBottom: '1.5rem' }}>{editingVaccine ? 'Editar Vacina' : 'Nova Vacina'}</h2>
+                        <h2 className={styles.title} style={{ marginBottom: '1.5rem', fontSize: '1.4rem' }}>{editingVaccine ? 'Editar Vacina' : 'Nova Vacina'}</h2>
                         <form onSubmit={handleSaveVaccine}>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Nome da Vacina</label>
@@ -224,7 +224,7 @@ export default function VacinasPage() {
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Espécies Alvo</label>
                                 <div style={{ display: 'flex', gap: '1rem' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                                         <input 
                                             type="checkbox" 
                                             name="target_animals" 
@@ -232,7 +232,7 @@ export default function VacinasPage() {
                                             defaultChecked={editingVaccine?.target_animals?.includes('Cão')} 
                                         /> Cão
                                     </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                                         <input 
                                             type="checkbox" 
                                             name="target_animals" 
@@ -255,8 +255,8 @@ export default function VacinasPage() {
             {showBatchModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
-                        <h2 style={{ marginBottom: '1rem' }}>Entrada de Lote (Estoque)</h2>
-                        <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '1.5rem' }}>
+                        <h2 className={styles.title} style={{ marginBottom: '0.5rem', fontSize: '1.4rem' }}>Entrada de Lote</h2>
+                        <p className={styles.batchExpiry} style={{ marginBottom: '1.5rem' }}>
                             A entrada de lote gerará automaticamente uma **despesa** no financeiro baseada no custo total.
                         </p>
                         <form onSubmit={handleSaveBatch}>
