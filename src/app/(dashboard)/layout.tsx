@@ -231,10 +231,14 @@ export default function DashboardLayout({
                 if (name === 'Petshop') return perms.includes('petshop')
                 if (name === 'Fidelidade') return perms.includes('cashback')
                 if (name === 'Serviços') return perms.includes('servicos')
-                if (name === 'Clínica Veterinária') return perms.includes('clinica_vet')
+                if (name === 'Clínica Veterinária' ||
+                    name === 'Veterinários' ||
+                    name === 'Cadastrar Veterinário' ||
+                    name === 'Consultas' ||
+                    name === 'Cadastro de Exames' ||
+                    name === 'Cadastrar Novo Exame') return perms.includes('clinica_vet')
                 if (name === 'Hospital') return perms.includes('hospital')
                 if (name === 'Questionário') return perms.includes('assessment')
-                if (name === 'Consultas') return perms.includes('clinica_vet')
                 if (name === 'Ponto') return perms.includes('ponto')
                 return false
             }
@@ -270,9 +274,13 @@ export default function DashboardLayout({
                     if (name === 'Fidelidade') return planFeat.includes('cashback')
                     if (name === 'Serviços') return planFeat.includes('servicos')
                     if (name === 'Pacotes') return planFeat.includes('pacotes')
-                    if (name === 'Clínica Veterinária') return planFeat.includes('clinica_vet')
+                    if (name === 'Clínica Veterinária' ||
+                        name === 'Veterinários' ||
+                        name === 'Cadastrar Veterinário' ||
+                        name === 'Consultas' ||
+                        name === 'Cadastro de Exames' ||
+                        name === 'Cadastrar Novo Exame') return planFeat.includes('clinica_vet')
                     if (name === 'Hospital') return planFeat.includes('hospital')
-                    if (name === 'Consultas') return planFeat.includes('clinica_vet')
                     if (name === 'Questionário') return planFeat.includes('assessment')
                     if (name === 'Ponto') return planFeat.includes('ponto')
                     if (name === 'Integrações') return true
