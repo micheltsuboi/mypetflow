@@ -11,13 +11,40 @@ export async function getExpenseCategories() {
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
     if (!profile?.org_id) return []
 
-    const { data } = await supabase
+    const { data: existing } = await supabase
         .from('expense_categories')
         .select('*')
         .eq('org_id', profile.org_id)
         .order('name', { ascending: true })
 
-    return data || []
+    if (existing && existing.length > 0) return existing
+
+    const defaultCategories = [
+        'Aluguel / Condomínio',
+        'Energia Elétrica',
+        'Água e Esgoto',
+        'Internet e Telefone',
+        'Salários e Encargos',
+        'Insumos e Produtos Pet',
+        'Impostos e Taxas',
+        'Marketing e Publicidade',
+        'Manutenção e Reparos',
+        'Limpeza e Higiene',
+        'Transporte / Combustível',
+        'Outros'
+    ]
+
+    const { data: inserted, error } = await supabase
+        .from('expense_categories')
+        .insert(defaultCategories.map(name => ({ org_id: profile.org_id, name })))
+        .select()
+
+    if (error) {
+        console.error('Erro ao semear categorias:', error)
+        return []
+    }
+
+    return inserted || []
 }
 
 export async function createExpenseCategory(name: string) {

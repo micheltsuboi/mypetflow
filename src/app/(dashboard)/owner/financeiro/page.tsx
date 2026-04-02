@@ -13,7 +13,7 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { NotaFiscalTipo, NotaFiscalOrigem } from '@/types/database'
-import { Search, Filter, Download, XCircle, FileText, ExternalLink, Send, Trash2, ChevronRight, FileCode, DollarSign, Wallet, CreditCard, Banknote, Plus, Calendar, Repeat } from 'lucide-react'
+import { Search, Filter, Download, XCircle, FileText, List, Plus, Trash2, Send, FileCode, DollarSign, Wallet, CreditCard, Banknote, Calendar, Repeat, PlusCircle, Tag, ExternalLink, ChevronRight } from 'lucide-react'
 import CancelamentoNFModal from '@/components/CancelamentoNFModal'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
 import {
@@ -487,7 +487,7 @@ export default function FinanceiroPage() {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'notas_fiscais' },
-                (payload) => {
+                (payload: any) => {
                     const newNf = payload.new as any
                     if (newNf && newNf.origem_id) {
                         setNfMap(prev => ({
@@ -990,33 +990,42 @@ export default function FinanceiroPage() {
                     <div className={styles.modalOverlay}>
                         <div className={styles.modalContent}>
                             <div className={styles.modalHeader}>
-                                <h2>➕ Nova Despesa</h2>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <PlusCircle size={24} color="var(--color-primary)" /> Nova Despesa
+                                </h2>
                                 <button onClick={() => setIsExpenseModalOpen(false)} className={styles.closeBtn}><XCircle /></button>
                             </div>
                             <form onSubmit={handleCreateExpense} className={styles.expenseForm}>
                                 <div className={styles.formGroup}>
-                                    <label>Descrição</label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <FileText size={16} /> Descrição
+                                    </label>
                                     <input 
                                         type="text" 
                                         required 
                                         value={expenseForm.description}
                                         onChange={e => setExpenseForm({...expenseForm, description: e.target.value})}
-                                        placeholder="Ex: Aluguel, Luz..."
+                                        placeholder="Ex: Aluguel, Luz, Fornecedor X..."
                                     />
                                 </div>
                                 <div className={styles.formGrid}>
                                     <div className={styles.formGroup}>
-                                        <label>Valor</label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <DollarSign size={16} /> Valor
+                                        </label>
                                         <input 
                                             type="number" 
                                             step="0.01" 
                                             required
                                             value={expenseForm.amount}
                                             onChange={e => setExpenseForm({...expenseForm, amount: parseFloat(e.target.value)})}
+                                            placeholder="0,00"
                                         />
                                     </div>
                                     <div className={styles.formGroup}>
-                                        <label>Data</label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Calendar size={16} /> Data
+                                        </label>
                                         <input 
                                             type="date" 
                                             required
@@ -1027,7 +1036,9 @@ export default function FinanceiroPage() {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                        <label>Categoria</label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Tag size={16} /> Categoria
+                                        </label>
                                         <button 
                                             type="button" 
                                             onClick={() => setIsCategoryModalOpen(true)}
@@ -1048,7 +1059,7 @@ export default function FinanceiroPage() {
                                             })
                                         }}
                                     >
-                                        <option value="">Selecione uma categoria</option>
+                                        <option value="">Selecione uma categoria...</option>
                                         {expenseCategories.map(cat => (
                                             <option key={cat.id} value={cat.id}>{cat.name}</option>
                                         ))}
@@ -1061,7 +1072,9 @@ export default function FinanceiroPage() {
                                             checked={expenseForm.is_recurring}
                                             onChange={e => setExpenseForm({...expenseForm, is_recurring: e.target.checked})}
                                         />
-                                        <span>Esta é uma despesa fixa (mensal)</span>
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Repeat size={16} /> Esta é uma despesa fixa (recorrente mensal)
+                                        </span>
                                     </label>
                                 </div>
                                 <div className={styles.modalActions}>
@@ -1076,12 +1089,14 @@ export default function FinanceiroPage() {
                 {/* MODAL NOVA CATEGORIA */}
                 {isCategoryModalOpen && (
                     <div className={styles.modalOverlay} style={{ zIndex: 1100 }}>
-                        <div className={styles.modalContent} style={{ maxWidth: '400px' }}>
+                        <div className={styles.modalContent} style={{ maxWidth: '450px' }}>
                             <div className={styles.modalHeader}>
-                                <h2>🏷️ Nova Categoria</h2>
+                                <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <Tag size={24} color="var(--color-primary)" /> Nova Categoria
+                                </h2>
                                 <button onClick={() => setIsCategoryModalOpen(false)} className={styles.closeBtn}><XCircle /></button>
                             </div>
-                            <form onSubmit={handleCreateCategory}>
+                            <form onSubmit={handleCreateCategory} className={styles.expenseForm}>
                                 <div className={styles.formGroup}>
                                     <label>Nome da Categoria</label>
                                     <input 
@@ -1090,12 +1105,12 @@ export default function FinanceiroPage() {
                                         autoFocus
                                         value={newCategoryName}
                                         onChange={e => setNewCategoryName(e.target.value)}
-                                        placeholder="Ex: Impostos, Salários..."
+                                        placeholder="Ex: Impostos, Salários, Aluguel..."
                                     />
                                 </div>
                                 <div className={styles.modalActions}>
                                     <button type="button" onClick={() => setIsCategoryModalOpen(false)} className={styles.cancelBtn}>Cancelar</button>
-                                    <button type="submit" className={styles.confirmBtn}>Criar</button>
+                                    <button type="submit" className={styles.confirmBtn}>Criar Categoria</button>
                                 </div>
                             </form>
                         </div>
