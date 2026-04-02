@@ -14,10 +14,11 @@ ADD COLUMN IF NOT EXISTS applied_by UUID REFERENCES public.profiles(id) ON DELET
 ALTER TABLE public.pet_vaccines 
 ADD COLUMN IF NOT EXISTS org_id UUID REFERENCES public.organizations(id) ON DELETE CASCADE;
 
--- Atualizar org_id das vacinas existentes (baseado nos pets)
+-- Atualizar org_id das vacinas existentes (baseado nos pets -> clientes)
 UPDATE public.pet_vaccines pv
-SET org_id = p.org_id
+SET org_id = c.org_id
 FROM public.pets p
+JOIN public.customers c ON p.customer_id = c.id
 WHERE pv.pet_id = p.id AND pv.org_id IS NULL;
 
 -- Garantir que vaccine_batches tenha campos para financeiro se não existirem
