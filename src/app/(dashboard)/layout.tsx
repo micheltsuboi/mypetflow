@@ -235,6 +235,7 @@ export default function DashboardLayout({
                 if (name === 'Hospital') return perms.includes('hospital')
                 if (name === 'Questionário') return perms.includes('assessment')
                 if (name === 'Ponto') return perms.includes('ponto')
+                if (name === 'Vacinas') return perms.includes('pets') || perms.includes('petshop') || perms.includes('clinica_vet')
                 return false
             }
 
@@ -278,6 +279,7 @@ export default function DashboardLayout({
                     if (name === 'Ponto') return planFeat.includes('ponto')
                     if (name === 'Integrações') return true
                     if (name === 'Notas Fiscais') return planFeat.includes('nota_fiscal')
+                    if (name === 'Vacinas') return planFeat.includes('pets') || planFeat.includes('petshop') || planFeat.includes('clinica_vet')
                     return false;
                 }
 
