@@ -34,6 +34,13 @@ import {
     deleteVetExam,
     updateExamPayment
 } from '@/app/actions/veterinary'
+import { 
+    getPetVaccinations, 
+    applyVaccine, 
+    deletePetVaccination, 
+    getVaccines as getVaccineCatalog,
+    getVaccineBatches
+} from '@/app/actions/vaccine'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
@@ -61,6 +68,8 @@ import {
     DownloadCloud
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 import { useDebounce } from '@/hooks/useDebounce'
 import TutorSearchSelect from '@/components/ui/TutorSearchSelect'
@@ -139,6 +148,8 @@ function PetsContent() {
     const [activeAdmission, setActiveAdmission] = useState<any | null>(null)
     const [admissionMeds, setAdmissionMeds] = useState<any[]>([])
     const [petAssessment, setPetAssessment] = useState<any>(null)
+    const [petVaccinations, setPetVaccinations] = useState<any[]>([])
+    const [vaccineCatalog, setVaccineCatalog] = useState<any[]>([])
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
@@ -209,6 +220,10 @@ function PetsContent() {
             if (key === 'exams') {
                 getVetExams(selectedPet.id).then(setPetExams)
                 getVetExamTypes().then(setExamTypes)
+            }
+            if (key === 'vaccines') {
+                getPetVaccinations(selectedPet.id).then(setPetVaccinations)
+                getVaccineCatalog().then(setVaccineCatalog)
             }
         }
     }
@@ -597,6 +612,123 @@ function PetsContent() {
                                                 <button type="submit" className={styles.submitButton}>{selectedPet ? 'Salvar' : 'Cadastrar'}</button>
                                             </div>
                                         </form>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* CARTEIRA DE VACINAÇÃO */}
+                            <div className={styles.accordionItem}>
+                                <button type="button" onClick={() => toggleAccordion('vaccines')} className={styles.accordionHeader}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <Syringe size={18} color="var(--primary)" />
+                                        <span>Carteira de Vacinação</span>
+                                    </div>
+                                    <span>{accordions.vaccines ? '−' : '+'}</span>
+                                </button>
+                                {accordions.vaccines && (
+                                    <div className={styles.accordionContent}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                            <h4 style={{ margin: 0 }}>Histórico de Vacinas</h4>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button 
+                                                    className={styles.actionBtn}
+                                                    onClick={() => {
+                                                        const name = prompt('Nome da Vacina (Registro Manual):')
+                                                        if (!name) return
+                                                        const batch = prompt('Lote (Opcional):')
+                                                        const date = prompt('Data de Aplicação (AAAA-MM-DD):', new Date().toISOString().split('T')[0])
+                                                        const expiry = prompt('Data de Vencimento / Revacinação (AAAA-MM-DD):')
+                                                        if (!expiry) return alert('Data de vencimento é obrigatória.')
+
+                                                        startTransition(async () => {
+                                                            const res = await applyVaccine({
+                                                                pet_id: selectedPet?.id,
+                                                                is_manual: true,
+                                                                manual_name: name,
+                                                                manual_batch: batch || '',
+                                                                application_date: date,
+                                                                expiry_date: expiry
+                                                            })
+                                                            if (res.success) {
+                                                                getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                            } else alert(res.message)
+                                                        })
+                                                    }}
+                                                    style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+                                                >
+                                                    Manual
+                                                </button>
+                                                <button 
+                                                    className={styles.submitButton}
+                                                    onClick={async () => {
+                                                        // This would ideally open a small modal, but for speed let's use a dynamic select flow if possible or just a simple alert for now.
+                                                        // Let's improve this: show a simple "Applying" state or similar.
+                                                        const vId = prompt('Escolha a Vacina do Catálogo (ID):\n' + vaccineCatalog.map(v => `${v.id}: ${v.name}`).join('\n'))
+                                                        if (!vId) return
+
+                                                        const batches = await getVaccineBatches(vId)
+                                                        const bId = prompt('Escolha o Lote com estoque:\n' + batches.filter(b => b.quantity > 0).map(b => `${b.id}: Lote ${b.batch_number} (${b.quantity} un)`).join('\n'))
+                                                        if (!bId) return
+
+                                                        const expiry = prompt('Data de Vencimento / Próxima Dose (AAAA-MM-DD):')
+                                                        if (!expiry) return
+                                                        
+                                                        const method = prompt('Forma de Pagamento (cash, pix, credit, debit):', 'cash')
+
+                                                        startTransition(async () => {
+                                                            const res = await applyVaccine({
+                                                                pet_id: selectedPet?.id,
+                                                                vaccine_id: vId,
+                                                                vaccine_batch_id: bId,
+                                                                application_date: new Date().toISOString(),
+                                                                expiry_date: expiry,
+                                                                payment_method: method
+                                                            })
+                                                            if (res.success) {
+                                                                getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                                alert('Vacina aplicada e estoque/financeiro atualizados!')
+                                                            } else alert(res.message)
+                                                        })
+                                                    }}
+                                                    style={{ fontSize: '0.75rem', padding: '4px 12px' }}
+                                                >
+                                                    + Aplicar Vacina
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {petVaccinations.length === 0 ? (
+                                            <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.875rem', padding: '1rem' }}>
+                                                Nenhum registro de vacina encontrado.
+                                            </p>
+                                        ) : (
+                                            <div style={{ display: 'grid', gap: '8px' }}>
+                                                {petVaccinations.map(v => (
+                                                    <div key={v.id} style={{ background: 'rgba(255,255,255,0.5)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{v.name}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                                Lote: {v.batch_number || 'N/A'} • {v.application_date ? `Aplicada em: ${format(new Date(v.application_date + 'T12:00:00'), 'dd/MM/yyyy')}` : 'Registro manual'}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: new Date(v.expiry_date) < new Date() ? '#ef4444' : '#10b981' }}>
+                                                                Vencimento: {format(new Date(v.expiry_date + 'T12:00:00'), 'dd/MM/yyyy')}
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={async () => {
+                                                                if(confirm('Excluir este registro?')) {
+                                                                    const res = await deletePetVaccination(v.id)
+                                                                    if(res.success) getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                                }
+                                                            }}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

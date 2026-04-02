@@ -71,6 +71,7 @@ export default function DashboardLayout({
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
+        { name: 'Vacinas', href: '/owner/vacinas', icon: '💉' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
         {
             name: 'Clínica Veterinária',
