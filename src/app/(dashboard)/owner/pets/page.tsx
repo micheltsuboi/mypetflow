@@ -378,8 +378,11 @@ function PetsContent() {
         doc.setFontSize(7)
         doc.text(`Gerado em: ${new Date().toLocaleString()}`, margin, topSectionHeight - 2)
 
-        // Save
-        doc.save(`Ficha_Pet_${pet.name.replace(/\s+/g, '_')}.pdf`)
+        // Print / Auto-open print dialog
+        doc.autoPrint()
+        const pdfBlob = doc.output('blob')
+        const url = URL.createObjectURL(pdfBlob)
+        window.open(url, '_blank')
     }
 
     const handleDelete = async () => {
