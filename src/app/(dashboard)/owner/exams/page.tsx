@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import { VetExamType } from '@/types/database'
 import {
@@ -9,8 +8,6 @@ import {
 } from '@/app/actions/veterinary'
 
 function ExamsContent() {
-    const searchParams = useSearchParams()
-    const action = searchParams.get('action')
     const [examTypes, setExamTypes] = useState<VetExamType[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
@@ -38,9 +35,7 @@ function ExamsContent() {
         fetchData()
     }, [fetchData])
 
-    useEffect(() => {
-        if (action === 'new-exam') setIsExamModalOpen(true)
-    }, [action])
+
 
     const handleSaveExamType = async (e: React.FormEvent) => {
         e.preventDefault()

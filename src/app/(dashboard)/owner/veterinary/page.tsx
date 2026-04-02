@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import { Veterinarian } from '@/types/database'
 import {
@@ -9,8 +8,6 @@ import {
 } from '@/app/actions/veterinary'
 
 function VeterinaryContent() {
-    const searchParams = useSearchParams()
-    const action = searchParams.get('action')
     const [vets, setVets] = useState<Veterinarian[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
@@ -39,9 +36,7 @@ function VeterinaryContent() {
         fetchData()
     }, [fetchData])
 
-    useEffect(() => {
-        if (action === 'new-vet') setIsVetModalOpen(true)
-    }, [action])
+
 
     const handleSaveVet = async (e: React.FormEvent) => {
         e.preventDefault()
