@@ -506,6 +506,12 @@ export interface FiscalConfig {
     certificado_base64: string | null
     senha_certificado: string | null
     certificado_valido_ate: string | null
+    resp_tecnico_cnpj: string | null
+    resp_tecnico_contato: string | null
+    resp_tecnico_email: string | null
+    resp_tecnico_telefone: string | null
+    resp_tecnico_id_csrt: string | null
+    resp_tecnico_hash_csrt: string | null
     ativo: boolean
     created_at: string
     updated_at: string

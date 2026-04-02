@@ -84,6 +84,12 @@ export async function POST(req: NextRequest) {
             certificado_base64,
             senha_certificado,
             certificado_valido_ate,
+            resp_tecnico_cnpj: body.resp_tecnico_cnpj,
+            resp_tecnico_contato: body.resp_tecnico_contato,
+            resp_tecnico_email: body.resp_tecnico_email,
+            resp_tecnico_telefone: body.resp_tecnico_telefone,
+            resp_tecnico_id_csrt: body.resp_tecnico_id_csrt,
+            resp_tecnico_hash_csrt: body.resp_tecnico_hash_csrt,
             ativo: true
         }
 

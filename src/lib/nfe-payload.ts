@@ -84,7 +84,15 @@ export function buildNFePayload({ config, ref_uuid, total_amount, tutor, items }
         valor_total: totalFormatado,
         valor_produtos: totalFormatado,
         modalidade_frete: 9, // Sem frete
-        items: formattedItems
+        items: formattedItems,
+
+        // --- Responsável Técnico (Obrigatório em PR, AM, MS, PE, SC, etc.) ---
+        cnpj_responsavel_tecnico: config.resp_tecnico_cnpj?.replace(/\D/g, ''),
+        contato_responsavel_tecnico: config.resp_tecnico_contato,
+        email_responsavel_tecnico: config.resp_tecnico_email,
+        telefone_responsavel_tecnico: config.resp_tecnico_telefone?.replace(/\D/g, ''),
+        id_csrt: config.resp_tecnico_id_csrt,
+        // hash_csrt: config.resp_tecnico_hash_csrt // Focus calcula auto se enviado a chave
     };
 
     if (numTutorCpf && tutor) {

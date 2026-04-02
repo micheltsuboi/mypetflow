@@ -36,6 +36,12 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
         ambiente: initialConfig?.ambiente || 'homologacao',
         certificado_base64: initialConfig?.certificado_base64 || '',
         senha_certificado: initialConfig?.senha_certificado || '',
+        // Responsável Técnico
+        resp_tecnico_cnpj: initialConfig?.resp_tecnico_cnpj || '',
+        resp_tecnico_contato: initialConfig?.resp_tecnico_contato || '',
+        resp_tecnico_email: initialConfig?.resp_tecnico_email || '',
+        resp_tecnico_telefone: initialConfig?.resp_tecnico_telefone || '',
+        resp_tecnico_id_csrt: initialConfig?.resp_tecnico_id_csrt || '',
         dry_run: false
     })
 
@@ -93,6 +99,12 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
                 habilita_nfe: formData.habilita_nfe,
                 certificado_base64: formData.certificado_base64, // Guardar tbm pra gente
                 senha_certificado: formData.senha_certificado,
+                // Responsável Técnico
+                resp_tecnico_cnpj: formData.resp_tecnico_cnpj,
+                resp_tecnico_contato: formData.resp_tecnico_contato,
+                resp_tecnico_email: formData.resp_tecnico_email,
+                resp_tecnico_telefone: formData.resp_tecnico_telefone,
+                resp_tecnico_id_csrt: formData.resp_tecnico_id_csrt,
                 dry_run: formData.dry_run
             }
 
@@ -229,6 +241,33 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
                                 <div className={styles.formGroup}>
                                     <label>Número</label>
                                     <input className={styles.input} name="numero" value={formData.numero} onChange={handleChange} />
+                                </div>
+                            </div>
+
+                            <h3 className={styles.sectionTitle}>Responsável Técnico (Obrigatório PR/AM/SC)</h3>
+                            <p className={styles.subtitle} style={{ marginBottom: '1rem' }}>
+                                Informe os dados da Software House (desenvolvedora do sistema) cadastrada na SEFAZ.
+                            </p>
+                            <div className={styles.formGrid}>
+                                <div className={styles.formGroup}>
+                                    <label>CNPJ Responsável</label>
+                                    <input className={styles.input} name="resp_tecnico_cnpj" value={formData.resp_tecnico_cnpj} onChange={handleChange} placeholder="CNPJ da Software House" />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Nome do Contato</label>
+                                    <input className={styles.input} name="resp_tecnico_contato" value={formData.resp_tecnico_contato} onChange={handleChange} placeholder="Ex: Suporte MyPet Flow" />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Email do Contato</label>
+                                    <input className={styles.input} name="resp_tecnico_email" value={formData.resp_tecnico_email} onChange={handleChange} placeholder="email@softwarehouse.com" />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Telefone do Contato</label>
+                                    <input className={styles.input} name="resp_tecnico_telefone" value={formData.resp_tecnico_telefone} onChange={handleChange} placeholder="(00) 00000-0000" />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>ID CSRT (Opcional)</label>
+                                    <input className={styles.input} name="resp_tecnico_id_csrt" value={formData.resp_tecnico_id_csrt} onChange={handleChange} placeholder="Identificador CSRT" />
                                 </div>
                             </div>
                             
