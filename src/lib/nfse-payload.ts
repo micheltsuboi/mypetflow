@@ -189,7 +189,11 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     // PADRÃO TRADICIONAL FOCUS NFE — Endpoint /v2/nfse
     // Para municípios que NÃO usam o padrão Nacional (SPED)
     // ================================================================
-    const agora = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    // Para o padrão tradicional, muitas prefeituras não aceitam o sufixo "Z" (UTC)
+    // e interpretam a hora como local. Se enviarmos UTC, elas acham que é 3h no futuro.
+    const d = new Date(Date.now() - (3 * 60 * 60 * 1000) - (15 * 60 * 1000)); // Brasília - 15 min
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const agora = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     const valorIss = ((servico.valor || 0) * ((config.aliquota_iss || 2) / 100)).toFixed(2);
 
     // Helper para limpeza de códigos IBGE
