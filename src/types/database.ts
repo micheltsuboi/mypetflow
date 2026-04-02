@@ -398,6 +398,34 @@ export interface ProductFormData {
     cfop?: string
 }
 
+export interface ExpenseCategory {
+    id: string
+    org_id: string
+    name: string
+    created_at: string
+    updated_at: string
+}
+
+export interface RecurringExpense {
+    id: string
+    org_id: string
+    category_id: string | null
+    category_name: string | null
+    description: string
+    amount: number
+    start_date: string
+    is_active: boolean
+    created_at: string
+    updated_at: string
+}
+
+export interface RecurringExpenseException {
+    id: string
+    recurring_expense_id: string
+    month_year: string
+    created_at: string
+}
+
 // =====================================================
 // Veterinary Module Types
 // =====================================================

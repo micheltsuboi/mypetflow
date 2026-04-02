@@ -13,9 +13,14 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { NotaFiscalTipo, NotaFiscalOrigem } from '@/types/database'
-import { Search, Filter, Download, XCircle, FileText, ExternalLink, Send, Trash2, ChevronRight, FileCode, DollarSign, Wallet, CreditCard, Banknote } from 'lucide-react'
+import { Search, Filter, Download, XCircle, FileText, ExternalLink, Send, Trash2, ChevronRight, FileCode, DollarSign, Wallet, CreditCard, Banknote, Plus, Calendar, Repeat } from 'lucide-react'
 import CancelamentoNFModal from '@/components/CancelamentoNFModal'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
+import {
+    getExpenseCategories, createExpenseCategory, createExpense,
+    getRecurringExpenses, getRecurringExceptions, cancelRecurringExpenseForMonth, deleteRecurringExpense
+} from '@/app/actions/finance'
+import { ExpenseCategory, RecurringExpense, RecurringExpenseException } from '@/types/database'
 
 interface MonthlyData {
     month: string
@@ -89,6 +94,22 @@ export default function FinanceiroPage() {
         baseAmount: number
     } | null>(null)
 
+    // Expense Management
+    const [recurringExpenses, setRecurringExpenses] = useState<RecurringExpense[]>([])
+    const [recurringExceptions, setRecurringExceptions] = useState<RecurringExpenseException[]>([])
+    const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([])
+    const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false)
+    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+    const [newCategoryName, setNewCategoryName] = useState('')
+    const [expenseForm, setExpenseForm] = useState({
+        description: '',
+        amount: 0,
+        category_id: '',
+        category_name: '',
+        date: new Date().toISOString().split('T')[0],
+        is_recurring: false
+    })
+
     const fetchFinancials = useCallback(async () => {
         try {
             setLoading(true)
@@ -115,7 +136,14 @@ export default function FinanceiroPage() {
             prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
             const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            const [apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse, pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse, allPendingApptsResponse] = await Promise.all([
+            const [
+                apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse,
+                pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse,
+                allPendingApptsResponse,
+                catsData,
+                recExps,
+                recExcs
+            ] = await Promise.all([
                 supabase
                     .from('appointments')
                     .select(`
@@ -173,7 +201,10 @@ export default function FinanceiroPage() {
                         services ( name, service_categories ( name ) )
                     `)
                     .eq('org_id', profile.org_id)
-                    .or('payment_status.neq.paid,payment_status.is.null')
+                    .or('payment_status.neq.paid,payment_status.is.null'),
+                getExpenseCategories(),
+                getRecurringExpenses() as Promise<RecurringExpense[]>,
+                getRecurringExceptions() as Promise<RecurringExpenseException[]>
             ])
 
             if (apptsResponse.error) throw apptsResponse.error
@@ -190,13 +221,21 @@ export default function FinanceiroPage() {
             const pendingAdmissions = pendingAdmissionsResponse.data || []
             const allPendingAppts = allPendingApptsResponse?.data || []
 
+            setExpenseCategories(catsData)
+            setRecurringExpenses(recExps)
+            setRecurringExceptions(recExcs)
+
             // --- Process Monthly Chart Data (Last 6 Months) ---
             const monthMap = new Map<string, MonthlyData>()
+            const chartMonths: { key: string, date: Date, monthYear: string }[] = []
+
             for (let i = 0; i < 6; i++) {
                 const d = new Date(sixMonthsAgo)
                 d.setMonth(d.getMonth() + i)
                 const monthKey = d.toLocaleString('pt-BR', { month: 'short' })
+                const monthYear = `${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getFullYear()}`
                 monthMap.set(monthKey, { month: monthKey, revenue: 0, expenses: 0, profit: 0 })
+                chartMonths.push({ key: monthKey, date: new Date(d.getFullYear(), d.getMonth(), 1), monthYear })
             }
 
             // Add Appointments to Chart
@@ -218,6 +257,25 @@ export default function FinanceiroPage() {
                 if (data) {
                     if (t.type === 'income') data.revenue += t.amount
                     else data.expenses += t.amount
+                    data.profit = data.revenue - data.expenses
+                }
+            })
+
+            // Add Recurring Expenses to Chart
+            chartMonths.forEach(m => {
+                let monthlyRecExpenses = 0
+                recExps.forEach(re => {
+                    const reStartDate = new Date(re.start_date)
+                    if (reStartDate <= new Date(m.date.getFullYear(), m.date.getMonth() + 1, 0)) {
+                        const hasException = recExcs.some(ex => ex.recurring_expense_id === re.id && ex.month_year === m.monthYear)
+                        if (!hasException) {
+                            monthlyRecExpenses += Number(re.amount)
+                        }
+                    }
+                })
+                const data = monthMap.get(m.key)
+                if (data) {
+                    data.expenses += monthlyRecExpenses
                     data.profit = data.revenue - data.expenses
                 }
             })
@@ -297,10 +355,45 @@ export default function FinanceiroPage() {
 
             // --- Process Summary Totals ---
             const activeRevenue = totalRev + activePaidSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
-            const activeExpenses = activeTxs
-                .filter((t: any) => t.type === 'expense')
-                .reduce((sum: number, t: any) => sum + t.amount, 0)
+            let activeExpenses = activeTxs.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + t.amount, 0)
             
+            // Sum Recurring Expenses for current period
+            const start = new Date(startDate)
+            const end = new Date(endDate)
+            const periodMonths: { monthYear: string, date: Date }[] = []
+            let curr = new Date(start.getFullYear(), start.getMonth(), 1)
+            while (curr <= end) {
+                periodMonths.push({ 
+                    monthYear: `${(curr.getMonth() + 1).toString().padStart(2, '0')}-${curr.getFullYear()}`,
+                    date: new Date(curr)
+                })
+                curr.setMonth(curr.getMonth() + 1)
+            }
+
+            const simulatedRecurringTxs: any[] = []
+            recExps.forEach(re => {
+                periodMonths.forEach(pm => {
+                    const reStartDate = new Date(re.start_date)
+                    if (reStartDate <= new Date(pm.date.getFullYear(), pm.date.getMonth() + 1, 0)) {
+                        const hasEx = recExcs.some(ex => ex.recurring_expense_id === re.id && ex.month_year === pm.monthYear)
+                        if (!hasEx) {
+                            activeExpenses += Number(re.amount)
+                            simulatedRecurringTxs.push({
+                                id: `${re.id}-${pm.monthYear}`,
+                                recurring_id: re.id,
+                                description: re.description,
+                                amount: Number(re.amount),
+                                category: (re as any).expense_categories?.name || re.category_name || 'Despesa Fixa',
+                                date: pm.date.toISOString(),
+                                type: 'expense',
+                                is_recurring: true,
+                                monthYear: pm.monthYear
+                            })
+                        }
+                    }
+                })
+            })
+
             // Garantir que pTotal inclua ABSOLUTAMENTE tudo que não está pago
             const pTotal = 
                   allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
@@ -326,7 +419,7 @@ export default function FinanceiroPage() {
             setExtractRecords({
                 type: null,
                 appointments: activeAppts,
-                transactions: activeTxs,
+                transactions: [...activeTxs, ...simulatedRecurringTxs],
                 pendingSales,
                 paidSales: activePaidSales,
                 pendingVets,
@@ -418,6 +511,67 @@ export default function FinanceiroPage() {
     const handleOpenExtract = (type: 'revenue' | 'expenses' | 'pending') => {
         setExtractRecords(prev => ({ ...prev, type }))
         setIsExtractModalOpen(true)
+    }
+
+    const handleCreateCategory = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!newCategoryName.trim()) return
+
+        const res = await createExpenseCategory(newCategoryName)
+        if (res.success) {
+            setNewCategoryName('')
+            setIsCategoryModalOpen(false)
+            fetchFinancials()
+        } else {
+            alert('Erro ao criar categoria: ' + res.message)
+        }
+    }
+
+    const handleCreateExpense = async (e: React.FormEvent) => {
+        e.preventDefault()
+        const formData = new FormData()
+        formData.append('description', expenseForm.description)
+        formData.append('amount', expenseForm.amount.toString())
+        formData.append('category_id', expenseForm.category_id)
+        formData.append('category_name', expenseForm.category_name)
+        formData.append('date', expenseForm.date)
+        formData.append('is_recurring', expenseForm.is_recurring.toString())
+
+        const res = await createExpense(formData)
+        if (res.success) {
+            setIsExpenseModalOpen(false)
+            setExpenseForm({
+                description: '',
+                amount: 0,
+                category_id: '',
+                category_name: '',
+                date: new Date().toISOString().split('T')[0],
+                is_recurring: false
+            })
+            fetchFinancials()
+        } else {
+            alert('Erro ao criar despesa: ' + res.message)
+        }
+    }
+
+    const handleSkipRecurringForMonth = async (recurringId: string, monthYear: string) => {
+        if (!confirm('Pular esta despesa apenas este mês?')) return
+        const res = await cancelRecurringExpenseForMonth(recurringId, monthYear)
+        if (res.success) {
+            fetchFinancials()
+        } else {
+            alert('Erro ao pular despesa: ' + res.message)
+        }
+    }
+
+    const handleDeleteRecurringPermanent = async (recurringId: string) => {
+        if (!confirm('Excluir esta despesa permanentemente de todos os meses?')) return
+        const res = await deleteRecurringExpense(recurringId)
+        if (res.success) {
+            fetchFinancials()
+        } else {
+            alert('Erro ao excluir despesa: ' + res.message)
+        }
     }
 
     const handleOpenPaymentModal = (
@@ -792,15 +946,23 @@ export default function FinanceiroPage() {
                         <span className={styles.cardLabel}>Faturamento</span>
                     </div>
 
-                    <div
-                        className={`${styles.summaryCard} ${styles.clickable}`}
-                        onClick={() => handleOpenExtract('expenses')}
-                    >
-                        <div className={styles.cardHeader}>
+                    <div className={`${styles.summaryCard} ${styles.clickable}`}>
+                        <div className={styles.cardHeader} onClick={() => handleOpenExtract('expenses')}>
                             <span className={styles.cardIcon}>📉</span>
+                            <button 
+                                className={styles.addExpenseBtn}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    setIsExpenseModalOpen(true)
+                                }}
+                            >
+                                <Plus size={16} /> Nova Despesa
+                            </button>
                         </div>
-                        <span className={`${styles.cardValue} ${styles.expenses}`}>{formatCurrency(activeExpensesValue)}</span>
-                        <span className={styles.cardLabel}>Despesas</span>
+                        <div onClick={() => handleOpenExtract('expenses')} style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span className={styles.cardValue}>{formatCurrency(activeExpensesValue)}</span>
+                            <span className={styles.cardLabel}>Despesas</span>
+                        </div>
                     </div>
 
                     <div className={styles.summaryCard}>
@@ -823,491 +985,283 @@ export default function FinanceiroPage() {
                     </div>
                 </div>
 
-                {/* Extract Modal */}
-                {isExtractModalOpen && extractRecords.type && (
-                    <div className={styles.modalOverlay} onClick={() => setIsExtractModalOpen(false)}>
-                        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                            <button className={styles.closeButton} onClick={() => setIsExtractModalOpen(false)}>×</button>
-
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', paddingRight: '2rem' }}>
-                                <h2 style={{ margin: 0 }}>
-                                    {extractRecords.type === 'revenue' && '📜 Extrato de Faturamento'}
-                                    {extractRecords.type === 'expenses' && '📉 Extrato de Despesas'}
-                                    {extractRecords.type === 'pending' && '⏳ Valores a Receber'}
-                                </h2>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button
-                                        onClick={() => setModalTab(modalTab === 'extrato' ? 'nfs' : 'extrato')}
-                                        style={{ 
-                                            padding: '0.4rem 0.8rem', 
-                                            background: modalTab === 'nfs' ? 'var(--primary)' : 'rgba(255,255,255,0.1)', 
-                                            border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
-                                            marginRight: '1rem'
+                {/* MODAL NOVA DESPESA */}
+                {isExpenseModalOpen && (
+                    <div className={styles.modalOverlay}>
+                        <div className={styles.modalContent}>
+                            <div className={styles.modalHeader}>
+                                <h2>➕ Nova Despesa</h2>
+                                <button onClick={() => setIsExpenseModalOpen(false)} className={styles.closeBtn}><XCircle /></button>
+                            </div>
+                            <form onSubmit={handleCreateExpense} className={styles.expenseForm}>
+                                <div className={styles.formGroup}>
+                                    <label>Descrição</label>
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        value={expenseForm.description}
+                                        onChange={e => setExpenseForm({...expenseForm, description: e.target.value})}
+                                        placeholder="Ex: Aluguel, Luz..."
+                                    />
+                                </div>
+                                <div className={styles.formGrid}>
+                                    <div className={styles.formGroup}>
+                                        <label>Valor</label>
+                                        <input 
+                                            type="number" 
+                                            step="0.01" 
+                                            required
+                                            value={expenseForm.amount}
+                                            onChange={e => setExpenseForm({...expenseForm, amount: parseFloat(e.target.value)})}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Data</label>
+                                        <input 
+                                            type="date" 
+                                            required
+                                            value={expenseForm.date}
+                                            onChange={e => setExpenseForm({...expenseForm, date: e.target.value})}
+                                        />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label>Categoria</label>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setIsCategoryModalOpen(true)}
+                                            className={styles.addSmallBtn}
+                                        >
+                                            + Nova Categoria
+                                        </button>
+                                    </div>
+                                    <select 
+                                        required 
+                                        value={expenseForm.category_id}
+                                        onChange={e => {
+                                            const cat = expenseCategories.find(c => c.id === e.target.value)
+                                            setExpenseForm({
+                                                ...expenseForm, 
+                                                category_id: e.target.value,
+                                                category_name: cat?.name || ''
+                                            })
                                         }}
                                     >
-                                        {modalTab === 'extrato' ? '📄 Ver Notas Fiscais' : '⬅️ Ver Lançamentos'}
-                                    </button>
-                                    
-                                    {modalTab === 'extrato' ? (
-                                        <>
-                                            <button
-                                                onClick={handleExportCSV}
-                                                style={{ padding: '0.4rem 0.8rem', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-                                            >
-                                                Exportar CSV
-                                            </button>
-                                            <button
-                                                onClick={handleExportPDF}
-                                                style={{ padding: '0.4rem 0.8rem', background: '#3498db', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500 }}
-                                            >
-                                                Exportar PDF
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <button
-                                            onClick={handleAccountingExport}
-                                            style={{ padding: '0.4rem 0.8rem', background: '#27ae60', border: 'none', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-                                        >
-                                            <Download size={14} style={{ marginRight: '4px' }} />
-                                            Exportar p/ Contabilidade
-                                        </button>
-                                    )}
+                                        <option value="">Selecione uma categoria</option>
+                                        {expenseCategories.map(cat => (
+                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className={styles.formCheck}>
+                                    <label className={styles.checkboxLabel}>
+                                        <input 
+                                            type="checkbox"
+                                            checked={expenseForm.is_recurring}
+                                            onChange={e => setExpenseForm({...expenseForm, is_recurring: e.target.checked})}
+                                        />
+                                        <span>Esta é uma despesa fixa (mensal)</span>
+                                    </label>
+                                </div>
+                                <div className={styles.modalActions}>
+                                    <button type="button" onClick={() => setIsExpenseModalOpen(false)} className={styles.cancelBtn}>Cancelar</button>
+                                    <button type="submit" className={styles.confirmBtn}>Salvar Despesa</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL NOVA CATEGORIA */}
+                {isCategoryModalOpen && (
+                    <div className={styles.modalOverlay} style={{ zIndex: 1100 }}>
+                        <div className={styles.modalContent} style={{ maxWidth: '400px' }}>
+                            <div className={styles.modalHeader}>
+                                <h2>🏷️ Nova Categoria</h2>
+                                <button onClick={() => setIsCategoryModalOpen(false)} className={styles.closeBtn}><XCircle /></button>
+                            </div>
+                            <form onSubmit={handleCreateCategory}>
+                                <div className={styles.formGroup}>
+                                    <label>Nome da Categoria</label>
+                                    <input 
+                                        type="text" 
+                                        required 
+                                        autoFocus
+                                        value={newCategoryName}
+                                        onChange={e => setNewCategoryName(e.target.value)}
+                                        placeholder="Ex: Impostos, Salários..."
+                                    />
+                                </div>
+                                <div className={styles.modalActions}>
+                                    <button type="button" onClick={() => setIsCategoryModalOpen(false)} className={styles.cancelBtn}>Cancelar</button>
+                                    <button type="submit" className={styles.confirmBtn}>Criar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {isExtractModalOpen && (
+                    <div className={styles.modalOverlay}>
+                        <div className={`${styles.modalContent} ${styles.extractModal}`}>
+                            <div className={styles.modalHeader}>
+                                <h2>
+                                    {extractRecords.type === 'revenue' ? '📈 Extrato de Faturamento' : 
+                                     extractRecords.type === 'expenses' ? '📉 Extrato de Despesas' : '⏳ Valores a Receber'}
+                                </h2>
+                                <div className={styles.headerActions}>
+                                    <button onClick={handleExportCSV} className={styles.exportBtn} title="Exportar CSV"><Download size={18} /></button>
+                                    <button onClick={handleExportPDF} className={styles.exportBtn} title="Exportar PDF"><FileText size={18} /></button>
+                                    <button onClick={() => setIsExtractModalOpen(false)} className={styles.closeBtn}><XCircle /></button>
                                 </div>
                             </div>
 
-                            {modalTab === 'extrato' ? (
-                                <div className={styles.extractList}>
-                                {/* Appointments list (for Revenue and Pending) */}
-                                {(extractRecords.type === 'pending' ? extractRecords.allPendingAppointments : extractRecords.appointments)
-                                    .filter(a => extractRecords.type === 'revenue' ? a.payment_status === 'paid' : a.payment_status !== 'paid')
-                                    .filter(a => selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)
-                                    .map(appt => (
-                                        <div key={appt.id} className={styles.extractItem}>
-                                            <div className={styles.extractInfo}>
-                                                <strong>{appt.pets?.name || 'Pet'}{appt.pets?.customers?.name && ` (${appt.pets.customers.name})`} • {appt.services?.name || 'Serviço'}</strong>
-                                                <span>{new Date(appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
-                                            </div>
-                                            <div className={styles.extractActions}>
-                                                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginRight: '1rem' }}>
-                                                    {!nfMap[appt.id] ? (
-                                                        <button 
-                                                            style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                                            onClick={() => handleOpenNFSe(appt)}
-                                                        >
-                                                            🧾 NFSe
-                                                        </button>
-                                                    ) : (
-                                                        <>
-                                                            <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: nfMap[appt.id].status === 'autorizado' ? '#059669' : '#d97706', color: 'white', borderRadius: '3px' }}>
-                                                                {nfMap[appt.id].status.toUpperCase()}
-                                                            </span>
-                                                            {nfMap[appt.id].pdf_url && (
-                                                                <button onClick={() => window.open(nfMap[appt.id].pdf_url, '_blank')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📄</button>
-                                                            )}
-                                                            {nfMap[appt.id].status === 'autorizado' && (
-                                                                <button onClick={() => handleSendWhatsApp(appt.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📲</button>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                                <span className={styles.extractAmount}>
-                                                    {formatCurrency(appt.final_price || appt.calculated_price || 0)}
-                                                </span>
-                                                {extractRecords.type === 'pending' && (
-                                                    <button
-                                                        className={styles.confirmPayBtn}
-                                                        onClick={() => handleOpenPaymentModal(
-                                                            appt.id, 
-                                                            'appointments', 
-                                                            `${appt.pets?.name || 'Pet'}${appt.pets?.customers?.name ? ` (${appt.pets.customers.name})` : ''} • ${appt.services?.name || 'Serviço'}`,
-                                                            appt.final_price || appt.calculated_price || 0
-                                                        )}
-                                                    >
-                                                        💰 Confirmar Pago
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                 {/* Pending Appointments list */}
-                                {extractRecords.type === 'pending' && extractRecords.allPendingAppointments
-                                    .filter(appt => selectedCategory === 'all' || (appt.services as any)?.service_categories?.name === selectedCategory)
-                                    .map(appt => (
-                                        <div key={appt.id} className={styles.extractItem}>
-                                            <div className={styles.extractInfo}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span className={styles.categoryBadge}>🛁 Serviço</span>
-                                                    <strong>{appt.pets?.name || 'Pet'}{appt.pets?.customers?.name && ` (${appt.pets.customers.name})`} • {appt.services?.name || 'Serviço'}</strong>
-                                                </div>
-                                                <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
-                                            </div>
-                                            <div className={styles.extractActions}>
-                                                <span className={styles.extractAmount}>
-                                                    {formatCurrency(appt.final_price || appt.calculated_price || 0)}
-                                                </span>
-                                                <button
-                                                    className={styles.confirmPayBtn}
-                                                    onClick={() => handleOpenPaymentModal(
-                                                        appt.id, 
-                                                        'appointments', 
-                                                        `${appt.pets?.name || 'Pet'}${appt.pets?.customers?.name ? ` (${appt.pets.customers.name})` : ''} • ${appt.services?.name || 'Serviço'}`,
-                                                        appt.final_price || appt.calculated_price || 0
-                                                    )}
-                                                >
-                                                    💰 Confirmar Pago
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                {/* Pending Pet Shop Sales list */}
-                                {extractRecords.type === 'pending' && extractRecords.pendingSales
-                                    .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
-                                    .map(sale => {
-                                        const desc = sale.order_items && sale.order_items.length > 0 ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') : 'Venda';
-                                        return (
-                                            <div key={sale.id} className={styles.extractItem}>
-                                                <div className={styles.extractInfo}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span className={styles.categoryBadge} style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#0ea5e9' }}>🛒 Venda</span>
-                                                        <strong>{sale.pets?.name || 'Cliente Avulso'}{sale.pets?.customers?.name && ` (${sale.pets.customers.name})`} • {desc}</strong>
-                                                    </div>
-                                                    <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className={styles.extractActions}>
-                                                    <span className={styles.extractAmount}>
-                                                        {formatCurrency(sale.total_amount)}
-                                                    </span>
-                                                    <button
-                                                        className={styles.confirmPayBtn}
-                                                        onClick={() => handleOpenPaymentModal(
-                                                            sale.id, 
-                                                            'orders', 
-                                                            `${sale.pets?.name || 'Cliente'}${sale.pets?.customers?.name ? ` (${sale.pets.customers.name})` : ''} • ${desc}`, 
-                                                            sale.total_amount
-                                                        )}
-                                                    >
-                                                        💰 Confirmar Pago
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-
-                                {/* Pending Vets */}
-                                {extractRecords.type === 'pending' && extractRecords.pendingVets
-                                    .filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária')
-                                    .map(v => {
-                                        let final = v.consultation_fee || 0;
-                                        if (v.discount_type === 'percent') final -= final * ((v.discount_percent || 0) / 100);
-                                        else final -= (v.discount_fixed || 0);
-                                        return (
-                                            <div key={v.id} className={styles.extractItem}>
-                                                <div className={styles.extractInfo}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span className={styles.categoryBadge} style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>🩺 Consulta</span>
-                                                        <strong>{v.pets?.name || 'Pet'}{v.pets?.customers?.name && ` (${v.pets.customers.name})`} • Consulta Vet</strong>
-                                                    </div>
-                                                    <span>{new Date(v.consultation_date).toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className={styles.extractActions}>
-                                                    <span className={styles.extractAmount}>
-                                                        {formatCurrency(Math.max(0, final))}
-                                                    </span>
-                                                    <button
-                                                        className={styles.confirmPayBtn}
-                                                        onClick={() => handleOpenPaymentModal(
-                                                            v.id, 
-                                                            'vet_consultations', 
-                                                            `${v.pets?.name || 'Pet'}${v.pets?.customers?.name ? ` (${v.pets.customers.name})` : ''} • Consulta Vet`, 
-                                                            v.consultation_fee
-                                                        )}
-                                                    >
-                                                        💰 Confirmar Pago
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-
-                                {/* Pending Exams */}
-                                {extractRecords.type === 'pending' && extractRecords.pendingExams
-                                    .filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário')
-                                    .map(e => {
-                                        let final = e.price || 0;
-                                        if (e.discount_type === 'percent') final -= final * ((e.discount_percent || 0) / 100);
-                                        else final -= (e.discount_fixed || 0);
-                                        return (
-                                            <div key={e.id} className={styles.extractItem}>
-                                                <div className={styles.extractInfo}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                        <span className={styles.categoryBadge} style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>🔬 Exame</span>
-                                                        <strong>{e.pets?.name || 'Pet'}{e.pets?.customers?.name && ` (${e.pets.customers.name})`} • {e.exam_type_name}</strong>
-                                                    </div>
-                                                    <span>{new Date(e.exam_date).toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className={styles.extractActions}>
-                                                    <span className={styles.extractAmount}>
-                                                        {formatCurrency(Math.max(0, final))}
-                                                    </span>
-                                                    <button
-                                                        className={styles.confirmPayBtn}
-                                                        onClick={() => handleOpenPaymentModal(
-                                                            e.id, 
-                                                            'vet_exams', 
-                                                            `${e.pets?.name || 'Pet'}${e.pets?.customers?.name ? ` (${e.pets.customers.name})` : ''} • Exame (${e.exam_type_name})`, 
-                                                            e.price
-                                                        )}
-                                                    >
-                                                        💰 Confirmar Pago
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-
-                                {/* Pending Admissions */}
-                                {extractRecords.type === 'pending' && extractRecords.pendingAdmissions
-                                    .filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital')
-                                    .map(ad => (
-                                        <div key={ad.id} className={styles.extractItem}>
-                                            <div className={styles.extractInfo}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <span className={styles.categoryBadge} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>🏥 Internamento</span>
-                                                    <strong>{ad.pets?.name || 'Pet'}{ad.pets?.customers?.name && ` (${ad.pets.customers.name})`} • Internamento</strong>
-                                                </div>
-                                                <span>{new Date(ad.admitted_at).toLocaleDateString('pt-BR')}</span>
-                                            </div>
-                                            <div className={styles.extractActions}>
-                                                <span className={styles.extractAmount}>
-                                                    {formatCurrency(ad.total_amount || 0)}
-                                                </span>
-                                                <button
-                                                    className={styles.confirmPayBtn}
-                                                    onClick={() => handleOpenPaymentModal(
-                                                        ad.id, 
-                                                        'hospital_admissions', 
-                                                        `${ad.pets?.name || 'Pet'}${ad.pets?.customers?.name ? ` (${ad.pets.customers.name})` : ''} • Internamento`, 
-                                                        ad.total_amount || 0
-                                                    )}
-                                                >
-                                                    💰 Confirmar Pago
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                {/* Paid Pet Shop Sales list (Revenue list) */}
-                                {extractRecords.type === 'revenue' && extractRecords.paidSales
-                                    .filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto')
-                                    .map(sale => {
-                                        const desc = sale.order_items && sale.order_items.length > 0 ? sale.order_items[0].product_name + (sale.order_items.length > 1 ? ` (+${sale.order_items.length - 1} itens)` : '') : 'Venda';
-                                        return (
-                                            <div key={sale.id} className={styles.extractItem}>
-                                                <div className={styles.extractInfo}>
-                                                    <strong>{sale.pets?.name || 'Cliente Avulso'}{sale.pets?.customers?.name && ` (${sale.pets.customers.name})`} • {desc}</strong>
-                                                    <span>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className={styles.extractActions}>
-                                                    <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginRight: '1rem' }}>
-                                                        {!nfMap[sale.id] ? (
-                                                            <button 
-                                                                style={{ padding: '2px 6px', fontSize: '0.7rem', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                                                                onClick={() => handleOpenNFe(sale)}
-                                                            >
-                                                                🧾 NFe
-                                                            </button>
-                                                        ) : (
-                                                            <>
-                                                                <span style={{ fontSize: '0.65rem', padding: '2px 4px', background: nfMap[sale.id].status === 'autorizado' ? '#059669' : '#d97706', color: 'white', borderRadius: '3px' }}>
-                                                                    {nfMap[sale.id].status.toUpperCase()}
-                                                                </span>
-                                                                {nfMap[sale.id].pdf_url && (
-                                                                    <button onClick={() => window.open(nfMap[sale.id].pdf_url, '_blank')} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📄</button>
-                                                                )}
-                                                                {nfMap[sale.id].status === 'autorizado' && (
-                                                                    <button onClick={() => handleSendWhatsApp(sale.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>📲</button>
-                                                                )}
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    <span className={styles.extractAmount}>
-                                                        {formatCurrency(sale.total_amount)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-
-                                {/* Transactions list (for Revenue and Expenses) */}
-                                {extractRecords.type !== 'pending' && extractRecords.transactions
-                                    .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
-                                    .filter(t => selectedCategory === 'all' || t.category === selectedCategory)
-                                    .map(tx => (
-                                        <div key={tx.id} className={styles.extractItem}>
-                                            <div className={styles.extractInfo}>
-                                                <strong>{tx.category}</strong>
-                                                <span>{tx.description}</span>
-                                                <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
-                                            </div>
-                                            <div className={styles.extractActions}>
-                                                <span className={styles.extractAmount}>
-                                                    {formatCurrency(tx.amount)}
-                                                </span>
-                                                <button
-                                                    className={styles.deleteBtn}
-                                                    onClick={() => handleDeleteTransaction(tx.id)}
-                                                >
-                                                    Excluir
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                {/* Empty State */}
-                                {((extractRecords.type === 'pending' &&
-                                    extractRecords.appointments.filter(a => a.payment_status !== 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
-                                    extractRecords.pendingSales.filter(s => selectedCategory === 'all' || selectedCategory === 'Venda Produto').length === 0 &&
-                                    extractRecords.pendingVets.filter(v => selectedCategory === 'all' || selectedCategory === 'Consulta Veterinária').length === 0 &&
-                                    extractRecords.pendingExams.filter(e => selectedCategory === 'all' || selectedCategory === 'Exame Veterinário').length === 0 &&
-                                    extractRecords.pendingAdmissions.filter(ad => selectedCategory === 'all' || selectedCategory === 'Internamento / Hospital').length === 0) ||
-                                    (extractRecords.type === 'expenses' && extractRecords.transactions.filter(t => t.type === 'expense' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0) ||
-                                    (extractRecords.type === 'revenue' &&
-                                        extractRecords.appointments.filter(a => a.payment_status === 'paid' && (selectedCategory === 'all' || (a.services as any)?.service_categories?.name === selectedCategory)).length === 0 &&
-                                        extractRecords.transactions.filter(t => t.type === 'income' && (selectedCategory === 'all' || t.category === selectedCategory)).length === 0)) && (
-                                        <p className={styles.emptyExtract}>Nenhum registro encontrado para este período/categoria.</p>
-                                    )}
+                            <div className={styles.extractFilters}>
+                                <div className={styles.searchBox}>
+                                    <Search size={18} />
+                                    <input type="text" placeholder="Buscar por descrição..." />
+                                </div>
                             </div>
-                            ) : (
-                                <div className={styles.nfDashboard}>
-                                    {/* NF Filters */}
-                                    <div className={styles.nfFiltersRow}>
-                                        <div className={styles.nfSearch}>
-                                            <Search size={18} className={styles.searchIcon} />
-                                            <input 
-                                                type="text" 
-                                                placeholder="Buscar por cliente ou pet..." 
-                                                value={nfSearchTerm}
-                                                onChange={e => setNfSearchTerm(e.target.value)}
-                                            />
-                                        </div>
-                                        <select 
-                                            value={nfStatusFilter} 
-                                            onChange={e => setNfStatusFilter(e.target.value)}
-                                            className={styles.nfStatusSelect}
-                                        >
-                                            <option value="all">Todos os Status</option>
-                                            <option value="autorizado">Autorizadas</option>
-                                            <option value="processando">Processando</option>
-                                            <option value="erro">Com Erro</option>
-                                            <option value="cancelado">Canceladas</option>
-                                        </select>
-                                    </div>
 
-                                    {/* NF Table */}
-                                    <div className={styles.nfTableWrapper}>
-                                        <table className={styles.nfTable}>
-                                            <thead>
-                                                <tr>
-                                                    <th>Data</th>
-                                                    <th>Cliente</th>
-                                                    <th>Tipo</th>
-                                                    <th>Valor</th>
-                                                    <th>Status</th>
-                                                    <th style={{ textAlign: 'right' }}>Ações</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {getFilteredNFs().map(nf => (
-                                                    <tr key={nf.id}>
-                                                        <td>{new Date(nf.data).toLocaleDateString('pt-BR')}</td>
+                            <div className={styles.extractTable}>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Descrição</th>
+                                            <th>Categoria</th>
+                                            <th>Valor</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {extractRecords.type === 'expenses' && extractRecords.transactions
+                                            .filter(t => t.type === 'expense')
+                                            .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                            .map((tx: any) => (
+                                            <tr key={tx.id}>
+                                                <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                        {tx.description}
+                                                        {tx.is_recurring && <span className={styles.recurringTag}><Repeat size={10} /> FIXA</span>}
+                                                    </div>
+                                                </td>
+                                                <td>{tx.category}</td>
+                                                <td className={styles.expenseValue}>- {formatCurrency(tx.amount)}</td>
+                                                <td>
+                                                    <div className={styles.actionButtons}>
+                                                        {tx.is_recurring ? (
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => handleSkipRecurringForMonth(tx.recurring_id, tx.monthYear)}
+                                                                    className={styles.actionBtn}
+                                                                    title="Pular apenas este mês"
+                                                                >
+                                                                    <Calendar size={18} />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDeleteRecurringPermanent(tx.recurring_id)}
+                                                                    className={styles.deleteBtn}
+                                                                    title="Excluir permanentemente"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}>
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        
+                                        {extractRecords.type === 'revenue' && (
+                                            <>
+                                                {extractRecords.transactions.filter(t => t.type === 'income').map((tx: any) => (
+                                                    <tr key={tx.id}>
+                                                        <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{tx.description}</td>
+                                                        <td>{tx.category}</td>
+                                                        <td className={styles.revenueValue}>+ {formatCurrency(tx.amount)}</td>
                                                         <td>
-                                                            <div className={styles.nfClientInfo}>
-                                                                <strong>{nf.cliente}</strong>
-                                                                <span>{nf.pet}</span>
-                                                            </div>
+                                                            <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}><Trash2 size={18} /></button>
                                                         </td>
+                                                    </tr>
+                                                ))}
+                                                {extractRecords.appointments.filter(a => a.payment_status === 'paid').map((appt: any) => (
+                                                    <tr key={appt.id}>
+                                                        <td>{new Date(appt.paid_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{appt.pets?.name} • {appt.services?.name}</td>
+                                                        <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
+                                                        <td className={styles.revenueValue}>+ {formatCurrency(appt.final_price || appt.calculated_price || 0)}</td>
                                                         <td>
-                                                            <span className={`${styles.nfBadge} ${styles[nf.tipo.toLowerCase()]}`}>
-                                                                {nf.tipo}
-                                                            </span>
-                                                        </td>
-                                                        <td className={styles.nfValue}>{formatCurrency(nf.valor)}</td>
-                                                        <td>
-                                                            <span className={`${styles.statusBadge} ${styles[nf.status]}`}>
-                                                                {nf.status.toUpperCase()}
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <div className={styles.nfActionsRow}>
-                                                                {nf.status === 'autorizado' && (
-                                                                    <>
-                                                                        {nf.pdf_url && (
-                                                                            <button 
-                                                                                className={styles.nfActionBtn} 
-                                                                                onClick={() => window.open(nf.pdf_url, '_blank')}
-                                                                                title="Ver PDF (DANFE)"
-                                                                            >
-                                                                                <FileText size={16} />
-                                                                                <span>PDF</span>
-                                                                            </button>
-                                                                        )}
-                                                                        {nf.caminho_xml && (
-                                                                            <button 
-                                                                                className={`${styles.nfActionBtn} ${styles.xmlBtn}`}
-                                                                                onClick={() => window.open(nf.caminho_xml!.startsWith('http') ? nf.caminho_xml! : `https://api.focusnfe.com.br${nf.caminho_xml}`, '_blank')}
-                                                                                title="Baixar XML"
-                                                                            >
-                                                                                <FileCode size={16} />
-                                                                                <span>XML</span>
-                                                                            </button>
-                                                                        )}
-                                                                        <button 
-                                                                            className={styles.nfActionBtn}
-                                                                            onClick={() => handleSendWhatsApp(nf.id)}
-                                                                            title="Enviar WhatsApp"
-                                                                        >
-                                                                            <Send size={16} />
-                                                                        </button>
-                                                                        <button 
-                                                                            className={`${styles.nfActionBtn} ${styles.cancelNFBtn}`}
-                                                                            onClick={() => handleOpenCancelNF(nf)}
-                                                                            title="Cancelar Nota"
-                                                                        >
-                                                                            <XCircle size={16} />
-                                                                        </button>
-                                                                    </>
-                                                                )}
-                                                                {nf.status === 'erro' && (
-                                                                    <button 
-                                                                        className={styles.nfActionBtn} 
-                                                                        onClick={() => alert('Verifique os erros no retorno da SEFAZ.')}
-                                                                        title="Ver Erro"
-                                                                    >
-                                                                        ⚠️
-                                                                    </button>
-                                                                )}
+                                                            <div className={styles.actionButtons}>
+                                                                <button onClick={() => handleSendWhatsApp(appt.id)} className={styles.actionBtn} title="WhatsApp"><Send size={18} /></button>
+                                                                <button onClick={() => handleOpenNFSe(appt)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
                                                             </div>
                                                         </td>
                                                     </tr>
                                                 ))}
-                                                {getFilteredNFs().length === 0 && (
-                                                    <tr>
-                                                        <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'rgba(255,255,255,0.4)' }}>
-                                                            Nenhuma nota fiscal encontrada com estes filtros.
+                                                {extractRecords.paidSales.map((sale: any) => (
+                                                    <tr key={sale.id}>
+                                                        <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>Venda Petshop</td>
+                                                        <td>Produtos</td>
+                                                        <td className={styles.revenueValue}>+ {formatCurrency(sale.total_amount)}</td>
+                                                        <td>
+                                                            <button onClick={() => handleOpenNFe(sale)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
                                                         </td>
                                                     </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {extractRecords.type === 'pending' && (
+                                            <>
+                                                {extractRecords.allPendingAppointments.map((appt: any) => (
+                                                    <tr key={appt.id}>
+                                                        <td>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{appt.pets?.name} • {appt.services?.name}</td>
+                                                        <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency(appt.final_price || appt.calculated_price || 0)}</td>
+                                                        <td>
+                                                            <button 
+                                                                onClick={() => handleOpenPaymentModal(appt.id, 'appointments', (appt.services?.name || 'Serviço'), (appt.final_price || appt.calculated_price || 0))}
+                                                                className={styles.payBtn}
+                                                            >
+                                                                <DollarSign size={16} /> Receber
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {extractRecords.pendingSales.map((sale: any) => (
+                                                    <tr key={sale.id}>
+                                                        <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>Venda Petshop</td>
+                                                        <td>Produtos</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency(sale.total_amount)}</td>
+                                                        <td>
+                                                            <button 
+                                                                onClick={() => handleOpenPaymentModal(sale.id, 'orders', 'Venda Petshop', sale.total_amount)}
+                                                                className={styles.payBtn}
+                                                            >
+                                                                <DollarSign size={16} /> Receber
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div >
-                )
-                }
+                    </div>
+                )}
 
                 {/* Revenue Chart */}
                 <div className={styles.chartSection}>
