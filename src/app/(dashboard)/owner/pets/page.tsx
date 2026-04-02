@@ -310,83 +310,72 @@ function PetsContent() {
 
         // Margins and styling
         const margin = 10
-        const topSectionHeight = 155 * 0.45 // Using ~45% of the height for data
+        const topSectionHeight = 155 / 3 // Exactly the first third
 
-        // Header / Logo area (Placeholder or simple Title)
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(18)
-        doc.setTextColor(232, 130, 106) // var(--primary) color
-        doc.text('FICHA DE IDENTIFICAÇÃO PET', margin, 15)
-        
-        doc.setDrawColor(232, 130, 106)
-        doc.setLineWidth(0.5)
-        doc.line(margin, 18, 220, 18)
-
-        // DATA SECTION
+        // DATA SECTION - ALL BLACK
         doc.setFontSize(10)
-        doc.setTextColor(50, 50, 50)
+        doc.setTextColor(0, 0, 0)
         
-        let y = 30
+        let y = 10 // Start higher
         const col1 = margin
         const col2 = 115
 
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO TUTOR', col1, y)
-        y += 6
+        y += 5
         doc.setFont('helvetica', 'normal')
         doc.text(`Nome: ${pet.customers?.name || 'Não informado'}`, col1, y)
         doc.text(`Telefone: ${pet.customers?.phone_1 || 'Não informado'}`, col2, y)
         
-        y += 12
+        y += 8
         
         // PET INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO PET', col1, y)
-        y += 6
+        y += 5
         doc.setFont('helvetica', 'normal')
         
         // Row 1
         doc.text(`Nome: ${pet.name}`, col1, y)
         doc.text(`Espécie: ${pet.species === 'dog' ? 'Cão' : pet.species === 'cat' ? 'Gato' : 'Outro'}`, col2, y)
-        y += 7
+        y += 5
         
         // Row 2
         doc.text(`Raça: ${pet.breed || 'SRD'}`, col1, y)
         doc.text(`Sexo: ${pet.gender === 'male' ? 'Macho' : 'Fêmea'}`, col2, y)
-        y += 7
+        y += 5
 
         // Row 3
         const age = calculateAge(pet.birth_date)
         doc.text(`Idade: ${age}`, col1, y)
         doc.text(`Peso: ${pet.weight_kg ? pet.weight_kg + ' kg' : 'N/A'}`, col2, y)
-        y += 7
+        y += 5
 
         // Row 4
         doc.text(`Cor: ${pet.color || 'Não informada'}`, col1, y)
         doc.text(`Porte: ${pet.size === 'small' ? 'Pequeno' : pet.size === 'medium' ? 'Médio' : pet.size === 'large' ? 'Grande' : 'Gigante'}`, col2, y)
-        y += 7
+        y += 5
 
         // Row 5
         doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col1, y)
         doc.text(`Vacinas em dia: ${pet.vaccination_up_to_date ? 'Sim' : 'Não'}`, col2, y)
-        y += 10
+        y += 7
 
         // Row 6 (Conditions)
         const conditions = pet.characteristics || pet.existing_conditions || 'Nenhuma'
         doc.setFont('helvetica', 'bold')
         doc.text('Observações / Características:', col1, y)
-        y += 5
+        y += 4
         doc.setFont('helvetica', 'normal')
         const splitText = doc.splitTextToSize(conditions, 210)
         doc.text(splitText, col1, y)
 
-        // Bottom border for the data section
-        doc.setDrawColor(200, 200, 200)
+        // Bottom border for the data section (optional, but requested black if used)
+        doc.setDrawColor(0, 0, 0)
         doc.line(margin, topSectionHeight, 220, topSectionHeight)
         
-        doc.setFontSize(8)
-        doc.setTextColor(150, 150, 150)
+        doc.setFontSize(7)
         doc.text(`Gerado em: ${new Date().toLocaleString()}`, margin, topSectionHeight - 2)
 
         // Save
