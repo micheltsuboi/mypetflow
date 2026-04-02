@@ -51,7 +51,6 @@ export default function DashboardLayout({
             icon: '⚕️',
             children: [
                 { name: 'Veterinários', href: '/owner/veterinary', icon: '👨‍⚕️' },
-                { name: 'Cadastrar Veterinário', href: '/owner/veterinary?action=new-vet', icon: '➕' },
                 { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
                 { name: 'Catálogo de Exames', href: '/owner/exams', icon: '🧪' },
             ]
@@ -78,7 +77,6 @@ export default function DashboardLayout({
             icon: '⚕️',
             children: [
                 { name: 'Veterinários', href: '/owner/veterinary', icon: '👨‍⚕️' },
-                { name: 'Cadastrar Veterinário', href: '/owner/veterinary?action=new-vet', icon: '➕' },
                 { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
                 { name: 'Catálogo de Exames', href: '/owner/exams', icon: '🧪' },
             ]
@@ -231,7 +229,6 @@ export default function DashboardLayout({
                 if (name === 'Serviços') return perms.includes('servicos')
                 if (name === 'Clínica Veterinária' ||
                     name === 'Veterinários' ||
-                    name === 'Cadastrar Veterinário' ||
                     name === 'Consultas' ||
                     name === 'Catálogo de Exames') return perms.includes('clinica_vet')
                 if (name === 'Hospital') return perms.includes('hospital')
@@ -273,7 +270,6 @@ export default function DashboardLayout({
                     if (name === 'Pacotes') return planFeat.includes('pacotes')
                     if (name === 'Clínica Veterinária' ||
                         name === 'Veterinários' ||
-                        name === 'Cadastrar Veterinário' ||
                         name === 'Consultas' ||
                         name === 'Catálogo de Exames') return planFeat.includes('clinica_vet')
                     if (name === 'Hospital') return planFeat.includes('hospital')
