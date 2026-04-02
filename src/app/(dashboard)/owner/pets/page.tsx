@@ -57,8 +57,10 @@ import {
     CreditCard,
     Scissors,
     ShieldAlert,
-    Building2
+    Building2,
+    DownloadCloud
 } from 'lucide-react'
+import { jsPDF } from 'jspdf'
 
 import { useDebounce } from '@/hooks/useDebounce'
 import TutorSearchSelect from '@/components/ui/TutorSearchSelect'
@@ -299,6 +301,98 @@ function PetsContent() {
         setShowModal(true)
     }
 
+    const generatePetPDF = (pet: Pet) => {
+        const doc = new jsPDF({
+            orientation: 'l',
+            unit: 'mm',
+            format: [230, 155]
+        })
+
+        // Margins and styling
+        const margin = 10
+        const topSectionHeight = 155 * 0.45 // Using ~45% of the height for data
+
+        // Header / Logo area (Placeholder or simple Title)
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(18)
+        doc.setTextColor(232, 130, 106) // var(--primary) color
+        doc.text('FICHA DE IDENTIFICAÇÃO PET', margin, 15)
+        
+        doc.setDrawColor(232, 130, 106)
+        doc.setLineWidth(0.5)
+        doc.line(margin, 18, 220, 18)
+
+        // DATA SECTION
+        doc.setFontSize(10)
+        doc.setTextColor(50, 50, 50)
+        
+        let y = 30
+        const col1 = margin
+        const col2 = 115
+
+        // TUTOR INFO
+        doc.setFont('helvetica', 'bold')
+        doc.text('DADOS DO TUTOR', col1, y)
+        y += 6
+        doc.setFont('helvetica', 'normal')
+        doc.text(`Nome: ${pet.customers?.name || 'Não informado'}`, col1, y)
+        doc.text(`Telefone: ${pet.customers?.phone_1 || 'Não informado'}`, col2, y)
+        
+        y += 12
+        
+        // PET INFO
+        doc.setFont('helvetica', 'bold')
+        doc.text('DADOS DO PET', col1, y)
+        y += 6
+        doc.setFont('helvetica', 'normal')
+        
+        // Row 1
+        doc.text(`Nome: ${pet.name}`, col1, y)
+        doc.text(`Espécie: ${pet.species === 'dog' ? 'Cão' : pet.species === 'cat' ? 'Gato' : 'Outro'}`, col2, y)
+        y += 7
+        
+        // Row 2
+        doc.text(`Raça: ${pet.breed || 'SRD'}`, col1, y)
+        doc.text(`Sexo: ${pet.gender === 'male' ? 'Macho' : 'Fêmea'}`, col2, y)
+        y += 7
+
+        // Row 3
+        const age = calculateAge(pet.birth_date)
+        doc.text(`Idade: ${age}`, col1, y)
+        doc.text(`Peso: ${pet.weight_kg ? pet.weight_kg + ' kg' : 'N/A'}`, col2, y)
+        y += 7
+
+        // Row 4
+        doc.text(`Cor: ${pet.color || 'Não informada'}`, col1, y)
+        doc.text(`Porte: ${pet.size === 'small' ? 'Pequeno' : pet.size === 'medium' ? 'Médio' : pet.size === 'large' ? 'Grande' : 'Gigante'}`, col2, y)
+        y += 7
+
+        // Row 5
+        doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col1, y)
+        doc.text(`Vacinas em dia: ${pet.vaccination_up_to_date ? 'Sim' : 'Não'}`, col2, y)
+        y += 10
+
+        // Row 6 (Conditions)
+        const conditions = pet.characteristics || pet.existing_conditions || 'Nenhuma'
+        doc.setFont('helvetica', 'bold')
+        doc.text('Observações / Características:', col1, y)
+        y += 5
+        doc.setFont('helvetica', 'normal')
+        const splitText = doc.splitTextToSize(conditions, 210)
+        doc.text(splitText, col1, y)
+
+        // Bottom border for the data section
+        doc.setDrawColor(200, 200, 200)
+        doc.line(margin, topSectionHeight, 220, topSectionHeight)
+        
+        doc.setFontSize(8)
+        doc.setTextColor(150, 150, 150)
+        doc.text(`Gerado em: ${new Date().toLocaleString()}`, margin, topSectionHeight - 2)
+
+        // Save
+        doc.save(`Ficha_Pet_${pet.name.replace(/\s+/g, '_')}.pdf`)
+    }
+
     const handleDelete = async () => {
         if (!selectedPet) return
         if (!confirm(`Tem certeza que deseja excluir o pet ${selectedPet.name}?`)) return
@@ -412,6 +506,19 @@ function PetsContent() {
                         </button>
                         <div className={styles.modalHeader}>
                             <h2>{selectedPet ? `Ficha Pet: ${selectedPet.name}` : 'Novo Pet'}</h2>
+                            {selectedPet && (
+                                <button 
+                                    className={styles.actionBtn} 
+                                    onClick={() => generatePetPDF(selectedPet)}
+                                    title="Imprimir Ficha PDF"
+                                    style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(232, 130, 106, 0.1)', color: 'var(--primary)', border: '1px solid rgba(232, 130, 106, 0.2)', transition: 'all 0.2s ease', position: 'absolute', right: '4rem', top: '1.25rem' }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = 'white'; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(232, 130, 106, 0.1)'; e.currentTarget.style.color = 'var(--primary)'; }}
+                                >
+                                    <DownloadCloud size={18} />
+                                    <span style={{ fontWeight: 600 }}>Imprimir Ficha</span>
+                                </button>
+                            )}
                         </div>
 
                         <div className={styles.modalContent}>
