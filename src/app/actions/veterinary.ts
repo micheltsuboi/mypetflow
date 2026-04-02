@@ -25,7 +25,7 @@ export async function getVeterinarians() {
 
         const { data, error } = await supabase
             .from('veterinarians')
-            .select('id, name, specialty, phone, email, is_active, crmv')
+            .select('*')
             .eq('org_id', profile.org_id)
             .order('name')
 
@@ -447,7 +447,7 @@ export async function getVetExamTypes() {
 
         const { data, error } = await supabase
             .from('vet_exam_types')
-            .select('id, name, base_price, description, is_active')
+            .select('*')
             .eq('org_id', profile.org_id)
             .eq('is_active', true)
             .order('name')

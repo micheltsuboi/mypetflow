@@ -100,6 +100,51 @@
     font-size: 0.875rem;
 }
 
+.submenuContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid rgba(140, 180, 201, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.navSubItem {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-radius: 0.4rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.navSubItem:hover {
+    background: rgba(140, 180, 201, 0.08);
+    color: var(--text-primary);
+}
+
+.navSubItem.active {
+    color: var(--accent-primary);
+    background: rgba(0, 228, 206, 0.1);
+    font-weight: 600;
+}
+
+.chevron {
+    margin-left: auto;
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+    opacity: 0.5;
+}
+
+.chevronExpanded {
+    transform: rotate(90deg);
+}
+
 .sidebarFooter {
     margin-top: auto;
     padding-top: 1.5rem;

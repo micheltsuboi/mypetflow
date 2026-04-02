@@ -23,6 +23,14 @@ export default function DashboardLayout({
     const [user, setUser] = useState<{ name: string; role: string; org_id?: string | null; avatar_url?: string | null; permissions?: string[]; planFeatures?: string[] } | null>(null)
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [showPetModal, setShowPetModal] = useState(false)
+    const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({})
+
+    const toggleMenu = (name: string) => {
+        setExpandedMenus(prev => ({
+            ...prev,
+            [name]: !prev[name]
+        }))
+    }
     const supabase = createClient()
     const router = useRouter()
 
@@ -38,9 +46,16 @@ export default function DashboardLayout({
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
-        { name: 'Clínica Vet', href: '/owner/veterinary', icon: '⚕️' },
+        {
+            name: 'Clínica Veterinária',
+            icon: '⚕️',
+            children: [
+                { name: 'Veterinários', href: '/owner/veterinary?tab=vets', icon: '👨‍⚕️' },
+                { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
+                { name: 'Cadastro de Exames', href: '/owner/veterinary?tab=exams', icon: '🧪' },
+            ]
+        },
         { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
-        { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
     ]
 
@@ -57,9 +72,16 @@ export default function DashboardLayout({
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
-        { name: 'Clínica Vet', href: '/owner/veterinary', icon: '⚕️' },
+        {
+            name: 'Clínica Veterinária',
+            icon: '⚕️',
+            children: [
+                { name: 'Veterinários', href: '/owner/veterinary?tab=vets', icon: '👨‍⚕️' },
+                { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
+                { name: 'Cadastro de Exames', href: '/owner/veterinary?tab=exams', icon: '🧪' },
+            ]
+        },
         { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
-        { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
@@ -194,22 +216,31 @@ export default function DashboardLayout({
     if (user?.role === 'Staff' || user?.role === 'Médico Veterinário' || !user) {
         const perms = user?.permissions || []
         navigation = navigation.filter((item: any) => {
-            if (item.name === 'Dashboard') return true
-            if (item.name === 'Agenda') return perms.includes('agenda')
-            if (item.name === 'Banho e Tosa') return perms.includes('banho_tosa')
-            if (item.name === 'Creche') return perms.includes('creche')
-            if (item.name === 'Hospedagem') return perms.includes('hospedagem')
-            if (item.name === 'Tutores') return perms.includes('tutores')
-            if (item.name === 'Pets') return perms.includes('pets')
-            if (item.name === 'Petshop') return perms.includes('petshop')
-            if (item.name === 'Fidelidade') return perms.includes('cashback')
-            if (item.name === 'Serviços') return perms.includes('servicos')
-            if (item.name === 'Clínica Vet') return perms.includes('clinica_vet')
-            if (item.name === 'Hospital') return perms.includes('hospital')
-            if (item.name === 'Questionário') return perms.includes('assessment')
-            if (item.name === 'Consultas') return perms.includes('clinica_vet')
-            if (item.name === 'Ponto') return perms.includes('ponto')
-            return false // Hide everything else (such as Usuários, Financeiro)
+            const hasPermission = (name: string) => {
+                if (name === 'Dashboard') return true
+                if (name === 'Agenda') return perms.includes('agenda')
+                if (name === 'Banho e Tosa') return perms.includes('banho_tosa')
+                if (name === 'Creche') return perms.includes('creche')
+                if (name === 'Hospedagem') return perms.includes('hospedagem')
+                if (name === 'Tutores') return perms.includes('tutores')
+                if (name === 'Pets') return perms.includes('pets')
+                if (name === 'Petshop') return perms.includes('petshop')
+                if (name === 'Fidelidade') return perms.includes('cashback')
+                if (name === 'Serviços') return perms.includes('servicos')
+                if (name === 'Clínica Veterinária') return perms.includes('clinica_vet')
+                if (name === 'Hospital') return perms.includes('hospital')
+                if (name === 'Questionário') return perms.includes('assessment')
+                if (name === 'Consultas') return perms.includes('clinica_vet')
+                if (name === 'Ponto') return perms.includes('ponto')
+                return false
+            }
+
+            if (item.children) {
+                item.children = item.children.filter((sub: any) => hasPermission(sub.name))
+                return item.children.length > 0
+            }
+
+            return hasPermission(item.name)
         })
     }
 
@@ -221,27 +252,36 @@ export default function DashboardLayout({
         if (hasPlanDefined) {
             const planFeat = user.planFeatures || [];
             navigation = navigation.filter((item: any) => {
-                if (item.name === 'Dashboard') return true
-                if (item.name === 'Usuários') return planFeat.includes('usuarios')
-                if (item.name === 'Financeiro') return planFeat.includes('financeiro')
-                if (item.name === 'Agenda') return planFeat.includes('agenda')
-                if (item.name === 'Banho e Tosa') return planFeat.includes('banho_tosa')
-                if (item.name === 'Creche') return planFeat.includes('creche')
-                if (item.name === 'Hospedagem') return planFeat.includes('hospedagem')
-                if (item.name === 'Tutores') return planFeat.includes('tutores')
-                if (item.name === 'Pets') return planFeat.includes('pets')
-                if (item.name === 'Petshop') return planFeat.includes('petshop')
-                if (item.name === 'Fidelidade') return planFeat.includes('cashback')
-                if (item.name === 'Serviços') return planFeat.includes('servicos')
-                if (item.name === 'Pacotes') return planFeat.includes('pacotes')
-                if (item.name === 'Clínica Vet') return planFeat.includes('clinica_vet')
-                if (item.name === 'Hospital') return planFeat.includes('hospital')
-                if (item.name === 'Consultas') return planFeat.includes('clinica_vet')
-                if (item.name === 'Questionário') return planFeat.includes('assessment')
-                if (item.name === 'Ponto') return planFeat.includes('ponto')
-                if (item.name === 'Integrações') return true
-                if (item.name === 'Notas Fiscais') return planFeat.includes('nota_fiscal')
-                return false;
+                const hasPlanFeature = (name: string) => {
+                    if (name === 'Dashboard') return true
+                    if (name === 'Usuários') return planFeat.includes('usuarios')
+                    if (name === 'Financeiro') return planFeat.includes('financeiro')
+                    if (name === 'Agenda') return planFeat.includes('agenda')
+                    if (name === 'Banho e Tosa') return planFeat.includes('banho_tosa')
+                    if (name === 'Creche') return planFeat.includes('creche')
+                    if (name === 'Hospedagem') return planFeat.includes('hospedagem')
+                    if (name === 'Tutores') return planFeat.includes('tutores')
+                    if (name === 'Pets') return planFeat.includes('pets')
+                    if (name === 'Petshop') return planFeat.includes('petshop')
+                    if (name === 'Fidelidade') return planFeat.includes('cashback')
+                    if (name === 'Serviços') return planFeat.includes('servicos')
+                    if (name === 'Pacotes') return planFeat.includes('pacotes')
+                    if (name === 'Clínica Veterinária') return planFeat.includes('clinica_vet')
+                    if (name === 'Hospital') return planFeat.includes('hospital')
+                    if (name === 'Consultas') return planFeat.includes('clinica_vet')
+                    if (name === 'Questionário') return planFeat.includes('assessment')
+                    if (name === 'Ponto') return planFeat.includes('ponto')
+                    if (name === 'Integrações') return true
+                    if (name === 'Notas Fiscais') return planFeat.includes('nota_fiscal')
+                    return false;
+                }
+
+                if (item.children) {
+                    item.children = item.children.filter((sub: any) => hasPlanFeature(sub.name))
+                    return item.children.length > 0
+                }
+
+                return hasPlanFeature(item.name)
             })
         } else if (user) {
             // Se o usuário está logado mas não há plano definido, limpamos a navegação
@@ -282,10 +322,14 @@ export default function DashboardLayout({
 
                 <nav className={styles.nav}>
                     {navigation.map((item: any) => {
+                        const hasChildren = item.children && item.children.length > 0
+                        const isChildActive = hasChildren && item.children.some((child: any) => pathname === child.href.split('?')[0])
+                        const isExpanded = expandedMenus[item.name] || isChildActive
+
                         if (item.action === 'cadastrar-pet') {
                             return (
                                 <button
-                                    key={item.href}
+                                    key={item.href || item.name}
                                     className={`${styles.navItem}`}
                                     onClick={() => {
                                         setIsSidebarOpen(false)
@@ -296,6 +340,41 @@ export default function DashboardLayout({
                                     <span className={styles.navIcon}>{item.icon}</span>
                                     <span className={styles.navLabel}>{item.name}</span>
                                 </button>
+                            )
+                        }
+
+                        if (hasChildren) {
+                            return (
+                                <div key={item.name} className={styles.menuGroup}>
+                                    <button
+                                        className={`${styles.navItem} ${isExpanded ? styles.expanded : ''}`}
+                                        onClick={() => toggleMenu(item.name)}
+                                        style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}
+                                    >
+                                        <span className={styles.navIcon}>{item.icon}</span>
+                                        <span className={styles.navLabel}>{item.name}</span>
+                                        <span className={`${styles.chevron} ${isExpanded ? styles.chevronExpanded : ''}`}>▶</span>
+                                    </button>
+                                    {isExpanded && (
+                                        <div className={styles.submenuContainer}>
+                                            {item.children.map((child: any) => {
+                                                const childPath = child.href.split('?')[0]
+                                                const isActive = pathname === childPath
+                                                return (
+                                                    <Link
+                                                        key={child.href}
+                                                        href={child.href}
+                                                        className={`${styles.navSubItem} ${isActive ? styles.active : ''}`}
+                                                        onClick={() => setIsSidebarOpen(false)}
+                                                    >
+                                                        <span className={styles.navIcon}>{child.icon}</span>
+                                                        <span className={styles.navLabel}>{child.name}</span>
+                                                    </Link>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             )
                         }
 

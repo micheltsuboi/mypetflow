@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import { Veterinarian, VetExamType } from '@/types/database'
 import {
@@ -8,8 +9,17 @@ import {
     getVetExamTypes, createVetExamType, deleteVetExamType
 } from '@/app/actions/veterinary'
 
-export default function VeterinaryPage() {
+function VeterinaryContent() {
+    const searchParams = useSearchParams()
+    const tab = searchParams.get('tab')
     const [activeTab, setActiveTab] = useState<'vets' | 'exams'>('vets')
+
+    useEffect(() => {
+        if (tab === 'vets' || tab === 'exams') {
+            setActiveTab(tab as 'vets' | 'exams')
+        }
+    }, [tab])
+
     const [vets, setVets] = useState<Veterinarian[]>([])
     const [examTypes, setExamTypes] = useState<VetExamType[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -293,5 +303,13 @@ export default function VeterinaryPage() {
                 </div>
             )}
         </div>
+    )
+}
+
+export default function VeterinaryPage() {
+    return (
+        <Suspense fallback={<div style={{ textAlign: 'center', marginTop: '3rem', color: 'var(--text-secondary)' }}>Carregando Clínica...</div>}>
+            <VeterinaryContent />
+        </Suspense>
     )
 }
