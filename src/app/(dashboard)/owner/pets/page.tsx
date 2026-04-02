@@ -356,9 +356,6 @@ function PetsContent() {
         doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col2, y) // Moved Castrado to col2
         y += 5
 
-        doc.setFontSize(6)
-        doc.text(`Gerado em: ${new Date().toLocaleString()}`, margin, y)
-
         // Print / Auto-open print dialog
         doc.autoPrint()
         const pdfBlob = doc.output('blob')
