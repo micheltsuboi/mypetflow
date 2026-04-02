@@ -310,73 +310,54 @@ function PetsContent() {
 
         // Margins and styling
         const margin = 10
-        const topSectionHeight = 155 / 3 // Exactly the first third
-
+        
         // DATA SECTION - ALL BLACK
-        doc.setFontSize(10)
+        doc.setFontSize(9) // Smaller font for more compactness
         doc.setTextColor(0, 0, 0)
         
-        let y = 10 // Start higher
+        let y = 10 // Start high
         const col1 = margin
         const col2 = 115
 
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO TUTOR', col1, y)
-        y += 5
+        y += 4
         doc.setFont('helvetica', 'normal')
         doc.text(`Nome: ${pet.customers?.name || 'Não informado'}`, col1, y)
         doc.text(`Telefone: ${pet.customers?.phone_1 || 'Não informado'}`, col2, y)
         
-        y += 8
+        y += 6
         
         // PET INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO PET', col1, y)
-        y += 5
+        y += 4
         doc.setFont('helvetica', 'normal')
         
         // Row 1
         doc.text(`Nome: ${pet.name}`, col1, y)
         doc.text(`Espécie: ${pet.species === 'dog' ? 'Cão' : pet.species === 'cat' ? 'Gato' : 'Outro'}`, col2, y)
-        y += 5
+        y += 4
         
         // Row 2
         doc.text(`Raça: ${pet.breed || 'SRD'}`, col1, y)
         doc.text(`Sexo: ${pet.gender === 'male' ? 'Macho' : 'Fêmea'}`, col2, y)
-        y += 5
+        y += 4
 
         // Row 3
         const age = calculateAge(pet.birth_date)
         doc.text(`Idade: ${age}`, col1, y)
-        doc.text(`Peso: ${pet.weight_kg ? pet.weight_kg + ' kg' : 'N/A'}`, col2, y)
-        y += 5
+        doc.text(`Porte: ${pet.size === 'small' ? 'Pequeno' : pet.size === 'medium' ? 'Médio' : pet.size === 'large' ? 'Grande' : 'Gigante'}`, col2, y)
+        y += 4
 
         // Row 4
         doc.text(`Cor: ${pet.color || 'Não informada'}`, col1, y)
-        doc.text(`Porte: ${pet.size === 'small' ? 'Pequeno' : pet.size === 'medium' ? 'Médio' : pet.size === 'large' ? 'Grande' : 'Gigante'}`, col2, y)
+        doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col2, y) // Moved Castrado to col2
         y += 5
 
-        // Row 5
-        doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col1, y)
-        doc.text(`Vacinas em dia: ${pet.vaccination_up_to_date ? 'Sim' : 'Não'}`, col2, y)
-        y += 7
-
-        // Row 6 (Conditions)
-        const conditions = pet.characteristics || pet.existing_conditions || 'Nenhuma'
-        doc.setFont('helvetica', 'bold')
-        doc.text('Observações / Características:', col1, y)
-        y += 4
-        doc.setFont('helvetica', 'normal')
-        const splitText = doc.splitTextToSize(conditions, 210)
-        doc.text(splitText, col1, y)
-
-        // Bottom border for the data section (optional, but requested black if used)
-        doc.setDrawColor(0, 0, 0)
-        doc.line(margin, topSectionHeight, 220, topSectionHeight)
-        
-        doc.setFontSize(7)
-        doc.text(`Gerado em: ${new Date().toLocaleString()}`, margin, topSectionHeight - 2)
+        doc.setFontSize(6)
+        doc.text(`Gerado em: ${new Date().toLocaleString()}`, margin, y)
 
         // Print / Auto-open print dialog
         doc.autoPrint()
@@ -482,7 +463,7 @@ function PetsContent() {
                                         )}
                                     </div>
                                 </td>
-                                <td>{pet.gender === 'male' ? 'Macho' : 'Fêmea'} • {pet.size}</td>
+                                <td>{pet.gender === 'male' ? 'Macho' : 'Fêmea'} • {pet.size === 'small' ? 'Pequeno' : pet.size === 'medium' ? 'Médio' : pet.size === 'large' ? 'Grande' : 'Gigante'}</td>
                                 <td>{calculateAge(pet.birth_date)}</td>
                             </tr>
                         ))}

@@ -571,7 +571,7 @@ export default function ServicesPage() {
                                             {selectedService.pricing_matrix?.map(rule => (
                                                 <tr key={rule.id} className={editingPricingRule?.id === rule.id ? styles.editingRow : ''}>
                                                     <td>{rule.weight_min ?? 0} - {rule.weight_max ?? '∞'}</td>
-                                                    <td>{rule.size || '-'}</td>
+                                                    <td>{rule.size ? (rule.size === 'small' ? 'Pequeno' : rule.size === 'medium' ? 'Médio' : rule.size === 'large' ? 'Grande' : 'Gigante') : '-'}</td>
                                                     <td>{rule.day_of_week !== null ? ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][rule.day_of_week] : '-'}</td>
                                                     <td>R$ {rule.fixed_price.toFixed(2)}</td>
                                                     <td className={styles.matrixActions}>
@@ -594,10 +594,10 @@ export default function ServicesPage() {
                                         <input name="weight_max" type="number" step="0.1" placeholder="Max Kg" className={styles.inputSmall} defaultValue={editingPricingRule?.weight_max ?? ''} />
                                         <select name="size" className={styles.selectSmall} defaultValue={editingPricingRule?.size || ''}>
                                             <option value="">Porte...</option>
-                                            <option value="small">Peq</option>
-                                            <option value="medium">Med</option>
-                                            <option value="large">Gnd</option>
-                                            <option value="giant">Gig</option>
+                                            <option value="small">Pequeno</option>
+                                            <option value="medium">Médio</option>
+                                            <option value="large">Grande</option>
+                                            <option value="giant">Gigante</option>
                                         </select>
                                         <select name="day_of_week" className={styles.selectSmall} defaultValue={editingPricingRule?.day_of_week ?? ''}>
                                             <option value="">Dia...</option>
