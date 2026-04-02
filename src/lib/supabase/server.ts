@@ -1,12 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 
 export async function createClient() {
     const cookieStore = await cookies()
-    const headersList = await headers()
-    const host = headersList.get('host') || ''
-    const isLocal = host.includes('localhost') || host.includes('vercel.app')
-    const cookieDomain = isLocal ? undefined : '.mypetflow.com.br'
+    // Em produção, sempre usa o domínio correto - evita chamar headers() a cada Server Action
+    const cookieDomain = process.env.NODE_ENV === 'production' ? '.mypetflow.com.br' : undefined
 
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

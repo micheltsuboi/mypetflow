@@ -1,13 +1,28 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-    let supabaseResponse = NextResponse.next({
-        request,
-    })
+// Rotas públicas - não requerem autenticação nem cliente Supabase
+const PUBLIC_PATHS = ['/', '/cadastro', '/cadastro-empresa', '/auth', '/tutor', '/login', '/admin', '/api']
 
-    const isLocal = request.nextUrl.hostname.includes('localhost') || request.nextUrl.hostname.includes('vercel.app')
+function isPublicRoute(pathname: string): boolean {
+    return PUBLIC_PATHS.some(
+        path => pathname === path || pathname.startsWith(path + '/')
+    )
+}
+
+export async function updateSession(request: NextRequest) {
+    const { pathname, hostname } = request.nextUrl
+
+    // ✅ Verificar rota pública ANTES de instanciar o cliente Supabase
+    // Evita criação desnecessária de cliente e chamada de rede em rotas públicas
+    if (isPublicRoute(pathname)) {
+        return NextResponse.next({ request })
+    }
+
+    const isLocal = hostname.includes('localhost')
     const cookieDomain = isLocal ? undefined : '.mypetflow.com.br'
+
+    let supabaseResponse = NextResponse.next({ request })
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -19,9 +34,7 @@ export async function updateSession(request: NextRequest) {
                 },
                 setAll(cookiesToSet) {
                     cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-                    supabaseResponse = NextResponse.next({
-                        request,
-                    })
+                    supabaseResponse = NextResponse.next({ request })
                     cookiesToSet.forEach(({ name, value, options }) => {
                         const finalOptions = { ...options }
                         if (cookieDomain) finalOptions.domain = cookieDomain
@@ -35,17 +48,6 @@ export async function updateSession(request: NextRequest) {
     // IMPORTANT: Avoid writing any logic between createServerClient and
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
-
-    // Rotas públicas - não requerem autenticação
-    const publicPaths = ['/', '/cadastro', '/cadastro-empresa', '/auth', '/tutor', '/login', '/admin', '/api']
-    const isPublicPath = publicPaths.some(path =>
-        request.nextUrl.pathname === path ||
-        request.nextUrl.pathname.startsWith(path + '/')
-    )
-
-    if (isPublicPath) {
-        return supabaseResponse
-    }
 
     const {
         data: { user },
