@@ -189,7 +189,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     // PADRÃO TRADICIONAL FOCUS NFE — Endpoint /v2/nfse
     // Para municípios que NÃO usam o padrão Nacional (SPED)
     // ================================================================
-    const agora = new Date().toISOString();
+    const agora = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const valorIss = ((servico.valor || 0) * ((config.aliquota_iss || 2) / 100)).toFixed(2);
 
     // Helper para limpeza de códigos IBGE
