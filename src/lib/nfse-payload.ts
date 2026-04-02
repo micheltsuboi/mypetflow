@@ -192,13 +192,21 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
     const agora = new Date().toISOString();
     const valorIss = ((servico.valor || 0) * ((config.aliquota_iss || 2) / 100)).toFixed(2);
 
+    // Helper para limpeza de códigos IBGE
+    const cleanIBGE = (val: any) => {
+        const cleaned = String(val || '').replace(/\D/g, '');
+        return (cleaned === '' || cleaned === 'null') ? undefined : cleaned;
+    };
+
+    const municipioPrestador = cleanIBGE(config.codigo_municipio);
+
     return {
         ref: `petflow_${ref_uuid}`,
         data_emissao: agora,
         prestador: {
             cnpj: cnpjLimpo,
             inscricao_municipal: config.inscricao_municipal,
-            codigo_municipio: config.codigo_municipio?.replace(/\D/g, '')
+            codigo_municipio: municipioPrestador
         },
         tomador: {
             cpf: cpfTomador,
@@ -208,7 +216,7 @@ export function buildNFSePayload({ config, ref_uuid, tutor, servico }: NFSeBuild
                 logradouro: tutor.endereco?.logradouro || 'Sem Rua',
                 numero: tutor.endereco?.numero || 'SN',
                 bairro: tutor.endereco?.bairro || 'Sem Bairro',
-                codigo_municipio: (tutor.endereco?.codigo_municipio || config.codigo_municipio)?.replace(/\D/g, ''),
+                codigo_municipio: cleanIBGE(tutor.endereco?.codigo_municipio) || municipioPrestador,
                 cep: (tutor.endereco?.cep || config.cep || '00000000')?.replace(/\D/g, ''),
                 uf: tutor.endereco?.uf || config.uf
             }
