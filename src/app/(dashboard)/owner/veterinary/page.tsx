@@ -3,33 +3,19 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
-import { Veterinarian, VetExamType } from '@/types/database'
+import { Veterinarian } from '@/types/database'
 import {
-    getVeterinarians, createVeterinarian, updateVeterinarian,
-    getVetExamTypes, createVetExamType, deleteVetExamType
+    getVeterinarians, createVeterinarian, updateVeterinarian
 } from '@/app/actions/veterinary'
 
 function VeterinaryContent() {
     const searchParams = useSearchParams()
-    const tab = searchParams.get('tab')
     const action = searchParams.get('action')
-    const [activeTab, setActiveTab] = useState<'vets' | 'exams'>('vets')
-
-    useEffect(() => {
-        if (tab === 'vets' || tab === 'exams') {
-            setActiveTab(tab as 'vets' | 'exams')
-        }
-        if (action === 'new-vet') setIsVetModalOpen(true)
-        if (action === 'new-exam') setIsExamModalOpen(true)
-    }, [tab, action])
-
     const [vets, setVets] = useState<Veterinarian[]>([])
-    const [examTypes, setExamTypes] = useState<VetExamType[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     // Modals
     const [isVetModalOpen, setIsVetModalOpen] = useState(false)
-    const [isExamModalOpen, setIsExamModalOpen] = useState(false)
     const [selectedVet, setSelectedVet] = useState<Veterinarian | null>(null)
 
     // Forms
@@ -37,19 +23,11 @@ function VeterinaryContent() {
         name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true, password: '', createLogin: false
     })
 
-    const [examForm, setExamForm] = useState({
-        name: '', description: '', base_price: 0
-    })
-
     const fetchData = useCallback(async () => {
         setIsLoading(true)
         try {
-            const [vetsData, examsData] = await Promise.all([
-                getVeterinarians(),
-                getVetExamTypes()
-            ])
+            const vetsData = await getVeterinarians()
             setVets(vetsData)
-            setExamTypes(examsData)
         } catch (error) {
             console.error(error)
         } finally {
@@ -60,6 +38,10 @@ function VeterinaryContent() {
     useEffect(() => {
         fetchData()
     }, [fetchData])
+
+    useEffect(() => {
+        if (action === 'new-vet') setIsVetModalOpen(true)
+    }, [action])
 
     const handleSaveVet = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -86,29 +68,6 @@ function VeterinaryContent() {
         }
     }
 
-    const handleSaveExamType = async (e: React.FormEvent) => {
-        e.preventDefault()
-        const formData = new FormData()
-        formData.append('name', examForm.name)
-        formData.append('description', examForm.description)
-        formData.append('base_price', examForm.base_price.toString())
-
-        const res = await createVetExamType(formData)
-        if (res.success) {
-            setIsExamModalOpen(false)
-            fetchData()
-        } else {
-            alert(res.message)
-        }
-    }
-
-    const handleDeleteExamType = async (id: string) => {
-        if (!confirm('Tem certeza que deseja desativar este exame?')) return
-        const res = await deleteVetExamType(id)
-        if (res.success) fetchData()
-        else alert(res.message)
-    }
-
     if (isLoading) {
         return <div className={styles.container} style={{ textAlign: 'center', marginTop: '3rem' }}>Carregando...</div>
     }
@@ -117,99 +76,50 @@ function VeterinaryContent() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>🩺 Clínica Veterinária</h1>
-                    <p className={styles.subtitle}>Gerencie a equipe veterinária e o catálogo de exames.</p>
+                    <h1 className={styles.title}>👨‍⚕️ Profissionais Veterinários</h1>
+                    <p className={styles.subtitle}>Gerencie a equipe de veterinários da sua clínica.</p>
                 </div>
-                {activeTab === 'vets' ? (
-                    <button className={styles.addButton} onClick={() => {
-                        setSelectedVet(null)
-                        setVetForm({ name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true, password: '', createLogin: false })
-                        setIsVetModalOpen(true)
-                    }}>
-                        ➕ Novo Veterinário
-                    </button>
-                ) : (
-                    <button className={styles.addButton} onClick={() => {
-                        setExamForm({ name: '', description: '', base_price: 0 })
-                        setIsExamModalOpen(true)
-                    }}>
-                        ➕ Novo Exame
-                    </button>
-                )}
-            </div>
-
-            <div className={styles.tabsContainer}>
-                <button
-                    className={`${styles.tab} ${activeTab === 'vets' ? styles.active : ''}`}
-                    onClick={() => setActiveTab('vets')}
-                >
-                    Profissionais (Vet)
-                </button>
-                <button
-                    className={`${styles.tab} ${activeTab === 'exams' ? styles.active : ''}`}
-                    onClick={() => setActiveTab('exams')}
-                >
-                    Catálogo de Exames
+                <button className={styles.addButton} onClick={() => {
+                    setSelectedVet(null)
+                    setVetForm({ name: '', crmv: '', specialty: '', phone: '', email: '', consultation_base_price: 0, is_active: true, password: '', createLogin: false })
+                    setIsVetModalOpen(true)
+                }}>
+                    ➕ Novo Veterinário
                 </button>
             </div>
 
-            {activeTab === 'vets' && (
-                <div className={styles.listContainer}>
-                    {vets.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>Nenhum veterinário cadastrado.</p> : vets.map(vet => (
-                        <div key={vet.id} className={styles.card}>
-                            <div className={styles.cardInfo}>
-                                <h3>{vet.name} {vet.is_active ? <span className={`${styles.statusBadge} ${styles.statusActive}`}>Ativo</span> : <span className={`${styles.statusBadge} ${styles.statusInactive}`}>Inativo</span>}</h3>
-                                <div className={styles.cardMeta}>
-                                    <strong>CRMV:</strong> {vet.crmv} {vet.specialty && `• Especialidade: ${vet.specialty}`}
-                                </div>
-                                <div className={styles.cardMeta}>
-                                    Valor Base Consulta: R$ {vet.consultation_base_price?.toFixed(2) || '0.00'}
-                                </div>
+            <div className={styles.listContainer}>
+                {vets.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)' }}>Nenhum veterinário cadastrado.</p>
+                 ) : vets.map(vet => (
+                    <div key={vet.id} className={styles.card}>
+                        <div className={styles.cardInfo}>
+                            <h3>{vet.name} {vet.is_active ? <span className={`${styles.statusBadge} ${styles.statusActive}`}>Ativo</span> : <span className={`${styles.statusBadge} ${styles.statusInactive}`}>Inativo</span>}</h3>
+                            <div className={styles.cardMeta}>
+                                <strong>CRMV:</strong> {vet.crmv} {vet.specialty && `• Especialidade: ${vet.specialty}`}
                             </div>
-                            <button className={styles.editButton} onClick={() => {
-                                setSelectedVet(vet)
-                                setVetForm({
-                                    name: vet.name,
-                                    crmv: vet.crmv,
-                                    specialty: vet.specialty || '',
-                                    phone: vet.phone || '',
-                                    email: vet.email || '',
-                                    consultation_base_price: vet.consultation_base_price,
-                                    is_active: vet.is_active,
-                                    password: '',
-                                    createLogin: false
-                                })
-                                setIsVetModalOpen(true)
-                            }}>Editar</button>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {activeTab === 'exams' && (
-                <div className={styles.listContainer}>
-                    {examTypes.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>Nenhum exame cadastrado.</p> : examTypes.map(exam => (
-                        <div key={exam.id} className={styles.card}>
-                            <div className={styles.cardInfo}>
-                                <h3>{exam.name}</h3>
-                                <div className={styles.cardMeta}>
-                                    {exam.description || 'Sem descrição'}
-                                </div>
-                                <div className={styles.cardMeta}>
-                                    Valor Base: <strong>R$ {exam.base_price?.toFixed(2) || '0.00'}</strong>
-                                </div>
+                            <div className={styles.cardMeta}>
+                                Valor Base Consulta: R$ {vet.consultation_base_price?.toFixed(2) || '0.00'}
                             </div>
-                            <button
-                                className={styles.deleteButton}
-                                onClick={() => handleDeleteExamType(exam.id)}
-                                title="Desativar Exame"
-                            >
-                                🗑️
-                            </button>
                         </div>
-                    ))}
-                </div>
-            )}
+                        <button className={styles.editButton} onClick={() => {
+                            setSelectedVet(vet)
+                            setVetForm({
+                                name: vet.name,
+                                crmv: vet.crmv,
+                                specialty: vet.specialty || '',
+                                phone: vet.phone || '',
+                                email: vet.email || '',
+                                consultation_base_price: vet.consultation_base_price,
+                                is_active: vet.is_active,
+                                password: '',
+                                createLogin: false
+                            })
+                            setIsVetModalOpen(true)
+                        }}>Editar</button>
+                    </div>
+                ))}
+            </div>
 
             {/* Modal Veterinário */}
             {isVetModalOpen && (
@@ -274,33 +184,6 @@ function VeterinaryContent() {
                             </div>
 
                             <button type="submit" className={styles.submitButton} style={{ marginTop: '1.5rem' }}>Salvar Profissional</button>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal Exame */}
-            {isExamModalOpen && (
-                <div className={styles.modalOverlay} onClick={() => setIsExamModalOpen(false)}>
-                    <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                        <button className={styles.closeButton} onClick={() => setIsExamModalOpen(false)}>×</button>
-                        <h2>Novo Tipo de Exame</h2>
-
-                        <form onSubmit={handleSaveExamType}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Nome do Exame *</label>
-                                <input required className={styles.input} value={examForm.name} onChange={e => setExamForm({ ...examForm, name: e.target.value })} placeholder="Ex: Hemograma Completo" />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Preço Base / Custo Repasse (R$) *</label>
-                                <input type="number" step="0.01" min="0" required className={styles.input} value={examForm.base_price} onChange={e => setExamForm({ ...examForm, base_price: parseFloat(e.target.value) })} />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>Descrição / Observações</label>
-                                <textarea className={styles.textarea} value={examForm.description} onChange={e => setExamForm({ ...examForm, description: e.target.value })} placeholder="Informações de preparo, tempo de jejum, etc..." />
-                            </div>
-
-                            <button type="submit" className={styles.submitButton}>Cadastrar Exame</button>
                         </form>
                     </div>
                 </div>
