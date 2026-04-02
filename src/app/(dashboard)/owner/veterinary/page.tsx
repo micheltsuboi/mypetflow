@@ -12,13 +12,16 @@ import {
 function VeterinaryContent() {
     const searchParams = useSearchParams()
     const tab = searchParams.get('tab')
+    const action = searchParams.get('action')
     const [activeTab, setActiveTab] = useState<'vets' | 'exams'>('vets')
 
     useEffect(() => {
         if (tab === 'vets' || tab === 'exams') {
             setActiveTab(tab as 'vets' | 'exams')
         }
-    }, [tab])
+        if (action === 'new-vet') setIsVetModalOpen(true)
+        if (action === 'new-exam') setIsExamModalOpen(true)
+    }, [tab, action])
 
     const [vets, setVets] = useState<Veterinarian[]>([])
     const [examTypes, setExamTypes] = useState<VetExamType[]>([])

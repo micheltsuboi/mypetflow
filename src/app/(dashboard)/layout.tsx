@@ -51,8 +51,10 @@ export default function DashboardLayout({
             icon: '⚕️',
             children: [
                 { name: 'Veterinários', href: '/owner/veterinary?tab=vets', icon: '👨‍⚕️' },
+                { name: 'Cadastrar Veterinário', href: '/owner/veterinary?tab=vets&action=new-vet', icon: '➕' },
                 { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
                 { name: 'Cadastro de Exames', href: '/owner/veterinary?tab=exams', icon: '🧪' },
+                { name: 'Cadastrar Novo Exame', href: '/owner/veterinary?tab=exams&action=new-exam', icon: '➕' },
             ]
         },
         { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
@@ -77,8 +79,10 @@ export default function DashboardLayout({
             icon: '⚕️',
             children: [
                 { name: 'Veterinários', href: '/owner/veterinary?tab=vets', icon: '👨‍⚕️' },
+                { name: 'Cadastrar Veterinário', href: '/owner/veterinary?tab=vets&action=new-vet', icon: '➕' },
                 { name: 'Consultas', href: '/owner/consultas', icon: '🩺' },
                 { name: 'Cadastro de Exames', href: '/owner/veterinary?tab=exams', icon: '🧪' },
+                { name: 'Cadastrar Novo Exame', href: '/owner/veterinary?tab=exams&action=new-exam', icon: '➕' },
             ]
         },
         { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
