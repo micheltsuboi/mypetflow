@@ -11,6 +11,8 @@ import {
 } from '@/app/actions/vaccine'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import InputMasked from '@/components/ui/InputMasked'
+import { maskDate, parseDateToISO } from '@/utils/masks'
 
 export default function VacinasPage() {
     const [vaccines, setVaccines] = useState<any[]>([])
@@ -20,6 +22,7 @@ export default function VacinasPage() {
     const [editingVaccine, setEditingVaccine] = useState<any>(null)
     const [selectedVaccineId, setSelectedVaccineId] = useState<string | null>(null)
     const [batchesMap, setBatchesMap] = useState<Record<string, any[]>>({})
+    const [expirationDate, setExpirationDate] = useState('')
 
     useEffect(() => {
         loadData()
@@ -70,7 +73,7 @@ export default function VacinasPage() {
             quantity: parseInt(formData.get('quantity') as string),
             cost_total: parseFloat(formData.get('cost_total') as string),
             selling_price: parseFloat(formData.get('selling_price') as string),
-            expiration_date: formData.get('expiration_date')
+            expiration_date: parseDateToISO(expirationDate)
         }
 
         const res = await upsertVaccineBatch(data)
@@ -282,7 +285,15 @@ export default function VacinasPage() {
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.label}>Data de Validade</label>
-                                <input type="date" name="expiration_date" className={styles.input} required />
+                                <InputMasked
+                                    name="expiration_date"
+                                    className={styles.input}
+                                    required
+                                    mask={maskDate}
+                                    value={expirationDate}
+                                    onChange={setExpirationDate}
+                                    placeholder="DD/MM/AAAA"
+                                />
                             </div>
                             <div className={styles.modalActions}>
                                 <button type="button" className={styles.cancelBtn} onClick={() => setShowBatchModal(false)}>Cancelar</button>

@@ -49,6 +49,8 @@ import FileUpload from '@/components/ui/FileUpload'
 import ExamPaymentControls from '@/components/ExamPaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
+import InputMasked from '@/components/ui/InputMasked'
+import { maskDate, parseDateToISO } from '@/utils/masks'
 import { 
     X, 
     User, 
@@ -150,6 +152,15 @@ function PetsContent() {
     const [petAssessment, setPetAssessment] = useState<any>(null)
     const [petVaccinations, setPetVaccinations] = useState<any[]>([])
     const [vaccineCatalog, setVaccineCatalog] = useState<any[]>([])
+
+    // Vaccination Form States
+    const [showManualVaccineForm, setShowManualVaccineForm] = useState(false)
+    const [showCatalogVaccineForm, setShowCatalogVaccineForm] = useState(false)
+    const [vaccineFormDate, setVaccineFormDate] = useState('')
+    const [vaccineFormExpiry, setVaccineFormExpiry] = useState('')
+    const [selectedVaccineForApp, setSelectedVaccineForApp] = useState<any>(null)
+    const [selectedBatchForApp, setSelectedBatchForApp] = useState<any>(null)
+    const [availableBatches, setAvailableBatches] = useState<any[]>([])
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
@@ -633,69 +644,146 @@ function PetsContent() {
                                                 <button 
                                                     className={styles.actionBtn}
                                                     onClick={() => {
-                                                        const name = prompt('Nome da Vacina (Registro Manual):')
-                                                        if (!name) return
-                                                        const batch = prompt('Lote (Opcional):')
-                                                        const date = prompt('Data de Aplicação (AAAA-MM-DD):', new Date().toISOString().split('T')[0])
-                                                        const expiry = prompt('Data de Vencimento / Revacinação (AAAA-MM-DD):')
-                                                        if (!expiry) return alert('Data de vencimento é obrigatória.')
-
-                                                        startTransition(async () => {
-                                                            const res = await applyVaccine({
-                                                                pet_id: selectedPet?.id,
-                                                                is_manual: true,
-                                                                manual_name: name,
-                                                                manual_batch: batch || '',
-                                                                application_date: date,
-                                                                expiry_date: expiry
-                                                            })
-                                                            if (res.success) {
-                                                                getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
-                                                            } else alert(res.message)
-                                                        })
+                                                        setVaccineFormDate(new Date().toLocaleDateString('pt-BR'))
+                                                        setVaccineFormExpiry('')
+                                                        setShowManualVaccineForm(!showManualVaccineForm)
+                                                        setShowCatalogVaccineForm(false)
                                                     }}
                                                     style={{ fontSize: '0.75rem', padding: '4px 8px' }}
                                                 >
-                                                    Manual
+                                                    {showManualVaccineForm ? 'Cancelar' : 'Manual'}
                                                 </button>
                                                 <button 
                                                     className={styles.submitButton}
                                                     onClick={async () => {
-                                                        // This would ideally open a small modal, but for speed let's use a dynamic select flow if possible or just a simple alert for now.
-                                                        // Let's improve this: show a simple "Applying" state or similar.
-                                                        const vId = prompt('Escolha a Vacina do Catálogo (ID):\n' + vaccineCatalog.map(v => `${v.id}: ${v.name}`).join('\n'))
-                                                        if (!vId) return
-
-                                                        const batches = await getVaccineBatches(vId)
-                                                        const bId = prompt('Escolha o Lote com estoque:\n' + batches.filter(b => b.quantity > 0).map(b => `${b.id}: Lote ${b.batch_number} (${b.quantity} un)`).join('\n'))
-                                                        if (!bId) return
-
-                                                        const expiry = prompt('Data de Vencimento / Próxima Dose (AAAA-MM-DD):')
-                                                        if (!expiry) return
-                                                        
-                                                        const method = prompt('Forma de Pagamento (cash, pix, credit, debit):', 'cash')
-
-                                                        startTransition(async () => {
-                                                            const res = await applyVaccine({
-                                                                pet_id: selectedPet?.id,
-                                                                vaccine_id: vId,
-                                                                vaccine_batch_id: bId,
-                                                                application_date: new Date().toISOString(),
-                                                                expiry_date: expiry,
-                                                                payment_method: method
-                                                            })
-                                                            if (res.success) {
-                                                                getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
-                                                                alert('Vacina aplicada e estoque/financeiro atualizados!')
-                                                            } else alert(res.message)
-                                                        })
+                                                        setVaccineFormDate(new Date().toLocaleDateString('pt-BR'))
+                                                        setVaccineFormExpiry('')
+                                                        setShowCatalogVaccineForm(!showCatalogVaccineForm)
+                                                        setShowManualVaccineForm(false)
                                                     }}
                                                     style={{ fontSize: '0.75rem', padding: '4px 12px' }}
                                                 >
-                                                    + Aplicar Vacina
+                                                    {showCatalogVaccineForm ? 'Cancelar' : '+ Aplicar Vacina'}
                                                 </button>
                                             </div>
                                         </div>
+
+                                        {/* Formulário Manual */}
+                                        {showManualVaccineForm && (
+                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                <h5 style={{ margin: '0 0 1rem 0' }}>Registro Manual de Vacina</h5>
+                                                <form action={async (formData) => {
+                                                    const name = formData.get('manual_name') as string
+                                                    const batch = formData.get('manual_batch') as string
+                                                    const isoDate = parseDateToISO(vaccineFormDate)
+                                                    const isoExpiry = parseDateToISO(vaccineFormExpiry)
+
+                                                    if (!name || !isoExpiry) return alert('Nome e vencimento são obrigatórios.')
+
+                                                    startTransition(async () => {
+                                                        const res = await applyVaccine({
+                                                            pet_id: selectedPet?.id,
+                                                            is_manual: true,
+                                                            manual_name: name,
+                                                            manual_batch: batch || '',
+                                                            application_date: isoDate,
+                                                            expiry_date: isoExpiry
+                                                        })
+                                                        if (res.success) {
+                                                            setShowManualVaccineForm(false)
+                                                            getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                        } else alert(res.message)
+                                                    })
+                                                }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Nome da Vacina *</label>
+                                                            <input name="manual_name" className={styles.input} required />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Lote (Opcional)</label>
+                                                            <input name="manual_batch" className={styles.input} />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Data Aplicação *</label>
+                                                            <InputMasked mask={maskDate} value={vaccineFormDate} onChange={setVaccineFormDate} className={styles.input} required placeholder="DD/MM/AAAA" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Data Vencimento *</label>
+                                                            <InputMasked mask={maskDate} value={vaccineFormExpiry} onChange={setVaccineFormExpiry} className={styles.input} required placeholder="DD/MM/AAAA" />
+                                                        </div>
+                                                    </div>
+                                                    <button type="submit" className={styles.submitButton} style={{ marginTop: '1rem', width: '100%' }}>Salvar Registro Manual</button>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        {/* Formulário Catálogo */}
+                                        {showCatalogVaccineForm && (
+                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                                <h5 style={{ margin: '0 0 1rem 0' }}>Aplicar Vacina do Estoque</h5>
+                                                <form action={async (formData) => {
+                                                    const vId = formData.get('vaccine_id') as string
+                                                    const bId = formData.get('batch_id') as string
+                                                    const method = formData.get('payment_method') as string
+                                                    const isoExpiry = parseDateToISO(vaccineFormExpiry)
+
+                                                    if (!vId || !bId || !isoExpiry) return alert('Selecione todos os campos obrigatórios.')
+
+                                                    startTransition(async () => {
+                                                        const res = await applyVaccine({
+                                                            pet_id: selectedPet?.id,
+                                                            vaccine_id: vId,
+                                                            vaccine_batch_id: bId,
+                                                            application_date: new Date().toISOString(),
+                                                            expiry_date: isoExpiry,
+                                                            payment_method: method
+                                                        })
+                                                        if (res.success) {
+                                                            setShowCatalogVaccineForm(false)
+                                                            getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                            alert('Vacina aplicada e estoque/financeiro atualizados!')
+                                                        } else alert(res.message)
+                                                    })
+                                                }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Escolha a Vacina *</label>
+                                                            <select name="vaccine_id" className={styles.select} required onChange={async (e) => {
+                                                                const vId = e.target.value
+                                                                if (!vId) return setAvailableBatches([])
+                                                                const batches = await getVaccineBatches(vId)
+                                                                setAvailableBatches(batches.filter((b: any) => b.quantity > 0))
+                                                            }}>
+                                                                <option value="">Selecione...</option>
+                                                                {vaccineCatalog.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Lote em Estoque *</label>
+                                                            <select name="batch_id" className={styles.select} required>
+                                                                <option value="">Selecione...</option>
+                                                                {availableBatches.map(b => <option key={b.id} value={b.id}>Lote {b.batch_number} ({b.quantity} un)</option>)}
+                                                            </select>
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Data Vencimento *</label>
+                                                            <InputMasked mask={maskDate} value={vaccineFormExpiry} onChange={setVaccineFormExpiry} className={styles.input} required placeholder="DD/MM/AAAA" />
+                                                        </div>
+                                                        <div className={styles.formGroup}>
+                                                            <label>Pagamento *</label>
+                                                            <select name="payment_method" className={styles.select} required>
+                                                                <option value="cash">Dinheiro</option>
+                                                                <option value="pix">PIX</option>
+                                                                <option value="credit">Crédito</option>
+                                                                <option value="debit">Débitio</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                    <button type="submit" className={styles.submitButton} style={{ marginTop: '1rem', width: '100%' }}>Confirmar Aplicação</button>
+                                                </form>
+                                            </div>
+                                        )}
 
                                         {petVaccinations.length === 0 ? (
                                             <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.875rem', padding: '1rem' }}>

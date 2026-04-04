@@ -27,6 +27,22 @@ export const maskCNPJ = (value: string) => {
         .replace(/(-\d{2})\d+?$/, "$1");
 }
 
+export const maskDate = (value: string) => {
+    return value
+        .replace(/\D/g, "")
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .replace(/(\d{2})(\d)/, "$1/$2")
+        .replace(/(\d{4})(\d+?)$/, "$1")
+}
+
+export const parseDateToISO = (dateStr: string) => {
+    if (!dateStr) return null
+    const parts = dateStr.split('/')
+    if (parts.length !== 3) return null
+    const [day, month, year] = parts
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
 export const unmask = (value: string) => {
     return value.replace(/\D/g, "")
 }
