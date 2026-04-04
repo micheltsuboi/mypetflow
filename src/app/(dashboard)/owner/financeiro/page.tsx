@@ -63,6 +63,7 @@ export default function FinanceiroPage() {
         pendingVets: any[];
         pendingExams: any[];
         pendingAdmissions: any[];
+        pendingVaccines: any[];
         allPendingAppointments: any[];
     }>({
         type: null,
@@ -73,6 +74,7 @@ export default function FinanceiroPage() {
         pendingVets: [],
         pendingExams: [],
         pendingAdmissions: [],
+        pendingVaccines: [],
         allPendingAppointments: []
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
@@ -89,7 +91,7 @@ export default function FinanceiroPage() {
     const [paymentModal, setPaymentModal] = useState<{
         isOpen: boolean,
         recordId: string,
-        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions',
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines',
         title: string,
         baseAmount: number
     } | null>(null)
@@ -140,6 +142,7 @@ export default function FinanceiroPage() {
                 apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse,
                 pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse,
                 allPendingApptsResponse,
+                pendingVaccinesResponse,
                 catsData,
                 recExps,
                 recExcs
@@ -204,6 +207,11 @@ export default function FinanceiroPage() {
                     `)
                     .eq('org_id', profile.org_id)
                     .or('payment_status.neq.paid,payment_status.is.null'),
+                supabase
+                    .from('pet_vaccines')
+                    .select('*, pets ( name, customers ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending'),
                 getExpenseCategories(),
                 getRecurringExpenses() as Promise<RecurringExpense[]>,
                 getRecurringExceptions() as Promise<RecurringExpenseException[]>
@@ -221,6 +229,7 @@ export default function FinanceiroPage() {
             const pendingVets = pendingVetsResponse.data || []
             const pendingExams = pendingExamsResponse.data || []
             const pendingAdmissions = pendingAdmissionsResponse.data || []
+            const pendingVaccines = pendingVaccinesResponse.data || []
             const allPendingAppts = allPendingApptsResponse?.data || []
 
             setExpenseCategories(catsData)
@@ -420,6 +429,7 @@ export default function FinanceiroPage() {
                     return sum + Math.max(0, val);
                 }, 0)
                 + pendingAdmissions.reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
+                + pendingVaccines.reduce((sum: number, v: any) => sum + (v.price || 0), 0)
 
             setActiveRevenueValue(activeRevenue)
             setActiveExpensesValue(activeExpenses)
@@ -435,6 +445,7 @@ export default function FinanceiroPage() {
                 pendingVets,
                 pendingExams,
                 pendingAdmissions,
+                pendingVaccines,
                 allPendingAppointments: allPendingAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0)
             })
 
@@ -586,7 +597,7 @@ export default function FinanceiroPage() {
 
     const handleOpenPaymentModal = (
         recordId: string,
-        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions',
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines',
         title: string,
         baseAmount: number
     ) => {
@@ -1272,6 +1283,82 @@ export default function FinanceiroPage() {
                                                         <td>
                                                             <button 
                                                                 onClick={() => handleOpenPaymentModal(sale.id, 'orders', 'Venda Petshop', sale.total_amount)}
+                                                                className={styles.payBtn}
+                                                            >
+                                                                <DollarSign size={16} /> Receber
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {extractRecords.pendingVaccines.map((v: any) => (
+                                                    <tr key={v.id}>
+                                                        <td>{new Date(v.application_date).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{v.pets?.name} • Vacina: {v.name}</td>
+                                                        <td>Vacinas</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency(v.price || 0)}</td>
+                                                        <td>
+                                                            <button 
+                                                                onClick={() => handleOpenPaymentModal(v.id, 'pet_vaccines', `Vacina: ${v.name}`, (v.price || 0))}
+                                                                className={styles.payBtn}
+                                                            >
+                                                                <DollarSign size={16} /> Receber
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {extractRecords.pendingVets.map((v: any) => {
+                                                    let val = v.consultation_fee || 0;
+                                                    if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
+                                                    else val -= (v.discount_fixed || 0);
+                                                    const finalVal = Math.max(0, val);
+                                                    return (
+                                                        <tr key={v.id}>
+                                                            <td>{new Date(v.created_at).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{v.pets?.name} • Consulta Veterinária</td>
+                                                            <td>Consulta</td>
+                                                            <td className={styles.pendingValue}>{formatCurrency(finalVal)}</td>
+                                                            <td>
+                                                                <button 
+                                                                    onClick={() => handleOpenPaymentModal(v.id, 'vet_consultations', 'Consulta Veterinária', finalVal)}
+                                                                    className={styles.payBtn}
+                                                                >
+                                                                    <DollarSign size={16} /> Receber
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {extractRecords.pendingExams.map((e: any) => {
+                                                    let val = e.price || 0;
+                                                    if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
+                                                    else val -= (e.discount_fixed || 0);
+                                                    const finalVal = Math.max(0, val);
+                                                    return (
+                                                        <tr key={e.id}>
+                                                            <td>{new Date(e.created_at).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{e.pets?.name} • Exame: {e.name}</td>
+                                                            <td>Exames</td>
+                                                            <td className={styles.pendingValue}>{formatCurrency(finalVal)}</td>
+                                                            <td>
+                                                                <button 
+                                                                    onClick={() => handleOpenPaymentModal(e.id, 'vet_exams', `Exame: ${e.name}`, finalVal)}
+                                                                    className={styles.payBtn}
+                                                                >
+                                                                    <DollarSign size={16} /> Receber
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                                {extractRecords.pendingAdmissions.map((ad: any) => (
+                                                    <tr key={ad.id}>
+                                                        <td>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{ad.pets?.name} • Internamento</td>
+                                                        <td>Internamento</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency(ad.total_amount || 0)}</td>
+                                                        <td>
+                                                            <button 
+                                                                onClick={() => handleOpenPaymentModal(ad.id, 'hospital_admissions', 'Internamento', (ad.total_amount || 0))}
                                                                 className={styles.payBtn}
                                                             >
                                                                 <DollarSign size={16} /> Receber

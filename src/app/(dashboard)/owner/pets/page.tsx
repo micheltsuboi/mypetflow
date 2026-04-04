@@ -730,6 +730,9 @@ function PetsContent() {
 
                                                     if (!vId || !bId || !isoExpiry) return alert('Selecione todos os campos obrigatórios.')
 
+                                                    const payment_status = method === 'pending' ? 'pending' : 'paid'
+                                                    const final_method = method === 'pending' ? 'cash' : method // Fallback method if paid
+
                                                     startTransition(async () => {
                                                         const res = await applyVaccine({
                                                             pet_id: selectedPet?.id,
@@ -737,12 +740,13 @@ function PetsContent() {
                                                             vaccine_batch_id: bId,
                                                             application_date: new Date().toISOString(),
                                                             expiry_date: isoExpiry,
-                                                            payment_method: method
+                                                            payment_method: final_method,
+                                                            payment_status: payment_status
                                                         })
                                                         if (res.success) {
                                                             setShowCatalogVaccineForm(false)
                                                             getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
-                                                            alert('Vacina aplicada e estoque/financeiro atualizados!')
+                                                            alert(payment_status === 'pending' ? 'Vacina registrada como PENDENTE no financeiro!' : 'Vacina aplicada e financeiro atualizado!')
                                                         } else alert(res.message)
                                                     })
                                                 }}>
@@ -773,10 +777,11 @@ function PetsContent() {
                                                         <div className={styles.formGroup}>
                                                             <label>Pagamento *</label>
                                                             <select name="payment_method" className={styles.select} required>
-                                                                <option value="cash">Dinheiro</option>
-                                                                <option value="pix">PIX</option>
-                                                                <option value="credit">Crédito</option>
-                                                                <option value="debit">Débitio</option>
+                                                                <option value="pending">⏳ Pendente (Pagar depois)</option>
+                                                                <option value="cash">💵 Dinheiro</option>
+                                                                <option value="pix">💠 PIX</option>
+                                                                <option value="credit">💳 Crédito</option>
+                                                                <option value="debit">💳 Débito</option>
                                                             </select>
                                                         </div>
                                                     </div>

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 
 interface GenericPaymentModalProps {
     recordId: string
-    tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions'
+    tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines'
     title: string
     baseAmount: number
     onClose: () => void
@@ -93,6 +93,8 @@ export default function FinanceiroPaymentModal({
             } else if (tableName === 'hospital_admissions') {
                 updateData.total_amount = finalAmount
                 updateData.discount_amount = baseAmount - finalAmount
+            } else if (tableName === 'pet_vaccines') {
+                updateData.price = finalAmount
             }
 
             const { error: updateError } = await supabase
@@ -108,7 +110,8 @@ export default function FinanceiroPaymentModal({
                 orders: 'Venda Produto',
                 vet_consultations: 'Consulta Veterinária',
                 vet_exams: 'Exame Veterinário',
-                hospital_admissions: 'Internamento / Hospital'
+                hospital_admissions: 'Internamento / Hospital',
+                pet_vaccines: 'Vacinas'
             }
 
             const { error: txError } = await supabase.from('financial_transactions').insert({

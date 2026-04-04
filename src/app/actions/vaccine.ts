@@ -234,6 +234,7 @@ export async function applyVaccine(data: any) {
             expiry_date, 
             notes, 
             payment_method,
+            payment_status = 'paid',
             is_manual = false,
             manual_name = '',
             manual_batch = ''
@@ -245,12 +246,15 @@ export async function applyVaccine(data: any) {
             application_date,
             expiry_date,
             notes,
-            applied_by: user.id
+            applied_by: user.id,
+            payment_status: is_manual ? 'paid' : payment_status
         }
 
         if (is_manual) {
             insertData.name = manual_name
             insertData.batch_number = manual_batch
+            insertData.price = 0
+            insertData.payment_method = 'external'
         } else {
             // Get data from vaccine and batch
             const { data: vaccine } = await supabase.from('vaccines').select('name').eq('id', vaccine_id).single()
@@ -259,9 +263,11 @@ export async function applyVaccine(data: any) {
             insertData.name = vaccine?.name || 'Vacina'
             insertData.batch_number = batch?.batch_number || null
             insertData.vaccine_batch_id = vaccine_batch_id
+            insertData.price = batch?.selling_price || 0
+            insertData.payment_method = payment_status === 'paid' ? (payment_method || 'cash') : null
 
-            // Create financial transaction (INCOME) if selling_price > 0
-            if (batch?.selling_price && batch.selling_price > 0) {
+            // Create financial transaction (INCOME) only if status is 'paid' and price > 0
+            if (payment_status === 'paid' && batch?.selling_price && batch.selling_price > 0) {
                 const { data: transaction, error: transError } = await supabase.from('financial_transactions').insert({
                     org_id: profile?.org_id,
                     type: 'income',
