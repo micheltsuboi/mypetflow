@@ -30,7 +30,9 @@ export default async function LoginPage() {
     const supabase = await createClient()
 
     // --- NOVO: Redirecionamento Automático para usuários logados ---
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
+
     if (user) {
         const { data: profile } = await supabase
             .from('profiles')
@@ -41,12 +43,12 @@ export default async function LoginPage() {
         if (profile) {
             let target = '/owner'
             if (profile.role === 'customer') target = '/tutor'
-            else if (profile.role === 'staff') target = '/owner' // Staff also uses /owner mostly or /staff dashboard
+            else if (profile.role === 'staff') target = '/owner'
             else if (profile.role === 'superadmin' && !profile.org_id) target = '/master-admin'
-            else if (profile.role === 'superadmin' && profile.org_id) target = '/owner' // Superadmin accessing their own store
+            else if (profile.role === 'superadmin' && profile.org_id) target = '/owner'
             
-            // Verificação de segurança: não redirecionar se já estivermos no caminho certo (evita loop simples)
-            // Mas como esta é a página raiz '/', qualquer redirecionamento é para fora daqui.
+            // Se estivermos em um subdomínio, garantir que redirecionamos para o caminho relativo,
+            // e o middleware cuidará do resto se houver troca de tenant necessária.
             redirect(target)
         }
     }

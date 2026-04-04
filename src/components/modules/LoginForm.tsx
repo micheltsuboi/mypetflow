@@ -23,6 +23,9 @@ export default function LoginForm() {
         try {
             const supabase = createClient()
 
+            // 0. Limpar sessão anterior para evitar conflitos de cookies vindo de outros subdomínios
+            await supabase.auth.signOut({ scope: 'local' })
+
             // 1. Sign In
             const { error: signInError } = await supabase.auth.signInWithPassword({
                 email,

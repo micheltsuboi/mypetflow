@@ -3,7 +3,8 @@ import { cookies } from 'next/headers'
 
 export async function createClient() {
     const cookieStore = await cookies()
-    // Em produção, sempre usa o domínio correto - evita chamar headers() a cada Server Action
+    // Em produção, usa o domínio compartilhado para subdomínios. 
+    // Em localhost ou vercel.app (previews), deixa como undefined para usar o domínio da requisição atual.
     const cookieDomain = process.env.NODE_ENV === 'production' ? '.mypetflow.com.br' : undefined
 
     return createServerClient(
