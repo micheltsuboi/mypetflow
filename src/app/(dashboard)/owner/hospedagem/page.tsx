@@ -33,11 +33,16 @@ interface Appointment {
     discount: number | null
     payment_status: string | null
     payment_method: string | null
+    is_package?: boolean
+    package_credit_id?: string
+    session_number?: number
+    total_sessions?: number
     pets: {
+        id?: string
         name: string
         species: string
         breed: string | null
-        customers: { name: string }
+        customers: { id: string, name: string, cpf_cnpj?: string, address?: string, neighborhood?: string, city?: string, email?: string, phone_1?: string }
     }
     services: {
         name: string
@@ -124,6 +129,7 @@ export default function HospedagemPage() {
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
+                    is_package, package_credit_id,
                     pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
                     services!inner ( 
                         name, 
@@ -141,8 +147,42 @@ export default function HospedagemPage() {
             if (error) {
                 console.error('Error fetching hospedagem:', error)
             } else if (appts) {
+                const apptsTyped = appts as unknown as Appointment[]
+
+                // Buscar info de sessão para agendamentos de pacote
+                const packageApptIds = apptsTyped.filter(a => a.is_package).map(a => a.id)
+                if (packageApptIds.length > 0) {
+                    const { data: sessionData } = await supabase
+                        .from('package_sessions')
+                        .select('appointment_id, session_number, customer_package_id')
+                        .in('appointment_id', packageApptIds)
+                    
+                    if (sessionData && sessionData.length > 0) {
+                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                        const { data: creditData } = await supabase
+                            .from('package_credits')
+                            .select('customer_package_id, total_quantity')
+                            .in('customer_package_id', cpIds)
+                        
+                        const totalMap: Record<string, number> = {}
+                        creditData?.forEach((c: any) => {
+                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
+                                totalMap[c.customer_package_id] = c.total_quantity
+                            }
+                        })
+
+                        apptsTyped.forEach(a => {
+                            const sess = sessionData.find((s: any) => s.appointment_id === a.id)
+                            if (sess) {
+                                a.session_number = sess.session_number
+                                a.total_sessions = totalMap[sess.customer_package_id]
+                            }
+                        })
+                    }
+                }
+
                 // Client-side filtering for better overlap logic
-                const filtered = appts.filter((a: any) => {
+                const filtered = apptsTyped.filter((a: any) => {
                     // Always show if in_progress (currently hosted)
                     if (a.status === 'in_progress' && viewMode === 'active') return true
 
@@ -444,8 +484,24 @@ export default function HospedagemPage() {
                                                     </div>
                                                 </div>
 
-                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>
-                                                    {appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                    <span>{appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})</span>
+                                                    {(appt.is_package || appt.package_credit_id) && (
+                                                        <span style={{
+                                                            background: 'rgba(139,92,246,0.15)',
+                                                            color: '#8b5cf6',
+                                                            borderRadius: '6px',
+                                                            padding: '1px 6px',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 700,
+                                                            letterSpacing: '0.02em',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            {appt.session_number && appt.total_sessions
+                                                                ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                                                : '📦 PACOTE'}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <PaymentControls
@@ -457,6 +513,7 @@ export default function HospedagemPage() {
                                                     discountFixed={appt.discount}
                                                     paymentStatus={appt.payment_status}
                                                     paymentMethod={appt.payment_method}
+                                                    isPackage={appt.is_package || !!appt.package_credit_id}
                                                     onUpdate={() => {
                                                         fetchHospedagemData(true)
                                                         // Se acabou de pagar, abrir modal de NF

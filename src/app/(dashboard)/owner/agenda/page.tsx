@@ -88,6 +88,8 @@ interface Appointment {
     payment_method?: string | null
     is_package?: boolean | null
     package_credit_id?: string | null
+    session_number?: number
+    total_sessions?: number
 }
 
 interface ScheduleBlock {
@@ -290,6 +292,39 @@ function AgendaContent() {
             if (apptsRes.error) console.error(apptsRes.error)
             if (apptsRes.data) {
                 let filteredAppts = apptsRes.data as unknown as Appointment[]
+
+                // Buscar info de sessão para agendamentos de pacote
+                const packageApptIds = filteredAppts.filter(a => a.is_package).map(a => a.id)
+                if (packageApptIds.length > 0) {
+                    const { data: sessionData } = await supabase
+                        .from('package_sessions')
+                        .select('appointment_id, session_number, customer_package_id')
+                        .in('appointment_id', packageApptIds)
+                    
+                    if (sessionData && sessionData.length > 0) {
+                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                        const { data: creditData } = await supabase
+                            .from('package_credits')
+                            .select('customer_package_id, total_quantity')
+                            .in('customer_package_id', cpIds)
+                        
+                        const totalMap: Record<string, number> = {}
+                        creditData?.forEach((c: any) => {
+                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
+                                totalMap[c.customer_package_id] = c.total_quantity
+                            }
+                        })
+
+                        filteredAppts.forEach(a => {
+                            const sess = sessionData.find((s: any) => s.appointment_id === a.id)
+                            if (sess) {
+                                a.session_number = sess.session_number
+                                a.total_sessions = totalMap[sess.customer_package_id]
+                            }
+                        })
+                    }
+                }
+
                 if (isUserVet) {
                     filteredAppts = filteredAppts.filter(a => {
                         const sc = (a.services as any)?.service_categories
@@ -572,8 +607,23 @@ function AgendaContent() {
                     <div className={styles.timeDisplay}>
                         🕐 {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                         {(appt.is_package || appt.package_credit_id) && (
-                            <span title="Agendamento de Pacote" style={{ marginLeft: '0.4rem', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', borderRadius: '6px', padding: '1px 6px', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.02em' }}>
-                                📦 PACOTE
+                            <span style={{ 
+                                marginLeft: '0.4rem', 
+                                background: 'rgba(139,92,246,0.15)', 
+                                color: '#8b5cf6', 
+                                borderRadius: '12px', 
+                                padding: '2px 8px', 
+                                fontSize: '0.7rem', 
+                                fontWeight: 700, 
+                                letterSpacing: '0.02em', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                border: '1px solid rgba(139,92,246,0.3)',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {appt.session_number && appt.total_sessions
+                                    ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                    : '📦 PACOTE'}
                             </span>
                         )}
                     </div>
@@ -637,6 +687,7 @@ function AgendaContent() {
                     discountFixed={appt.discount}
                     paymentStatus={appt.payment_status ?? null}
                     paymentMethod={appt.payment_method ?? null}
+                    isPackage={appt.is_package || !!appt.package_credit_id}
                     onUpdate={() => fetchData()}
                     compact
                 />

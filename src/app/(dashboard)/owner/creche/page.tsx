@@ -23,11 +23,16 @@ interface Appointment {
     notes: string | null
     actual_check_in: string | null
     actual_check_out: string | null
+    is_package?: boolean
+    package_credit_id?: string
+    session_number?: number
+    total_sessions?: number
     pets: {
+        id?: string
         name: string
         species: string
         breed: string | null
-        customers: { name: string }
+        customers: { id: string, name: string, cpf_cnpj?: string, address?: string, neighborhood?: string, city?: string, email?: string, phone_1?: string }
     }
     services: {
         name: string
@@ -118,6 +123,7 @@ export default function CrechePage() {
                     id, pet_id, service_id, scheduled_at, status, notes,
                     calculated_price, final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
+                    is_package, package_credit_id,
                     pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
                     services!inner ( 
                         name, 
@@ -135,10 +141,44 @@ export default function CrechePage() {
             if (error) {
                 console.error('Error fetching creche:', error)
             } else if (appts) {
-                setAppointments(appts as unknown as Appointment[])
+                const apptsTyped = appts as unknown as Appointment[]
+
+                // Buscar info de sessão para agendamentos de pacote
+                const packageApptIds = apptsTyped.filter(a => a.is_package).map(a => a.id)
+                if (packageApptIds.length > 0) {
+                    const { data: sessionData } = await supabase
+                        .from('package_sessions')
+                        .select('appointment_id, session_number, customer_package_id')
+                        .in('appointment_id', packageApptIds)
+                    
+                    if (sessionData && sessionData.length > 0) {
+                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                        const { data: creditData } = await supabase
+                            .from('package_credits')
+                            .select('customer_package_id, total_quantity')
+                            .in('customer_package_id', cpIds)
+                        
+                        const totalMap: Record<string, number> = {}
+                        creditData?.forEach((c: any) => {
+                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
+                                totalMap[c.customer_package_id] = c.total_quantity
+                            }
+                        })
+
+                        apptsTyped.forEach(a => {
+                            const sess = sessionData.find((s: any) => s.appointment_id === a.id)
+                            if (sess) {
+                                a.session_number = sess.session_number
+                                a.total_sessions = totalMap[sess.customer_package_id]
+                            }
+                        })
+                    }
+                }
+
+                setAppointments(apptsTyped)
 
                 // Buscar Notas Fiscais vinculadas
-                const apptIds = appts.map(a => a.id)
+                const apptIds = apptsTyped.map(a => a.id)
                 if (apptIds.length > 0) {
                     const { data: nfs } = await supabase
                         .from('notas_fiscais')
@@ -415,20 +455,37 @@ export default function CrechePage() {
                                                     month: 'short'
                                                 })}
                                             </div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem', flexWrap: 'wrap', gap: '0.4rem' }}>
                                                 <span>{appt.services?.name || 'Creche'}</span>
+                                                {(appt.is_package || appt.package_credit_id) && (
+                                                    <span style={{
+                                                        background: 'rgba(139,92,246,0.15)',
+                                                        color: '#8b5cf6',
+                                                        borderRadius: '6px',
+                                                        padding: '1px 6px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 700,
+                                                        letterSpacing: '0.02em',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {appt.session_number && appt.total_sessions
+                                                            ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                                            : '📦 PACOTE'}
+                                                    </span>
+                                                )}
                                             </div>
                                             <PaymentControls
                                                 appointmentId={appt.id}
                                                 calculatedPrice={(appt as any).calculated_price ?? (appt.services as any)?.base_price ?? null}
                                                 finalPrice={(appt as any).final_price}
                                                 discountPercent={appt.discount_percent}
-                                            discountType={appt.discount_type}
-                                            discountFixed={appt.discount}
-                                            paymentStatus={appt.payment_status}
+                                                discountType={appt.discount_type}
+                                                discountFixed={appt.discount}
+                                                paymentStatus={appt.payment_status}
                                                 paymentMethod={(appt as any).payment_method}
-                                            onUpdate={() => {
-                                                fetchCrecheData(true)
+                                                isPackage={appt.is_package || !!appt.package_credit_id}
+                                                onUpdate={() => {
+                                                    fetchCrecheData(true)
                                                 // Se acabou de pagar, abrir modal de NF
                                                 if (appt.payment_status !== 'paid') {
                                                     setNfAppointment(appt)
