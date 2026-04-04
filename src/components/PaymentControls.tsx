@@ -14,6 +14,7 @@ interface PaymentControlsProps {
     discountFixed?: number | null
     paymentStatus: string | null
     paymentMethod: string | null
+    isPackage?: boolean | null
     onUpdate?: () => void
     onPaymentAuthorized?: (method: string) => void
     compact?: boolean
@@ -36,6 +37,7 @@ export default function PaymentControls({
     discountFixed,
     paymentStatus,
     paymentMethod,
+    isPackage,
     onUpdate,
     onPaymentAuthorized,
     compact = false
@@ -55,6 +57,9 @@ export default function PaymentControls({
     const isPaid = paymentStatus === 'paid'
     const displayPrice = finalPrice ?? calculatedPrice ?? 0
     const basePrice = calculatedPrice ?? 0
+
+    // Detectar agendamento de pacote via prop explícita ou método de pagamento
+    const isPackageAppointment = isPackage === true || paymentMethod === 'credit_package'
 
     useEffect(() => {
         setIsClient(true)
@@ -363,35 +368,72 @@ export default function PaymentControls({
                 onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
                 onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
             >
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    background: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                    padding: '4px 8px',
-                    borderRadius: '6px',
-                    border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
-                }}>
-                    <span style={{
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        color: isPaid ? '#10b981' : '#f59e0b'
+                {isPackageAppointment ? (
+                    /* Badge especial para pacote */
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: isPaid ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.08)',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: `1px solid ${isPaid ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 0.2)'}`
                     }}>
-                        R$ {Number(displayPrice || 0).toFixed(2)}
-                    </span>
-                    <span style={{
-                        width: '1px',
-                        height: '12px',
-                        background: isPaid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'
-                    }} />
-                    <span style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        color: isPaid ? '#10b981' : '#f59e0b'
+                        <span style={{ fontSize: '0.8rem' }}>📦</span>
+                        <span style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 800,
+                            color: '#8b5cf6',
+                            letterSpacing: '0.04em',
+                            textTransform: 'uppercase'
+                        }}>
+                            PACOTE
+                        </span>
+                        <span style={{
+                            width: '1px',
+                            height: '12px',
+                            background: 'rgba(139, 92, 246, 0.3)'
+                        }} />
+                        <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: isPaid ? '#10b981' : '#f59e0b'
+                        }}>
+                            {isPaid ? '✓ Pago' : '⏳ Pendente'}
+                        </span>
+                    </div>
+                ) : (
+                    /* Badge normal com valor */
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        background: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`
                     }}>
-                        {isPaid ? 'Pago' : 'Pendente'}
-                    </span>
-                </div>
+                        <span style={{
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            color: isPaid ? '#10b981' : '#f59e0b'
+                        }}>
+                            R$ {Number(displayPrice || 0).toFixed(2)}
+                        </span>
+                        <span style={{
+                            width: '1px',
+                            height: '12px',
+                            background: isPaid ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'
+                        }} />
+                        <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: isPaid ? '#10b981' : '#f59e0b'
+                        }}>
+                            {isPaid ? 'Pago' : 'Pendente'}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {showModal && isClient && typeof document !== 'undefined' && createPortal(paymentModalJSX, document.body)}

@@ -148,6 +148,7 @@ export default function FinanceiroPage() {
                     .from('appointments')
                     .select(`
                         id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
+                        is_package, package_credit_id,
                         pets ( 
                             name,
                             customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 )
@@ -197,6 +198,7 @@ export default function FinanceiroPage() {
                     .from('appointments')
                     .select(`
                         id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
+                        is_package, package_credit_id,
                         pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
                         services ( name, service_categories ( name ) )
                     `)
@@ -238,8 +240,10 @@ export default function FinanceiroPage() {
                 chartMonths.push({ key: monthKey, date: new Date(d.getFullYear(), d.getMonth(), 1), monthYear })
             }
 
-            // Add Appointments to Chart
+            // Add Appointments to Chart (excluir agendamentos de pacote com valor zero)
             appointments.forEach((appt: any) => {
+                // Pular agendamentos de pacote sem valor real
+                if (appt.is_package && (appt.final_price ?? appt.calculated_price ?? 0) === 0) return
                 const dateAt = appt.payment_status === 'paid' ? appt.paid_at! : appt.scheduled_at
                 const date = new Date(dateAt)
                 const monthKey = date.toLocaleString('pt-BR', { month: 'short' })
@@ -320,8 +324,10 @@ export default function FinanceiroPage() {
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
 
-            // Combine income sources for categories
+            // Combine income sources for categories (excluir agendamentos de pacote com valor zero)
             activeAppts.forEach((a: any) => {
+                // Pular agendamentos de pacote sem valor real (o valor real está no customer_package)
+                if (a.is_package && (a.final_price ?? a.calculated_price ?? 0) === 0) return
                 if (a.payment_status === 'paid') {
                     const catName = (a.services as any)?.service_categories?.name || 'Serviços'
                     const amount = a.final_price ?? a.calculated_price ?? 0
@@ -394,9 +400,12 @@ export default function FinanceiroPage() {
                 })
             })
 
-            // Garantir que pTotal inclua ABSOLUTAMENTE tudo que não está pago
+            // Garantir que pTotal inclua ABSOLUTAMENTE tudo que não está pago,
+            // mas excluir agendamentos de pacote com valor zero
             const pTotal = 
-                  allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                  allPendingAppts
+                    .filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0)
+                    .reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
                 + pendingSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
                 + pendingVets.reduce((sum: number, v: any) => {
                     let val = v.consultation_fee || 0;
@@ -418,14 +427,15 @@ export default function FinanceiroPage() {
 
             setExtractRecords({
                 type: null,
-                appointments: activeAppts,
+                // Filtrar agendamentos de pacote sem valor real (mostram R$ 0,00 no extrato)
+                appointments: activeAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0),
                 transactions: [...activeTxs, ...simulatedRecurringTxs],
                 pendingSales,
                 paidSales: activePaidSales,
                 pendingVets,
                 pendingExams,
                 pendingAdmissions,
-                allPendingAppointments: allPendingAppts
+                allPendingAppointments: allPendingAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0)
             })
 
         } catch (error) {

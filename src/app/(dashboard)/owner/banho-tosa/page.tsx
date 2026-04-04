@@ -43,6 +43,11 @@ interface Appointment {
     discount: number | null
     payment_status: string | null
     payment_method: string | null
+    is_package: boolean | null
+    package_credit_id: string | null
+    // Info de sessão buscada separadamente
+    session_number?: number | null
+    total_sessions?: number | null
 }
 
 export default function BanhoTosaPage() {
@@ -103,6 +108,7 @@ export default function BanhoTosaPage() {
                     calculated_price, checklist,
                     final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
+                    is_package, package_credit_id,
                     pets ( 
                         name, species, breed, 
                         customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) 
@@ -118,7 +124,7 @@ export default function BanhoTosaPage() {
                 .gte('scheduled_at', startISO)
                 .lte('scheduled_at', endISO)
                 .in('status', statusFilter)
-                .order('scheduled_at', { ascending: viewMode === 'active' }) // Ascending for active, potentially Descending for history? kept simple for now
+                .order('scheduled_at', { ascending: viewMode === 'active' })
 
             // Load pets and services if not loaded yet
             if (pets.length === 0) {
@@ -148,7 +154,51 @@ export default function BanhoTosaPage() {
                 console.error('Error fetching banho e tosa:', error)
             } else if (appts) {
                 const apptsTyped = appts as unknown as Appointment[]
-                setAppointments(apptsTyped)
+
+                // Buscar info de sessão para agendamentos de pacote
+                const packageApptIds = apptsTyped.filter(a => a.is_package).map(a => a.id)
+                let sessionMap: Record<string, { session_number: number, total_sessions: number }> = {}
+                if (packageApptIds.length > 0) {
+                    const { data: sessionData } = await supabase
+                        .from('package_sessions')
+                        .select('appointment_id, session_number, customer_package_id')
+                        .in('appointment_id', packageApptIds)
+                    
+                    if (sessionData && sessionData.length > 0) {
+                        // Para cada sessão, buscar o total de sessões do customer_package
+                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                        const { data: creditData } = await supabase
+                            .from('package_credits')
+                            .select('customer_package_id, total_quantity')
+                            .in('customer_package_id', cpIds)
+                        
+                        const totalMap: Record<string, number> = {}
+                        creditData?.forEach((c: any) => {
+                            // Usar o maior total_quantity entre os serviços do pacote
+                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
+                                totalMap[c.customer_package_id] = c.total_quantity
+                            }
+                        })
+
+                        sessionData.forEach((s: any) => {
+                            if (s.appointment_id) {
+                                sessionMap[s.appointment_id] = {
+                                    session_number: s.session_number,
+                                    total_sessions: totalMap[s.customer_package_id] ?? 0
+                                }
+                            }
+                        })
+                    }
+                }
+
+                // Mesclar info de sessão nos agendamentos
+                const apptsWithSession = apptsTyped.map(a => ({
+                    ...a,
+                    session_number: sessionMap[a.id]?.session_number ?? null,
+                    total_sessions: sessionMap[a.id]?.total_sessions ?? null
+                }))
+
+                setAppointments(apptsWithSession)
 
                 // NOVO: Buscar Notas Fiscais para estes agendamentos
                 if (apptsTyped.length > 0) {
@@ -387,8 +437,24 @@ export default function BanhoTosaPage() {
                                                 e.stopPropagation()
                                                 setSelectedAppointment(appt)
                                             }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingRight: '0.5rem', flexWrap: 'wrap' }}>
                                                 {appt.services?.name || 'Serviço'}
+                                                {(appt.is_package || appt.package_credit_id) && (
+                                                    <span style={{
+                                                        background: 'rgba(139,92,246,0.15)',
+                                                        color: '#8b5cf6',
+                                                        borderRadius: '6px',
+                                                        padding: '1px 6px',
+                                                        fontSize: '0.7rem',
+                                                        fontWeight: 700,
+                                                        letterSpacing: '0.02em',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        {appt.session_number && appt.total_sessions
+                                                            ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                                            : '📦 PACOTE'}
+                                                    </span>
+                                                )}
                                             </span>
                                             <PaymentControls
                                                 appointmentId={appt.id}
@@ -399,6 +465,7 @@ export default function BanhoTosaPage() {
                                                 discountFixed={appt.discount}
                                                 paymentStatus={appt.payment_status}
                                                 paymentMethod={appt.payment_method}
+                                                isPackage={appt.is_package}
                                                 onUpdate={() => {
                                                     fetchBanhoTosaData(true)
                                                     // Se acabou de pagar, sugerir emitir nota

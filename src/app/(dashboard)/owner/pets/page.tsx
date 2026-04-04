@@ -1040,50 +1040,61 @@ function PetsContent() {
                                                         if (selectedPkg?.validity_type === 'weekly') {
                                                             return (
                                                                 <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                                        🗓️ <strong>Agendamento Automático</strong> — Configure o dia e horário para este pacote ser inserido na agenda automaticamente. Deixe em branco para agendar manualmente.
+                                                                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                                        📆 <strong>Dias de Agendamento</strong> — Selecione os dias da semana para inserção automática na agenda. Deixe sem seleção para agendar manualmente.
                                                                     </p>
-                                                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                                        <div>
-                                                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Dia da Semana</label>
-                                                                            <select
-                                                                                className={styles.select}
-                                                                                value={(selectedPet as any)?._pkgDay ?? ''}
-                                                                                onChange={e => {
-                                                                                    const val = e.target.value
-                                                                                    setSelectedPet((prev: any) => prev ? { ...prev, _pkgDay: val } : prev)
-                                                                                }}
-                                                                                style={{ fontSize: '0.85rem' }}
-                                                                            >
-                                                                                <option value="">Sem preferência</option>
-                                                                                <option value="0">Domingo</option>
-                                                                                <option value="1">Segunda</option>
-                                                                                <option value="2">Terça</option>
-                                                                                <option value="3">Quarta</option>
-                                                                                <option value="4">Quinta</option>
-                                                                                <option value="5">Sexta</option>
-                                                                                <option value="6">Sábado</option>
-                                                                            </select>
-                                                                        </div>
-                                                                        <div>
-                                                                            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>Horário</label>
-                                                                            <input
-                                                                                type="time"
-                                                                                className={styles.input}
-                                                                                value={(selectedPet as any)?._pkgTime ?? ''}
-                                                                                onChange={e => {
-                                                                                    const val = e.target.value
-                                                                                    setSelectedPet((prev: any) => prev ? { ...prev, _pkgTime: val } : prev)
-                                                                                }}
-                                                                                style={{ fontSize: '0.85rem' }}
-                                                                            />
-                                                                        </div>
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                                                        {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((day, idx) => {
+                                                                            const selectedDays: number[] = (selectedPet as any)?._pkgDays ?? []
+                                                                            const isChecked = selectedDays.includes(idx)
+                                                                            return (
+                                                                                <button
+                                                                                    key={idx}
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        const current: number[] = (selectedPet as any)?._pkgDays ?? []
+                                                                                        const updated = isChecked
+                                                                                            ? current.filter(d => d !== idx)
+                                                                                            : [...current, idx].sort()
+                                                                                        setSelectedPet((prev: any) => prev ? { ...prev, _pkgDays: updated } : prev)
+                                                                                    }}
+                                                                                    style={{
+                                                                                        padding: '0.35rem 0.7rem',
+                                                                                        borderRadius: '20px',
+                                                                                        border: '1.5px solid',
+                                                                                        borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
+                                                                                        background: isChecked ? 'var(--primary)' : 'transparent',
+                                                                                        color: isChecked ? '#fff' : 'var(--text-secondary)',
+                                                                                        fontWeight: isChecked ? 700 : 400,
+                                                                                        fontSize: '0.8rem',
+                                                                                        cursor: 'pointer',
+                                                                                        transition: 'all 0.15s'
+                                                                                    }}
+                                                                                >
+                                                                                    {day}
+                                                                                </button>
+                                                                            )
+                                                                        })}
+                                                                    </div>
+                                                                    <div>
+                                                                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Horário</label>
+                                                                        <input
+                                                                            type="time"
+                                                                            className={styles.input}
+                                                                            value={(selectedPet as any)?._pkgTime ?? ''}
+                                                                            onChange={e => {
+                                                                                const val = e.target.value
+                                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgTime: val } : prev)
+                                                                            }}
+                                                                            style={{ fontSize: '0.85rem', width: '140px' }}
+                                                                        />
                                                                     </div>
                                                                 </div>
                                                             )
                                                         }
                                                         return null
                                                     })()}
+
                                                     <button
                                                         className={styles.addButton}
                                                         disabled={!selectedPackageId || isSelling}
@@ -1091,16 +1102,22 @@ function PetsContent() {
                                                             if (!selectedPet || !selectedPackageId) return
                                                             setIsSelling(true)
                                                             const pkg = availablePackages.find((p: any) => p.id === selectedPackageId)
-                                                            const dayVal = (selectedPet as any)._pkgDay
-                                                            const timeVal = (selectedPet as any)._pkgTime
-                                                            const preferredDay = dayVal !== undefined && dayVal !== '' ? parseInt(dayVal) : null
+                                                            const selectedDays: number[] = (selectedPet as any)?._pkgDays ?? []
+                                                            const timeVal = (selectedPet as any)?._pkgTime
                                                             const preferredTime = timeVal || null
-                                                            const res = await sellPackageToPet(selectedPet.id, selectedPackageId, pkg.total_price, 'pix', preferredDay, preferredTime)
+                                                            const res = await sellPackageToPet(
+                                                                selectedPet.id, 
+                                                                selectedPackageId, 
+                                                                pkg.total_price, 
+                                                                'pix', 
+                                                                selectedDays.length > 0 ? selectedDays : null, 
+                                                                preferredTime
+                                                            )
                                                             if (res.success) {
                                                                 alert(res.message)
                                                                 getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
                                                                 setSelectedPackageId('')
-                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgDay: '', _pkgTime: '' } : prev)
+                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgDays: [], _pkgTime: '' } : prev)
                                                             } else alert(res.message)
                                                             setIsSelling(false)
                                                         }}
@@ -1140,11 +1157,19 @@ function PetsContent() {
                                                         </div>
 
                                                         {pkg.validity_type === 'weekly' && (
-                                                            <div style={{ fontSize: '0.8rem', color: '#a78bfa', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <div style={{ fontSize: '0.8rem', color: '#a78bfa', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                                                 <span>{pkg.validity_weeks === 4 ? '📅 Renovação Mensal' : pkg.validity_weeks === 1 ? '📆 Renovação Semanal' : `📆 Renovação a cada ${pkg.validity_weeks} semanas`}</span>
-                                                                {pkg.preferred_day_of_week !== null && pkg.preferred_day_of_week !== undefined && (
-                                                                    <span style={{ fontWeight: 700 }}>• {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][pkg.preferred_day_of_week]} {pkg.preferred_time}</span>
-                                                                )}
+                                                                {/* Mostrar dias preferidos (array ou singular) */}
+                                                                {(() => {
+                                                                    const days = pkg.preferred_days_of_week || (pkg.preferred_day_of_week !== null && pkg.preferred_day_of_week !== undefined ? [pkg.preferred_day_of_week] : null)
+                                                                    if (!days || days.length === 0) return null
+                                                                    const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+                                                                    return (
+                                                                        <span style={{ fontWeight: 700 }}>
+                                                                            • {days.map((d: number) => dayNames[d]).join(', ')} {pkg.preferred_time && `às ${pkg.preferred_time}`}
+                                                                        </span>
+                                                                    )
+                                                                })()}
                                                             </div>
                                                         )}
 

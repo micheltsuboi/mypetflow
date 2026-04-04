@@ -178,7 +178,20 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
     const total_paid = parseFloat(formData.get('total_paid') as string)
     const payment_method = formData.get('payment_method') as string
     const notes = formData.get('notes') as string || null
-    const preferred_day_of_week = formData.get('preferred_day_of_week') ? parseInt(formData.get('preferred_day_of_week') as string) : null
+    // Suporte a múltiplos dias da semana
+    // O formulário pode enviar dias como vários campos 'preferred_days_of_week[]' ou um único 'preferred_day_of_week'
+    const rawDays = formData.getAll('preferred_days_of_week')
+    const preferred_days_of_week: number[] = rawDays.length > 0
+        ? rawDays.map(d => parseInt(d as string)).filter(d => !isNaN(d))
+        : []
+    // Fallback para campo singular (legado)
+    const preferred_day_of_week_legacy = formData.get('preferred_day_of_week')
+        ? parseInt(formData.get('preferred_day_of_week') as string)
+        : null
+    const effective_days = preferred_days_of_week.length > 0
+        ? preferred_days_of_week
+        : (preferred_day_of_week_legacy !== null ? [preferred_day_of_week_legacy] : [])
+
     const preferred_time = formData.get('preferred_time') as string || null
 
     const { data: packageData, error: packageError } = await supabase
@@ -206,7 +219,8 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
             payment_method: payment_method,
             notes: notes,
             expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
-            preferred_day_of_week: preferred_day_of_week,
+            preferred_day_of_week: effective_days.length === 1 ? effective_days[0] : (effective_days[0] ?? null),
+            preferred_days_of_week: effective_days.length > 0 ? effective_days : null,
             preferred_time: preferred_time
         })
         .select()
@@ -231,11 +245,11 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         return { message: creditsError.message, success: false }
     }
 
-    // Gerar sessões do período atual
+    // Gerar sessões do período atual (a migration já tem trigger para criar appointments)
     await supabase.rpc('generate_package_sessions', { p_customer_package_id: customerPackage.id })
 
-    // Se tem dia/hora definido, criar agendamentos automáticos
-    if (preferred_day_of_week !== null && preferred_time && pet_id) {
+    // Se tem dias/hora definidos, garantir que os appointments foram criados
+    if (effective_days.length > 0 && preferred_time && pet_id) {
         await createScheduledAppointmentsForPackage(supabase, customerPackage.id, profile.org_id)
     }
 
@@ -247,22 +261,55 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
 }
 
 // Helper: criar agendamentos automáticos para sessões com horário definido
+// O trigger da migration 090 tenta fazer isso automaticamente,
+// mas esta função garante que sessões sem appointment sejam vinculadas
 async function createScheduledAppointmentsForPackage(supabase: any, customerPackageId: string, orgId: string) {
     const { data: sessions } = await supabase
         .from('package_sessions')
-        .select('*, customer_packages(pet_id, customer_id)')
+        .select('id, scheduled_at, service_id, session_number, appointment_id, customer_packages(pet_id, customer_id, package_id)')
         .eq('customer_package_id', customerPackageId)
         .eq('status', 'scheduled')
         .is('appointment_id', null)
 
     if (!sessions || sessions.length === 0) return
 
+    // Buscar o total de sessões deste pacote para compor a nota
+    const { data: allSessions } = await supabase
+        .from('package_sessions')
+        .select('id')
+        .eq('customer_package_id', customerPackageId)
+    const totalSessions = allSessions?.length ?? sessions.length
+
+    // Buscar nome do pacote
+    const cp = sessions[0]?.customer_packages
+    let packageName = 'Pacote'
+    if (cp?.package_id) {
+        const { data: sp } = await supabase
+            .from('service_packages')
+            .select('name')
+            .eq('id', cp.package_id)
+            .single()
+        if (sp) packageName = sp.name
+    }
+
     for (const session of sessions) {
         if (!session.scheduled_at) continue
 
-        const petId = session.customer_packages?.pet_id
-        const customerId = session.customer_packages?.customer_id
+        const petId = cp?.pet_id
+        const customerId = cp?.customer_id
         if (!petId) continue
+
+        // Buscar o credit correspondente a este serviço
+        const { data: credit } = await supabase
+            .from('package_credits')
+            .select('id')
+            .eq('customer_package_id', customerPackageId)
+            .eq('service_id', session.service_id)
+            .single()
+
+        const sessionLabel = session.session_number
+            ? `Sessão ${session.session_number} de ${totalSessions}`
+            : 'Sessão de pacote'
 
         const { data: appt, error } = await supabase
             .from('appointments')
@@ -273,8 +320,8 @@ async function createScheduledAppointmentsForPackage(supabase: any, customerPack
                 customer_id: customerId,
                 scheduled_at: session.scheduled_at,
                 status: 'pending',
-                package_credit_id: null, // será vinculado quando usado
-                notes: '📦 Agendamento automático de pacote',
+                package_credit_id: credit?.id ?? null,
+                notes: `📦 ${packageName} — ${sessionLabel}`,
                 calculated_price: 0,
                 final_price: 0,
                 payment_status: 'pending',
@@ -285,7 +332,6 @@ async function createScheduledAppointmentsForPackage(supabase: any, customerPack
             .single()
 
         if (!error && appt) {
-            // Atualizar sessão com o appointment_id
             await supabase
                 .from('package_sessions')
                 .update({ appointment_id: appt.id })
@@ -299,7 +345,7 @@ export async function sellPackageToPet(
     packageId: string,
     totalPaid: number,
     paymentMethod: string,
-    preferredDayOfWeek?: number | null,
+    preferredDaysOfWeek?: number[] | null,
     preferredTime?: string | null
 ): Promise<ActionState> {
     const supabase = await createClient()
@@ -329,6 +375,8 @@ export async function sellPackageToPet(
     const validity_weeks = sp.validity_weeks || 1
     const validity_days = sp.validity_days || (validity_weeks * 7)
 
+    const effectiveDays = preferredDaysOfWeek && preferredDaysOfWeek.length > 0 ? preferredDaysOfWeek : null
+
     const { data: customerPackage, error: cpError } = await supabase
         .from('customer_packages')
         .insert({
@@ -340,7 +388,8 @@ export async function sellPackageToPet(
             payment_method: paymentMethod,
             notes: `Pacote para ${petData.name}`,
             expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
-            preferred_day_of_week: preferredDayOfWeek ?? null,
+            preferred_day_of_week: effectiveDays ? effectiveDays[0] : null,
+            preferred_days_of_week: effectiveDays,
             preferred_time: preferredTime ?? null
         })
         .select()
@@ -368,8 +417,8 @@ export async function sellPackageToPet(
     // Gerar sessões do período atual
     await supabase.rpc('generate_package_sessions', { p_customer_package_id: customerPackage.id })
 
-    // Criar agendamentos automáticos se tiver dia/hora
-    if (preferredDayOfWeek !== null && preferredDayOfWeek !== undefined && preferredTime) {
+    // Criar agendamentos automáticos se tiver dias/hora
+    if (effectiveDays && effectiveDays.length > 0 && preferredTime) {
         await createScheduledAppointmentsForPackage(supabase, customerPackage.id, profile.org_id)
     }
 
