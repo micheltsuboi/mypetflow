@@ -647,17 +647,63 @@ export default function FinanceiroPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
     const handleDeleteTransaction = async (txId: string) => {
-        if (!confirm('Tem certeza que deseja excluir esta transação?')) return
+        if (!confirm('Tem certeza que deseja excluir esta transação? Isso também reverterá o status de pagamento do item original para pendente.')) return
 
         try {
-            const { error } = await supabase
+            // First, get the transaction details to find the reference
+            const { data: tx, error: fetchError } = await supabase
+                .from('financial_transactions')
+                .select('reference_id, category')
+                .eq('id', txId)
+                .single()
+
+            if (fetchError) throw fetchError
+
+            // If there's a reference, revert the status on the source table
+            if (tx?.reference_id) {
+                let table = ''
+                let updateData: any = { payment_status: 'pending', payment_method: null }
+
+                if (tx.category === 'Serviços') {
+                    table = 'appointments'
+                    updateData.paid_at = null
+                } else if (tx.category === 'Venda Produto') {
+                    table = 'orders'
+                } else if (tx.category === 'Consulta Veterinária') {
+                    table = 'vet_consultations'
+                } else if (tx.category === 'Exame Veterinário') {
+                    table = 'vet_exams'
+                } else if (tx.category === 'Internamento / Hospital') {
+                    table = 'hospital_admissions'
+                } else if (tx.category === 'Vacinas') {
+                    table = 'pet_vaccines'
+                } else if (tx.category === 'Pacotes') {
+                    table = 'customer_packages'
+                    updateData.total_paid = 0
+                }
+
+                if (table) {
+                    const { error: revertError } = await supabase
+                        .from(table)
+                        .update(updateData)
+                        .eq('id', tx.reference_id)
+
+                    if (revertError) {
+                        console.warn('Erro ao reverter status do item original:', revertError)
+                        // We continue anyway so the user can at least delete the entry if it was a ghost record
+                    }
+                }
+            }
+
+            // Now delete the transaction
+            const { error: deleteError } = await supabase
                 .from('financial_transactions')
                 .delete()
                 .eq('id', txId)
 
-            if (error) throw error
+            if (deleteError) throw deleteError
 
-            alert('Transação excluída com sucesso!')
+            alert('Transação excluída e pagamento revertido!')
             fetchFinancials()
         } catch (error) {
             console.error('Erro ao excluir transação:', error)
