@@ -292,7 +292,7 @@ export default function OwnerDashboard() {
                         return sum + Math.max(0, val);
                     }, 0)
                     + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
-                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + (Number(p.total_price) || 0), 0)
+                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + (Math.max(0, Number(p.total_price || 0) - Number(p.total_paid || 0))), 0)
 
                 const prevRevenue = prevMonthAppts
                     .filter((a: any) => a.payment_status === 'paid')
@@ -325,7 +325,7 @@ export default function OwnerDashboard() {
                     vets: pendingVets || [],
                     exams: pendingExams || [],
                     admissions: pendingAdmissions || [],
-                    packages: pendingPackages || []
+                    packages: (pendingPackages || []).filter((p: any) => (Number(p.total_price || 0) - Number(p.total_paid || 0)) > 0)
                 })
 
                 let mappedPets: PetToday[] = []
@@ -789,7 +789,7 @@ export default function OwnerDashboard() {
                                             </div>
                                             <div className={styles.extractActions}>
                                                 <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
-                                                    {formatCurrency(pkg.total_price || 0)}
+                                                    {formatCurrency(Number(pkg.total_price || 0) - Number(pkg.total_paid || 0))}
                                                 </span>
                                                 <button
                                                     className={styles.confirmPayBtn}
@@ -798,7 +798,7 @@ export default function OwnerDashboard() {
                                                         recordId: pkg.id,
                                                         tableName: 'customer_packages',
                                                         title: `Pagamento Pacote: ${pkg.pets?.name}`,
-                                                        baseAmount: pkg.total_price || 0
+                                                        baseAmount: Number(pkg.total_price || 0) - Number(pkg.total_paid || 0)
                                                     })}
                                                 >
                                                     💰 Confirmar Pago

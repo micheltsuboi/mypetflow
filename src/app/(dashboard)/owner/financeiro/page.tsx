@@ -460,7 +460,7 @@ export default function FinanceiroPage() {
                 }, 0)
                 + pendingAdmissions.reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
                 + pendingVaccines.reduce((sum: number, v: any) => sum + (v.price || 0), 0)
-                + pendingPackages.reduce((sum: number, p: any) => sum + (Number(p.total_price) || 0), 0)
+                + pendingPackages.reduce((sum: number, p: any) => sum + Math.max(0, (Number(p.total_price || 0) - Number(p.total_paid || 0))), 0)
 
             setActiveRevenueValue(activeRevenue)
             setActiveExpensesValue(activeExpenses)
@@ -478,7 +478,7 @@ export default function FinanceiroPage() {
                 pendingAdmissions,
                 pendingVaccines,
                 allPendingAppointments: allPendingAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0),
-                pendingPackages,
+                pendingPackages: (pendingPackages || []).filter((p: any) => (Number(p.total_price || 0) - Number(p.total_paid || 0)) > 0),
                 paidPackages: activePaidPackages
             })
 
@@ -1415,10 +1415,10 @@ export default function FinanceiroPage() {
                                                         <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
                                                         <td>{pkg.pets?.name} • Pacote contratado</td>
                                                         <td>Pacotes</td>
-                                                        <td className={styles.pendingValue}>{formatCurrency(pkg.total_price || 0)}</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency(Number(pkg.total_price || 0) - Number(pkg.total_paid || 0))}</td>
                                                         <td>
                                                             <button 
-                                                                onClick={() => handleOpenPaymentModal(pkg.id, 'customer_packages', 'Pagamento Pacote', (pkg.total_price || 0))}
+                                                                onClick={() => handleOpenPaymentModal(pkg.id, 'customer_packages', 'Pagamento Pacote', (Number(pkg.total_price || 0) - Number(pkg.total_paid || 0)))}
                                                                 className={styles.payBtn}
                                                             >
                                                                 <DollarSign size={16} /> Receber
