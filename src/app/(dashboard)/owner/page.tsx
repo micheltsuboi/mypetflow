@@ -78,6 +78,7 @@ export default function OwnerDashboard() {
         vets: any[];
         exams: any[];
         admissions: any[];
+        packages: any[];
     }>({
         type: null,
         appointments: [],
@@ -85,14 +86,15 @@ export default function OwnerDashboard() {
         sales: [],
         vets: [],
         exams: [],
-        admissions: []
+        admissions: [],
+        packages: []
     })
 
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
     const [paymentModal, setPaymentModal] = useState<{
         isOpen: boolean,
         recordId: string,
-        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions',
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'customer_packages',
         title: string,
         baseAmount: number
     } | null>(null)
@@ -204,6 +206,19 @@ export default function OwnerDashboard() {
                     .eq('org_id', profile.org_id)
                     .or('payment_status.neq.paid,payment_status.is.null')
 
+                const pendingPackagesPromise = supabase
+                    .from('customer_packages')
+                    .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending')
+
+                const paidPackagesThisMonthPromise = supabase
+                    .from('customer_packages')
+                    .select('total_price, total_paid, payment_status, created_at')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'paid')
+                    .gte('created_at', startOfCurrentMonth)
+
                 // Execute all promises in parallel
                 const [
                     currentMonthApptsRes,
@@ -216,7 +231,9 @@ export default function OwnerDashboard() {
                     pendingVetsRes,
                     pendingExamsRes,
                     pendingAdmissionsRes,
-                    allPendingApptsRes
+                    allPendingApptsRes,
+                    pendingPackagesRes,
+                    paidPackagesThisMonthRes
                 ] = await Promise.all([
                     currentMonthApptsPromise,
                     prevMonthApptsPromise,
@@ -228,7 +245,9 @@ export default function OwnerDashboard() {
                     pendingVetsPromise,
                     pendingExamsPromise,
                     pendingAdmissionsPromise,
-                    allPendingApptsPromise
+                    allPendingApptsPromise,
+                    pendingPackagesPromise,
+                    paidPackagesThisMonthPromise
                 ])
 
                 const currentMonthAppts = currentMonthApptsRes.data || []
@@ -243,6 +262,8 @@ export default function OwnerDashboard() {
                 const pendingExams = pendingExamsRes.data || []
                 const pendingAdmissions = pendingAdmissionsRes.data || []
                 const allPendingAppts = allPendingApptsRes.data || []
+                const pendingPackages = pendingPackagesRes.data || []
+                const paidPackagesThisMonth = paidPackagesThisMonthRes.data || []
 
                 if (apptError) {
                     console.error("Error fetching owner appointments:", apptError)
@@ -253,6 +274,7 @@ export default function OwnerDashboard() {
                 
                 const currentRevenue = paidAppts
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                    + (paidPackagesThisMonth || []).reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
 
                 // Sum ALL pending items for accurate "A Receber"
                 const pendingPayments = allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
@@ -270,6 +292,7 @@ export default function OwnerDashboard() {
                         return sum + Math.max(0, val);
                     }, 0)
                     + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
+                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + (Number(p.total_price) || 0), 0)
 
                 const prevRevenue = prevMonthAppts
                     .filter((a: any) => a.payment_status === 'paid')
@@ -301,12 +324,13 @@ export default function OwnerDashboard() {
                     sales: pendingSales || [],
                     vets: pendingVets || [],
                     exams: pendingExams || [],
-                    admissions: pendingAdmissions || []
+                    admissions: pendingAdmissions || [],
+                    packages: pendingPackages || []
                 })
 
                 let mappedPets: PetToday[] = []
                 if (appts) {
-                    mappedPets = appts.map(a => {
+                    mappedPets = appts.map((a: any) => {
                         const catName = (a.services as any)?.service_categories?.name || ''
                         let area: ServiceArea = 'all'
                         if (catName.includes('Banho') || catName.includes('Tosa')) area = 'banho_tosa'
@@ -747,6 +771,34 @@ export default function OwnerDashboard() {
                                                         tableName: 'hospital_admissions',
                                                         title: `Internação`,
                                                         baseAmount: adm.total_amount
+                                                    })}
+                                                >
+                                                    💰 Confirmar Pago
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+ 
+                                    {/* Pacotes Pendentes */}
+                                    {extractRecords.packages.map(pkg => (
+                                        <div key={pkg.id} className={styles.extractItem}>
+                                            <div className={styles.extractInfo}>
+                                                <strong>📦 Pacote: {pkg.package_id?.name || 'Pacote'} • {pkg.pets?.name || 'Pet'}</strong>
+                                                <span>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</span>
+                                                <span className={styles.badgeLabel}>Pacote</span>
+                                            </div>
+                                            <div className={styles.extractActions}>
+                                                <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
+                                                    {formatCurrency(pkg.total_price || 0)}
+                                                </span>
+                                                <button
+                                                    className={styles.confirmPayBtn}
+                                                    onClick={() => setPaymentModal({
+                                                        isOpen: true,
+                                                        recordId: pkg.id,
+                                                        tableName: 'customer_packages',
+                                                        title: `Pagamento Pacote: ${pkg.pets?.name}`,
+                                                        baseAmount: pkg.total_price || 0
                                                     })}
                                                 >
                                                     💰 Confirmar Pago

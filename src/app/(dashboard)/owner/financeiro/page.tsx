@@ -65,6 +65,8 @@ export default function FinanceiroPage() {
         pendingAdmissions: any[];
         pendingVaccines: any[];
         allPendingAppointments: any[];
+        pendingPackages: any[];
+        paidPackages: any[];
     }>({
         type: null,
         appointments: [],
@@ -75,7 +77,9 @@ export default function FinanceiroPage() {
         pendingExams: [],
         pendingAdmissions: [],
         pendingVaccines: [],
-        allPendingAppointments: []
+        allPendingAppointments: [],
+        pendingPackages: [],
+        paidPackages: []
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string }>>({})
@@ -91,7 +95,7 @@ export default function FinanceiroPage() {
     const [paymentModal, setPaymentModal] = useState<{
         isOpen: boolean,
         recordId: string,
-        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines',
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines' | 'customer_packages',
         title: string,
         baseAmount: number
     } | null>(null)
@@ -143,6 +147,8 @@ export default function FinanceiroPage() {
                 pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse,
                 allPendingApptsResponse,
                 pendingVaccinesResponse,
+                pendingPackagesResponse,
+                paidPackagesResponse,
                 catsData,
                 recExps,
                 recExcs
@@ -212,6 +218,17 @@ export default function FinanceiroPage() {
                     .select('*, pets ( name, customers ( name ) )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'pending'),
+                supabase
+                    .from('customer_packages')
+                    .select('*, pets ( name, customers ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'pending'),
+                supabase
+                    .from('customer_packages')
+                    .select('*, pets ( name, customers ( name ) )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'paid')
+                    .gte('created_at', fetchStart),
                 getExpenseCategories(),
                 getRecurringExpenses() as Promise<RecurringExpense[]>,
                 getRecurringExceptions() as Promise<RecurringExpenseException[]>
@@ -231,6 +248,8 @@ export default function FinanceiroPage() {
             const pendingAdmissions = pendingAdmissionsResponse.data || []
             const pendingVaccines = pendingVaccinesResponse.data || []
             const allPendingAppts = allPendingApptsResponse?.data || []
+            const pendingPackages = pendingPackagesResponse.data || []
+            const paidPackages = paidPackagesResponse.data || []
 
             setExpenseCategories(catsData)
             setRecurringExpenses(recExps)
@@ -358,6 +377,17 @@ export default function FinanceiroPage() {
                     totalRev += t.amount
                 }
             })
+ 
+            const activePaidPackages = paidPackages.filter((p: any) => filterByPeriod(p.created_at))
+            activePaidPackages.forEach((p: any) => {
+                const catName = 'Pacotes'
+                const amount = Number(p.total_paid || p.total_price || 0)
+                const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
+                current.revenue += amount
+                current.count += 1
+                catMap.set(catName, current)
+                totalRev += amount
+            })
 
             setCategoryRevenue(
                 Array.from(catMap.values())
@@ -430,6 +460,7 @@ export default function FinanceiroPage() {
                 }, 0)
                 + pendingAdmissions.reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
                 + pendingVaccines.reduce((sum: number, v: any) => sum + (v.price || 0), 0)
+                + pendingPackages.reduce((sum: number, p: any) => sum + (Number(p.total_price) || 0), 0)
 
             setActiveRevenueValue(activeRevenue)
             setActiveExpensesValue(activeExpenses)
@@ -446,7 +477,9 @@ export default function FinanceiroPage() {
                 pendingExams,
                 pendingAdmissions,
                 pendingVaccines,
-                allPendingAppointments: allPendingAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0)
+                allPendingAppointments: allPendingAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0),
+                pendingPackages,
+                paidPackages: activePaidPackages
             })
 
         } catch (error) {
@@ -597,7 +630,7 @@ export default function FinanceiroPage() {
 
     const handleOpenPaymentModal = (
         recordId: string,
-        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines',
+        tableName: 'appointments' | 'orders' | 'vet_consultations' | 'vet_exams' | 'hospital_admissions' | 'pet_vaccines' | 'customer_packages',
         title: string,
         baseAmount: number
     ) => {
@@ -1253,6 +1286,17 @@ export default function FinanceiroPage() {
                                                         </td>
                                                     </tr>
                                                 ))}
+                                                {extractRecords.paidPackages.map((pkg: any) => (
+                                                    <tr key={pkg.id}>
+                                                        <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>Pacote: {pkg.pets?.name}</td>
+                                                        <td>Pacotes</td>
+                                                        <td className={styles.revenueValue}>+ {formatCurrency(pkg.total_paid || pkg.total_price || 0)}</td>
+                                                        <td>
+                                                            <span className={styles.badgeLabel}>Pago</span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                             </>
                                         )}
 
@@ -1359,6 +1403,22 @@ export default function FinanceiroPage() {
                                                         <td>
                                                             <button 
                                                                 onClick={() => handleOpenPaymentModal(ad.id, 'hospital_admissions', 'Internamento', (ad.total_amount || 0))}
+                                                                className={styles.payBtn}
+                                                            >
+                                                                <DollarSign size={16} /> Receber
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {extractRecords.pendingPackages.map((pkg: any) => (
+                                                    <tr key={pkg.id}>
+                                                        <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{pkg.pets?.name} • Pacote contratado</td>
+                                                        <td>Pacotes</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency(pkg.total_price || 0)}</td>
+                                                        <td>
+                                                            <button 
+                                                                onClick={() => handleOpenPaymentModal(pkg.id, 'customer_packages', 'Pagamento Pacote', (pkg.total_price || 0))}
                                                                 className={styles.payBtn}
                                                             >
                                                                 <DollarSign size={16} /> Receber
