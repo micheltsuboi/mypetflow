@@ -76,9 +76,9 @@ export default function PaymentControls({
                 if (data?.package_credit_id) {
                     const { data: pc } = await supabase.from('package_credits').select('customer_package_id').eq('id', data.package_credit_id).single()
                     if (pc?.customer_package_id) {
-                        const { data: cp } = await supabase.from('customer_packages').select('total_paid').eq('id', pc.customer_package_id).single()
-                        if (cp?.total_paid) {
-                            setFetchedPackagePrice(Number(cp.total_paid))
+                        const { data: cp } = await supabase.from('customer_packages').select('total_paid, total_price').eq('id', pc.customer_package_id).single()
+                        if (cp) {
+                            setFetchedPackagePrice(Number(cp.total_price || cp.total_paid || 0))
                         }
                     }
                 }

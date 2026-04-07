@@ -216,6 +216,7 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
             package_id,
             org_id: profile.org_id,
             total_paid: total_paid,
+            total_price: total_paid, // Assuming at this endpoint it's the contract price
             payment_method: payment_method,
             notes: notes,
             expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
@@ -384,7 +385,8 @@ export async function sellPackageToPet(
             pet_id: petId,
             package_id: packageId,
             org_id: profile.org_id,
-            total_paid: totalPaid,
+            total_paid: 0, // When activating from Pet Ficha, it starts as pending/0 paid
+            total_price: totalPaid, // totalPaid was used to pass the price from UI
             payment_method: paymentMethod,
             notes: `Pacote para ${petData.name}`,
             expires_at: validity_days ? new Date(Date.now() + validity_days * 86400000).toISOString() : null,
