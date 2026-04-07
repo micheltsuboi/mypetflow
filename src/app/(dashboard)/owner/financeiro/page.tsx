@@ -1294,57 +1294,71 @@ export default function FinanceiroPage() {
                                             </tr>
                                         ))}
                                         
-                                        {extractRecords.type === 'revenue' && (
-                                            <>
-                                                {extractRecords.transactions.filter(t => t.type === 'income').map((tx: any) => (
-                                                    <tr key={tx.id}>
-                                                        <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
-                                                        <td>{tx.description}</td>
-                                                        <td>{tx.category}</td>
-                                                        <td className={styles.revenueValue}>+ {formatCurrency(tx.amount)}</td>
-                                                        <td>
-                                                            <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}><Trash2 size={18} /></button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {extractRecords.appointments.filter(a => a.payment_status === 'paid').map((appt: any) => (
-                                                    <tr key={appt.id}>
-                                                        <td>{new Date(appt.paid_at).toLocaleDateString('pt-BR')}</td>
-                                                        <td>{appt.pets?.name} • {appt.services?.name}</td>
-                                                        <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
-                                                        <td className={styles.revenueValue}>+ {formatCurrency(appt.final_price || appt.calculated_price || 0)}</td>
-                                                        <td>
-                                                            <div className={styles.actionButtons}>
-                                                                <button onClick={() => handleSendWhatsApp(appt.id)} className={styles.actionBtn} title="WhatsApp"><Send size={18} /></button>
-                                                                <button onClick={() => handleOpenNFSe(appt)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {extractRecords.paidSales.map((sale: any) => (
-                                                    <tr key={sale.id}>
-                                                        <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
-                                                        <td>Venda Petshop</td>
-                                                        <td>Produtos</td>
-                                                        <td className={styles.revenueValue}>+ {formatCurrency(sale.total_amount)}</td>
-                                                        <td>
-                                                            <button onClick={() => handleOpenNFe(sale)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {extractRecords.paidPackages.map((pkg: any) => (
-                                                    <tr key={pkg.id}>
-                                                        <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
-                                                        <td>Pacote: {pkg.pets?.name}</td>
-                                                        <td>Pacotes</td>
-                                                        <td className={styles.revenueValue}>+ {formatCurrency(pkg.total_paid || pkg.total_price || 0)}</td>
-                                                        <td>
-                                                            <span className={styles.badgeLabel}>Pago</span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </>
-                                        )}
+                                        {extractRecords.type === 'revenue' && (() => {
+                                            const referencedIds = new Set(
+                                                extractRecords.transactions
+                                                    .filter(t => t.type === 'income' && t.reference_id)
+                                                    .map(t => t.reference_id)
+                                            );
+                                            
+                                            return (
+                                                <>
+                                                    {extractRecords.transactions.filter(t => t.type === 'income').map((tx: any) => (
+                                                        <tr key={tx.id}>
+                                                            <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{tx.description}</td>
+                                                            <td>{tx.category}</td>
+                                                            <td className={styles.revenueValue}>+ {formatCurrency(tx.amount)}</td>
+                                                            <td>
+                                                                <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}><Trash2 size={18} /></button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {extractRecords.appointments
+                                                        .filter(a => a.payment_status === 'paid' && !referencedIds.has(a.id))
+                                                        .map((appt: any) => (
+                                                            <tr key={appt.id}>
+                                                                <td>{new Date(appt.paid_at).toLocaleDateString('pt-BR')}</td>
+                                                                <td>{appt.pets?.name} • {appt.services?.name}</td>
+                                                                <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
+                                                                <td className={styles.revenueValue}>+ {formatCurrency(appt.final_price || appt.calculated_price || 0)}</td>
+                                                                <td>
+                                                                    <div className={styles.actionButtons}>
+                                                                        <button onClick={() => handleSendWhatsApp(appt.id)} className={styles.actionBtn} title="WhatsApp"><Send size={18} /></button>
+                                                                        <button onClick={() => handleOpenNFSe(appt)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    {extractRecords.paidSales
+                                                        .filter(s => !referencedIds.has(s.id))
+                                                        .map((sale: any) => (
+                                                            <tr key={sale.id}>
+                                                                <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
+                                                                <td>Venda Petshop</td>
+                                                                <td>Produtos</td>
+                                                                <td className={styles.revenueValue}>+ {formatCurrency(sale.total_amount)}</td>
+                                                                <td>
+                                                                    <button onClick={() => handleOpenNFe(sale)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    {extractRecords.paidPackages
+                                                        .filter(p => !referencedIds.has(p.id))
+                                                        .map((pkg: any) => (
+                                                            <tr key={pkg.id}>
+                                                                <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
+                                                                <td>Pacote: {pkg.pets?.name}</td>
+                                                                <td>Pacotes</td>
+                                                                <td className={styles.revenueValue}>+ {formatCurrency(pkg.total_paid || pkg.total_price || 0)}</td>
+                                                                <td>
+                                                                    <span className={styles.badgeLabel}>Pago</span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                </>
+                                            );
+                                        })()}
 
                                         {extractRecords.type === 'pending' && (
                                             <>
