@@ -650,6 +650,24 @@ export async function markSessionDone(sessionId: string, done: boolean): Promise
     return { message: done ? 'Sessão marcada como realizada!' : 'Sessão revertida para pendente.', success: true }
 }
 
+export async function updatePackagePaymentStatus(customerPackageId: string, status: string): Promise<ActionState> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { error } = await supabase
+        .from('customer_packages')
+        .update({ payment_status: status })
+        .eq('id', customerPackageId)
+
+    if (error) return { message: error.message, success: false }
+
+    revalidatePath('/owner/packages')
+    revalidatePath('/owner/pets')
+    revalidatePath('/owner/agenda')
+    return { message: 'Pagamento do pacote atualizado!', success: true }
+}
+
 // =====================================================
 // EXISTING FUNCTIONS (mantidas)
 // =====================================================
@@ -687,6 +705,12 @@ export async function getPetPackagesWithUsage(petId: string) {
             if (apps) appointments = apps
         }
 
+        const { data: cp } = await supabase
+            .from('customer_packages')
+            .select('payment_status, total_paid, total_price, org_id')
+            .eq('id', item.customer_package_id)
+            .single()
+
         // Buscar sessões do período atual
         let sessions: any[] = []
         const { data: sessionData } = await supabase
@@ -702,6 +726,10 @@ export async function getPetPackagesWithUsage(petId: string) {
         return {
             ...item,
             credit_id: credit?.id,
+            payment_status: cp?.payment_status,
+            total_paid: cp?.total_paid,
+            total_price: cp?.total_price,
+            org_id: cp?.org_id,
             appointments,
             sessions
         }

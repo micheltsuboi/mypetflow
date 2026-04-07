@@ -49,6 +49,7 @@ import FileUpload from '@/components/ui/FileUpload'
 import ExamPaymentControls from '@/components/ExamPaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
+import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
 import InputMasked from '@/components/ui/InputMasked'
 import { maskDate, parseDateToISO } from '@/utils/masks'
 import { 
@@ -139,6 +140,8 @@ function PetsContent() {
     const [selectedPackageId, setSelectedPackageId] = useState('')
     const [isSelling, setIsSelling] = useState(false)
     const [petPackages, setPetPackages] = useState<any[]>([])
+    const [showPackagePaymentModal, setShowPackagePaymentModal] = useState(false)
+    const [selectedPackageToPay, setSelectedPackageToPay] = useState<any | null>(null)
     const [hotelHistory, setHotelHistory] = useState<any[]>([])
     const [crecheHistory, setCrecheHistory] = useState<any[]>([])
     const [petshopHistory, setPetshopHistory] = useState<any[]>([])
@@ -523,7 +526,7 @@ function PetsContent() {
                             <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('details')} className={styles.accordionHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <User size={18} color="var(--primary)" />
+                                        <span style={{ fontSize: '18px' }}>🐶</span>
                                         <span>Dados Cadastrais</span>
                                     </div>
                                     <span>{accordions.details ? '−' : '+'}</span>
@@ -631,7 +634,7 @@ function PetsContent() {
                             <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('vaccines')} className={styles.accordionHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <Syringe size={18} color="var(--primary)" />
+                                        <span style={{ fontSize: '18px' }}>💉</span>
                                         <span>Carteira de Vacinação</span>
                                     </div>
                                     <span>{accordions.vaccines ? '−' : '+'}</span>
@@ -831,7 +834,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('medical')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <Stethoscope size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🩺</span>
                                             <span>Ficha Médica (Consultas)</span>
                                         </div>
                                         <span>{accordions.medical ? '−' : '+'}</span>
@@ -872,7 +875,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('exams')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <ClipboardCheck size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🧪</span>
                                             <span>Exames Laboratoriais</span>
                                         </div>
                                         <span>{accordions.exams ? '−' : '+'}</span>
@@ -1012,7 +1015,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('hospital' as any)} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <Activity size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🏥</span>
                                             <span>Histórico de Internamento</span>
                                         </div>
                                         <span>{(accordions as any).hospital ? '−' : '+'}</span>
@@ -1054,7 +1057,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('assessment')} className={styles.accordionHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <ClipboardCheck size={18} color="var(--primary)" />
+                                        <span style={{ fontSize: '18px' }}>🐾</span>
                                         <span>Avaliação Comportamental</span>
                                         {petAssessment && <span style={{ fontSize: '0.75rem', background: 'var(--success)', color: 'white', padding: '1px 6px', borderRadius: '4px' }}>FEITA</span>}
                                     </div>
@@ -1080,7 +1083,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('grooming' as any)} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <Scissors size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🛁</span>
                                             <span>Histórico de Banho e Tosa</span>
                                         </div>
                                         <span>{(accordions as any).grooming ? '−' : '+'}</span>
@@ -1110,7 +1113,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('packages')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <Package size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>📦</span>
                                             <span>Pacotes do Pet</span>
                                         </div>
                                         <span>{accordions.packages ? '−' : '+'}</span>
@@ -1226,6 +1229,24 @@ function PetsContent() {
                                                             <div>
                                                                 <div style={{ fontWeight: 700, fontSize: '1rem' }}>📦 {pkg.package_name}</div>
                                                                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{pkg.service_name}</div>
+                                                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>R$ {Number(pkg.total_price || 0).toFixed(2)}</span>
+                                                                    <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', background: pkg.payment_status === 'paid' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: pkg.payment_status === 'paid' ? '#10b981' : '#f59e0b' }}>
+                                                                        {pkg.payment_status === 'paid' ? '✓ Pago' : '⏳ Pendente'}
+                                                                    </span>
+                                                                    {pkg.payment_status !== 'paid' && (
+                                                                        <button 
+                                                                            type="button" 
+                                                                            onClick={() => {
+                                                                                setSelectedPackageToPay(pkg)
+                                                                                setShowPackagePaymentModal(true)
+                                                                            }}
+                                                                            style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
+                                                                        >
+                                                                            Pagar Agora
+                                                                        </button>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                             <div style={{ textAlign: 'right' }}>
                                                                 <div style={{ color: pkg.remaining_qty > 0 ? '#10B981' : '#EF4444', fontWeight: 800, fontSize: '0.9rem' }}>
@@ -1476,6 +1497,26 @@ function PetsContent() {
                     onClose={() => {
                         setShowConsultationModal(false);
                         if (selectedPet) getVetConsultations(selectedPet.id).then(setVetConsultations);
+                    }}
+                />
+            )}
+            {showPackagePaymentModal && selectedPackageToPay && (
+                <FinanceiroPaymentModal
+                    recordId={selectedPackageToPay.customer_package_id}
+                    tableName="customer_packages"
+                    title={`Pacote ${selectedPackageToPay.package_name}`}
+                    baseAmount={selectedPackageToPay.total_price || 0}
+                    onClose={() => {
+                        setShowPackagePaymentModal(false)
+                        setSelectedPackageToPay(null)
+                    }}
+                    onSuccess={() => {
+                        setShowPackagePaymentModal(false)
+                        setSelectedPackageToPay(null)
+                        alert('Pagamento do pacote realizado com sucesso!')
+                        if (selectedPet) {
+                            getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
+                        }
                     }}
                 />
             )}

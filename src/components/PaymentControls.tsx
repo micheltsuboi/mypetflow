@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { updatePaymentStatus, applyDiscount } from '@/app/actions/appointment'
 import { DollarSign, CreditCard, Check, X, Percent, Wallet, Banknote } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { createClient } from '@/lib/supabase/client'
 
 interface PaymentControlsProps {
     appointmentId: string
@@ -53,10 +54,13 @@ export default function PaymentControls({
     )
     const [loading, setLoading] = useState(false)
 
+    const supabase = createClient()
+    const [fetchedPackagePrice, setFetchedPackagePrice] = useState<number | null>(null)
     const [isClient, setIsClient] = useState(false)
+
     const isPaid = paymentStatus === 'paid'
-    const displayPrice = finalPrice ?? calculatedPrice ?? 0
-    const basePrice = calculatedPrice ?? 0
+    const basePrice = fetchedPackagePrice ?? calculatedPrice ?? 0
+    const displayPrice = fetchedPackagePrice ?? finalPrice ?? calculatedPrice ?? 0
 
     // Detectar agendamento de pacote via prop explícita ou método de pagamento
     const isPackageAppointment = isPackage === true || paymentMethod === 'credit_package'
@@ -64,6 +68,25 @@ export default function PaymentControls({
     useEffect(() => {
         setIsClient(true)
     }, [])
+
+    useEffect(() => {
+        if (isPackageAppointment && !fetchedPackagePrice) {
+            const fetchPrice = async () => {
+                const { data } = await supabase.from('appointments').select('package_credit_id').eq('id', appointmentId).single()
+                if (data?.package_credit_id) {
+                    const { data: pc } = await supabase.from('package_credits').select('customer_package_id').eq('id', data.package_credit_id).single()
+                    if (pc?.customer_package_id) {
+                        const { data: cp } = await supabase.from('customer_packages').select('total_paid').eq('id', pc.customer_package_id).single()
+                        if (cp?.total_paid) {
+                            setFetchedPackagePrice(Number(cp.total_paid))
+                        }
+                    }
+                }
+            }
+            fetchPrice()
+        }
+    }, [isPackageAppointment, appointmentId, supabase, fetchedPackagePrice])
+
 
     // Reset local state when props change
     useEffect(() => {
@@ -390,17 +413,31 @@ export default function PaymentControls({
                             PACOTE
                         </span>
                         <span style={{
-                            width: '1px',
-                            height: '12px',
-                            background: 'rgba(139, 92, 246, 0.3)'
-                        }} />
-                        <span style={{
                             fontSize: '0.75rem',
                             fontWeight: 600,
-                            color: isPaid ? '#10b981' : '#f59e0b'
+                            color: isPaid ? '#10b981' : '#f59e0b',
+                            marginLeft: '4px'
                         }}>
                             {isPaid ? '✓ Pago' : '⏳ Pendente'}
                         </span>
+                        {fetchedPackagePrice !== null && (
+                            <>
+                                <span style={{
+                                    width: '1px',
+                                    height: '12px',
+                                    background: 'rgba(139, 92, 246, 0.3)',
+                                    marginLeft: '4px'
+                                }} />
+                                <span style={{
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    color: isPaid ? '#10b981' : '#f59e0b',
+                                    marginLeft: '4px'
+                                }}>
+                                    R$ {Number(fetchedPackagePrice || 0).toFixed(2)}
+                                </span>
+                            </>
+                        )}
                     </div>
                 ) : (
                     /* Badge normal com valor */
