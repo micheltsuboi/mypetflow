@@ -271,7 +271,7 @@ export default function OwnerDashboard() {
 
                 const apptsPromise = supabase
                     .from('appointments')
-                    .select('id, scheduled_at, status, check_in_date, check_out_date, pets ( id, name, breed, species, customers ( name ) ), services ( name, service_categories ( name ) )')
+                    .select('id, scheduled_at, status, payment_status, check_in_date, check_out_date, pets ( id, name, breed, species, customers ( * ) ), services ( name, service_categories ( name ) )')
                     .eq('org_id', profile.org_id)
                     .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
                     .neq('status', 'cancelled')
@@ -320,7 +320,6 @@ export default function OwnerDashboard() {
                     .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), package_id ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
-                    .gte('created_at', startOfCurrentMonth)
 
                 // Execute all promises in parallel
                 const [

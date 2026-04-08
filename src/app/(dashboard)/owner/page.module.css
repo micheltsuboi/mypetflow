@@ -595,16 +595,17 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: rgba(var(--primary-rgb), 0.1);
-    color: var(--primary);
-    border: 1px solid rgba(var(--primary-rgb), 0.2);
-    border-radius: 8px;
+    background: rgba(240, 140, 152, 0.15); /* Coral light alpha */
+    color: var(--color-primary);
+    border: 1px solid rgba(240, 140, 152, 0.3);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
 }
 
 .actionBtn:hover {
-    background: var(--primary);
+    background: var(--color-primary);
     color: white;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
