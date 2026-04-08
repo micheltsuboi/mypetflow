@@ -79,6 +79,7 @@ export default function OwnerDashboard() {
         exams: any[];
         admissions: any[];
         packages: any[];
+        paidPackages: any[];
     }>({
         type: null,
         appointments: [],
@@ -87,7 +88,8 @@ export default function OwnerDashboard() {
         vets: [],
         exams: [],
         admissions: [],
-        packages: []
+        packages: [],
+        paidPackages: []
     })
 
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
@@ -214,7 +216,7 @@ export default function OwnerDashboard() {
 
                 const paidPackagesThisMonthPromise = supabase
                     .from('customer_packages')
-                    .select('total_price, total_paid, payment_status, created_at')
+                    .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', startOfCurrentMonth)
@@ -331,7 +333,8 @@ export default function OwnerDashboard() {
                     vets: pendingVets || [],
                     exams: pendingExams || [],
                     admissions: pendingAdmissions || [],
-                    packages: (pendingPackages || []).filter((p: any) => (Number(p.total_price || 0) - Number(p.total_paid || 0)) > 0)
+                    packages: (pendingPackages || []).filter((p: any) => (Number(p.total_price || 0) - Number(p.total_paid || 0)) > 0),
+                    paidPackages: paidPackagesThisMonth || []
                 })
 
                 let mappedPets: PetToday[] = []
@@ -877,12 +880,29 @@ export default function OwnerDashboard() {
                                                     .map(appt => (
                                                         <div key={appt.id} className={styles.extractItem}>
                                                             <div className={styles.extractInfo}>
-                                                                <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                                <strong>🐾 {appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
                                                                 <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
                                                             </div>
                                                             <div className={styles.extractActions}>
                                                                 <span className={styles.extractAmount}>
                                                                     {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                {/* Filtered Packages (only if not in transactions and value > 0) */}
+                                                {extractRecords.paidPackages
+                                                    .filter(p => !referencedIds.has(p.id))
+                                                    .map(pkg => (
+                                                        <div key={pkg.id} className={styles.extractItem}>
+                                                            <div className={styles.extractInfo}>
+                                                                <strong>📦 {pkg.package_id?.name || 'Pacote'} • {pkg.pets?.name || 'Pet'}</strong>
+                                                                <span>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</span>
+                                                            </div>
+                                                            <div className={styles.extractActions}>
+                                                                <span className={styles.extractAmount}>
+                                                                    {formatCurrency(pkg.total_paid || pkg.total_price || 0)}
                                                                 </span>
                                                             </div>
                                                         </div>
