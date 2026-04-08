@@ -516,7 +516,12 @@ export default function OwnerDashboard() {
                 >
                     <div className={styles.cardIcon}>📈</div>
                     <div className={styles.cardContent}>
-                        <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(financials.profit)}</span>
+                        <span 
+                            className={styles.cardValue} 
+                            style={{ color: financials.profit >= 0 ? '#10b981' : '#ef4444' }}
+                        >
+                            {formatCurrency(financials.profit)}
+                        </span>
                         <span className={styles.cardLabel}>Lucro Líquido</span>
                     </div>
                 </div>

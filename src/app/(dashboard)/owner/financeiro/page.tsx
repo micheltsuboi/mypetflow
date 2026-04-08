@@ -1078,7 +1078,12 @@ export default function FinanceiroPage() {
                         <div className={styles.cardHeader}>
                             <span className={styles.cardIcon}>📈</span>
                         </div>
-                        <span className={`${styles.cardValue} ${styles.profit}`}>{formatCurrency(activeRevenueValue - activeExpensesValue)}</span>
+                        <span 
+                            className={styles.cardValue} 
+                            style={{ color: (activeRevenueValue - activeExpensesValue) >= 0 ? '#10b981' : '#ef4444' }}
+                        >
+                            {formatCurrency(activeRevenueValue - activeExpensesValue)}
+                        </span>
                         <span className={styles.cardLabel}>Lucro Líquido</span>
                     </div>
 
@@ -1324,7 +1329,7 @@ export default function FinanceiroPage() {
                                                         </tr>
                                                     ))}
                                                     {extractRecords.appointments
-                                                        .filter(a => a.payment_status === 'paid' && !referencedIds.has(a.id))
+                                                        .filter(a => a.payment_status === 'paid' && !referencedIds.has(a.id) && (a.final_price || a.calculated_price || 0) > 0)
                                                         .map((appt: any) => (
                                                             <tr key={appt.id}>
                                                                 <td>{new Date(appt.paid_at).toLocaleDateString('pt-BR')}</td>
