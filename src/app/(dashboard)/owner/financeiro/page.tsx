@@ -232,12 +232,12 @@ export default function FinanceiroPage() {
                     .eq('payment_status', 'pending'),
                 supabase
                     .from('customer_packages')
-                    .select('*, pets ( name, customers ( name ) ), service_packages ( name )')
+                    .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), service_packages ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'pending'),
                 supabase
                     .from('customer_packages')
-                    .select('*, pets ( name, customers ( name ) ), service_packages ( name )')
+                    .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), service_packages ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', fetchStart),
@@ -539,6 +539,19 @@ export default function FinanceiroPage() {
                 pdf_url: nfMap[s.id]?.pdf_url,
                 caminho_xml: (nfMap[s.id] as any)?.caminho_xml,
                 numero: (nfMap[s.id] as any)?.numero_nf
+            })),
+            ...extractRecords.paidPackages.map(pkg => ({
+                id: pkg.id,
+                cliente: pkg.pets?.customers?.name || 'Cliente',
+                pet: pkg.pets?.name,
+                tipo: 'NFSe',
+                data: pkg.created_at,
+                valor: pkg.total_paid || pkg.total_price || 0,
+                status: nfMap[pkg.id]?.status || 'pendente',
+                nfId: nfMap[pkg.id]?.id,
+                pdf_url: nfMap[pkg.id]?.pdf_url,
+                caminho_xml: (nfMap[pkg.id] as any)?.caminho_xml,
+                numero: (nfMap[pkg.id] as any)?.numero_nf
             }))
         ]
 
@@ -787,6 +800,32 @@ export default function FinanceiroPage() {
             refId: item.id
         })
         setIsCancelModalOpen(true)
+    }
+
+    const handleOpenPackageNFSe = (pkg: any) => {
+        setNfConfig({
+            tipo: 'nfse',
+            origemTipo: 'pacote',
+            refId: pkg.id,
+            total_amount: pkg.total_paid || pkg.total_price || 0,
+            tutor: {
+                nome: pkg.pets?.customers?.name || 'Cliente',
+                cpf: pkg.pets?.customers?.cpf_cnpj || pkg.pets?.customers?.cpf,
+                email: pkg.pets?.customers?.email,
+                endereco: {
+                    logradouro: pkg.pets?.customers?.address,
+                    bairro: pkg.pets?.customers?.neighborhood,
+                    city: pkg.pets?.customers?.city
+                }
+            },
+            servico: {
+                descricao: `PACOTE: ${pkg.service_packages?.name || 'Serviços'}`,
+                valor: pkg.total_paid || pkg.total_price || 0
+            },
+            petName: pkg.pets?.name,
+            tutorPhone: pkg.pets?.customers?.phone_1
+        })
+        setShowNFModal(true)
     }
 
     const handleAccountingExport = () => {
@@ -1378,7 +1417,10 @@ export default function FinanceiroPage() {
                                                                 <td>Pacotes</td>
                                                                 <td className={styles.revenueValue}>+ {formatCurrency(pkg.total_paid || pkg.total_price || 0)}</td>
                                                                 <td>
-                                                                    <span className={styles.badgeLabel}>Pago</span>
+                                                                    <div className={styles.actionButtons}>
+                                                                        <span className={styles.badgeLabel}>Pago</span>
+                                                                        <button onClick={() => handleOpenPackageNFSe(pkg)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ))}
