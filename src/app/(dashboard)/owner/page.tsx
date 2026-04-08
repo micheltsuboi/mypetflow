@@ -826,7 +826,7 @@ export default function OwnerDashboard() {
                                                         isOpen: true,
                                                         recordId: pkg.id,
                                                         tableName: 'customer_packages',
-                                                        title: `Pagamento Pacote: ${pkg.pets?.name}`,
+                                                        title: `Pacote do ${pkg.pets?.name || 'Pet'} (${pkg.package_id?.name || 'Pacote'})`,
                                                         baseAmount: Number(pkg.total_price || 0) - Number(pkg.total_paid || 0)
                                                     })}
                                                 >

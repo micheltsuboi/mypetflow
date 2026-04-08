@@ -122,7 +122,9 @@ export default function FinanceiroPaymentModal({
                 type: 'income',
                 category: categoryMap[tableName] || 'Outros',
                 amount: finalAmount,
-                description: `Recebimento #${recordId.substring(0, 8)} [${title}] via ${method}`,
+                description: tableName === 'customer_packages'
+                    ? `${title} referente ao mês de ${new Date().toLocaleString('pt-BR', { month: 'long' })} pago`
+                    : `Recebimento #${recordId.substring(0, 8)} [${title}] via ${method}`,
                 payment_method: method,
                 date: new Date().toISOString(),
                 created_by: user.id,

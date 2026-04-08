@@ -220,12 +220,12 @@ export default function FinanceiroPage() {
                     .eq('payment_status', 'pending'),
                 supabase
                     .from('customer_packages')
-                    .select('*, pets ( name, customers ( name ) )')
+                    .select('*, pets ( name, customers ( name ) ), service_packages ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'pending'),
                 supabase
                     .from('customer_packages')
-                    .select('*, pets ( name, customers ( name ) )')
+                    .select('*, pets ( name, customers ( name ) ), service_packages ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', fetchStart),
@@ -1362,7 +1362,7 @@ export default function FinanceiroPage() {
                                                         .map((pkg: any) => (
                                                             <tr key={pkg.id}>
                                                                 <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
-                                                                <td>Pacote: {pkg.pets?.name}</td>
+                                                                <td>Pacote do {pkg.pets?.name} ({pkg.service_packages?.name || 'Pacote'})</td>
                                                                 <td>Pacotes</td>
                                                                 <td className={styles.revenueValue}>+ {formatCurrency(pkg.total_paid || pkg.total_price || 0)}</td>
                                                                 <td>
@@ -1487,12 +1487,12 @@ export default function FinanceiroPage() {
                                                 {extractRecords.pendingPackages.map((pkg: any) => (
                                                     <tr key={pkg.id}>
                                                         <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
-                                                        <td>{pkg.pets?.name} • Pacote contratado</td>
+                                                        <td>{pkg.pets?.name} • Pacote contratado ({pkg.service_packages?.name})</td>
                                                         <td>Pacotes</td>
                                                         <td className={styles.pendingValue}>{formatCurrency(Number(pkg.total_price || 0) - Number(pkg.total_paid || 0))}</td>
                                                         <td>
                                                             <button 
-                                                                onClick={() => handleOpenPaymentModal(pkg.id, 'customer_packages', 'Pagamento Pacote', (Number(pkg.total_price || 0) - Number(pkg.total_paid || 0)))}
+                                                                onClick={() => handleOpenPaymentModal(pkg.id, 'customer_packages', `Pacote do ${pkg.pets?.name} (${pkg.service_packages?.name || 'Pacote'})`, (Number(pkg.total_price || 0) - Number(pkg.total_paid || 0)))}
                                                                 className={styles.payBtn}
                                                             >
                                                                 <DollarSign size={16} /> Receber
