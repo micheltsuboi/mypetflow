@@ -101,6 +101,18 @@ export default function OwnerDashboard() {
         baseAmount: number
     } | null>(null)
 
+    const formatTransactionDescription = (tx: any) => {
+        if (tx.category === 'Pacotes' && tx.reference_id) {
+            const pkg = extractRecords.paidPackages.find(p => p.id === tx.reference_id) || 
+                        extractRecords.packages.find(p => p.id === tx.reference_id);
+            if (pkg) {
+                const monthName = new Date(tx.date).toLocaleString('pt-BR', { month: 'long' });
+                return `Pacote do ${pkg.pets?.name} (${pkg.package_id?.name || 'Pacote'}) referente ao mês de ${monthName} pago`;
+            }
+        }
+        return tx.description;
+    }
+
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
@@ -856,7 +868,7 @@ export default function OwnerDashboard() {
                                                         <div key={tx.id} className={styles.extractItem}>
                                                             <div className={styles.extractInfo}>
                                                                 <strong>{tx.category}</strong>
-                                                                <span>{tx.description}</span>
+                                                                <span>{formatTransactionDescription(tx)}</span>
                                                                 <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
                                                             </div>
                                                             <div className={styles.extractActions}>

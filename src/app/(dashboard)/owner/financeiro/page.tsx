@@ -116,6 +116,18 @@ export default function FinanceiroPage() {
         is_recurring: false
     })
 
+    const formatTransactionDescription = (tx: any) => {
+        if (tx.category === 'Pacotes' && tx.reference_id) {
+            const pkg = extractRecords.paidPackages.find(p => p.id === tx.reference_id) || 
+                        extractRecords.pendingPackages.find(p => p.id === tx.reference_id);
+            if (pkg) {
+                const monthName = new Date(tx.date).toLocaleString('pt-BR', { month: 'long' });
+                return `Pacote do ${pkg.pets?.name} (${pkg.service_packages?.name || 'Pacote'}) referente ao mês de ${monthName} pago`;
+            }
+        }
+        return tx.description;
+    }
+
     const fetchFinancials = useCallback(async () => {
         try {
             setLoading(true)
@@ -1320,7 +1332,7 @@ export default function FinanceiroPage() {
                                                     {extractRecords.transactions.filter(t => t.type === 'income').map((tx: any) => (
                                                         <tr key={tx.id}>
                                                             <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
-                                                            <td>{tx.description}</td>
+                                                            <td>{formatTransactionDescription(tx)}</td>
                                                             <td>{tx.category}</td>
                                                             <td className={styles.revenueValue}>+ {formatCurrency(tx.amount)}</td>
                                                             <td>
