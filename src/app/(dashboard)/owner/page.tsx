@@ -6,7 +6,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
-import { X, Trash2 } from 'lucide-react'
+import EmitirNFModal from '@/components/EmitirNFModal'
+import { X, Trash2, FileCode } from 'lucide-react'
+import { NotaFiscal } from '@/types/database'
 
 type ServiceArea = 'all' | 'banho_tosa' | 'creche' | 'hotel'
 
@@ -101,6 +103,89 @@ export default function OwnerDashboard() {
         baseAmount: number
     } | null>(null)
 
+    // NF States
+    const [showNFModal, setShowNFModal] = useState(false)
+    const [nfConfig, setNfConfig] = useState<any>(null)
+    const [nfMap, setNfMap] = useState<Record<string, NotaFiscal>>({})
+
+    useEffect(() => {
+        const fetchInitialNFs = async () => {
+            const { data } = await supabase.from('notas_fiscais').select('*')
+            if (data) {
+                const map: Record<string, NotaFiscal> = {}
+                data.forEach(nf => {
+                    if (nf.origem_id) map[nf.origem_id] = nf
+                })
+                setNfMap(map)
+            }
+        }
+        fetchInitialNFs()
+
+        const channel = supabase
+            .channel('dashboard_nfs')
+            .on('postgres_changes', { event: '*', table: 'notas_fiscais', schema: 'public' }, (payload) => {
+                const newNf = payload.new as NotaFiscal
+                if (newNf && newNf.origem_id) {
+                    setNfMap(prev => ({ ...prev, [newNf.origem_id!]: newNf }))
+                }
+            })
+            .subscribe()
+
+        return () => { supabase.removeChannel(channel) }
+    }, [])
+
+    const handleOpenNFSe = (appt: any) => {
+        setNfConfig({
+            tipo: 'nfse',
+            origemTipo: 'atendimento',
+            refId: appt.id,
+            total_amount: appt.final_price || appt.calculated_price || 0,
+            tutor: {
+                nome: appt.pets?.customers?.name || 'Cliente',
+                cpf: appt.pets?.customers?.cpf_cnpj || appt.pets?.customers?.cpf,
+                email: appt.pets?.customers?.email,
+                endereco: {
+                    logradouro: appt.pets?.customers?.address,
+                    bairro: appt.pets?.customers?.neighborhood,
+                    city: appt.pets?.customers?.city
+                }
+            },
+            servico: {
+                descricao: appt.services?.name || 'Serviço Veterinário',
+                valor: appt.final_price || appt.calculated_price || 0
+            },
+            petName: appt.pets?.name,
+            tutorPhone: appt.pets?.customers?.phone_1
+        })
+        setShowNFModal(true)
+    }
+
+    const handleOpenPackageNFSe = (pkg: any) => {
+        setNfConfig({
+            tipo: 'nfse',
+            origemTipo: 'pacote',
+            refId: pkg.id,
+            total_amount: pkg.total_paid || pkg.total_price || 0,
+            tutor: {
+                nome: pkg.pets?.customers?.name || 'Cliente',
+                cpf: pkg.pets?.customers?.cpf_cnpj || pkg.pets?.customers?.cpf,
+                email: pkg.pets?.customers?.email,
+                endereco: {
+                    logradouro: pkg.pets?.customers?.address,
+                    bairro: pkg.pets?.customers?.neighborhood,
+                    city: pkg.pets?.customers?.city
+                }
+            },
+            servico: {
+                descricao: `PACOTE: ${pkg.package_id?.name || 'Serviços'}`,
+                valor: pkg.total_paid || pkg.total_price || 0
+            },
+            petName: pkg.pets?.name,
+            tutorPhone: pkg.pets?.customers?.phone_1
+        })
+        setShowNFModal(true)
+    }
+
     const formatTransactionDescription = (tx: any) => {
         if (tx.category === 'Pacotes' && tx.reference_id) {
             const pkg = extractRecords.paidPackages.find(p => p.id === tx.reference_id) || 
@@ -145,7 +230,11 @@ export default function OwnerDashboard() {
                 // Promise 1: Current month appointments (paid and unpaid)
                 const currentMonthApptsPromise = supabase
                     .from('appointments')
-                    .select('id, final_price, calculated_price, payment_status, scheduled_at, paid_at, pets ( name ), services ( name, service_categories ( name ) )')
+                    .select(`
+                        id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
+                        pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
+                        services ( name, service_categories ( name ) )
+                    `)
                     .eq('org_id', profile.org_id)
                     .gte('scheduled_at', startOfCurrentMonth)
 
@@ -228,7 +317,7 @@ export default function OwnerDashboard() {
 
                 const paidPackagesThisMonthPromise = supabase
                     .from('customer_packages')
-                    .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
+                    .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), package_id ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', startOfCurrentMonth)
@@ -635,6 +724,32 @@ export default function OwnerDashboard() {
                                 {pet.checkedInAt && (
                                     <span className={styles.checkInTime}>Check-in: {pet.checkedInAt}</span>
                                 )}
+                                {/* NF Button for Paid Today Pets */}
+                                {pet.status === 'done' && (
+                                    (() => {
+                                        const appt = extractRecords.appointments.find(a => a.id === pet.id);
+                                        if (appt && appt.payment_status === 'paid' && !nfMap[appt.id]) {
+                                            return (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); handleOpenNFSe(appt); }} 
+                                                    className={styles.actionBtn} 
+                                                    title="Emitir NFSe"
+                                                    style={{ marginTop: '0.5rem' }}
+                                                >
+                                                    <FileCode size={16} />
+                                                </button>
+                                            );
+                                        }
+                                        if (appt && nfMap[appt.id]) {
+                                            return (
+                                                <div style={{ marginTop: '0.5rem', color: '#2ecc71', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <FileCode size={14} /> NF Emitida
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()
+                                )}
                             </div>
                         </div>
                     ))}
@@ -896,9 +1011,18 @@ export default function OwnerDashboard() {
                                                                 <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
                                                             </div>
                                                             <div className={styles.extractActions}>
-                                                                <span className={styles.extractAmount}>
-                                                                    {formatCurrency(appt.final_price || appt.calculated_price || 0)}
-                                                                </span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                    <span className={styles.extractAmount}>
+                                                                        {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                                    </span>
+                                                                    {!nfMap[appt.id] ? (
+                                                                        <button onClick={() => handleOpenNFSe(appt)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                    ) : (
+                                                                        <div title="Nota Fiscal Autorizada" style={{ color: '#2ecc71' }}>
+                                                                            <FileCode size={18} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -913,9 +1037,18 @@ export default function OwnerDashboard() {
                                                                 <span>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</span>
                                                             </div>
                                                             <div className={styles.extractActions}>
-                                                                <span className={styles.extractAmount}>
-                                                                    {formatCurrency(pkg.total_paid || pkg.total_price || 0)}
-                                                                </span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                    <span className={styles.extractAmount}>
+                                                                        {formatCurrency(pkg.total_paid || pkg.total_price || 0)}
+                                                                    </span>
+                                                                    {!nfMap[pkg.id] ? (
+                                                                        <button onClick={() => handleOpenPackageNFSe(pkg)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                    ) : (
+                                                                        <div title="Nota Fiscal Autorizada" style={{ color: '#2ecc71' }}>
+                                                                            <FileCode size={18} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -971,6 +1104,18 @@ export default function OwnerDashboard() {
                         setPaymentModal(null)
                         alert('Pagamento registrado com sucesso!')
                         window.location.reload()
+                    }}
+                />
+            )}
+
+            {/* NF Modal */}
+            {showNFModal && nfConfig && (
+                <EmitirNFModal 
+                    {...nfConfig}
+                    onClose={() => setShowNFModal(false)}
+                    onSuccess={(status) => {
+                        setShowNFModal(false)
+                        alert('Nota fiscal enviada! Status: ' + status)
                     }}
                 />
             )}
