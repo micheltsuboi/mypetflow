@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
-import { X } from 'lucide-react'
+import { X, Trash2 } from 'lucide-react'
 
 type ServiceArea = 'all' | 'banho_tosa' | 'creche' | 'hotel'
 
@@ -274,7 +274,11 @@ export default function OwnerDashboard() {
                 const expenseTxs = (transactions || []).filter((t: any) => t.type === 'expense')
                 const referencedIds = new Set(incomeTxs.map((t: any) => t.reference_id).filter(id => !!id))
 
-                const paidAppts = currentMonthAppts.filter((a: any) => a.payment_status === 'paid' && !referencedIds.has(a.id))
+                const paidAppts = currentMonthAppts.filter((a: any) => 
+                    a.payment_status === 'paid' && 
+                    !referencedIds.has(a.id) &&
+                    (a.final_price || a.calculated_price || 0) > 0
+                )
                 
                 const currentRevenue = paidAppts
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
@@ -421,21 +425,36 @@ export default function OwnerDashboard() {
             ? petsToday.length
             : petsToday.filter(p => p.area === selectedArea).length
 
+        // Deduplication for area stats too
+        const incomeTxs = financials.revenue > 0 ? extractRecords.transactions.filter((t: any) => t.type === 'income') : []
+        const referencedIds = new Set(incomeTxs.map((t: any) => t.reference_id).filter(id => !!id))
+
         const monthAppts = extractRecords.appointments.filter(a => {
-            if (selectedArea === 'all') return true
             const catName = (a.services as any)?.service_categories?.name || ''
-            if (selectedArea === 'banho_tosa') return catName.includes('Banho') || catName.includes('Tosa')
-            if (selectedArea === 'creche') return catName.includes('Creche')
-            if (selectedArea === 'hotel') return catName.includes('Hospedagem') || catName.includes('Hotel')
-            return false
+            let matchesArea = false
+            if (selectedArea === 'all') matchesArea = true
+            else if (selectedArea === 'banho_tosa') matchesArea = catName.includes('Banho') || catName.includes('Tosa')
+            else if (selectedArea === 'creche') matchesArea = catName.includes('Creche')
+            else if (selectedArea === 'hotel') matchesArea = catName.includes('Hospedagem') || catName.includes('Hotel')
+            
+            return matchesArea
         })
 
         const monthCount = monthAppts.length
-        const revenue = monthAppts
-            .filter(a => a.payment_status === 'paid')
+        
+        // Sum transactions that match the area
+        const txRevenue = incomeTxs.filter(t => {
+            if (selectedArea === 'all') return true
+            const cat = (t.category || '').toLowerCase()
+            return cat.includes(selectedArea.replace('_', ' '))
+        }).reduce((sum, t) => sum + t.amount, 0)
+
+        // Sum appointments that are NOT in transactions and match area
+        const apptRevenue = monthAppts
+            .filter(a => a.payment_status === 'paid' && !referencedIds.has(a.id) && (a.final_price || a.calculated_price || 0) > 0)
             .reduce((sum, a) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-        return { todayCount, monthCount, revenue }
+        return { todayCount, monthCount, revenue: txRevenue + apptRevenue }
     }
 
     if (loading) {
@@ -817,45 +836,81 @@ export default function OwnerDashboard() {
                             ) : (
                                 <>
                                     {/* Appointments list (for Revenue only if not pending) */}
-                                    {extractRecords.appointments
-                                        .filter(a => a.payment_status === 'paid')
-                                        .map(appt => (
-                                            <div key={appt.id} className={styles.extractItem}>
-                                                <div className={styles.extractInfo}>
-                                                    <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
-                                                    <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className={styles.extractActions}>
-                                                    <span className={styles.extractAmount}>
-                                                        {formatCurrency(appt.final_price || appt.calculated_price || 0)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                    {/* Unify Revenue List in Modal */}
+                                    {(() => {
+                                        const referencedIds = new Set(
+                                            extractRecords.transactions
+                                                .filter(t => t.type === 'income' && t.reference_id)
+                                                .map(t => t.reference_id)
+                                        );
 
-                                    {/* Transactions list (for Revenue and Expenses) */}
-                                    {extractRecords.transactions
-                                        .filter(t => extractRecords.type === 'revenue' ? t.type === 'income' : t.type === 'expense')
-                                        .map(tx => (
-                                            <div key={tx.id} className={styles.extractItem}>
-                                                <div className={styles.extractInfo}>
-                                                    <strong>{tx.category}</strong>
-                                                    <span>{tx.description}</span>
-                                                    <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
-                                                </div>
-                                                <div className={styles.extractActions}>
-                                                    <span className={styles.extractAmount}>
-                                                        {formatCurrency(tx.amount)}
-                                                    </span>
-                                                    <button
-                                                        className={styles.deleteBtn}
-                                                        onClick={() => handleDeleteTransaction(tx.id)}
-                                                    >
-                                                        Excluir
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        return (
+                                            <>
+                                                {/* Transactions list (Income) */}
+                                                {extractRecords.transactions
+                                                    .filter(t => extractRecords.type === 'revenue' && t.type === 'income')
+                                                    .map(tx => (
+                                                        <div key={tx.id} className={styles.extractItem}>
+                                                            <div className={styles.extractInfo}>
+                                                                <strong>{tx.category}</strong>
+                                                                <span>{tx.description}</span>
+                                                                <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
+                                                            </div>
+                                                            <div className={styles.extractActions}>
+                                                                <span className={styles.extractAmount}>
+                                                                    {formatCurrency(tx.amount)}
+                                                                </span>
+                                                                <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}>
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                {/* Filtered Appointments (only if not in transactions and value > 0) */}
+                                                {extractRecords.appointments
+                                                    .filter(a => 
+                                                        a.payment_status === 'paid' && 
+                                                        !referencedIds.has(a.id) &&
+                                                        (a.final_price || a.calculated_price || 0) > 0
+                                                    )
+                                                    .map(appt => (
+                                                        <div key={appt.id} className={styles.extractItem}>
+                                                            <div className={styles.extractInfo}>
+                                                                <strong>{appt.pets?.name || 'Pet'} • {appt.services?.name || 'Serviço'}</strong>
+                                                                <span>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</span>
+                                                            </div>
+                                                            <div className={styles.extractActions}>
+                                                                <span className={styles.extractAmount}>
+                                                                    {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                {/* Expenses List */}
+                                                {extractRecords.transactions
+                                                    .filter(t => extractRecords.type === 'expenses' && t.type === 'expense')
+                                                    .map(tx => (
+                                                        <div key={tx.id} className={styles.extractItem}>
+                                                            <div className={styles.extractInfo}>
+                                                                <strong>{tx.category}</strong>
+                                                                <span>{tx.description}</span>
+                                                                <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
+                                                            </div>
+                                                            <div className={styles.extractActions}>
+                                                                <span className={styles.extractAmount}>
+                                                                    {formatCurrency(tx.amount)}
+                                                                </span>
+                                                                <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}>
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                            </>
+                                        );
+                                    })()}
                                 </>
                             )}
 
