@@ -455,7 +455,8 @@ export default function OwnerDashboard() {
                             service: (a.services as any)?.name || '',
                             status: a.status === 'done' ? 'done' : a.status === 'in_progress' ? 'in_progress' : 'waiting',
                             checkedInAt: new Date(a.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                            ownerName: (a.pets as any)?.customers?.name || 'Cliente'
+                            ownerName: (a.pets as any)?.customers?.name || 'Cliente',
+                            appointment: a
                         }
                     })
                     setPetsToday(mappedPets)
@@ -727,7 +728,7 @@ export default function OwnerDashboard() {
                                 {/* NF Button for Paid Today Pets */}
                                 {pet.status === 'done' && (
                                     (() => {
-                                        const appt = extractRecords.appointments.find(a => a.id === pet.id);
+                                        const appt = (pet as any).appointment;
                                         if (appt && appt.payment_status === 'paid' && !nfMap[appt.id]) {
                                             return (
                                                 <button 
@@ -987,9 +988,34 @@ export default function OwnerDashboard() {
                                                                 <span>{new Date(tx.date).toLocaleDateString('pt-BR')}</span>
                                                             </div>
                                                             <div className={styles.extractActions}>
-                                                                <span className={styles.extractAmount}>
-                                                                    {formatCurrency(tx.amount)}
-                                                                </span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                    <span className={styles.extractAmount}>
+                                                                        {formatCurrency(tx.amount)}
+                                                                    </span>
+                                                                    {tx.reference_id && (
+                                                                        !nfMap[tx.reference_id] ? (
+                                                                            <button 
+                                                                                onClick={() => {
+                                                                                    if (tx.category === 'Pacotes') {
+                                                                                        const pkg = extractRecords.paidPackages.find(p => p.id === tx.reference_id) || { id: tx.reference_id };
+                                                                                        handleOpenPackageNFSe(pkg);
+                                                                                    } else {
+                                                                                        const appt = extractRecords.appointments.find(a => a.id === tx.reference_id) || { id: tx.reference_id };
+                                                                                        handleOpenNFSe(appt);
+                                                                                    }
+                                                                                }} 
+                                                                                className={styles.actionBtn} 
+                                                                                title="Emitir NF"
+                                                                            >
+                                                                                <FileCode size={18} />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <div title="Nota Fiscal Autorizada" style={{ color: '#2ecc71' }}>
+                                                                                <FileCode size={18} />
+                                                                            </div>
+                                                                        )
+                                                                    )}
+                                                                </div>
                                                                 <button onClick={() => handleDeleteTransaction(tx.id)} className={styles.deleteBtn}>
                                                                     <Trash2 size={18} />
                                                                 </button>
