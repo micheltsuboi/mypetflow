@@ -270,11 +270,17 @@ export default function OwnerDashboard() {
                 }
 
                 // Process financial data after all promises resolved
-                const paidAppts = currentMonthAppts.filter((a: any) => a.payment_status === 'paid')
+                const incomeTxs = (transactions || []).filter((t: any) => t.type === 'income')
+                const expenseTxs = (transactions || []).filter((t: any) => t.type === 'expense')
+                const referencedIds = new Set(incomeTxs.map((t: any) => t.reference_id).filter(id => !!id))
+
+                const paidAppts = currentMonthAppts.filter((a: any) => a.payment_status === 'paid' && !referencedIds.has(a.id))
                 
                 const currentRevenue = paidAppts
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-                    + (paidPackagesThisMonth || []).reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
+                    + (paidPackagesThisMonth || [])
+                    .filter((p: any) => !referencedIds.has(p.id))
+                    .reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
 
                 // Sum ALL pending items for accurate "A Receber"
                 const pendingPayments = allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
@@ -298,15 +304,11 @@ export default function OwnerDashboard() {
                     .filter((a: any) => a.payment_status === 'paid')
                     .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
 
-                const growth = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : 0
-
-                const incomeTxs = (transactions || []).filter((t: any) => t.type === 'income')
-                const expenseTxs = (transactions || []).filter((t: any) => t.type === 'expense')
-
                 const productRevenue = incomeTxs.reduce((sum: number, t: Record<string, any>) => sum + t.amount, 0)
                 const expenses = expenseTxs.reduce((sum: number, t: Record<string, any>) => sum + t.amount, 0)
 
                 const totalRevenue = currentRevenue + productRevenue
+                const growth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0
 
                 setFinancials({
                     revenue: totalRevenue,

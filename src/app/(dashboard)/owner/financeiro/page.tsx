@@ -349,13 +349,20 @@ export default function FinanceiroPage() {
             const activeTxs = transactions.filter((t: any) => filterByPeriod(t.date))
             const activePaidSales = paidSales.filter((s: any) => filterByPeriod(s.created_at))
 
+            const referencedIds = new Set(
+                activeTxs
+                    .filter(t => t.type === 'income' && t.reference_id)
+                    .map(t => t.reference_id)
+            )
+
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
 
             // Combine income sources for categories (excluir agendamentos de pacote com valor zero)
             activeAppts.forEach((a: any) => {
-                // Pular agendamentos de pacote sem valor real (o valor real está no customer_package)
+                // Pular agendamentos de pacote sem valor real OR que já tenham transação
                 if (a.is_package && (a.final_price ?? a.calculated_price ?? 0) === 0) return
+                if (referencedIds.has(a.id)) return
                 if (a.payment_status === 'paid') {
                     const catName = (a.services as any)?.service_categories?.name || 'Serviços'
                     const amount = a.final_price ?? a.calculated_price ?? 0
@@ -380,6 +387,8 @@ export default function FinanceiroPage() {
  
             const activePaidPackages = paidPackages.filter((p: any) => filterByPeriod(p.created_at))
             activePaidPackages.forEach((p: any) => {
+                // Pular se já tiver transação
+                if (referencedIds.has(p.id)) return
                 const catName = 'Pacotes'
                 const amount = Number(p.total_paid || p.total_price || 0)
                 const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
