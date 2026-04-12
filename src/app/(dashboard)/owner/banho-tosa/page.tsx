@@ -55,6 +55,8 @@ export default function BanhoTosaPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [dateRange, setDateRange] = useState<DateRange>('today')
+    const [customStartDate, setCustomStartDate] = useState<string>(new Date().toISOString().split('T')[0])
+    const [customEndDate, setCustomEndDate] = useState<string>(new Date().toISOString().split('T')[0])
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
     const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null)
 
@@ -91,7 +93,7 @@ export default function BanhoTosaPage() {
             }
 
             // Get Date Range based on filter
-            const { start, end } = getDateRange(dateRange)
+            const { start, end } = getDateRange(dateRange, customStartDate, customEndDate)
             const startISO = start.toISOString()
             const endISO = end.toISOString()
 
@@ -231,7 +233,7 @@ export default function BanhoTosaPage() {
         } finally {
             if (!isBackground) setLoading(false)
         }
-    }, [supabase, dateRange, viewMode, pets.length, services.length])
+    }, [supabase, dateRange, customStartDate, customEndDate, viewMode, pets.length, services.length])
 
     useEffect(() => {
         fetchBanhoTosaData()
@@ -370,7 +372,16 @@ export default function BanhoTosaPage() {
                 </div>
 
                 {/* Date Range Filter */}
-                <DateRangeFilter value={dateRange} onChange={setDateRange} />
+                <DateRangeFilter 
+                    value={dateRange} 
+                    onChange={setDateRange} 
+                    customStartDate={customStartDate}
+                    customEndDate={customEndDate}
+                    onCustomDatesChange={(start, end) => {
+                        setCustomStartDate(start)
+                        setCustomEndDate(end)
+                    }}
+                />
 
                 {loading ? (
                     <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
