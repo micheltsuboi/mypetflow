@@ -284,6 +284,15 @@ export async function applyVaccine(data: any) {
                     insertData.financial_transaction_id = transaction.id
                 }
             }
+
+            // Decrement stock
+            const { data: currentBatch, error: batchError } = await supabase.from('vaccine_batches').select('quantity').eq('id', vaccine_batch_id).single()
+            if (batchError || !currentBatch) throw new Error('Lote não encontrado ou erro ao buscar estoque.')
+            if (currentBatch.quantity <= 0) throw new Error('Lote sem estoque disponível.')
+
+            await supabase.from('vaccine_batches')
+                .update({ quantity: currentBatch.quantity - 1 })
+                .eq('id', vaccine_batch_id)
         }
 
         const { error } = await supabase
@@ -303,6 +312,32 @@ export async function applyVaccine(data: any) {
 export async function deletePetVaccination(id: string) {
     try {
         const supabase = await createClient()
+        
+        // 1. Get record to find batch and transaction
+        const { data: v, error: fetchError } = await supabase
+            .from('pet_vaccines')
+            .select('vaccine_batch_id, financial_transaction_id')
+            .eq('id', id)
+            .single()
+        
+        if (fetchError) throw fetchError
+
+        // 2. Restore stock if applicable
+        if (v.vaccine_batch_id) {
+            const { data: batch } = await supabase.from('vaccine_batches').select('quantity').eq('id', v.vaccine_batch_id).single()
+            if (batch) {
+                await supabase.from('vaccine_batches')
+                    .update({ quantity: (batch.quantity || 0) + 1 })
+                    .eq('id', v.vaccine_batch_id)
+            }
+        }
+
+        // 3. Delete financial transaction if exists
+        if (v.financial_transaction_id) {
+            await supabase.from('financial_transactions').delete().eq('id', v.financial_transaction_id)
+        }
+
+        // 4. Delete the vaccination record
         const { error } = await supabase
             .from('pet_vaccines')
             .delete()
@@ -311,7 +346,31 @@ export async function deletePetVaccination(id: string) {
         if (error) throw error
 
         revalidatePath('/owner/pets')
-        return { success: true, message: 'Registro removido com sucesso.' }
+        return { success: true, message: 'Registro removido com sucesso, estoque e financeiro atualizados.' }
+    } catch (error: any) {
+        console.error('Error deleting pet vaccination:', error)
+        return { success: false, message: error.message }
+    }
+}
+
+export async function updatePetVaccination(data: any) {
+    try {
+        const supabase = await createClient()
+        const { id, application_date, expiry_date, notes } = data
+
+        const { error } = await supabase
+            .from('pet_vaccines')
+            .update({
+                application_date,
+                expiry_date,
+                notes
+            })
+            .eq('id', id)
+
+        if (error) throw error
+
+        revalidatePath('/owner/pets')
+        return { success: true, message: 'Registro atualizado com sucesso.' }
     } catch (error: any) {
         return { success: false, message: error.message }
     }

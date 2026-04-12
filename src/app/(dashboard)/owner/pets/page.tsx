@@ -34,10 +34,10 @@ import {
     deleteVetExam,
     updateExamPayment
 } from '@/app/actions/veterinary'
-import { 
     getPetVaccinations, 
     applyVaccine, 
     deletePetVaccination, 
+    updatePetVaccination,
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
@@ -68,7 +68,9 @@ import {
     Scissors,
     ShieldAlert,
     Building2,
-    DownloadCloud
+    DownloadCloud,
+    Edit2,
+    Trash2
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import { format } from 'date-fns'
@@ -164,6 +166,7 @@ function PetsContent() {
     const [selectedVaccineForApp, setSelectedVaccineForApp] = useState<any>(null)
     const [selectedBatchForApp, setSelectedBatchForApp] = useState<any>(null)
     const [availableBatches, setAvailableBatches] = useState<any[]>([])
+    const [editingVaccination, setEditingVaccination] = useState<any | null>(null)
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
@@ -793,6 +796,57 @@ function PetsContent() {
                                             </div>
                                         )}
 
+                                        {/* Formulário de Edição */}
+                                        {editingVaccination && (
+                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                    <h5 style={{ margin: 0 }}>Editar Registro: {editingVaccination.name}</h5>
+                                                    <button onClick={() => setEditingVaccination(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>✕</button>
+                                                </div>
+                                                <form action={async (formData) => {
+                                                    const appDate = formData.get('edit_date') as string
+                                                    const expDate = formData.get('edit_expiry') as string
+                                                    const notes = formData.get('edit_notes') as string
+
+                                                    const res = await updatePetVaccination({
+                                                        id: editingVaccination.id,
+                                                        application_date: appDate,
+                                                        expiry_date: expDate,
+                                                        notes
+                                                    })
+
+                                                    if (res.success) {
+                                                        alert(res.message)
+                                                        setEditingVaccination(null)
+                                                        getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                    } else {
+                                                        alert(res.message)
+                                                    }
+                                                }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px' }}>Data de Aplicação</label>
+                                                            <DateInput value={vaccineFormDate} onChange={setVaccineFormDate} name="edit_date" required />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px' }}>Data de Vencimento</label>
+                                                            <DateInput value={vaccineFormExpiry} onChange={setVaccineFormExpiry} name="edit_expiry" required />
+                                                        </div>
+                                                    </div>
+                                                    <div style={{ marginBottom: '1rem' }}>
+                                                        <label style={{ display: 'block', fontSize: '0.75rem', marginBottom: '4px' }}>Observações</label>
+                                                        <textarea 
+                                                            name="edit_notes" 
+                                                            defaultValue={editingVaccination.notes}
+                                                            className={styles.textarea} 
+                                                            style={{ width: '100%', minHeight: '60px', padding: '8px', fontSize: '0.85rem' }}
+                                                        />
+                                                    </div>
+                                                    <button type="submit" className={styles.submitButton} style={{ width: '100%' }}>Salvar Alterações</button>
+                                                </form>
+                                            </div>
+                                        )}
+
                                         {petVaccinations.length === 0 ? (
                                             <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.875rem', padding: '1rem' }}>
                                                 Nenhum registro de vacina encontrado.
@@ -810,17 +864,36 @@ function PetsContent() {
                                                                 Vencimento: {format(new Date(v.expiry_date + 'T12:00:00'), 'dd/MM/yyyy')}
                                                             </div>
                                                         </div>
-                                                        <button 
-                                                            onClick={async () => {
-                                                                if(confirm('Excluir este registro?')) {
-                                                                    const res = await deletePetVaccination(v.id)
-                                                                    if(res.success) getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
-                                                                }
-                                                            }}
-                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}
-                                                        >
-                                                            🗑️
-                                                        </button>
+                                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setEditingVaccination(v)
+                                                                    setVaccineFormDate(v.application_date)
+                                                                    setVaccineFormExpiry(v.expiry_date)
+                                                                    setShowManualVaccineForm(false)
+                                                                    setShowCatalogVaccineForm(false)
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, color: 'var(--text-primary)' }}
+                                                                title="Editar registro"
+                                                            >
+                                                                <Edit2 size={16} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={async () => {
+                                                                    if(confirm('Excluir este registro?')) {
+                                                                        const res = await deletePetVaccination(v.id)
+                                                                        if(res.success) {
+                                                                            getPetVaccinations(selectedPet!.id).then(setPetVaccinations)
+                                                                            alert(res.message)
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, color: '#ef4444' }}
+                                                                title="Excluir registro"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
