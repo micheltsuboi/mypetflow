@@ -34,6 +34,7 @@ import {
     deleteVetExam,
     updateExamPayment
 } from '@/app/actions/veterinary'
+import {
     getPetVaccinations, 
     applyVaccine, 
     deletePetVaccination, 
@@ -873,7 +874,7 @@ function PetsContent() {
                                                                     setShowManualVaccineForm(false)
                                                                     setShowCatalogVaccineForm(false)
                                                                 }}
-                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, color: 'var(--text-primary)' }}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)' }}
                                                                 title="Editar registro"
                                                             >
                                                                 <Edit2 size={16} />
@@ -888,7 +889,7 @@ function PetsContent() {
                                                                         }
                                                                     }
                                                                 }}
-                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, color: '#ef4444' }}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}
                                                                 title="Excluir registro"
                                                             >
                                                                 <Trash2 size={16} />
