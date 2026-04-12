@@ -673,7 +673,7 @@ function PetsContent() {
 
                                         {/* Formulário Manual */}
                                         {showManualVaccineForm && (
-                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                                                 <h5 style={{ margin: '0 0 1rem 0' }}>Registro Manual de Vacina</h5>
                                                 <form action={async (formData) => {
                                                     const name = formData.get('manual_name') as string
@@ -723,7 +723,7 @@ function PetsContent() {
 
                                         {/* Formulário Catálogo */}
                                         {showCatalogVaccineForm && (
-                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                                            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
                                                 <h5 style={{ margin: '0 0 1rem 0' }}>Aplicar Vacina do Estoque</h5>
                                                 <form action={async (formData) => {
                                                     const vId = formData.get('vaccine_id') as string
@@ -800,13 +800,13 @@ function PetsContent() {
                                         ) : (
                                             <div style={{ display: 'grid', gap: '8px' }}>
                                                 {petVaccinations.map(v => (
-                                                    <div key={v.id} style={{ background: 'rgba(255,255,255,0.5)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <div key={v.id} style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <div>
-                                                            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{v.name}</div>
-                                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                            <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{v.name}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                                                 Lote: {v.batch_number || 'N/A'} • {v.application_date ? `Aplicada em: ${format(new Date(v.application_date + 'T12:00:00'), 'dd/MM/yyyy')}` : 'Registro manual'}
                                                             </div>
-                                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: new Date(v.expiry_date) < new Date() ? '#ef4444' : '#10b981' }}>
+                                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: new Date(v.expiry_date) < new Date() ? 'var(--status-canceled)' : 'var(--status-done)' }}>
                                                                 Vencimento: {format(new Date(v.expiry_date + 'T12:00:00'), 'dd/MM/yyyy')}
                                                             </div>
                                                         </div>
