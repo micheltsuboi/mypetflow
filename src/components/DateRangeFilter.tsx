@@ -19,123 +19,89 @@ export default function DateRangeFilter({
     customEndDate,
     onCustomDatesChange 
 }: DateRangeFilterProps) {
+    const getButtonStyle = (buttonValue: DateRange) => ({
+        padding: '0.6rem 1.25rem',
+        background: value === buttonValue ? 'var(--gradient-primary, #3B82F6)' : 'rgba(255, 255, 255, 0.05)',
+        color: value === buttonValue ? 'white' : '#94a3b8',
+        border: value === buttonValue ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        fontWeight: 600,
+        fontSize: '0.9rem',
+        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: value === buttonValue ? '0 4px 12px rgba(59, 130, 246, 0.3)' : 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    })
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <button
-                    onClick={() => onChange('today')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: value === 'today' ? '#2563EB' : '#E5E7EB',
-                        color: value === 'today' ? 'white' : '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: value === 'today' ? 'bold' : 'normal',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    Hoje
-                </button>
-                <button
-                    onClick={() => onChange('week')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: value === 'week' ? '#2563EB' : '#E5E7EB',
-                        color: value === 'week' ? 'white' : '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: value === 'week' ? 'bold' : 'normal',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    Esta Semana
-                </button>
-                <button
-                    onClick={() => onChange('month')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: value === 'month' ? '#2563EB' : '#E5E7EB',
-                        color: value === 'month' ? 'white' : '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: value === 'month' ? 'bold' : 'normal',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    Este Mês
-                </button>
-                <button
-                    onClick={() => onChange('lastMonth')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: value === 'lastMonth' ? '#2563EB' : '#E5E7EB',
-                        color: value === 'lastMonth' ? 'white' : '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: value === 'lastMonth' ? 'bold' : 'normal',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    Mês Anterior
-                </button>
-                <button
-                    onClick={() => onChange('all')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: value === 'all' ? '#2563EB' : '#E5E7EB',
-                        color: value === 'all' ? 'white' : '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: value === 'all' ? 'bold' : 'normal',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    Tudo
-                </button>
-                <button
-                    onClick={() => onChange('custom')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        background: value === 'custom' ? '#2563EB' : '#E5E7EB',
-                        color: value === 'custom' ? 'white' : '#374151',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontWeight: value === 'custom' ? 'bold' : 'normal',
-                        transition: 'all 0.2s'
-                    }}
-                >
-                    Customizado
-                </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button onClick={() => onChange('today')} style={getButtonStyle('today')}>Hoje</button>
+                <button onClick={() => onChange('week')} style={getButtonStyle('week')}>Esta Semana</button>
+                <button onClick={() => onChange('month')} style={getButtonStyle('month')}>Este Mês</button>
+                <button onClick={() => onChange('lastMonth')} style={getButtonStyle('lastMonth')}>Mês Anterior</button>
+                <button onClick={() => onChange('all')} style={getButtonStyle('all')}>Todo Período</button>
+                <button onClick={() => onChange('custom')} style={getButtonStyle('custom')}>📅 Customizado</button>
             </div>
 
             {value === 'custom' && onCustomDatesChange && (
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: '#f1f5f9', padding: '0.75rem', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Início</label>
+                <div style={{ 
+                    display: 'flex', 
+                    gap: '1.5rem', 
+                    alignItems: 'flex-end', 
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    padding: '1.25rem', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.05)',
+                    animation: 'fadeIn 0.3s ease-out'
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginLeft: '2px' }}>Data Inicial</label>
                         <input 
                             type="date" 
                             value={customStartDate} 
                             onChange={(e) => onCustomDatesChange(e.target.value, customEndDate || '')}
-                            style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            style={{ 
+                                padding: '0.75rem', 
+                                borderRadius: '8px', 
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                color: 'white',
+                                outline: 'none',
+                                width: '100%',
+                                fontSize: '0.95rem'
+                            }}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Fim</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#94a3b8', marginLeft: '2px' }}>Data Final</label>
                         <input 
                             type="date" 
                             value={customEndDate} 
                             onChange={(e) => onCustomDatesChange(customStartDate || '', e.target.value)}
-                            style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                            style={{ 
+                                padding: '0.75rem', 
+                                borderRadius: '8px', 
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                background: 'rgba(0, 0, 0, 0.2)',
+                                color: 'white',
+                                outline: 'none',
+                                width: '100%',
+                                fontSize: '0.95rem'
+                            }}
                         />
                     </div>
                 </div>
             )}
+
+            <style jsx>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-5px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     )
 }
