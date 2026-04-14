@@ -336,9 +336,9 @@ function PetsContent() {
 
     const generatePetPDF = (pet: Pet) => {
         const doc = new jsPDF({
-            orientation: 'l',
+            orientation: 'p',
             unit: 'mm',
-            format: [230, 155]
+            format: [152, 228]
         })
 
         // Margins and styling
@@ -348,46 +348,46 @@ function PetsContent() {
         doc.setFontSize(9) // Smaller font for more compactness
         doc.setTextColor(0, 0, 0)
         
-        let y = 10 // Start high
+        let y = 12 // Start higher
         const col1 = margin
-        const col2 = 115
+        const col2 = 80
 
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO TUTOR', col1, y)
-        y += 4
+        y += 5
         doc.setFont('helvetica', 'normal')
         doc.text(`Nome: ${pet.customers?.name || 'Não informado'}`, col1, y)
-        doc.text(`Telefone: ${pet.customers?.phone_1 || 'Não informado'}`, col2, y)
+        doc.text(`Tel: ${pet.customers?.phone_1 || 'Não informado'}`, col2, y)
         
-        y += 6
+        y += 8
         
         // PET INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO PET', col1, y)
-        y += 4
+        y += 5
         doc.setFont('helvetica', 'normal')
         
         // Row 1
         doc.text(`Nome: ${pet.name}`, col1, y)
         doc.text(`Espécie: ${pet.species === 'dog' ? 'Cão' : pet.species === 'cat' ? 'Gato' : 'Outro'}`, col2, y)
-        y += 4
+        y += 5
         
         // Row 2
         doc.text(`Raça: ${pet.breed || 'SRD'}`, col1, y)
         doc.text(`Sexo: ${pet.gender === 'male' ? 'Macho' : 'Fêmea'}`, col2, y)
-        y += 4
+        y += 5
 
         // Row 3
         const age = calculateAge(pet.birth_date)
         doc.text(`Idade: ${age}`, col1, y)
         doc.text(`Porte: ${pet.size === 'small' ? 'Pequeno' : pet.size === 'medium' ? 'Médio' : pet.size === 'large' ? 'Grande' : 'Gigante'}`, col2, y)
-        y += 4
+        y += 5
 
         // Row 4
         doc.text(`Cor: ${pet.color || 'Não informada'}`, col1, y)
-        doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col2, y) // Moved Castrado to col2
-        y += 5
+        doc.text(`Castrado: ${pet.is_neutered ? 'Sim' : 'Não'}`, col2, y)
+        y += 6
 
         // Print / Auto-open print dialog
         doc.autoPrint()
