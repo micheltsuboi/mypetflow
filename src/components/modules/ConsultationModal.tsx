@@ -422,7 +422,6 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                                 />
                             )}
                         </div>
-                        </div>
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>

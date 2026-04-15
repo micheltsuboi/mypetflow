@@ -576,6 +576,7 @@ export default function PackagesPage() {
                                                 <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{session.services?.name}</div>
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                                                     Período: {new Date(session.period_start + 'T12:00:00').toLocaleDateString('pt-BR')} – {new Date(session.period_end + 'T12:00:00').toLocaleDateString('pt-BR')}
+                                                </div>
                                                 {session.scheduled_at && (
                                                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                         🗓️ {new Date(session.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -638,7 +639,6 @@ export default function PackagesPage() {
                                 />
                             </div>
                         </div>
-                    </div>
                 )}
             </div>
         </PlanGuard>

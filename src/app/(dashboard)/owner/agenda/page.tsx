@@ -1498,8 +1498,8 @@ function AgendaContent() {
                                     </button>
                                 </div>
                             </form>
-                        </div >
-                    </div >
+                        </div>
+                    </div>
                 )
                 }
                 {showConsultationModal && selectedConsultation && (
@@ -1541,7 +1541,7 @@ function AgendaContent() {
                         }}
                     />
                 )}
-            </div >
+            </div>
         </PlanGuard>
     )
 }
