@@ -33,6 +33,8 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
     const email = formData.get('email') as string
     const password = formData.get('password') as string
     const phone = formData.get('phone') as string
+    const phone_2 = formData.get('phone_2') as string
+    const cep = formData.get('cep') as string
     const birthDate = formData.get('birthDate') as string
     const address = formData.get('address') as string
     const neighborhood = formData.get('neighborhood') as string
@@ -89,7 +91,9 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
         org_id: profile.org_id,
         name: name,
         email: email || null,
-        phone_1: phone,
+        phone_1: phone.replace(/\D/g, ""),
+        phone_2: phone_2 ? phone_2.replace(/\D/g, "") : null,
+        cep: cep ? cep.replace(/\D/g, "") : null,
         address: address || null,
         neighborhood: neighborhood || null,
         city: city || '',
@@ -131,6 +135,8 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
     const email = formData.get('email') as string
     const password = formData.get('password') as string // Optional
     const phone = formData.get('phone') as string
+    const phone_2 = formData.get('phone_2') as string
+    const cep = formData.get('cep') as string
     const birthDate = formData.get('birthDate') as string
     const address = formData.get('address') as string
     const neighborhood = formData.get('neighborhood') as string
@@ -200,7 +206,9 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
     const customerData: Record<string, string | null> = {
         name,
         email,
-        phone_1: phone,
+        phone_1: phone.replace(/\D/g, ""),
+        phone_2: phone_2 ? phone_2.replace(/\D/g, "") : null,
+        cep: cep ? cep.replace(/\D/g, "") : null,
         address: address || null,
         neighborhood: neighborhood || null,
         city: city || '',

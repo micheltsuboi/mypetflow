@@ -43,6 +43,12 @@ export const parseDateToISO = (dateStr: string) => {
     return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
 }
 
+export const maskCEP = (value: string) => {
+    if (!value) return ""
+    value = value.replace(/\D/g, "")
+    return value.replace(/^(\d{5})(\d)/, "$1-$2").replace(/(-\d{3})\d+?$/, "$1")
+}
+
 export const unmask = (value: string) => {
     return value.replace(/\D/g, "")
 }

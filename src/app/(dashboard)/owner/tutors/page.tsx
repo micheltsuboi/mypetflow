@@ -6,7 +6,7 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createTutor, updateTutor, deleteTutor } from '@/app/actions/tutor'
 import PlanGuard from '@/components/modules/PlanGuard'
-import { maskPhone, maskCPF, maskCNPJ } from '@/utils/masks'
+import { maskPhone, maskCPF, maskCNPJ, maskCEP } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
 import { X } from 'lucide-react'
 
@@ -18,6 +18,8 @@ interface Customer {
     name: string
     email: string | null
     phone_1: string | null
+    phone_2: string | null
+    cep: string | null
     address: string | null
     neighborhood: string | null
     city: string | null
@@ -45,6 +47,8 @@ export default function TutorsPage() {
     const debouncedSearchTerm = useDebounce(searchTerm, 500);
     const [cashbacks, setCashbacks] = useState<Record<string, number>>({});
     const [phone, setPhone] = useState('')
+    const [phone2, setPhone2] = useState('')
+    const [cep, setCep] = useState('')
     const [cpfCnpj, setCpfCnpj] = useState('')
     const [hasCashbackModule, setHasCashbackModule] = useState(false)
 
@@ -158,6 +162,8 @@ export default function TutorsPage() {
             setInstagram('')
             setBirthDate(undefined)
             setPhone('')
+            setPhone2('')
+            setCep('')
             setCpfCnpj('')
         }
     }, [showModal])
@@ -188,6 +194,8 @@ export default function TutorsPage() {
     const handleRowClick = (tutor: Customer) => {
         setSelectedTutor(tutor)
         setPhone(maskPhone(tutor.phone_1 || ''))
+        setPhone2(maskPhone(tutor.phone_2 || ''))
+        setCep(maskCEP(tutor.cep || ''))
         setCpfCnpj(tutor.cpf_cnpj || '')
         setName(tutor.name || '')
         setPhysicalFileNumber(tutor.physical_file_number || '')
@@ -204,6 +212,8 @@ export default function TutorsPage() {
     const handleNewTutor = () => {
         setSelectedTutor(null)
         setPhone('')
+        setPhone2('')
+        setCep('')
         setCpfCnpj('')
         setName('')
         setPhysicalFileNumber('')
@@ -445,12 +455,22 @@ export default function TutorsPage() {
                                     </div>
 
                                     <div className={styles.formGroup}>
-                                        <label htmlFor="phone" className={styles.label}>Telefone/WhatsApp *</label>
+                                        <label htmlFor="phone" className={styles.label}>Telefone Principal *</label>
                                         <input
                                             id="phone" name="phone" type="tel" className={styles.input} required
                                             placeholder="(11) 99999-9999"
                                             value={phone}
                                             onChange={(e) => setPhone(maskPhone(e.target.value))}
+                                            maxLength={15}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="phone_2" className={styles.label}>Segundo Telefone (Opcional)</label>
+                                        <input
+                                            id="phone_2" name="phone_2" type="tel" className={styles.input}
+                                            placeholder="(11) 99999-9999"
+                                            value={phone2}
+                                            onChange={(e) => setPhone2(maskPhone(e.target.value))}
                                             maxLength={15}
                                         />
                                     </div>
@@ -475,6 +495,16 @@ export default function TutorsPage() {
                                             className={styles.input}
                                             value={birthDate}
                                             onChange={setBirthDate}
+                                        />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label htmlFor="cep" className={styles.label}>CEP</label>
+                                        <input
+                                            id="cep" name="cep" type="text" className={styles.input}
+                                            placeholder="00000-000"
+                                            value={cep}
+                                            onChange={(e) => setCep(maskCEP(e.target.value))}
+                                            maxLength={9}
                                         />
                                     </div>
 
