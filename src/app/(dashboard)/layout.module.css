@@ -10,8 +10,8 @@
 /* Sidebar */
 .sidebar {
     width: 250px;
-    background: rgba(13, 27, 42, 0.95);
-    border-right: 1px solid rgba(140, 180, 201, 0.1);
+    background: var(--bg-primary);
+    border-right: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
     padding: 1rem;
@@ -78,7 +78,7 @@
 }
 
 .navItem:hover {
-    background: rgba(140, 180, 201, 0.1);
+    background: var(--bg-hover);
     color: var(--text-primary);
 }
 
@@ -106,7 +106,7 @@
     gap: 0.25rem;
     margin-left: 0.5rem;
     padding-left: 0.5rem;
-    border-left: 1px solid rgba(140, 180, 201, 0.1);
+    border-left: 1px solid var(--card-border);
     overflow: hidden;
     transition: all 0.3s ease;
 }
@@ -148,7 +148,7 @@
 .sidebarFooter {
     margin-top: auto;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(140, 180, 201, 0.1);
+    border-top: 1px solid var(--card-border);
 }
 
 .clockButton {
@@ -226,9 +226,9 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem 2rem;
-    background: rgba(13, 27, 42, 0.9);
+    background: var(--bg-secondary);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(140, 180, 201, 0.1);
+    border-bottom: 1px solid var(--card-border);
     position: sticky;
     top: 0;
     z-index: 50;

@@ -60,8 +60,8 @@
 
 .headerBtn {
     padding: 0.75rem 1.25rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
     border-radius: 10px;
     color: var(--text-primary);
     text-decoration: none;
@@ -88,9 +88,9 @@
     align-items: center;
     gap: 1rem;
     padding: 1.25rem;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    background: var(--card-bg-glass);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--card-border);
     border-radius: 16px;
     position: relative;
 }
@@ -102,7 +102,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
     border-radius: 12px;
 }
 
@@ -153,7 +153,8 @@
     gap: 0.5rem;
     margin-bottom: 1rem;
     padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     overflow-x: auto;
 }
@@ -202,7 +203,8 @@
     align-items: center;
     gap: 2rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     margin-bottom: 1.5rem;
 }
@@ -228,7 +230,7 @@
 .statDivider {
     width: 1px;
     height: 40px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--divider);
 }
 
 /* Pets Section */
@@ -254,8 +256,8 @@
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     transition: all 0.2s ease;
 }
@@ -438,7 +440,7 @@
 .financialCard.clickable:hover {
     transform: translateY(-2px);
     border-color: var(--primary);
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--bg-card-hover);
 }
 
 .modalOverlay {

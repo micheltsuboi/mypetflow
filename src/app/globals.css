@@ -87,6 +87,13 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
+  /* Semantic Components */
+  --card-border: rgba(140, 180, 201, 0.15);
+  --card-bg-glass: rgba(27, 59, 90, 0.4);
+  --header-bg: rgba(255, 255, 255, 0.05);
+  --input-border: rgba(140, 180, 201, 0.2);
+  --divider: rgba(255, 255, 255, 0.05);
+
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
@@ -95,18 +102,30 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg-primary: #F8FAFC;
+    --bg-primary: #F1F4F9; /* Shaded light background */
     --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F1F5F9;
-    --bg-card: rgba(255, 255, 255, 0.8);
-    --bg-card-hover: rgba(255, 255, 255, 0.95);
+    --bg-tertiary: #E2E8F0;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #F8FAFC;
     --border: rgba(27, 59, 90, 0.1);
     --bg-input: #FFFFFF;
-    --bg-hover: rgba(0, 228, 206, 0.05);
+    --bg-hover: rgba(13, 27, 42, 0.05);
     --text-primary: #1B3B5A;
-    --text-secondary: #4A5568;
-    --text-muted: #718096;
-    --gradient-dark: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+    --text-secondary: #334155;
+    --text-muted: #64748B;
+    --gradient-dark: linear-gradient(180deg, #F1F4F9 0%, #E2E8F0 100%);
+    
+    /* Semantic Components - Light Mode */
+    --card-border: rgba(27, 59, 90, 0.12);
+    --card-bg-glass: rgba(255, 255, 255, 0.95);
+    --header-bg: #F8FAFC;
+    --input-border: #CBD5E1;
+    --divider: #E2E8F0;
+    
+    /* Stronger shadows for light mode */
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 }
 

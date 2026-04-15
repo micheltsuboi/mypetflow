@@ -64,9 +64,9 @@
 
 /* Table */
 .tableContainer {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    background: var(--card-bg-glass);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--card-border);
     border-radius: 16px;
     overflow: hidden;
 }
@@ -83,7 +83,7 @@
 }
 
 .table th {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--header-bg);
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-secondary);
@@ -92,12 +92,12 @@
 }
 
 .table tbody tr {
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid var(--divider);
     transition: background 0.2s ease;
 }
 
 .table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-hover);
 }
 
 .itemInfo {
@@ -249,8 +249,8 @@
 .textarea {
     width: 100%;
     padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-primary);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 0.95rem;
@@ -445,9 +445,9 @@
     text-align: center;
     padding: 3rem;
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-secondary);
     border-radius: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--card-border);
     font-style: italic;
 }
 
