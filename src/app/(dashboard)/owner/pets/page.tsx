@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense, useTransition } from 'react'
+import { useState, useEffect, useCallback, Suspense, useTransition, Fragment } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
@@ -858,7 +858,7 @@ function PetsContent() {
                                         ) : (
                                             <div style={{ display: 'grid', gap: '8px' }}>
                                                 {petVaccinations.map(v => (
-                                                    <React.Fragment key={v.id}>
+                                                    <Fragment key={v.id}>
                                                         <div style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <div>
                                                             <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{v.name}</div>
@@ -917,7 +917,7 @@ function PetsContent() {
                                                             />
                                                         </div>
                                                     )}
-                                                </React.Fragment>
+                                                </Fragment>
                                             ))}
                                             </div>
                                         )}
