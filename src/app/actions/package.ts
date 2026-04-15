@@ -254,10 +254,24 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         await createScheduledAppointmentsForPackage(supabase, customerPackage.id, profile.org_id)
     }
 
+    // Criar transação financeira se houver pagamento inicial
+    if (total_paid > 0) {
+        await supabase.from('financial_transactions').insert({
+            org_id: profile.org_id,
+            type: 'income',
+            category: 'Venda de Pacote',
+            amount: total_paid,
+            description: `Pacote: ${packageData.name} - Cliente: ${customer_id}`,
+            payment_method: payment_method,
+            created_by: user.id,
+            date: new Date().toISOString(),
+            reference_id: customerPackage.id,
+            reference_type: 'package'
+        })
+    }
+
     revalidatePath('/owner/packages')
-    revalidatePath('/owner/pets')
-    revalidatePath('/owner/agenda')
-    revalidatePath('/staff')
+    revalidatePath('/owner/financeiro')
     return { message: 'Pacote vendido com sucesso!', success: true }
 }
 
@@ -424,10 +438,26 @@ export async function sellPackageToPet(
         await createScheduledAppointmentsForPackage(supabase, customerPackage.id, profile.org_id)
     }
 
+    // Se totalPaid > 0 (passado via UI), registrar transação
+    // Nota: sellPackageToPet normalmente é usado para pacotes que começam pendentes,
+    // mas se a UI passar um valor, registramos.
+    if (totalPaid > 0) {
+        await supabase.from('financial_transactions').insert({
+            org_id: profile.org_id,
+            type: 'income',
+            category: 'Venda de Pacote',
+            amount: totalPaid,
+            description: `Pacote: ${packageData.name} - Pet: ${petData.name}`,
+            payment_method: paymentMethod,
+            created_by: user.id,
+            date: new Date().toISOString(),
+            reference_id: customerPackage.id,
+            reference_type: 'package'
+        })
+    }
+
     revalidatePath('/owner/packages')
-    revalidatePath('/owner/pets')
-    revalidatePath('/owner/agenda')
-    revalidatePath('/staff')
+    revalidatePath('/owner/financeiro')
     return { message: `Pacote "${packageData.name}" ativado para ${petData.name}!`, success: true }
 }
 

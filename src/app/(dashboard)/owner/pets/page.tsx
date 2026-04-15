@@ -52,6 +52,7 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
 import InputMasked from '@/components/ui/InputMasked'
+import PaymentManager from '@/components/finance/PaymentManager'
 import { maskDate, parseDateToISO } from '@/utils/masks'
 import { 
     X, 
@@ -71,7 +72,8 @@ import {
     Building2,
     DownloadCloud,
     Edit2,
-    Trash2
+    Trash2,
+    DollarSign
 } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import { format } from 'date-fns'
@@ -157,6 +159,7 @@ function PetsContent() {
     const [admissionMeds, setAdmissionMeds] = useState<any[]>([])
     const [petAssessment, setPetAssessment] = useState<any>(null)
     const [petVaccinations, setPetVaccinations] = useState<any[]>([])
+    const [showPaymentVaccineId, setShowPaymentVaccineId] = useState<string | null>(null)
     const [vaccineCatalog, setVaccineCatalog] = useState<any[]>([])
 
     // Vaccination Form States
@@ -894,9 +897,27 @@ function PetsContent() {
                                                             >
                                                                 <Trash2 size={16} />
                                                             </button>
+                                                            <button 
+                                                                onClick={() => setShowPaymentVaccineId(showPaymentVaccineId === v.id ? null : v.id)}
+                                                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: showPaymentVaccineId === v.id ? 'var(--primary)' : 'var(--text-secondary)' }}
+                                                                title="Gerenciar Pagamento"
+                                                            >
+                                                                <DollarSign size={16} />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                ))}
+                                                    {showPaymentVaccineId === v.id && (
+                                                        <div style={{ padding: '0 12px 12px 12px', background: 'var(--bg-tertiary)', borderRadius: '0 0 12px 12px', border: '1px solid var(--border)', borderTop: 'none', marginTop: '-8px' }}>
+                                                            <PaymentManager 
+                                                                refId={v.id}
+                                                                refType="vaccine"
+                                                                totalDue={Number(v.price || 0)}
+                                                                onStatusChange={() => getPetVaccinations(selectedPet!.id).then(setPetVaccinations)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </React.Fragment>
+                                            ))}
                                             </div>
                                         )}
                                     </div>
@@ -932,7 +953,20 @@ function PetsContent() {
                                                 {vetConsultations.length === 0 ? <p>Nenhuma consulta registrada.</p> : vetConsultations.map(c => (
                                                     <div key={c.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <strong>{new Date(c.consultation_date).toLocaleDateString()} - {c.veterinarians?.name || 'VET'}</strong>
+                                                            <div>
+                                                                <strong>{new Date(c.consultation_date).toLocaleDateString()} - {c.veterinarians?.name || 'VET'}</strong>
+                                                                <span style={{ 
+                                                                    fontSize: '0.7rem', 
+                                                                    padding: '2px 6px', 
+                                                                    borderRadius: '4px', 
+                                                                    background: c.payment_status === 'paid' ? 'rgba(16,185,129,0.1)' : c.payment_status === 'partial' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
+                                                                    color: c.payment_status === 'paid' ? '#10b981' : c.payment_status === 'partial' ? '#f59e0b' : '#ef4444',
+                                                                    marginLeft: '0.5rem',
+                                                                    fontWeight: 600
+                                                                }}>
+                                                                    {c.payment_status === 'paid' ? 'PAGO' : c.payment_status === 'partial' ? 'PARCIAL' : 'PENDENTE'}
+                                                                </span>
+                                                            </div>
                                                             <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => { setActiveConsultation(c); setShowConsultationModal(true); }}>Abrir</button>
                                                         </div>
                                                         <p style={{ fontSize: '0.85rem', margin: '0.25rem 0' }}>{c.reason}</p>

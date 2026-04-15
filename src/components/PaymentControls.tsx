@@ -5,6 +5,7 @@ import { updatePaymentStatus, applyDiscount } from '@/app/actions/appointment'
 import { DollarSign, CreditCard, Check, X, Percent, Wallet, Banknote } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { createClient } from '@/lib/supabase/client'
+import PaymentManager from './finance/PaymentManager'
 
 interface PaymentControlsProps {
     appointmentId: string
@@ -321,52 +322,14 @@ export default function PaymentControls({
                     ) : (
                         <div>
                             <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <CreditCard size={18} color="var(--color-sky)" /> Confirmar Pagamento:
+                                <CreditCard size={18} color="var(--color-sky)" /> Gerenciar Pagamentos:
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                                {Object.entries(paymentMethodLabels).map(([key, label]) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => handlePayment(key)}
-                                        disabled={loading}
-                                        style={{
-                                            padding: '1rem',
-                                            borderRadius: '12px',
-                                            border: '1px solid var(--border)',
-                                            background: 'var(--bg-primary)',
-                                            color: 'var(--text-primary)',
-                                            cursor: loading ? 'wait' : 'pointer',
-                                            fontSize: '0.95rem',
-                                            fontWeight: 600,
-                                            textAlign: 'left',
-                                            transition: 'all 0.2s',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.75rem',
-                                            boxShadow: 'var(--shadow-sm)'
-                                        }}
-                                        onMouseOver={(e) => {
-                                            e.currentTarget.style.borderColor = 'var(--color-sky)';
-                                            e.currentTarget.style.transform = 'translateY(-2px)';
-                                            e.currentTarget.style.boxShadow = 'var(--shadow-glow-sky)';
-                                        }}
-                                        onMouseOut={(e) => {
-                                            e.currentTarget.style.borderColor = 'var(--border)';
-                                            e.currentTarget.style.transform = 'translateY(0)';
-                                            e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                                        }}
-                                    >
-                                        <div style={{ background: 'var(--bg-tertiary)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                            {key === 'pix' && <DollarSign size={16} color="var(--color-sky)" />}
-                                            {key === 'credit' && <CreditCard size={16} color="var(--color-sky)" />}
-                                            {key === 'debit' && <CreditCard size={16} color="var(--color-sky)" />}
-                                            {key === 'cash' && <Banknote size={16} color="var(--color-sky)" />}
-                                            {key === 'package' && <Wallet size={16} color="var(--color-sky)" />}
-                                        </div>
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
+                            <PaymentManager 
+                                refId={appointmentId}
+                                refType="appointment"
+                                totalDue={displayPrice}
+                                onStatusChange={() => onUpdate?.()}
+                            />
                         </div>
                     )}
                 </div>
@@ -465,9 +428,10 @@ export default function PaymentControls({
                         <span style={{
                             fontSize: '0.75rem',
                             fontWeight: 600,
-                            color: isPaid ? '#10b981' : '#f59e0b'
+                            color: isPaid ? '#10b981' : paymentStatus === 'partial' ? '#f59e0b' : '#f54ef2',
+                            marginLeft: '4px'
                         }}>
-                            {isPaid ? 'Pago' : 'Pendente'}
+                            {isPaid ? '✓ Pago' : paymentStatus === 'partial' ? '⏳ Parcial' : '⏳ Pendente'}
                         </span>
                     </div>
                 )}

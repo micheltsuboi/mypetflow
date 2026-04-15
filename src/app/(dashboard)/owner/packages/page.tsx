@@ -17,6 +17,7 @@ import {
     markSessionDone
 } from '@/app/actions/package'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PaymentManager from '@/components/finance/PaymentManager'
 
 interface Service {
     id: string
@@ -575,7 +576,6 @@ export default function PackagesPage() {
                                                 <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{session.services?.name}</div>
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                                                     Período: {new Date(session.period_start + 'T12:00:00').toLocaleDateString('pt-BR')} – {new Date(session.period_end + 'T12:00:00').toLocaleDateString('pt-BR')}
-                                                </div>
                                                 {session.scheduled_at && (
                                                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                         🗓️ {new Date(session.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
@@ -626,6 +626,16 @@ export default function PackagesPage() {
                                         )}
                                     </div>
                                 ))}
+                            </div>
+
+                            <div style={{ marginTop: '2rem', borderTop: '2px dashed var(--border)', paddingTop: '1.5rem' }}>
+                                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>💳 Financeiro do Contrato</h3>
+                                <PaymentManager 
+                                    refId={selectedCp.id}
+                                    refType="package"
+                                    totalDue={Number((selectedCp as any).total_price || 0)}
+                                    onStatusChange={() => fetchData()}
+                                />
                             </div>
                         </div>
                     </div>

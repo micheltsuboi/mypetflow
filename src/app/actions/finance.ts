@@ -178,3 +178,144 @@ export async function deleteRecurringExpense(id: string) {
     revalidatePath('/owner/financeiro')
     return { success: true }
 }
+
+export async function getPaymentSummary(refId: string, refType: string, totalDue: number) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: transactions, error } = await supabase
+            .from('financial_transactions')
+            .select('*')
+            .eq('reference_id', refId)
+            .eq('reference_type', refType)
+            .eq('type', 'income')
+            .order('date', { ascending: true })
+
+        if (error) throw error
+
+        const totalPaid = (transactions || []).reduce((sum, t) => sum + Number(t.amount), 0)
+        const balance = Math.max(0, totalDue - totalPaid)
+        
+        let status: 'paid' | 'partial' | 'pending' = 'pending'
+        if (totalPaid >= totalDue && totalDue > 0) status = 'paid'
+        else if (totalPaid > 0) status = 'partial'
+
+        return {
+            success: true,
+            totalPaid,
+            balance,
+            status,
+            transactions: transactions || []
+        }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
+export async function registerReferencePayment(data: {
+    refId: string,
+    refType: string,
+    amount: number,
+    paymentMethod: string,
+    date?: string,
+    category?: string,
+    description?: string,
+    totalDue: number
+}) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
+
+        // 1. Inserir transação
+        const { error: transError } = await supabase
+            .from('financial_transactions')
+            .insert({
+                org_id: profile.org_id,
+                type: 'income',
+                category: data.category || 'Pagamento',
+                amount: data.amount,
+                description: data.description || `Pagamento parcial - ${data.refType}`,
+                payment_method: data.paymentMethod,
+                date: data.date || new Date().toISOString(),
+                reference_id: data.refId,
+                reference_type: data.refType,
+                created_by: user.id
+            })
+
+        if (transError) throw transError
+
+        // 2. Recalcular e atualizar status do pai
+        const summary = await getPaymentSummary(data.refId, data.refType, data.totalDue)
+        if (summary.success) {
+            const tableMap: Record<string, string> = {
+                'consultation': 'vet_consultations',
+                'appointment': 'appointments',
+                'package': 'customer_packages',
+                'vaccine': 'pet_vaccines'
+            }
+
+            const tableName = tableMap[data.refType]
+            if (tableName) {
+                await supabase
+                    .from(tableName)
+                    .update({ 
+                        payment_status: summary.status,
+                        // Se for totalmente pago, podemos atualizar o payment_method principal também (opcional)
+                        ...(summary.status === 'paid' ? { payment_method: data.paymentMethod } : {})
+                    })
+                    .eq('id', data.refId)
+            }
+        }
+
+        revalidatePath('/owner/financeiro')
+        revalidatePath('/owner/pets')
+        revalidatePath('/owner/agenda')
+        
+        return { success: true, message: 'Pagamento registrado com sucesso!' }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}
+
+export async function deleteReferencePayment(transactionId: string, refId: string, refType: string, totalDue: number) {
+    try {
+        const supabase = await createClient()
+        
+        const { error: deleteError } = await supabase
+            .from('financial_transactions')
+            .delete()
+            .eq('id', transactionId)
+
+        if (deleteError) throw deleteError
+
+        // Recalcular status do pai
+        const summary = await getPaymentSummary(refId, refType, totalDue)
+        if (summary.success) {
+            const tableMap: Record<string, string> = {
+                'consultation': 'vet_consultations',
+                'appointment': 'appointments',
+                'package': 'customer_packages',
+                'vaccine': 'pet_vaccines'
+            }
+
+            const tableName = tableMap[refType]
+            if (tableName) {
+                await supabase
+                    .from(tableName)
+                    .update({ payment_status: summary.status })
+                    .eq('id', refId)
+            }
+        }
+
+        revalidatePath('/owner/financeiro')
+        return { success: true, message: 'Pagamento removido.' }
+    } catch (error: any) {
+        return { success: false, message: error.message }
+    }
+}

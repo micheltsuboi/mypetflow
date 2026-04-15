@@ -6,6 +6,7 @@ import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOr
 import BodyMap from './BodyMap'
 import DateInput from '../ui/DateInput'
 import EmitirNFModal from '../EmitirNFModal'
+import PaymentManager from '../finance/PaymentManager'
 
 interface ConsultationModalProps {
     consultation: any
@@ -23,6 +24,17 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const [nfData, setNfData] = useState<{ id: string, status: string, pdf_url?: string } | null>(null)
     const autosaveTimer = useRef<NodeJS.Timeout | null>(null)
     const pendingSave = useRef<{ field: string, value: any } | null>(null)
+
+    const calculateFinalTotal = () => {
+        const fee = Number(formData.consultation_fee || 0)
+        const discFixed = Number(formData.discount_fixed || 0)
+        const discPercent = Number(formData.discount_percent || 0)
+        
+        if (formData.discount_type === 'percent') {
+            return fee - (fee * (discPercent / 100))
+        }
+        return Math.max(0, fee - discFixed)
+    }
 
     useEffect(() => {
         getVeterinarians().then(setVets)
@@ -410,32 +422,17 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                                 />
                             )}
                         </div>
-                        <div className={styles.formGroup}>
-                            <label>Status Pagamento</label>
-                            <select
-                                value={formData.payment_status || 'pending'}
-                                onChange={(e) => handleFieldChange('payment_status', e.target.value)}
-                                className={styles.select}
-                                disabled={readOnly}
-                            >
-                                <option value="pending">Pendente</option>
-                                <option value="paid">Pago</option>
-                            </select>
                         </div>
-                        <div className={styles.formGroup}>
-                            <label>Forma de Pagamento</label>
-                            <select
-                                value={formData.payment_method || 'pix'}
-                                onChange={(e) => handleFieldChange('payment_method', e.target.value)}
-                                className={styles.select}
-                                disabled={readOnly}
-                            >
-                                <option value="pix">PIX</option>
-                                <option value="cash">Dinheiro</option>
-                                <option value="credit">Crédito</option>
-                                <option value="debit">Débito</option>
-                            </select>
-                        </div>
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+                        <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--text-primary)' }}>💳 Gerenciamento Financeiro</h3>
+                        <PaymentManager 
+                            refId={consultation.id}
+                            refType="consultation"
+                            totalDue={calculateFinalTotal()}
+                            onStatusChange={(newStatus) => handleFieldChange('payment_status', newStatus)}
+                        />
                     </div>
                 </div>
 

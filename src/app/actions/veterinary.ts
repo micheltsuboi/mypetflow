@@ -280,7 +280,7 @@ export async function createVetConsultation(formData: FormData) {
 
         if (!pet_id) return { success: false, message: 'Pet não informado.' }
 
-        const { error } = await supabase
+        const { data: newConsultation, error } = await supabase
             .from('vet_consultations')
             .insert({
                 org_id: profile.org_id,
@@ -301,6 +301,8 @@ export async function createVetConsultation(formData: FormData) {
                 payment_method,
                 created_by: user.id
             })
+            .select('id')
+            .single()
 
         if (error) throw error
 
@@ -322,7 +324,9 @@ export async function createVetConsultation(formData: FormData) {
                 description: `Consulta Vet (${payment_method}) - Pet: ${pet_id}`,
                 payment_method,
                 created_by: user.id,
-                date: new Date().toISOString()
+                date: new Date().toISOString(),
+                reference_id: newConsultation.id,
+                reference_type: 'consultation'
             });
         }
 

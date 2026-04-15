@@ -266,25 +266,6 @@ export async function applyVaccine(data: any) {
             insertData.price = batch?.selling_price || 0
             insertData.payment_method = payment_status === 'paid' ? (payment_method || 'cash') : null
 
-            // Create financial transaction (INCOME) only if status is 'paid' and price > 0
-            if (payment_status === 'paid' && batch?.selling_price && batch.selling_price > 0) {
-                const { data: transaction, error: transError } = await supabase.from('financial_transactions').insert({
-                    org_id: profile?.org_id,
-                    type: 'income',
-                    category: 'Vacinas',
-                    amount: batch.selling_price,
-                    description: `Aplicação de Vacina: ${vaccine?.name} (Lote: ${batch.batch_number})`,
-                    payment_method: payment_method || 'cash',
-                    date: application_date || new Date().toISOString(),
-                    created_by: user.id,
-                    reference_id: pet_id
-                }).select().single()
-
-                if (!transError && transaction) {
-                    insertData.financial_transaction_id = transaction.id
-                }
-            }
-
             // Decrement stock
             const { data: currentBatch, error: batchError } = await supabase.from('vaccine_batches').select('quantity').eq('id', vaccine_batch_id).single()
             if (batchError || !currentBatch) throw new Error('Lote não encontrado ou erro ao buscar estoque.')
@@ -295,14 +276,32 @@ export async function applyVaccine(data: any) {
                 .eq('id', vaccine_batch_id)
         }
 
-        const { error } = await supabase
+        const { data: newVaccineApp, error } = await supabase
             .from('pet_vaccines')
             .insert(insertData)
+            .select()
+            .single()
 
         if (error) throw error
 
+        // 3. Registrar transação financeira SE pago e tiver preço
+        if (!is_manual && payment_status === 'paid' && insertData.price > 0) {
+            await supabase.from('financial_transactions').insert({
+                org_id: profile?.org_id,
+                type: 'income',
+                category: 'Vacinas',
+                amount: insertData.price,
+                description: `Aplicação de Vacina: ${insertData.name} (Lote: ${insertData.batch_number})`,
+                payment_method: payment_method || 'cash',
+                date: application_date || new Date().toISOString(),
+                created_by: user.id,
+                reference_id: newVaccineApp.id,
+                reference_type: 'vaccine'
+            })
+        }
+
         revalidatePath('/owner/pets')
-        return { success: true, message: 'Vacina registrada com sucesso.' }
+        return { success: true, message: 'Vacina aplicada com sucesso.' }
     } catch (error: any) {
         console.error('Error applying vaccine:', error)
         return { success: false, message: error.message }
