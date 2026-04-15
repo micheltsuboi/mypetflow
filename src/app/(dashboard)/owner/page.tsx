@@ -401,8 +401,8 @@ export default function OwnerDashboard() {
                     (a.final_price || a.calculated_price || 0) > 0
                 )
                 
-                const currentRevenue = paidAppts
-                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                const currentRevenue = incomeTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0)
+                    + paidAppts.reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
                     + (paidPackagesThisMonth || [])
                     .filter((p: any) => !referencedIds.has(p.id))
                     .reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)

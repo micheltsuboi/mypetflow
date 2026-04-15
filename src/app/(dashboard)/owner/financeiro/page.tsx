@@ -67,6 +67,7 @@ export default function FinanceiroPage() {
         allPendingAppointments: any[];
         pendingPackages: any[];
         paidPackages: any[];
+        paidMap: Record<string, number>;
     }>({
         type: null,
         appointments: [],
@@ -79,7 +80,8 @@ export default function FinanceiroPage() {
         pendingVaccines: [],
         allPendingAppointments: [],
         pendingPackages: [],
-        paidPackages: []
+        paidPackages: [],
+        paidMap: {}
     })
     const [isExtractModalOpen, setIsExtractModalOpen] = useState(false)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string }>>({})
@@ -154,17 +156,7 @@ export default function FinanceiroPage() {
             prevMonthDate.setMonth(prevMonthDate.getMonth() - 1)
             const fetchStart = prevMonthDate < sixMonthsAgo ? prevMonthDate.toISOString() : chartStart
 
-            const [
-                apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse,
-                pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse,
-                allPendingApptsResponse,
-                pendingVaccinesResponse,
-                pendingPackagesResponse,
-                paidPackagesResponse,
-                catsData,
-                recExps,
-                recExcs
-            ] = await Promise.all([
+            const allResults = await Promise.all([
                 supabase
                     .from('appointments')
                     .select(`
@@ -191,7 +183,7 @@ export default function FinanceiroPage() {
                     .from('orders')
                     .select('id, total_amount, payment_status, created_at, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), order_items(product_name)')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .in('payment_status', ['pending', 'partial'])
                     .order('created_at', { ascending: true }),
                 supabase
                     .from('orders')
@@ -202,54 +194,76 @@ export default function FinanceiroPage() {
                     .order('created_at', { ascending: true }),
                 supabase
                     .from('vet_consultations')
-                    .select('*, pets ( name, customers ( name ) )')
+                    .select('id, consultation_fee, discount_type, discount_percent, discount_fixed, payment_status, created_at, pets ( name )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending'),
+                    .in('payment_status', ['pending', 'partial']),
                 supabase
                     .from('vet_exams')
-                    .select('*, pets ( name, customers ( name ) )')
+                    .select('id, price, discount_type, discount_percent, discount_fixed, payment_status, created_at, pets ( name )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending'),
+                    .in('payment_status', ['pending', 'partial']),
                 supabase
                     .from('hospital_admissions')
-                    .select('*, pets ( name, customers ( name ) )')
+                    .select('id, total_amount, payment_status, entry_date, pets ( name )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending'),
+                    .in('payment_status', ['pending', 'partial']),
                 supabase
                     .from('appointments')
                     .select(`
-                        id, final_price, calculated_price, payment_status, scheduled_at, paid_at,
-                        is_package, package_credit_id,
-                        pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
-                        services ( name, service_categories ( name ) )
+                        id, scheduled_at, status, calculated_price, final_price, payment_status, 
+                        pets ( name, customers ( name ) ),
+                        services ( name, service_categories ( name, color ) )
                     `)
                     .eq('org_id', profile.org_id)
                     .or('payment_status.neq.paid,payment_status.is.null'),
                 supabase
                     .from('pet_vaccines')
-                    .select('*, pets ( name, customers ( name ) )')
+                    .select('id, price, payment_status, administered_at, pets ( name )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending'),
+                    .in('payment_status', ['pending', 'partial']),
                 supabase
                     .from('customer_packages')
-                    .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), service_packages ( name )')
+                    .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending'),
+                    .in('payment_status', ['pending', 'partial']),
                 supabase
                     .from('customer_packages')
-                    .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), service_packages ( name )')
+                    .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', fetchStart),
                 getExpenseCategories(),
                 getRecurringExpenses() as Promise<RecurringExpense[]>,
-                getRecurringExceptions() as Promise<RecurringExpenseException[]>
+                getRecurringExceptions() as Promise<RecurringExpenseException[]>,
+                // NEW: Fetch ALL transactions with reference_id to calculate real balance
+                supabase
+                    .from('financial_transactions')
+                    .select('reference_id, amount')
+                    .eq('org_id', profile.org_id)
+                    .eq('type', 'income')
+                    .not('reference_id', 'is', null)
             ])
+
+            const [
+                apptsResponse, txsResponse, pendingSalesResponse, paidSalesResponse,
+                pendingVetsResponse, pendingExamsResponse, pendingAdmissionsResponse,
+                allPendingApptsResponse,
+                pendingVaccinesResponse,
+                pendingPackagesResponse,
+                paidPackagesResponse,
+                catsData,
+                recExps,
+                recExcs,
+                pendingTransactionsRes
+            ] = allResults
 
             if (apptsResponse.error) throw apptsResponse.error
             if (txsResponse.error) throw txsResponse.error
             if (pendingSalesResponse.error) throw pendingSalesResponse.error
             if (paidSalesResponse.error) throw paidSalesResponse.error
+            if (pendingPackagesResponse.error) throw pendingPackagesResponse.error
+            if (paidPackagesResponse.error) throw paidPackagesResponse.error
+            if (pendingTransactionsRes.error) throw pendingTransactionsRes.error
 
             const appointments = apptsResponse.data || []
             const transactions = txsResponse.data || []
@@ -396,7 +410,18 @@ export default function FinanceiroPage() {
                     totalRev += t.amount
                 }
             })
- 
+
+            activePaidSales.forEach((s: any) => {
+                if (referencedIds.has(s.id)) return
+                const catName = 'Petshop'
+                const amount = s.total_amount || 0
+                const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
+                current.revenue += amount
+                current.count += 1
+                catMap.set(catName, current)
+                totalRev += amount
+            })
+
             const activePaidPackages = paidPackages.filter((p: any) => filterByPeriod(p.created_at))
             activePaidPackages.forEach((p: any) => {
                 // Pular se já tiver transação
@@ -420,7 +445,7 @@ export default function FinanceiroPage() {
             )
 
             // --- Process Summary Totals ---
-            const activeRevenue = totalRev + activePaidSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
+            const activeRevenue = totalRev
             let activeExpenses = activeTxs.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + t.amount, 0)
             
             // Sum Recurring Expenses for current period
@@ -460,28 +485,26 @@ export default function FinanceiroPage() {
                 })
             })
 
-            // Garantir que pTotal inclua ABSOLUTAMENTE tudo que não está pago,
-            // mas excluir agendamentos de pacote com valor zero
             const pTotal = 
                   allPendingAppts
                     .filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0)
-                    .reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-                + pendingSales.reduce((sum: number, s: any) => sum + s.total_amount, 0)
+                    .reduce((sum: number, a: any) => sum + Math.max(0, (a.final_price ?? a.calculated_price ?? 0) - (paidMap[a.id] || 0)), 0)
+                + pendingSales.reduce((sum: number, s: any) => sum + Math.max(0, (s.total_amount || 0) - (paidMap[s.id] || 0)), 0)
                 + pendingVets.reduce((sum: number, v: any) => {
                     let val = v.consultation_fee || 0;
                     if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
                     else val -= (v.discount_fixed || 0);
-                    return sum + Math.max(0, val);
+                    return sum + Math.max(0, val - (paidMap[v.id] || 0));
                 }, 0)
                 + pendingExams.reduce((sum: number, e: any) => {
                     let val = e.price || 0;
                     if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
                     else val -= (e.discount_fixed || 0);
-                    return sum + Math.max(0, val);
+                    return sum + Math.max(0, val - (paidMap[e.id] || 0));
                 }, 0)
-                + pendingAdmissions.reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
-                + pendingVaccines.reduce((sum: number, v: any) => sum + (v.price || 0), 0)
-                + pendingPackages.reduce((sum: number, p: any) => sum + Math.max(0, (Number(p.total_price || 0) - Number(p.total_paid || 0))), 0)
+                + pendingAdmissions.reduce((sum: number, ad: any) => sum + Math.max(0, (ad.total_amount || 0) - (paidMap[ad.id] || 0)), 0)
+                + pendingVaccines.reduce((sum: number, v: any) => sum + Math.max(0, (v.price || 0) - (paidMap[v.id] || 0)), 0)
+                + pendingPackages.reduce((sum: number, p: any) => sum + Math.max(0, (Number(p.total_price || 0) - (paidMap[p.id] || 0))), 0)
 
             setActiveRevenueValue(activeRevenue)
             setActiveExpensesValue(activeExpenses)
@@ -499,8 +522,9 @@ export default function FinanceiroPage() {
                 pendingAdmissions,
                 pendingVaccines,
                 allPendingAppointments: allPendingAppts.filter((a: any) => !a.is_package || (a.final_price ?? a.calculated_price ?? 0) > 0),
-                pendingPackages: (pendingPackages || []).filter((p: any) => (Number(p.total_price || 0) - Number(p.total_paid || 0)) > 0),
-                paidPackages: activePaidPackages
+                pendingPackages: (pendingPackages || []).filter((p: any) => (Number(p.total_price || 0) - (paidMap[p.id] || 0)) > 0),
+                paidPackages: activePaidPackages,
+                paidMap
             })
 
         } catch (error) {
@@ -1435,7 +1459,7 @@ export default function FinanceiroPage() {
                                                         <td>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</td>
                                                         <td>{appt.pets?.name} • {appt.services?.name}</td>
                                                         <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
-                                                        <td className={styles.pendingValue}>{formatCurrency(appt.final_price || appt.calculated_price || 0)}</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency((appt.final_price || appt.calculated_price || 0) - (extractRecords.paidMap[appt.id] || 0))}</td>
                                                         <td>
                                                             <button 
                                                                 onClick={() => handleOpenPaymentModal(appt.id, 'appointments', (appt.services?.name || 'Serviço'), (appt.final_price || appt.calculated_price || 0))}
@@ -1451,7 +1475,7 @@ export default function FinanceiroPage() {
                                                         <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
                                                         <td>Venda Petshop</td>
                                                         <td>Produtos</td>
-                                                        <td className={styles.pendingValue}>{formatCurrency(sale.total_amount)}</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency((sale.total_amount || 0) - (extractRecords.paidMap[sale.id] || 0))}</td>
                                                         <td>
                                                             <button 
                                                                 onClick={() => handleOpenPaymentModal(sale.id, 'orders', 'Venda Petshop', sale.total_amount)}
@@ -1467,7 +1491,7 @@ export default function FinanceiroPage() {
                                                         <td>{new Date(v.application_date).toLocaleDateString('pt-BR')}</td>
                                                         <td>{v.pets?.name} • Vacina: {v.name}</td>
                                                         <td>Vacinas</td>
-                                                        <td className={styles.pendingValue}>{formatCurrency(v.price || 0)}</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency((v.price || 0) - (extractRecords.paidMap[v.id] || 0))}</td>
                                                         <td>
                                                             <button 
                                                                 onClick={() => handleOpenPaymentModal(v.id, 'pet_vaccines', `Vacina: ${v.name}`, (v.price || 0))}
@@ -1488,7 +1512,7 @@ export default function FinanceiroPage() {
                                                             <td>{new Date(v.created_at).toLocaleDateString('pt-BR')}</td>
                                                             <td>{v.pets?.name} • Consulta Veterinária</td>
                                                             <td>Consulta</td>
-                                                            <td className={styles.pendingValue}>{formatCurrency(finalVal)}</td>
+                                                            <td className={styles.pendingValue}>{formatCurrency(finalVal - (extractRecords.paidMap[v.id] || 0))}</td>
                                                             <td>
                                                                 <button 
                                                                     onClick={() => handleOpenPaymentModal(v.id, 'vet_consultations', 'Consulta Veterinária', finalVal)}
@@ -1510,7 +1534,7 @@ export default function FinanceiroPage() {
                                                             <td>{new Date(e.created_at).toLocaleDateString('pt-BR')}</td>
                                                             <td>{e.pets?.name} • Exame: {e.name}</td>
                                                             <td>Exames</td>
-                                                            <td className={styles.pendingValue}>{formatCurrency(finalVal)}</td>
+                                                            <td className={styles.pendingValue}>{formatCurrency(finalVal - (extractRecords.paidMap[e.id] || 0))}</td>
                                                             <td>
                                                                 <button 
                                                                     onClick={() => handleOpenPaymentModal(e.id, 'vet_exams', `Exame: ${e.name}`, finalVal)}
@@ -1527,7 +1551,7 @@ export default function FinanceiroPage() {
                                                         <td>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</td>
                                                         <td>{ad.pets?.name} • Internamento</td>
                                                         <td>Internamento</td>
-                                                        <td className={styles.pendingValue}>{formatCurrency(ad.total_amount || 0)}</td>
+                                                        <td className={styles.pendingValue}>{formatCurrency((ad.total_amount || 0) - (extractRecords.paidMap[ad.id] || 0))}</td>
                                                         <td>
                                                             <button 
                                                                 onClick={() => handleOpenPaymentModal(ad.id, 'hospital_admissions', 'Internamento', (ad.total_amount || 0))}
