@@ -261,8 +261,19 @@ export default function HospedagemPage() {
     const handleCheckIn = async (appointmentId: string) => {
         const result = await checkInAppointment(appointmentId)
         if (result.success) {
-            alert(result.message)
-            fetchHospedagemData()
+            // Signal background refresh
+            fetchHospedagemData(true)
+
+            // Optimistic update to open modal immediately
+            const currentObj = appointments.find(a => a.id === appointmentId)
+            if (currentObj) {
+                const updated = { 
+                    ...currentObj, 
+                    actual_check_in: new Date().toISOString(),
+                    status: 'in_progress' as const
+                }
+                setSelectedAppointment(updated)
+            }
         } else {
             alert(result.message)
         }

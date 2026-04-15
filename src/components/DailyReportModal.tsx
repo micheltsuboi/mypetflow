@@ -84,7 +84,6 @@ export default function DailyReportModal({
         if (result.success) {
             alert(result.message)
             onSave()
-            onClose()
         } else {
             alert(result.message)
         }

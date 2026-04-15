@@ -178,7 +178,9 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         if (res.success) {
             alert(res.message)
             onSave()
-            onClose()
+            if (action !== 'checkin' && action !== 'start') {
+                onClose()
+            }
         } else {
             alert(res.message)
         }
