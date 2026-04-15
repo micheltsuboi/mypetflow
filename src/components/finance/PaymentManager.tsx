@@ -144,7 +144,7 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
                                 <option value="cash">Dinheiro</option>
                                 <option value="credit">Cartão de Crédito</option>
                                 <option value="debit">Cartão de Débito</option>
-                                <option value="bank_transfer">Transferência</option>
+                                <option value="other">Transferência / Outro</option>
                             </select>
                         </div>
                     </div>

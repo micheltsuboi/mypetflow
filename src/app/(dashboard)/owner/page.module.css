@@ -84,26 +84,24 @@
 }
 
 .financialCard {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
     padding: 1.25rem;
-    background: var(--card-bg-glass);
+    background: var(--bg-secondary);
     backdrop-filter: blur(10px);
     border: 1px solid var(--card-border);
     border-radius: 16px;
     position: relative;
+    transition: all 0.2s ease;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
 }
 
 .cardIcon {
-    font-size: 1.75rem;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-tertiary);
-    border-radius: 12px;
+    font-size: 1.5rem;
 }
 
 .cardContent {
@@ -114,17 +112,11 @@
 }
 
 .cardValue {
-    font-size: 1.3rem;
+    display: block;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
-}
-
-.cardValue.profit {
-    color: #2ecc71;
-}
-
-.cardValue.pending {
-    color: #f39c12;
+    margin-bottom: 0.25rem;
 }
 
 .cardLabel {
@@ -133,18 +125,20 @@
 }
 
 .growth {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
     font-size: 0.75rem;
     font-weight: 600;
-    padding: 0.25rem 0.5rem;
+    padding: 0.2rem 0.5rem;
     border-radius: 6px;
 }
 
 .growth.positive {
-    background: rgba(46, 204, 113, 0.2);
-    color: #2ecc71;
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.growth.negative {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
 }
 
 /* Area Tabs */

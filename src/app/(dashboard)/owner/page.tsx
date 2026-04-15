@@ -585,25 +585,25 @@ export default function OwnerDashboard() {
             {/* Operational Stats */}
             <div className={styles.financialGrid}>
                 <div className={styles.financialCard}>
-                    <div className={styles.cardIcon}>👤</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.cardValue}>{stats.tutors}</span>
-                        <span className={styles.cardLabel}>Total de Tutores</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>👤</div>
                     </div>
+                    <span className={styles.cardValue}>{stats.tutors}</span>
+                    <span className={styles.cardLabel}>Total de Tutores</span>
                 </div>
                 <div className={styles.financialCard}>
-                    <div className={styles.cardIcon}>🐾</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.cardValue}>{stats.pets}</span>
-                        <span className={styles.cardLabel}>Pets Cadastrados</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>🐾</div>
                     </div>
+                    <span className={styles.cardValue}>{stats.pets}</span>
+                    <span className={styles.cardLabel}>Pets Cadastrados</span>
                 </div>
                 <div className={styles.financialCard}>
-                    <div className={styles.cardIcon}>📅</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.cardValue}>{stats.appointmentsToday}</span>
-                        <span className={styles.cardLabel}>Agendamentos Hoje</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>📅</div>
                     </div>
+                    <span className={styles.cardValue}>{stats.appointmentsToday}</span>
+                    <span className={styles.cardLabel}>Agendamentos Hoje</span>
                 </div>
             </div>
 
@@ -614,49 +614,49 @@ export default function OwnerDashboard() {
                     className={`${styles.financialCard} ${styles.clickable}`}
                     onClick={() => handleOpenExtract('revenue')}
                 >
-                    <div className={styles.cardIcon}>💰</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.cardValue}>{formatCurrency(financials.revenue)}</span>
-                        <span className={styles.cardLabel}>Faturamento do Mês</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>💰</div>
+                        <span className={`${styles.growth} ${financials.monthlyGrowth >= 0 ? styles.positive : styles.negative}`}>
+                            {financials.monthlyGrowth >= 0 ? '+' : ''}{financials.monthlyGrowth}%
+                        </span>
                     </div>
-                    <span className={`${styles.growth} ${financials.monthlyGrowth >= 0 ? styles.positive : styles.negative}`}>
-                        {financials.monthlyGrowth >= 0 ? '+' : ''}{financials.monthlyGrowth}%
-                    </span>
+                    <span className={styles.cardValue}>{formatCurrency(financials.revenue)}</span>
+                    <span className={styles.cardLabel}>Faturamento do Mês</span>
                 </div>
                 <div
                     className={`${styles.financialCard} ${styles.clickable}`}
                     onClick={() => handleOpenExtract('expenses')}
                 >
-                    <div className={styles.cardIcon}>📉</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.cardValue}>{formatCurrency(financials.expenses)}</span>
-                        <span className={styles.cardLabel}>Despesas</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>📉</div>
                     </div>
+                    <span className={styles.cardValue} style={{ color: '#ef4444' }}>{formatCurrency(financials.expenses)}</span>
+                    <span className={styles.cardLabel}>Despesas Totais</span>
                 </div>
                 <div
                     className={`${styles.financialCard} ${styles.clickable}`}
-                    onClick={() => handleOpenExtract('revenue')} // Show revenue for profit too
+                    onClick={() => handleOpenExtract('revenue')}
                 >
-                    <div className={styles.cardIcon}>📈</div>
-                    <div className={styles.cardContent}>
-                        <span 
-                            className={styles.cardValue} 
-                            style={{ color: financials.profit >= 0 ? '#10b981' : '#ef4444' }}
-                        >
-                            {formatCurrency(financials.profit)}
-                        </span>
-                        <span className={styles.cardLabel}>Lucro Líquido</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>📈</div>
                     </div>
+                    <span 
+                        className={styles.cardValue} 
+                        style={{ color: financials.profit >= 0 ? '#10b981' : '#ef4444' }}
+                    >
+                        {formatCurrency(financials.profit)}
+                    </span>
+                    <span className={styles.cardLabel}>Lucro Líquido</span>
                 </div>
                 <div
                     className={`${styles.financialCard} ${styles.clickable}`}
                     onClick={() => handleOpenExtract('pending')}
                 >
-                    <div className={styles.cardIcon}>⏳</div>
-                    <div className={styles.cardContent}>
-                        <span className={styles.cardValue} style={{ color: '#f59e0b' }}>{formatCurrency(financials.pendingPayments)}</span>
-                        <span className={styles.cardLabel}>A Receber</span>
+                    <div className={styles.cardHeader}>
+                        <div className={styles.cardIcon}>⏳</div>
                     </div>
+                    <span className={styles.cardValue} style={{ color: '#f59e0b' }}>{formatCurrency(financials.pendingPayments)}</span>
+                    <span className={styles.cardLabel}>A Receber (Pendentes)</span>
                 </div>
             </div>
 
