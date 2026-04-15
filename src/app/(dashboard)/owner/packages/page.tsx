@@ -295,7 +295,7 @@ export default function PackagesPage() {
                             border: 'none', 
                             borderRadius: '8px 8px 0 0', 
                             background: tab === 'templates' ? 'var(--primary)' : 'transparent', 
-                            color: tab === 'templates' ? 'var(--bg-primary)' : 'var(--text-secondary)', 
+                            color: tab === 'templates' ? 'var(--text-primary)' : 'var(--text-secondary)', 
                             cursor: 'pointer', 
                             fontWeight: 700,
                             border: tab === 'templates' ? '1px solid var(--border)' : 'none',
@@ -306,7 +306,17 @@ export default function PackagesPage() {
                     </button>
                     <button
                         onClick={() => setTab('contratos')}
-                        style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '8px 8px 0 0', background: tab === 'contratos' ? 'var(--primary)' : 'transparent', color: tab === 'contratos' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}
+                        style={{ 
+                            padding: '0.5rem 1rem', 
+                            border: 'none', 
+                            borderRadius: '8px 8px 0 0', 
+                            background: tab === 'contratos' ? 'var(--primary)' : 'transparent', 
+                            color: tab === 'contratos' ? 'var(--text-primary)' : 'var(--text-secondary)', 
+                            cursor: 'pointer', 
+                            fontWeight: 700,
+                            border: tab === 'contratos' ? '1px solid var(--border)' : 'none',
+                            borderBottom: 'none'
+                        }}
                     >
                         📋 Contratos Ativos ({customerPackages.length})
                     </button>
