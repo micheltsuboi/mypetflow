@@ -567,6 +567,6 @@ export default function VaccinesPage() {
                     </div>
                 )
             }
-        </div >
+        </div>
     )
 }

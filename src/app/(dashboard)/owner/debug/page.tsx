@@ -201,6 +201,6 @@ export default function DebugPage() {
                     <strong>Hoje:</strong> {new Date().toISOString().split('T')[0]}
                 </div>
             </section>
-        </div >
+        </div>
     )
 }
