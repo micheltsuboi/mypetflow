@@ -1430,7 +1430,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('creche')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <Dog size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🎾</span>
                                             <span>Histórico de Creche</span>
                                         </div>
                                         <span>{accordions.creche ? '−' : '+'}</span>
@@ -1455,7 +1455,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('hotel')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <Building2 size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🏨</span>
                                             <span>Histórico de Hospedagem</span>
                                         </div>
                                         <span>{accordions.hotel ? '−' : '+'}</span>
@@ -1480,7 +1480,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('vetAlerts' as any)} className={styles.accordionHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <ShieldAlert size={18} color="var(--primary)" />
+                                        <span style={{ fontSize: '18px' }}>⚠️</span>
                                         <span>Alertas Veterinários</span>
                                     </div>
                                     <span>{accordions.vetAlerts ? '−' : '+'}</span>
@@ -1512,7 +1512,7 @@ function PetsContent() {
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('petshop')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            <History size={18} color="var(--primary)" />
+                                            <span style={{ fontSize: '18px' }}>🛍️</span>
                                             <span>Histórico de Compras (Petshop)</span>
                                         </div>
                                         <span>{accordions.petshop ? '−' : '+'}</span>
