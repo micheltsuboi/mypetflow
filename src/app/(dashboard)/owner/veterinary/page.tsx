@@ -108,7 +108,7 @@ function VeterinaryContent() {
                                 consultation_base_price: vet.consultation_base_price,
                                 is_active: vet.is_active,
                                 password: '',
-                                createLogin: false
+                                createLogin: !!vet.user_id
                             })
                             setIsVetModalOpen(true)
                         }}>Editar</button>
@@ -155,21 +155,26 @@ function VeterinaryContent() {
                                 </div>
                             </div>
 
-                            {!selectedVet && (
-                                <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)', marginBottom: '0.5rem', fontWeight: 600 }}>
-                                        <input type="checkbox" checked={vetForm.createLogin} onChange={e => setVetForm({ ...vetForm, createLogin: e.target.checked })} />
-                                        Criar / Habilitar Acesso ao Sistema (Login)
-                                    </label>
-                                    {vetForm.createLogin && (
-                                        <div style={{ marginTop: '0.5rem' }}>
-                                            <label className={styles.label}>Senha de Acesso *</label>
-                                            <input type="password" required={vetForm.createLogin} className={styles.input} value={vetForm.password} onChange={e => setVetForm({ ...vetForm, password: e.target.value })} placeholder="Senha para o veterinário logar" />
-                                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>O email acima será usado como login do sistema.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)', marginBottom: '0.5rem', fontWeight: 600 }}>
+                                    <input type="checkbox" checked={vetForm.createLogin} onChange={e => setVetForm({ ...vetForm, createLogin: e.target.checked })} />
+                                    {selectedVet && selectedVet.user_id ? 'Login Habilitado / Redefinir Senha' : 'Criar / Habilitar Acesso ao Sistema (Login)'}
+                                </label>
+                                {vetForm.createLogin && (
+                                    <div style={{ marginTop: '0.5rem' }}>
+                                        <label className={styles.label}>{selectedVet && selectedVet.user_id ? 'Redefinir Senha' : 'Senha de Acesso *'}</label>
+                                        <input 
+                                            type="password" 
+                                            required={vetForm.createLogin && (!selectedVet || !selectedVet.user_id)} 
+                                            className={styles.input} 
+                                            value={vetForm.password} 
+                                            onChange={e => setVetForm({ ...vetForm, password: e.target.value })} 
+                                            placeholder={selectedVet && selectedVet.user_id ? 'Nova senha (deixe em branco para não alterar)' : 'Senha para o veterinário logar'} 
+                                        />
+                                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>O email acima será usado como login do sistema.</p>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className={styles.formGroup} style={{ marginTop: '1rem' }}>
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: 'var(--text-primary)' }}>

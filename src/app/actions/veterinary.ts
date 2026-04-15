@@ -143,8 +143,59 @@ export async function updateVeterinarian(formData: FormData) {
         const email = formData.get('email') as string || null
         const consultation_base_price = parseFloat(formData.get('consultation_base_price') as string || '0')
         const is_active = formData.get('is_active') === 'on' || formData.get('is_active') === 'true'
+        const password = formData.get('password') as string || null
 
         if (!id || !name || !crmv) return { success: false, message: 'Dados inválidos.' }
+
+        // Fetch current veterinarian to check for user_id
+        const { data: currentVet, error: fetchError } = await supabase
+            .from('veterinarians')
+            .select('user_id, org_id')
+            .eq('id', id)
+            .single()
+
+        if (fetchError || !currentVet) throw new Error('Veterinário não encontrado.')
+
+        let authUserId = currentVet.user_id
+
+        // Handle password update or user creation
+        if (password) {
+            const supabaseAdmin = createAdminClient()
+            if (authUserId) {
+                // Update existing user password
+                const { error: updateAuthError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+                    password: password
+                })
+                if (updateAuthError) return { success: false, message: `Erro ao atualizar senha: ${updateAuthError.message}` }
+            } else if (email) {
+                // Create new user for existing veterinarian
+                const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                    email,
+                    password,
+                    email_confirm: true,
+                    user_metadata: { full_name: name }
+                })
+
+                if (createError) return { success: false, message: `Erro ao criar login: ${createError.message}` }
+                
+                if (newUser?.user) {
+                    authUserId = newUser.user.id
+                    // Associate user_id with veterinarian
+                    await supabase.from('veterinarians').update({ user_id: authUserId }).eq('id', id)
+
+                    // Upsert profile for the new user
+                    await supabaseAdmin.from('profiles').upsert({
+                        id: authUserId,
+                        email: email,
+                        full_name: name,
+                        role: 'staff',
+                        org_id: currentVet.org_id,
+                        permissions: ['clinica_vet', 'pets'],
+                        is_active: true
+                    })
+                }
+            }
+        }
 
         const { error } = await supabase
             .from('veterinarians')
@@ -155,7 +206,8 @@ export async function updateVeterinarian(formData: FormData) {
                 phone,
                 email,
                 consultation_base_price,
-                is_active
+                is_active,
+                user_id: authUserId // Update user_id in case it was just created
             })
             .eq('id', id)
 
@@ -164,6 +216,7 @@ export async function updateVeterinarian(formData: FormData) {
         revalidatePath('/owner/veterinary')
         return { success: true, message: 'Veterinário atualizado com sucesso.' }
     } catch (error: any) {
+        console.error('Error updating veterinarian:', error)
         return { success: false, message: error.message || 'Erro ao atualizar veterinário.' }
     }
 }

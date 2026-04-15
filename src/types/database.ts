@@ -433,6 +433,7 @@ export interface RecurringExpenseException {
 export interface Veterinarian {
     id: string
     org_id: string
+    user_id?: string | null
     name: string
     crmv: string
     specialty?: string
