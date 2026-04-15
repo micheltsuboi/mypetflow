@@ -143,7 +143,6 @@ function AgendaContent() {
 
     const [categoryFilter, setCategoryFilter] = useState<string>('')
     const [isVet, setIsVet] = useState(false)
-    const [planFeatures, setPlanFeatures] = useState<string[]>([])
 
     // Modal State
     const [showNewModal, setShowNewModal] = useState(false)
