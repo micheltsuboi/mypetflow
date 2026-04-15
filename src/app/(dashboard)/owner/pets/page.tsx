@@ -339,9 +339,9 @@ function PetsContent() {
 
     const generatePetPDF = (pet: Pet) => {
         const doc = new jsPDF({
-            orientation: 'p',
+            orientation: 'l',
             unit: 'mm',
-            format: [152, 228]
+            format: [228.6, 152.4] // 9x6 inches
         })
 
         // Margins and styling
@@ -351,9 +351,9 @@ function PetsContent() {
         doc.setFontSize(9) // Smaller font for more compactness
         doc.setTextColor(0, 0, 0)
         
-        let y = 12 // Start higher
+        let y = 10 // Start higher
         const col1 = margin
-        const col2 = 80
+        const col2 = 114
 
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
