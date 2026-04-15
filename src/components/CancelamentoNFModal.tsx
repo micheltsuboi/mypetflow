@@ -64,7 +64,7 @@ export default function CancelamentoNFModal({ nfId, numeroNf, onClose, onSuccess
                         onChange={e => setJustificativa(e.target.value)}
                         disabled={loading}
                     />
-                    <small style={{ color: justificativa.length < 15 ? '#ef4444' : 'rgba(255,255,255,0.4)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    <small style={{ color: justificativa.length < 15 ? '#ef4444' : 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
                         Mínimo 15 caracteres ({justificativa.length}/15)
                     </small>
                 </div>

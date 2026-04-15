@@ -358,13 +358,17 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                 />
             )}
             
-            <style jsx>{`
-                .spin {
-                    animation: spin 1.5s linear infinite;
+                .modalBody {
+                    background: var(--bg-primary);
+                    border: 1px solid var(--card-border);
+                    padding: 1rem;
+                    border-radius: 8px;
                 }
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
+                .modalHeader {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 1rem;
                 }
             `}</style>
         </div>

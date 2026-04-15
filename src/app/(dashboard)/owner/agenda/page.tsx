@@ -599,7 +599,7 @@ function AgendaContent() {
                 style={{
                     minWidth: '320px',
                     borderLeft: `4px solid ${needsAdaptation ? '#f1c40f' : categoryColor}`,
-                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : (needsAdaptation ? 'rgba(241, 196, 15, 0.05)' : 'var(--bg-card)'),
+                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : (needsAdaptation ? 'rgba(241, 196, 15, 0.05)' : 'var(--bg-secondary)'),
                     opacity: appt.status === 'done' ? 0.7 : 1
                 }}
             >
@@ -703,9 +703,9 @@ function AgendaContent() {
                             marginTop: '0.5rem',
                             padding: '4px 8px',
                             borderRadius: '4px',
-                            border: '1px solid #1e293b',
-                            background: '#0f172a',
-                            color: '#e2e8f0',
+                            border: '1px solid var(--card-border)',
+                            background: 'var(--bg-primary)',
+                            color: 'var(--text-secondary)',
                             fontSize: '0.75rem',
                             cursor: 'pointer',
                             display: 'flex',
@@ -853,7 +853,7 @@ function AgendaContent() {
                     const dateStr = d.toISOString().split('T')[0]
                     const isToday = dateStr === todayStr
                     return (
-                        <div key={d.toISOString()} className={`${styles.weekHeaderCell} ${isToday ? styles.today : ''}`} style={{ fontWeight: dateStr === selectedDate ? 'bold' : 'normal', color: dateStr === selectedDate ? 'var(--primary)' : 'inherit' }}>
+                        <div key={d.toISOString()} className={`${styles.weekHeaderCell} ${isToday ? styles.today : ''}`} style={{ fontWeight: dateStr === selectedDate ? 'bold' : 'normal', color: dateStr === selectedDate ? 'var(--primary)' : 'var(--text-primary)' }}>
                             <div>{d.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
                             <div>{d.getDate()}</div>
                         </div>
@@ -1464,28 +1464,28 @@ function AgendaContent() {
                                     </div>
                                 </div>
 
-                                <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', background: 'rgba(0,0,0,0.2)' }}>
-                                    <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: '#e2e8f0' }}>Restrição de Espécie (Opcional)</label>
+                                <div className={styles.formGroup} style={{ marginTop: '1rem', padding: '1rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'var(--bg-primary)' }}>
+                                    <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: 'var(--text-primary)' }}>Restrição de Espécie (Opcional)</label>
                                     <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                                             <input type="checkbox" name="allowed_species[]" value="dog" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐶 Permitir Cães
                                         </label>
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                                             <input type="checkbox" name="allowed_species[]" value="cat" style={{ accentColor: 'var(--primary)', width: '18px', height: '18px' }} /> 🐱 Permitir Gatos
                                         </label>
                                     </div>
 
-                                    <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: '#e2e8f0' }}>Bloquear Categorias Específicas (Opcional)</label>
+                                    <label className={styles.label} style={{ marginBottom: '0.8rem', display: 'block', color: 'var(--text-primary)' }}>Bloquear Categorias Específicas (Opcional)</label>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
                                         {categories.map(cat => (
-                                            <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: '#f1f5f9', cursor: 'pointer' }}>
+                                            <label key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                                                 <input type="checkbox" name="blocked_categories[]" value={cat.id} style={{ accentColor: '#ef4444', width: '16px', height: '16px' }} />
                                                 {cat.icon} {cat.name}
                                             </label>
                                         ))}
                                     </div>
 
-                                    <small style={{ display: 'block', marginTop: '1rem', color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                    <small style={{ display: 'block', marginTop: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', fontStyle: 'italic' }}>
                                         ℹ️ Se nada for selecionado acima, bloqueia TUDO. Se selecionar categorias, bloqueia APENAS elas.
                                     </small>
                                 </div>

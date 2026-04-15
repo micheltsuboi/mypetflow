@@ -247,22 +247,23 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
             backdropFilter: 'blur(4px)'
         }} onClick={onClose}>
             <div style={{
-                background: '#1e293b',
+                background: 'var(--bg-secondary)',
                 width: '90%', maxWidth: '600px',
                 maxHeight: '90vh', overflowY: 'auto',
                 borderRadius: '16px', padding: '0',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                boxShadow: 'var(--shadow-xl)',
+                border: '1px solid var(--card-border)'
             }} onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a' }}>
+                <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--divider)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--header-bg)' }}>
                     <div>
-                        <h2 style={{ fontSize: '1.25rem', color: 'white', fontWeight: 700, margin: 0 }}>🛁 Execução de Serviço</h2>
-                        <p style={{ color: '#94a3b8', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', fontWeight: 700, margin: 0 }}>🛁 Execução de Serviço</h2>
+                        <p style={{ color: 'var(--text-secondary)', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
                             {appointment.pets?.name} • {appointment.services?.name}
                         </p>
                     </div>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                 </div>
 
                 {appointment.notes && (
@@ -299,7 +300,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                                     </button>
                                 </div>
                             ) : (
-                                <div style={{ flex: 1, padding: '1rem', background: '#334155', borderRadius: '8px', color: '#94a3b8', textAlign: 'center' }}>
+                                <div style={{ flex: 1, padding: '1rem', background: 'var(--bg-tertiary)', border: '1px solid var(--card-border)', borderRadius: '8px', color: 'var(--text-muted)', textAlign: 'center' }}>
                                     Serviço Concluído
                                 </div>
                             )}
@@ -318,8 +319,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             }}>
                             <span style={{ fontSize: '1.5rem' }}>✨</span>
                             <div>
-                                <strong style={{ display: 'block', color: perfumeAllowed ? '#34d399' : '#f87171' }}>Perfume</strong>
-                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{perfumeAllowed ? 'Permitido' : 'Não Permitido'}</span>
+                                <strong style={{ display: 'block', color: perfumeAllowed ? '#10b981' : '#f87171' }}>Perfume</strong>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{perfumeAllowed ? 'Permitido' : 'Não Permitido'}</span>
                             </div>
                         </div>
                         <div
@@ -332,8 +333,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             }}>
                             <span style={{ fontSize: '1.5rem' }}>🎀</span>
                             <div>
-                                <strong style={{ display: 'block', color: accessoriesAllowed ? '#60a5fa' : '#f87171' }}>Adereços</strong>
-                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{accessoriesAllowed ? 'Permitido' : 'Não Permitido'}</span>
+                                <strong style={{ display: 'block', color: accessoriesAllowed ? '#3b82f6' : '#f87171' }}>Adereços</strong>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{accessoriesAllowed ? 'Permitido' : 'Não Permitido'}</span>
                             </div>
                         </div>
                     </section>
@@ -341,7 +342,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                     {/* Checklist */}
                     <section>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h3 style={{ color: '#cbd5e1', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Checklist de Procedimentos</h3>
+                            <h3 style={{ color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600, margin: 0 }}>Checklist de Procedimentos</h3>
                             {savingChecklist && <span style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 500 }}>⏳ Salvando...</span>}
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -350,9 +351,9 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                             ) : checklist.map((item, idx) => (
                                 <label key={idx} style={{
                                     display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-                                    padding: '0.75rem', background: item.completed ? 'rgba(16, 185, 129, 0.1)' : '#0f172a',
+                                    padding: '0.75rem', background: item.completed ? 'rgba(16, 185, 129, 0.1)' : 'var(--bg-card)',
                                     borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s',
-                                    border: item.completed ? '1px solid #059669' : '1px solid #334155'
+                                    border: item.completed ? '1px solid #10b981' : '1px solid var(--card-border)'
                                 }}>
                                     <input
                                         type="checkbox"
@@ -361,7 +362,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                                         style={{ width: '18px', height: '18px', accentColor: '#10B981', marginTop: '2px' }}
                                     />
                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ color: item.completed ? 'white' : '#94a3b8', fontSize: '0.9rem', fontWeight: item.completed ? 600 : 400 }}>{item.text}</span>
+                                        <span style={{ color: item.completed ? 'var(--text-primary)' : 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: item.completed ? 600 : 400 }}>{item.text}</span>
                                         {item.completed && item.completed_at && (
                                             <span style={{ fontSize: '0.7rem', color: '#10b981', marginTop: '2px' }}>
                                                 ✓ {new Date(item.completed_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
@@ -375,13 +376,13 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
 
                     {/* Photos */}
                     <section>
-                        <h3 style={{ color: '#cbd5e1', fontSize: '1rem', marginBottom: '1rem', fontWeight: 600 }}>Registro Fotográfico</h3>
+                        <h3 style={{ color: 'var(--text-primary)', fontSize: '1rem', marginBottom: '1rem', fontWeight: 600 }}>Registro Fotográfico</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '1rem' }}>
                             {/* Upload Button */}
                             <label style={{
-                                aspectRatio: '1', border: '2px dashed #475569', borderRadius: '8px',
+                                aspectRatio: '1', border: '2px dashed var(--divider)', borderRadius: '8px',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                cursor: uploading ? 'wait' : 'pointer', color: '#94a3b8', transition: 'all 0.2s'
+                                cursor: uploading ? 'wait' : 'pointer', color: 'var(--text-muted)', transition: 'all 0.2s'
                             }}>
                                 <span style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>📷</span>
                                 <span style={{ fontSize: '0.8rem' }}>{uploading ? '...' : 'Adicionar'}</span>
@@ -426,11 +427,11 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
 
                         {existingAlerts.length > 0 && (
                             <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                <h4 style={{ color: '#f87171', fontSize: '0.9rem', margin: 0 }}>Alertas Já Enviados neste serviço:</h4>
+                                <h4 style={{ color: '#ef4444', fontSize: '0.9rem', margin: 0 }}>Alertas Já Enviados neste serviço:</h4>
                                 {existingAlerts.map(alert => (
-                                    <div key={alert.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #ef4444' }}>
-                                        <div style={{ fontSize: '0.85rem', color: '#e2e8f0', fontWeight: 600 }}>{alert.status === 'pending' ? '⚠️ Aguardando Veterinário' : '✅ Respondido'}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#e2e8f0', marginTop: '4px' }}>"{alert.observation}"</div>
+                                    <div key={alert.id} style={{ background: 'var(--bg-primary)', padding: '0.5rem 0.75rem', borderRadius: '6px', borderLeft: '3px solid #ef4444', borderRight: '1px solid var(--card-border)', borderTop: '1px solid var(--card-border)', borderBottom: '1px solid var(--card-border)' }}>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>{alert.status === 'pending' ? '⚠️ Aguardando Veterinário' : '✅ Respondido'}</div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>"{alert.observation}"</div>
                                     </div>
                                 ))}
                             </div>
@@ -451,8 +452,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
                                 disabled={sendingAlert || sendingTutorAlert}
                                 style={{
                                     width: '100%', padding: '0.75rem', borderRadius: '8px',
-                                    background: 'rgba(15, 23, 42, 0.6)', border: '1px solid #475569',
-                                    color: 'white', resize: 'vertical', fontFamily: 'inherit'
+                                    background: 'var(--bg-primary)', border: '1px solid var(--input-border)',
+                                    color: 'var(--text-primary)', resize: 'vertical', fontFamily: 'inherit'
                                 }}
                             />
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
@@ -503,8 +504,8 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
 
                 </div>
 
-                <div style={{ padding: '1.5rem', borderTop: '1px solid #334155', background: '#0f172a', display: 'flex', justifyContent: 'flex-end', borderRadius: '0 0 16px 16px' }}>
-                    <button onClick={onClose} style={{ padding: '0.75rem 1.5rem', background: '#334155', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Fechar</button>
+                <div style={{ padding: '1.5rem', borderTop: '1px solid var(--divider)', background: 'var(--header-bg)', display: 'flex', justifyContent: 'flex-end', borderRadius: '0 0 16px 16px' }}>
+                    <button onClick={onClose} style={{ padding: '0.75rem 1.5rem', background: 'var(--bg-tertiary)', border: '1px solid var(--card-border)', borderRadius: '8px', color: 'var(--text-primary)', fontWeight: 600, cursor: 'pointer' }}>Fechar</button>
                 </div>
 
             </div>

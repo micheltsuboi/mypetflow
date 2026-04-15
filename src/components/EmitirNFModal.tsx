@@ -88,14 +88,15 @@ export default function EmitirNFModal({
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
             <div style={{
-                background: '#1a2235', padding: '2rem', borderRadius: '12px',
+                background: 'var(--bg-secondary)', padding: '2rem', borderRadius: '12px',
                 width: '100%', maxWidth: '500px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                fontFamily: 'var(--font-montserrat), sans-serif'
+                border: '1px solid var(--card-border)',
+                fontFamily: 'var(--font-montserrat), sans-serif',
+                color: 'var(--text-primary)'
             }}>
-                <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', color: '#fff' }}>{title}</h2>
+                <h2 style={{ fontSize: '1.4rem', marginBottom: '1rem', color: 'var(--text-primary)' }}>{title}</h2>
                 
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: '#ccc' }}>
+                <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', color: 'var(--text-secondary)', border: '1px solid var(--card-border)' }}>
                     <p><strong>Tutor/Cliente:</strong> {tutor?.nome || 'Consumidor Final'}</p>
                     <p><strong>CPF/CNPJ:</strong> {tutor?.cpf || '-'}</p>
                     <p><strong>Valor Total:</strong> {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total_amount)}</p>
@@ -150,7 +151,7 @@ export default function EmitirNFModal({
                         onClick={onClose} 
                         disabled={loading}
                         style={{
-                            background: 'transparent', color: '#ccc', border: '1px solid #444', 
+                            background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--card-border)', 
                             padding: '0.75rem 1.5rem', borderRadius: '8px', cursor: 'pointer'
                         }}
                     >

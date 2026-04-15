@@ -384,9 +384,9 @@ export default function BanhoTosaPage() {
                 />
 
                 {loading ? (
-                    <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
+                    <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Carregando...</div>
                 ) : appointments.length === 0 ? (
-                    <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <div style={{ padding: '2rem', color: 'var(--text-muted)', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
                         Nenhum pet agendado para banho e tosa no período selecionado.
                     </div>
                 ) : (
@@ -418,10 +418,10 @@ export default function BanhoTosaPage() {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     lineHeight: 1,
-                                    border: '3px solid var(--bg-primary, #0f172a)', // Thicker border to detach from card
+                                    border: '3px solid var(--bg-primary)', // Thicker border to detach from card
                                     minWidth: '54px'
                                 }}>
-                                    <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>
                                         {new Date(appt.scheduled_at).getDate()}
                                     </span>
                                     <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
@@ -448,7 +448,7 @@ export default function BanhoTosaPage() {
                                                 e.stopPropagation()
                                                 setSelectedAppointment(appt)
                                             }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingRight: '0.5rem', flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem', paddingRight: '0.5rem', flexWrap: 'wrap' }}>
                                                 {appt.services?.name || 'Serviço'}
                                                 {(appt.is_package || appt.package_credit_id) && (
                                                     <span style={{
@@ -655,16 +655,16 @@ export default function BanhoTosaPage() {
                                                        </div>
                                                    )}
                                               </div>
-                                            <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                                 🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             {appt.actual_check_in && (
-                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                                     Início: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             )}
                                             {appt.actual_check_out && (
-                                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                                                     Término: {new Date(appt.actual_check_out).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             )}
@@ -679,8 +679,8 @@ export default function BanhoTosaPage() {
                                                 }}
                                                 title="Editar Agendamento"
                                                 style={{
-                                                    background: 'rgba(255,255,255,0.1)',
-                                                    border: 'none',
+                                                    background: 'var(--bg-tertiary)',
+                                                    border: '1px solid var(--card-border)',
                                                     borderRadius: '50%',
                                                     width: '32px',
                                                     height: '32px',
@@ -688,7 +688,8 @@ export default function BanhoTosaPage() {
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    fontSize: '1rem'
+                                                    fontSize: '1rem',
+                                                    color: 'var(--text-secondary)'
                                                 }}
                                             >
                                                 ✏️
@@ -753,7 +754,7 @@ export default function BanhoTosaPage() {
                                         </>
                                     ) : (
                                         <button
-                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
+                                            style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>
                                             📜 Ver Detalhes do Histórico
                                         </button>
                                     )}

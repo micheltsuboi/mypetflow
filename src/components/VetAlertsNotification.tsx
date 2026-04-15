@@ -107,28 +107,28 @@ export default function VetAlertsNotification() {
                     position: 'absolute',
                     bottom: '70px',
                     right: '0',
-                    background: '#0f172a',
-                    border: '1px solid #334155',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--card-border)',
                     borderRadius: '16px',
                     width: '380px',
                     maxHeight: '400px',
                     overflowY: 'auto',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                    boxShadow: 'var(--shadow-xl)',
                     display: 'flex',
                     flexDirection: 'column'
                 }}>
                     <div style={{
                         padding: '16px',
-                        borderBottom: '1px solid #1e293b',
+                        borderBottom: '1px solid var(--divider)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        background: '#1e293b',
+                        background: 'var(--header-bg)',
                         borderTopLeftRadius: '16px',
                         borderTopRightRadius: '16px'
                     }}>
-                        <h3 style={{ margin: 0, color: 'white', fontSize: '1.1rem', fontWeight: 600 }}>Novos Achados Clínicos</h3>
-                        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '1.5rem', lineHeight: 1 }}>×</button>
+                        <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 600 }}>Novos Achados Clínicos</h3>
+                        <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.5rem', lineHeight: 1 }}>×</button>
                     </div>
 
                     <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -153,13 +153,16 @@ export default function VetAlertsNotification() {
 
                                 <p style={{
                                     margin: '8px 0 16px',
-                                    color: '#e2e8f0',
+                                    color: 'var(--text-primary)',
                                     fontSize: '0.9rem',
                                     lineHeight: 1.5,
-                                    background: 'rgba(0,0,0,0.3)',
+                                    background: 'var(--bg-tertiary)',
                                     padding: '12px',
                                     borderRadius: '8px',
-                                    borderLeft: '3px solid #f87171'
+                                    borderLeft: '3px solid #f87171',
+                                    borderRight: '1px solid var(--divider)',
+                                    borderTop: '1px solid var(--divider)',
+                                    borderBottom: '1px solid var(--divider)'
                                 }}>
                                     "{alert.observation}"
                                 </p>
@@ -172,7 +175,7 @@ export default function VetAlertsNotification() {
                                         <button
                                             onClick={() => handleAcknowledge(alert.id, 'read')}
                                             style={{
-                                                background: '#334155', color: '#e2e8f0', border: 'none',
+                                                background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--card-border)',
                                                 padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem',
                                                 cursor: 'pointer', fontWeight: 600
                                             }}

@@ -154,53 +154,53 @@ export default function FinanceiroPaymentModal({
             <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
-                    background: '#1e293b', borderRadius: '16px', padding: '2rem',
-                    width: '100%', maxWidth: '450px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-                    position: 'relative', border: '1px solid #334155', color: 'white'
+                    background: 'var(--bg-secondary)', borderRadius: '16px', padding: '2rem',
+                    width: '100%', maxWidth: '450px', boxShadow: 'var(--shadow-xl)',
+                    position: 'relative', border: '1px solid var(--card-border)', color: 'var(--text-primary)'
                 }}
             >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #334155', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--divider)', paddingBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #2dd4bf 100%)', padding: '0.5rem', borderRadius: '10px', display: 'flex' }}>
+                        <div style={{ background: 'var(--gradient-primary)', padding: '0.5rem', borderRadius: '10px', display: 'flex' }}>
                             <DollarSign size={20} color="white" />
                         </div>
                         <div>
-                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Confirmar Pagamento</h3>
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#94a3b8' }}>{title}</p>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Confirmar Pagamento</h3>
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{title}</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#94a3b8' }}
+                        style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--card-border)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)' }}
                     >
                         <X size={18} />
                     </button>
                 </div>
 
-                <div style={{ background: '#0f172a', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid #334155' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.95rem', color: '#94a3b8' }}>
+                <div style={{ background: 'var(--bg-tertiary)', padding: '1.25rem', borderRadius: '12px', marginBottom: '1.5rem', border: '1px solid var(--card-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
                         <span>Valor Original:</span>
-                        <span style={{ fontWeight: 600, color: 'white' }}>R$ {baseAmount.toFixed(2)}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>R$ {baseAmount.toFixed(2)}</span>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.95rem', color: '#94a3b8' }}>Desconto:</span>
-                            <div style={{ display: 'flex', background: '#1e293b', borderRadius: '8px', padding: '3px', border: '1px solid #334155' }}>
+                            <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Desconto:</span>
+                            <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '8px', padding: '3px', border: '1px solid var(--input-border)' }}>
                                 <button 
                                     onClick={() => setDiscountType('percent')}
                                     style={{ 
                                         padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                        background: discountType === 'percent' ? '#0ea5e9' : 'transparent',
-                                        color: discountType === 'percent' ? '#0f172a' : '#94a3b8',
+                                        background: discountType === 'percent' ? 'var(--primary)' : 'transparent',
+                                        color: discountType === 'percent' ? 'white' : 'var(--text-muted)',
                                         fontWeight: 700
                                     }}>%</button>
                                 <button 
                                     onClick={() => setDiscountType('fixed')}
                                     style={{ 
                                         padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '6px', cursor: 'pointer',
-                                        background: discountType === 'fixed' ? '#0ea5e9' : 'transparent',
-                                        color: discountType === 'fixed' ? '#0f172a' : '#94a3b8',
+                                        background: discountType === 'fixed' ? 'var(--primary)' : 'transparent',
+                                        color: discountType === 'fixed' ? 'white' : 'var(--text-muted)',
                                         fontWeight: 700
                                     }}>R$</button>
                             </div>
@@ -210,15 +210,15 @@ export default function FinanceiroPaymentModal({
                             value={discountValue}
                             onChange={(e) => setDiscountValue(e.target.value)}
                             style={{
-                                width: '90px', padding: '8px', borderRadius: '8px', background: '#1e293b',
-                                color: 'white', border: '1px solid #334155', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600
+                                width: '90px', padding: '8px', borderRadius: '8px', background: 'var(--bg-primary)',
+                                color: 'var(--text-primary)', border: '1px solid var(--input-border)', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600
                             }}
                         />
                     </div>
 
-                    <div style={{ borderTop: '1px solid #334155', marginTop: '0.75rem', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.25rem', color: 'white' }}>
+                    <div style={{ borderTop: '1px solid var(--divider)', marginTop: '0.75rem', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '1.25rem', color: 'var(--text-primary)' }}>
                         <span>Total a Pagar:</span>
-                        <span style={{ color: '#0ea5e9', textShadow: '0 0 10px rgba(14, 165, 233, 0.4)' }}>R$ {finalAmount.toFixed(2)}</span>
+                        <span style={{ color: 'var(--primary)' }}>R$ {finalAmount.toFixed(2)}</span>
                     </div>
                 </div>
 
@@ -233,18 +233,18 @@ export default function FinanceiroPaymentModal({
                                 onClick={() => handlePayment(key)}
                                 disabled={loading}
                                 style={{
-                                    padding: '1rem', borderRadius: '12px', border: '1px solid #334155',
-                                    background: '#0f172a', color: 'white', cursor: loading ? 'wait' : 'pointer',
+                                    padding: '1rem', borderRadius: '12px', border: '1px solid var(--card-border)',
+                                    background: 'var(--bg-tertiary)', color: 'var(--text-primary)', cursor: loading ? 'wait' : 'pointer',
                                     fontSize: '0.95rem', fontWeight: 600, textAlign: 'left', transition: 'all 0.2s',
                                     display: 'flex', alignItems: 'center', gap: '0.75rem'
                                 }}
                             >
-                                <div style={{ background: '#1e293b', padding: '6px', borderRadius: '8px', display: 'flex' }}>
-                                    {key === 'pix' && <DollarSign size={16} color="#0ea5e9" />}
-                                    {key === 'credit' && <CreditCard size={16} color="#0ea5e9" />}
-                                    {key === 'debit' && <CreditCard size={16} color="#0ea5e9" />}
-                                    {key === 'cash' && <Banknote size={16} color="#0ea5e9" />}
-                                    {key === 'credit_package' && <Wallet size={16} color="#0ea5e9" />}
+                                <div style={{ background: 'var(--bg-secondary)', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                                    {key === 'pix' && <DollarSign size={16} color="var(--primary)" />}
+                                    {key === 'credit' && <CreditCard size={16} color="var(--primary)" />}
+                                    {key === 'debit' && <CreditCard size={16} color="var(--primary)" />}
+                                    {key === 'cash' && <Banknote size={16} color="var(--primary)" />}
+                                    {key === 'credit_package' && <Wallet size={16} color="var(--primary)" />}
                                 </div>
                                 {label}
                             </button>

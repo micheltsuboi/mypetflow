@@ -352,9 +352,9 @@ export default function HospedagemPage() {
                 />
 
                 {loading ? (
-                    <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
+                    <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Carregando...</div>
                 ) : filteredAppointments.length === 0 ? (
-                    <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <div style={{ padding: '2rem', color: 'var(--text-muted)', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
                         {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum hóspede encontrado neste período.' : 'Nenhum histórico encontrado para o período.')}
                     </div>
                 ) : (
@@ -400,10 +400,10 @@ export default function HospedagemPage() {
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         lineHeight: 1,
-                                        border: '3px solid var(--bg-primary, #0f172a)',
+                                        border: '3px solid var(--bg-primary)',
                                         minWidth: '54px'
                                     }}>
-                                        <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                        <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>
                                             {checkInDate.getDate()}
                                         </span>
                                         <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
@@ -437,15 +437,15 @@ export default function HospedagemPage() {
                                                                 setEditingAppointment(appt)
                                                             }}
                                                             style={{
-                                                                background: 'rgba(255,255,255,0.1)',
-                                                                border: 'none',
+                                                                background: 'var(--bg-tertiary)',
+                                                                border: '1px solid var(--card-border)',
                                                                 borderRadius: '4px',
                                                                 padding: '4px 8px',
                                                                 cursor: 'pointer',
                                                                 display: 'flex',
                                                                 alignItems: 'center',
                                                                 fontSize: '0.9rem',
-                                                                color: '#e2e8f0'
+                                                                color: 'var(--text-secondary)'
                                                             }}
                                                         >
                                                             ✏️ Editar
@@ -471,7 +471,7 @@ export default function HospedagemPage() {
                                                         </button>
                                                     </div>
                                                 )}
-                                                <span className={styles.tutorName} style={{ cursor: 'pointer' }} onClick={(e) => {
+                                                <span className={styles.tutorName} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={(e) => {
                                                     e.stopPropagation()
                                                     setSelectedAppointment(appt)
                                                 }}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
@@ -495,7 +495,7 @@ export default function HospedagemPage() {
                                                     </div>
                                                 </div>
 
-                                                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem' }}>
                                                     <span>{appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})</span>
                                                     {(appt.is_package || appt.package_credit_id) && (
                                                         <span style={{
@@ -544,19 +544,19 @@ export default function HospedagemPage() {
                                                                     setNfAppointment(appt);
                                                                     setShowNFModal(true);
                                                                 }}
-                                                                style={{
-                                                                    padding: '4px 8px',
-                                                                    borderRadius: '4px',
-                                                                    border: '1px solid #1e293b',
-                                                                    background: '#0f172a',
-                                                                    color: '#e2e8f0',
-                                                                    fontSize: '0.75rem',
-                                                                    cursor: 'pointer',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    gap: '4px'
-                                                                }}
-                                                            >
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        borderRadius: '4px',
+                                                                        border: '1px solid var(--card-border)',
+                                                                        background: 'var(--bg-tertiary)',
+                                                                        color: 'var(--text-primary)',
+                                                                        fontSize: '0.75rem',
+                                                                        cursor: 'pointer',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '4px'
+                                                                    }}
+                                                                >
                                                                 🧾 Emitir NF
                                                             </button>
                                                         ) : (
@@ -579,12 +579,12 @@ export default function HospedagemPage() {
                                                                             e.stopPropagation()
                                                                             window.open(nfMap[appt.id].pdf_url, '_blank')
                                                                         }}
-                                                                        style={{
+                                                                    style={{
                                                                             padding: '4px 8px',
                                                                             borderRadius: '4px',
-                                                                            border: '1px solid #1e293b',
-                                                                            background: '#1e293b',
-                                                                            color: '#34d399',
+                                                                            border: '1px solid var(--card-border)',
+                                                                            background: 'var(--bg-tertiary)',
+                                                                            color: '#10b981',
                                                                             fontSize: '0.75rem',
                                                                             cursor: 'pointer'
                                                                         }}
@@ -643,7 +643,7 @@ export default function HospedagemPage() {
                                         )}
                                         {viewMode === 'history' && (
                                             <button
-                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: '#475569', color: '#e2e8f0', cursor: 'pointer', fontWeight: 600 }}>
+                                                style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: 'none', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>
                                                 📜 Ver Relatório
                                             </button>
                                         )}

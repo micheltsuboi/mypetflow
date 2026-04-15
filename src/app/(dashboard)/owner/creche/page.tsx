@@ -352,9 +352,9 @@ export default function CrechePage() {
                 />
 
                 {loading ? (
-                    <div style={{ padding: '2rem', color: '#94a3b8' }}>Carregando...</div>
+                    <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Carregando...</div>
                 ) : filteredAppointments.length === 0 ? (
-                    <div style={{ padding: '2rem', color: '#94a3b8', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                    <div style={{ padding: '2rem', color: 'var(--text-muted)', textAlign: 'center', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
                         {searchTerm ? 'Nenhum resultado encontrado para a busca.' : (viewMode === 'active' ? 'Nenhum pet agendado para a creche no período selecionado.' : 'Nenhum histórico encontrado para o período.')}
                     </div>
                 ) : (
@@ -386,10 +386,10 @@ export default function CrechePage() {
                                     flexDirection: 'column',
                                     alignItems: 'center',
                                     lineHeight: 1,
-                                    border: '3px solid var(--bg-primary, #0f172a)', // Thicker border to detach from card
+                                    border: '3px solid var(--bg-primary)', // Thicker border to detach from card
                                     minWidth: '54px'
                                 }}>
-                                    <span style={{ fontSize: '1.4rem', fontWeight: '900', textShadow: '0 1px 2px rgba(0,0,0,0.3)' }}>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>
                                         {new Date(appt.scheduled_at).getDate()}
                                     </span>
                                     <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginTop: '2px', opacity: 0.95 }}>
@@ -423,15 +423,15 @@ export default function CrechePage() {
                                                         }}
                                                         title="Editar"
                                                         style={{
-                                                            background: 'rgba(255,255,255,0.1)',
-                                                            border: 'none',
+                                                            background: 'var(--bg-tertiary)',
+                                                            border: '1px solid var(--card-border)',
                                                             borderRadius: '4px',
                                                             padding: '4px 8px',
                                                             cursor: 'pointer',
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             fontSize: '0.9rem',
-                                                            color: '#e2e8f0'
+                                                            color: 'var(--text-secondary)'
                                                         }}
                                                     >
                                                         ✏️ Editar
@@ -459,7 +459,7 @@ export default function CrechePage() {
                                                 </div>
                                             )}
                                             <span className={styles.tutorName}>👤 {appt.pets?.customers?.name || 'Cliente'}</span>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                                                 📅 {new Date(appt.scheduled_at).toLocaleDateString('pt-BR', {
                                                     weekday: 'short',
                                                     day: '2-digit',
@@ -530,9 +530,9 @@ export default function CrechePage() {
                                                             style={{
                                                                 padding: '4px 8px',
                                                                 borderRadius: '4px',
-                                                                border: '1px solid #1e293b',
-                                                                background: '#0f172a',
-                                                                color: '#e2e8f0',
+                                                                border: '1px solid var(--card-border)',
+                                                                background: 'var(--bg-tertiary)',
+                                                                color: 'var(--text-primary)',
                                                                 fontSize: '0.75rem',
                                                                 cursor: 'pointer',
                                                                 display: 'flex',
@@ -565,9 +565,9 @@ export default function CrechePage() {
                                                                     style={{
                                                                         padding: '4px 8px',
                                                                         borderRadius: '4px',
-                                                                        border: '1px solid #1e293b',
-                                                                        background: '#1e293b',
-                                                                        color: '#34d399',
+                                                                        border: '1px solid var(--card-border)',
+                                                                        background: 'var(--bg-tertiary)',
+                                                                        color: '#10b981',
                                                                         fontSize: '0.75rem',
                                                                         cursor: 'pointer'
                                                                     }}
@@ -774,16 +774,16 @@ function NewCrecheAppointmentModal({ onClose, onSave }: { onClose: () => void, o
             justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(4px)'
         }} onClick={onClose}>
             <div style={{
-                background: '#1e293b', borderRadius: '16px', width: '90%', maxWidth: '500px',
-                padding: '2rem', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', border: '1px solid #334155'
+                background: 'var(--bg-secondary)', borderRadius: '16px', width: '90%', maxWidth: '500px',
+                padding: '2rem', boxShadow: 'var(--shadow-xl)', border: '1px solid var(--card-border)'
             }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h2 style={{ margin: 0, color: 'white', fontSize: '1.25rem', fontWeight: 700 }}>Novo Agendamento</h2>
-                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#cbd5e1' }}>✕</button>
+                    <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '1.25rem', fontWeight: 700 }}>Novo Agendamento</h2>
+                    <button onClick={onClose} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
                 </div>
                 <form onSubmit={handleSubmit}>
                     <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Pet *</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Pet *</label>
                         <PetSearchSelect 
                                 name="petId"
                                 placeholder="Digite o nome do pet..."
@@ -792,33 +792,33 @@ function NewCrecheAppointmentModal({ onClose, onSave }: { onClose: () => void, o
                             />
                     </div>
                     <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Serviço *</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Serviço *</label>
                         <select required value={selectedServiceId} onChange={e => setSelectedServiceId(e.target.value)}
-                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }}>
+                            style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--input-border)', borderRadius: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
                             <option value="">Selecione...</option>
                             {services.map(s => <option key={s.id} value={s.id}>{s.name} - R$ {s.base_price.toFixed(2)}</option>)}
                         </select>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Data *</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Data *</label>
                             <input type="date" required value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }} />
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--input-border)', borderRadius: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
                         </div>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Hora *</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Hora *</label>
                             <input type="time" required value={selectedTime} onChange={e => setSelectedTime(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white' }} />
+                                style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--input-border)', borderRadius: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }} />
                         </div>
                     </div>
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#cbd5e1' }}>Observações</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Observações</label>
                         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-                            style={{ width: '100%', padding: '0.75rem', border: '1px solid #334155', borderRadius: '8px', background: '#0f172a', color: 'white', fontFamily: 'inherit', resize: 'vertical' }} />
+                            style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--input-border)', borderRadius: '8px', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'vertical' }} />
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                         <button type="button" onClick={onClose}
-                            style={{ padding: '0.75rem 1.5rem', border: '1px solid #334155', borderRadius: '8px', background: 'transparent', color: 'white', cursor: 'pointer', fontWeight: 600 }}>
+                            style={{ padding: '0.75rem 1.5rem', border: '1px solid var(--card-border)', borderRadius: '8px', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}>
                             Cancelar
                         </button>
                         <button type="submit" disabled={loading}
