@@ -262,7 +262,7 @@ function PetsContent() {
 
             // Resolvendo de forma paralela usando Promise.all para melhorar a performance da listagem
             const featuresPromise = profile.role === 'superadmin' ? Promise.resolve().then(() => {
-                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'critica_vet', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa']);
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa', 'hospital', 'assessment', 'nota_fiscal', 'cashback']);
             }) : supabase.from('organizations').select('saas_plans(features)').eq('id', profile.org_id).maybeSingle().then(({ data: org }) => {
                 if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || []);
             });
@@ -1085,7 +1085,7 @@ function PetsContent() {
 
 
                             {/* HOSPITAL (INTERNAMENTO) */}
-                            {planFeatures.includes('clinica_vet') && (
+                            {planFeatures.includes('hospital') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('hospital' as any)} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -1127,7 +1127,7 @@ function PetsContent() {
                             )}
 
                             {/* AVALIAÇÃO */}
-                            {(planFeatures.includes('creche') || planFeatures.includes('hospedagem')) && (
+                            {(planFeatures.includes('creche') || planFeatures.includes('hospedagem') || planFeatures.includes('assessment')) && (
                                 <div className={styles.accordionItem}>
                                 <button type="button" onClick={() => toggleAccordion('assessment')} className={styles.accordionHeader}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
