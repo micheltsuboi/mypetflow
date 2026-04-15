@@ -57,8 +57,8 @@
 .dateInput,
 .selectInput {
     padding: 0.5rem 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 0.85rem;
@@ -88,9 +88,9 @@
 
 .summaryCard {
     padding: 1.25rem;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    background: var(--bg-secondary);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--card-border);
     border-radius: 16px;
 }
 
@@ -389,7 +389,7 @@
 }
 
 .modalContent {
-    background: rgba(26, 34, 51, 0.85); /* Slightly transparent */
+    background: var(--bg-primary); /* Use system theme background */
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -433,8 +433,8 @@
 
 .extractItem {
     padding: 1.25rem;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
     display: flex;
     justify-content: space-between;
@@ -508,10 +508,10 @@
 .nfSearch input {
     width: 100%;
     padding: 0.75rem 1rem 0.75rem 2.8rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 0.9rem;
     transition: all 0.2s;
 }
@@ -524,10 +524,10 @@
 
 .nfStatusSelect {
     padding: 0.75rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
     border-radius: 12px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 0.9rem;
     cursor: pointer;
     min-width: 180px;
@@ -550,8 +550,8 @@
 .nfTable th {
     text-align: left;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.5);
+    background: var(--bg-secondary);
+    color: var(--text-muted);
     font-weight: 600;
     text-transform: uppercase;
     font-size: 0.75rem;
@@ -570,7 +570,7 @@
 }
 
 .nfClientInfo strong {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 600;
 }
 
@@ -598,7 +598,7 @@
 
 .nfValue {
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .statusBadge {
@@ -639,10 +639,10 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.4rem 0.6rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
     border-radius: 6px;
-    color: #fff;
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s;
     font-size: 0.75rem;
@@ -781,10 +781,10 @@
 .formGroup input, 
 .formGroup select {
     padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
     border-radius: 8px;
-    color: white;
+    color: var(--text-primary);
     font-size: 0.9rem;
 }
 
@@ -838,9 +838,9 @@
 }
 
 .cancelBtn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
 }
 
 .confirmBtn {
@@ -880,9 +880,9 @@
 }
 
 .exportBtn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
     padding: 0.5rem;
     border-radius: 8px;
     cursor: pointer;
@@ -899,16 +899,16 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-tertiary);
     padding: 0.6rem 1rem;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--card-border);
 }
 
 .searchBox input {
     background: none;
     border: none;
-    color: white;
+    color: var(--text-primary);
     font-size: 0.9rem;
     width: 100%;
 }
@@ -965,9 +965,9 @@
 }
 
 .actionBtn, .deleteBtn, .payBtn {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
     padding: 0.4rem;
     border-radius: 6px;
     cursor: pointer;

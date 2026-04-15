@@ -1039,7 +1039,7 @@ export default function FinanceiroPage() {
     if (loading) {
         return (
             <div className={styles.container} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div style={{ fontSize: '1.2rem', color: '#666' }}>Carregando dados financeiros...</div>
+                <div style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }}>Carregando dados financeiros...</div>
             </div>
         )
     }
@@ -1145,7 +1145,7 @@ export default function FinanceiroPage() {
                         <div className={styles.cardHeader}>
                             <span className={styles.cardIcon}>⏳</span>
                         </div>
-                        <span className={styles.cardValue} style={{ color: '#f39c12' }}>{formatCurrency(pendingTotalValue)}</span>
+                        <span className={styles.cardValue} style={{ color: 'var(--warning-color)' }}>{formatCurrency(pendingTotalValue)}</span>
                         <span className={styles.cardLabel}>A Receber</span>
                     </div>
                 </div>
@@ -1595,7 +1595,7 @@ export default function FinanceiroPage() {
                             ))}
                         </div>
                     ) : (
-                        <p style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>Sem dados financeiros registrados.</p>
+                        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Sem dados financeiros registrados.</p>
                     )}
                 </div>
 
@@ -1622,7 +1622,7 @@ export default function FinanceiroPage() {
                             </div>
                         ))}
                         {categoryRevenue.length === 0 && (
-                            <p style={{ color: '#666', textAlign: 'center', padding: '1rem' }}>Nenhuma venda registrada este mês.</p>
+                            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '1rem' }}>Nenhuma venda registrada este mês.</p>
                         )}
                     </div>
                 </div>
