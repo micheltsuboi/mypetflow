@@ -358,6 +358,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                 />
             )}
             
+            <style jsx>{`
                 .modalBody {
                     background: var(--bg-primary);
                     border: 1px solid var(--card-border);
