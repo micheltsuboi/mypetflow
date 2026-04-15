@@ -440,7 +440,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                     <div className={styles.footerBtns}>
                         {!readOnly && (
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                {!nfData ? (
+                                {(!nfData && formData.payment_status === 'paid') ? (
                                     <button 
                                         className={styles.nfBtn} 
                                         style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.6rem 1rem', borderRadius: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}

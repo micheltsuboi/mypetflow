@@ -483,7 +483,7 @@ export default function BanhoTosaPage() {
                                                 onUpdate={() => {
                                                     fetchBanhoTosaData(true)
                                                     // Se acabou de pagar, sugerir emitir nota
-                                                    if (appt.payment_status !== 'paid') {
+                                                    if (appt.payment_status === 'paid') {
                                                         setCheckoutNFData({
                                                             id: appt.id,
                                                             petName: appt.pets?.name,

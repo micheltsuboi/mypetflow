@@ -321,6 +321,14 @@ export default function OwnerDashboard() {
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
 
+                // NEW: Fetch all transactions for pending items to calculate real balance
+                const pendingTransactionsPromise = supabase
+                    .from('financial_transactions')
+                    .select('reference_id, amount')
+                    .eq('org_id', profile.org_id)
+                    .eq('type', 'income')
+                    .not('reference_id', 'is', null)
+
                 // Execute all promises in parallel
                 const [
                     currentMonthApptsRes,
@@ -335,7 +343,8 @@ export default function OwnerDashboard() {
                     pendingAdmissionsRes,
                     allPendingApptsRes,
                     pendingPackagesRes,
-                    paidPackagesThisMonthRes
+                    paidPackagesThisMonthRes,
+                    pendingTransactionsRes
                 ] = await Promise.all([
                     currentMonthApptsPromise,
                     prevMonthApptsPromise,
@@ -349,7 +358,8 @@ export default function OwnerDashboard() {
                     pendingAdmissionsPromise,
                     allPendingApptsPromise,
                     pendingPackagesPromise,
-                    paidPackagesThisMonthPromise
+                    paidPackagesThisMonthPromise,
+                    pendingTransactionsPromise
                 ])
 
                 const currentMonthAppts = currentMonthApptsRes.data || []
@@ -366,6 +376,15 @@ export default function OwnerDashboard() {
                 const allPendingAppts = allPendingApptsRes.data || []
                 const pendingPackages = pendingPackagesRes.data || []
                 const paidPackagesThisMonth = paidPackagesThisMonthRes.data || []
+                const pendingTransactions = pendingTransactionsRes.data || []
+
+                // Map of total paid per refId
+                const paidMap: Record<string, number> = {}
+                pendingTransactions.forEach((t: any) => {
+                    if (t.reference_id) {
+                        paidMap[t.reference_id] = (paidMap[t.reference_id] || 0) + Number(t.amount)
+                    }
+                })
 
                 if (apptError) {
                     console.error("Error fetching owner appointments:", apptError)
@@ -388,23 +407,23 @@ export default function OwnerDashboard() {
                     .filter((p: any) => !referencedIds.has(p.id))
                     .reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
 
-                // Sum ALL pending items for accurate "A Receber"
-                const pendingPayments = allPendingAppts.reduce((sum: number, a: any) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-                    + (pendingSales || []).reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0)
+                // Sum ALL pending items for accurate "A Receber" (Total - Paid)
+                const pendingPayments = allPendingAppts.reduce((sum: number, a: any) => sum + Math.max(0, (a.final_price ?? a.calculated_price ?? 0) - (paidMap[a.id] || 0)), 0)
+                    + (pendingSales || []).reduce((sum: number, s: any) => sum + Math.max(0, (s.total_amount || 0) - (paidMap[s.id] || 0)), 0)
                     + (pendingVets || []).reduce((sum: number, v: any) => {
                         let val = v.consultation_fee || 0;
                         if (v.discount_type === 'percent') val -= val * ((v.discount_percent || 0) / 100);
                         else val -= (v.discount_fixed || 0);
-                        return sum + Math.max(0, val);
+                        return sum + Math.max(0, val - (paidMap[v.id] || 0));
                     }, 0)
                     + (pendingExams || []).reduce((sum: number, e: any) => {
                         let val = e.price || 0;
                         if (e.discount_type === 'percent') val -= val * ((e.discount_percent || 0) / 100);
                         else val -= (e.discount_fixed || 0);
-                        return sum + Math.max(0, val);
+                        return sum + Math.max(0, val - (paidMap[e.id] || 0));
                     }, 0)
-                    + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + (ad.total_amount || 0), 0)
-                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + (Math.max(0, Number(p.total_price || 0) - Number(p.total_paid || 0))), 0)
+                    + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + Math.max(0, (ad.total_amount || 0) - (paidMap[ad.id] || 0)), 0)
+                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + Math.max(0, Number(p.total_price || 0) - Number(p.total_paid || 0)), 0)
 
                 const prevRevenue = prevMonthAppts
                     .filter((a: any) => a.payment_status === 'paid')
@@ -728,24 +747,25 @@ export default function OwnerDashboard() {
                                 {pet.status === 'done' && (
                                     (() => {
                                         const appt = (pet as any).appointment;
-                                        if (appt && appt.payment_status === 'paid' && !nfMap[appt.id]) {
-                                            return (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); handleOpenNFSe(appt); }} 
-                                                    className={styles.actionBtn} 
-                                                    title="Emitir NFSe"
-                                                    style={{ marginTop: '0.5rem' }}
-                                                >
-                                                    <FileCode size={16} />
-                                                </button>
-                                            );
-                                        }
-                                        if (appt && nfMap[appt.id]) {
-                                            return (
-                                                <div style={{ marginTop: '0.5rem', color: '#2ecc71', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <FileCode size={14} /> NF Emitida
-                                                </div>
-                                            );
+                                        if (appt && appt.payment_status === 'paid') {
+                                            if (!nfMap[appt.id]) {
+                                                return (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleOpenNFSe(appt); }} 
+                                                        className={styles.actionBtn} 
+                                                        title="Emitir NFSe"
+                                                        style={{ marginTop: '0.5rem' }}
+                                                    >
+                                                        <FileCode size={16} />
+                                                    </button>
+                                                );
+                                            } else {
+                                                return (
+                                                    <div style={{ marginTop: '0.5rem', color: '#2ecc71', fontSize: '0.7rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <FileCode size={14} /> NF Emitida
+                                                    </div>
+                                                );
+                                            }
                                         }
                                         return null;
                                     })()
@@ -993,21 +1013,32 @@ export default function OwnerDashboard() {
                                                                     </span>
                                                                     {tx.reference_id && (
                                                                         !nfMap[tx.reference_id] ? (
-                                                                            <button 
-                                                                                onClick={() => {
-                                                                                    if (tx.category === 'Pacotes') {
-                                                                                        const pkg = extractRecords.paidPackages.find(p => p.id === tx.reference_id) || { id: tx.reference_id };
-                                                                                        handleOpenPackageNFSe(pkg);
-                                                                                    } else {
-                                                                                        const appt = extractRecords.appointments.find(a => a.id === tx.reference_id) || { id: tx.reference_id };
-                                                                                        handleOpenNFSe(appt);
-                                                                                    }
-                                                                                }} 
-                                                                                className={styles.actionBtn} 
-                                                                                title="Emitir NF"
-                                                                            >
-                                                                                <FileCode size={18} />
-                                                                            </button>
+                                                                            (() => {
+                                                                                // Only show if the parent is paid
+                                                                                const isPaid = tx.category === 'Pacotes' 
+                                                                                    ? (extractRecords.paidPackages.some(p => p.id === tx.reference_id))
+                                                                                    : (extractRecords.appointments.find(a => a.id === tx.reference_id)?.payment_status === 'paid');
+
+                                                                                if (!isPaid) return null;
+
+                                                                                return (
+                                                                                    <button 
+                                                                                        onClick={() => {
+                                                                                            if (tx.category === 'Pacotes') {
+                                                                                                const pkg = extractRecords.paidPackages.find(p => p.id === tx.reference_id) || { id: tx.reference_id };
+                                                                                                handleOpenPackageNFSe(pkg);
+                                                                                            } else {
+                                                                                                const appt = extractRecords.appointments.find(a => a.id === tx.reference_id) || { id: tx.reference_id };
+                                                                                                handleOpenNFSe(appt);
+                                                                                            }
+                                                                                        }} 
+                                                                                        className={styles.actionBtn} 
+                                                                                        title="Emitir NF"
+                                                                                    >
+                                                                                        <FileCode size={18} />
+                                                                                    </button>
+                                                                                );
+                                                                            })()
                                                                         ) : (
                                                                             <div title="Nota Fiscal Autorizada" style={{ color: '#2ecc71' }}>
                                                                                 <FileCode size={18} />

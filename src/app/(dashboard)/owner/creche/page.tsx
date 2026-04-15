@@ -502,7 +502,7 @@ export default function CrechePage() {
                                                 onUpdate={() => {
                                                     fetchCrecheData(true)
                                                 // Se acabou de pagar, abrir modal de NF
-                                                if (appt.payment_status !== 'paid') {
+                                                if (appt.payment_status === 'paid') {
                                                     setNfAppointment(appt)
                                                     setShowNFModal(true)
                                                 }
