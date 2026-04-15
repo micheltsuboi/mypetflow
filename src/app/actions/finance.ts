@@ -179,7 +179,16 @@ export async function deleteRecurringExpense(id: string) {
     return { success: true }
 }
 
-export async function getPaymentSummary(refId: string, refType: string, totalDue: number) {
+export interface FinanceActionResult {
+    success: boolean
+    message?: string
+    totalPaid?: number
+    balance?: number
+    status?: 'paid' | 'partial' | 'pending'
+    transactions?: any[]
+}
+
+export async function getPaymentSummary(refId: string, refType: string, totalDue: number): Promise<FinanceActionResult> {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -223,7 +232,7 @@ export async function registerReferencePayment(data: {
     category?: string,
     description?: string,
     totalDue: number
-}) {
+}): Promise<FinanceActionResult> {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -283,7 +292,7 @@ export async function registerReferencePayment(data: {
     }
 }
 
-export async function deleteReferencePayment(transactionId: string, refId: string, refType: string, totalDue: number) {
+export async function deleteReferencePayment(transactionId: string, refId: string, refType: string, totalDue: number): Promise<FinanceActionResult> {
     try {
         const supabase = await createClient()
         

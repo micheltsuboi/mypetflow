@@ -21,11 +21,13 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
     const fetchSummary = async () => {
         setLoading(true)
         const res = await getPaymentSummary(refId, refType, totalDue)
-        if (res.success) {
+        if (res.success && res.status) {
             setSummary(res)
             onStatusChange?.(res.status)
             // Default amount to balance
-            setAmount(res.balance > 0 ? res.balance : 0)
+            if (res.balance !== undefined) {
+                setAmount(res.balance > 0 ? res.balance : 0)
+            }
         }
         setLoading(false)
     }
