@@ -44,6 +44,7 @@ export default function DashboardLayout({
         { name: 'Pets', href: '/owner/pets', icon: '🐾' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
+        { name: 'Mensalidades', href: '/owner/mensalidades', icon: '🔄' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
         {
@@ -70,6 +71,7 @@ export default function DashboardLayout({
         { name: 'Pets', href: '/owner/pets', icon: '🐶' },
         { name: 'Serviços', href: '/owner/services', icon: '✂️' },
         { name: 'Pacotes', href: '/owner/packages', icon: '📦' },
+        { name: 'Mensalidades', href: '/owner/mensalidades', icon: '🔄' },
         { name: 'Petshop', href: '/owner/petshop', icon: '🛍️' },
         { name: 'Vacinas', href: '/owner/vacinas', icon: '💉' },
         { name: 'Fidelidade', href: '/owner/cashback', icon: '💎' },
@@ -270,6 +272,7 @@ export default function DashboardLayout({
                     if (name === 'Fidelidade') return planFeat.includes('cashback')
                     if (name === 'Serviços') return planFeat.includes('servicos')
                     if (name === 'Pacotes') return planFeat.includes('pacotes')
+                    if (name === 'Mensalidades') return planFeat.includes('mensalidades')
                     if (name === 'Clínica Veterinária' ||
                         name === 'Veterinários' ||
                         name === 'Consultas' ||

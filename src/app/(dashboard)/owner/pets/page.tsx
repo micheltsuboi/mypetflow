@@ -42,6 +42,7 @@ import {
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
+import { getPetSubscriptions, subscribePetToMensalidade, cancelSubscription as cancelSubAction, getSubscriptionPlans } from '@/app/actions/subscription'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
@@ -172,12 +173,22 @@ function PetsContent() {
     const [availableBatches, setAvailableBatches] = useState<any[]>([])
     const [editingVaccination, setEditingVaccination] = useState<any | null>(null)
 
+    // Subscription State
+    const [petSubscriptions, setPetSubscriptions] = useState<any[]>([])
+    const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([])
+    const [showSubscribeModal, setShowSubscribeModal] = useState(false)
+    const [subSelectedDays, setSubSelectedDays] = useState<number[]>([])
+    const [subSelectedTime, setSubSelectedTime] = useState('09:00')
+    const [subSelectedPlanId, setSubSelectedPlanId] = useState('')
+    const [isSubscribing, setIsSubscribing] = useState(false)
+
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
     // Accordion State
     const [accordions, setAccordions] = useState({
         details: false,
         packages: false,
+        subscriptions: false,
         creche: false,
         hotel: false,
         assessment: false,
@@ -242,6 +253,10 @@ function PetsContent() {
                 getVetExams(selectedPet.id).then(setPetExams)
                 getVetExamTypes().then(setExamTypes)
             }
+            if (key === 'subscriptions') {
+                getPetSubscriptions(selectedPet.id).then(setPetSubscriptions)
+                getSubscriptionPlans().then(setSubscriptionPlans)
+            }
             if (key === 'vaccines') {
                 getPetVaccinations(selectedPet.id).then(setPetVaccinations)
                 getVaccineCatalog().then(setVaccineCatalog)
@@ -265,7 +280,7 @@ function PetsContent() {
 
             // Resolvendo de forma paralela usando Promise.all para melhorar a performance da listagem
             const featuresPromise = profile.role === 'superadmin' ? Promise.resolve().then(() => {
-                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa', 'hospital', 'assessment', 'nota_fiscal', 'cashback']);
+                setPlanFeatures(['financeiro', 'petshop', 'creche', 'hospedagem', 'agenda', 'ponto', 'pacotes', 'servicos', 'pets', 'tutores', 'usuarios', 'clinica_vet', 'banho_tosa', 'hospital', 'assessment', 'nota_fiscal', 'cashback', 'mensalidades']);
             }) : supabase.from('organizations').select('saas_plans(features)').eq('id', profile.org_id).maybeSingle().then(({ data: org }) => {
                 if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || []);
             });
@@ -1460,6 +1475,90 @@ function PetsContent() {
                                 </div>
                             )}
 
+                            {/* MENSALIDADES */}
+                            {planFeatures.includes('mensalidades') && (
+                                <div className={styles.accordionItem}>
+                                    <button type="button" onClick={() => toggleAccordion('subscriptions' as any)} className={styles.accordionHeader}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ fontSize: '18px' }}>🔄</span>
+                                            <span>Mensalidades</span>
+                                            {petSubscriptions.filter((s: any) => s.is_active).length > 0 && (
+                                                <span style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: '8px' }}>
+                                                    {petSubscriptions.filter((s: any) => s.is_active).length} ativa(s)
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span>{(accordions as any).subscriptions ? '−' : '+'}</span>
+                                    </button>
+                                    {(accordions as any).subscriptions && (
+                                        <div className={styles.accordionContent}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                <h4 style={{ margin: 0 }}>Planos de Mensalidade Ativos</h4>
+                                                <button
+                                                    className={styles.submitButton}
+                                                    style={{ fontSize: '0.75rem', padding: '4px 12px' }}
+                                                    onClick={() => {
+                                                        setSubSelectedDays([])
+                                                        setSubSelectedTime('09:00')
+                                                        setSubSelectedPlanId('')
+                                                        setShowSubscribeModal(true)
+                                                    }}
+                                                >
+                                                    + Contratar Mensalidade
+                                                </button>
+                                            </div>
+
+                                            {petSubscriptions.length === 0 ? (
+                                                <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.875rem', padding: '1rem' }}>
+                                                    Nenhuma mensalidade ativa para este pet.
+                                                </p>
+                                            ) : (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    {petSubscriptions.map((sub: any) => {
+                                                        const plan = sub.service_packages
+                                                        const days = (sub.preferred_days_of_week || []).map((d: number) => ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d]).join(', ')
+                                                        const sessions = (sub.package_sessions || []).filter((s: any) => s.status !== 'cancelled')
+                                                        return (
+                                                            <div key={sub.id} style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-lg)', border: `1px solid ${sub.is_active ? 'var(--border)' : 'rgba(239,68,68,0.3)'}` }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                                                    <div>
+                                                                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>🔄 {plan?.name}</div>
+                                                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                            {days && `🗓️ ${days}`}{sub.preferred_time && ` às ${sub.preferred_time}`}
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '2px' }}>
+                                                                            💳 R$ {Number(plan?.total_price || 0).toFixed(2).replace('.', ',')} — Vence dia {plan?.billing_day || 10}
+                                                                        </div>
+                                                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                                                                            {sessions.length} sessão(ões) no mês
+                                                                        </div>
+                                                                    </div>
+                                                                    {sub.is_active && (
+                                                                        <button
+                                                                            onClick={async () => {
+                                                                                if (!confirm('Cancelar esta mensalidade?')) return
+                                                                                const res = await cancelSubAction(sub.id)
+                                                                                if (res.success) {
+                                                                                    getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
+                                                                                    alert(res.message)
+                                                                                } else alert(res.message)
+                                                                            }}
+                                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}
+                                                                        >
+                                                                            ✕ Cancelar
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* CRECHE */}
                             {planFeatures.includes('creche') && (
                                 <div className={styles.accordionItem}>
@@ -1628,6 +1727,83 @@ function PetsContent() {
                         }
                     }}
                 />
+            )}
+            {/* MODAL: Contratar Mensalidade */}
+            {showSubscribeModal && selectedPet && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }}>
+                    <div style={{ background: 'var(--bg-primary)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+                        <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', fontWeight: 700 }}>🔄 Contratar Mensalidade — {selectedPet.name}</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div className={styles.formGroup}>
+                                <label>Plano de Mensalidade *</label>
+                                <select className={styles.input} value={subSelectedPlanId} onChange={e => {
+                                    setSubSelectedPlanId(e.target.value)
+                                    const plan = subscriptionPlans.find((p: any) => p.id === e.target.value)
+                                    if (plan?.subscription_days_of_week?.length) setSubSelectedDays(plan.subscription_days_of_week)
+                                    if (plan?.subscription_time) setSubSelectedTime(plan.subscription_time)
+                                }}>
+                                    <option value="">Selecione um plano</option>
+                                    {subscriptionPlans.map((p: any) => (
+                                        <option key={p.id} value={p.id}>{p.name} — R$ {Number(p.total_price).toFixed(2).replace('.', ',')}/mês</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Dias da Semana *</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                                    {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((d, i) => (
+                                        <button key={i} type="button"
+                                            onClick={() => setSubSelectedDays(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
+                                            style={{ padding: '6px 2px', borderRadius: '8px', border: '1px solid var(--border)', background: subSelectedDays.includes(i) ? 'var(--primary)' : 'var(--bg-tertiary)', color: subSelectedDays.includes(i) ? 'white' : 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                                        >{d}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className={styles.formGroup}>
+                                <label>Horário *</label>
+                                <input type="time" className={styles.input} value={subSelectedTime} onChange={e => setSubSelectedTime(e.target.value)} />
+                            </div>
+                            {subSelectedDays.length > 0 && (() => {
+                                const now = new Date()
+                                const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+                                const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+                                const daysFull = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+                                const previewItems: string[] = []
+                                for (const dow of subSelectedDays) {
+                                    let d = new Date(monthStart)
+                                    while (d.getDay() !== dow) d.setDate(d.getDate() + 1)
+                                    while (d <= monthEnd) {
+                                        previewItems.push(`${daysFull[dow]}, ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${subSelectedTime}`)
+                                        d.setDate(d.getDate() + 7)
+                                    }
+                                }
+                                return (
+                                    <div style={{ background: 'var(--bg-tertiary)', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border)' }}>
+                                        <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>📅 Preview: {previewItems.length} sessões no mês atual</div>
+                                        {previewItems.sort().map((s, i) => (
+                                            <div key={i} style={{ fontSize: '0.85rem', padding: '3px 0', borderBottom: '1px dashed rgba(255,255,255,0.05)', color: 'var(--text-primary)' }}>• {s}</div>
+                                        ))}
+                                    </div>
+                                )
+                            })()}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+                            <button type="button" onClick={() => setShowSubscribeModal(false)} style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Cancelar</button>
+                            <button type="button"
+                                disabled={!subSelectedPlanId || subSelectedDays.length === 0 || isSubscribing}
+                                onClick={async () => {
+                                    if (!subSelectedPlanId || subSelectedDays.length === 0) return alert('Selecione um plano e pelo menos um dia.')
+                                    setIsSubscribing(true)
+                                    const res = await subscribePetToMensalidade(selectedPet.id, subSelectedPlanId, subSelectedDays, subSelectedTime)
+                                    setIsSubscribing(false)
+                                    if (res.success) { setShowSubscribeModal(false); getPetSubscriptions(selectedPet.id).then(setPetSubscriptions); alert(res.message) }
+                                    else alert(res.message)
+                                }}
+                                style={{ padding: '0.6rem 1.5rem', borderRadius: '10px', border: 'none', background: 'var(--gradient-primary)', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem', opacity: (!subSelectedPlanId || subSelectedDays.length === 0 || isSubscribing) ? 0.5 : 1 }}
+                            >{isSubscribing ? '⏳ Agendando...' : '✅ Confirmar Mensalidade'}</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     )
