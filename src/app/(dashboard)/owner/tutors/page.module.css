@@ -108,9 +108,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-weight: 600;
+    color: var(--text-primary); /* Darker color for better contrast in light mode */
+    font-weight: 700;
     font-size: 1rem;
+    border: 1px solid var(--border);
 }
 
 .userName {

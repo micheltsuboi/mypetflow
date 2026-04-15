@@ -290,7 +290,17 @@ export default function PackagesPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
                     <button
                         onClick={() => setTab('templates')}
-                        style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '8px 8px 0 0', background: tab === 'templates' ? 'var(--primary)' : 'transparent', color: tab === 'templates' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}
+                        style={{ 
+                            padding: '0.5rem 1rem', 
+                            border: 'none', 
+                            borderRadius: '8px 8px 0 0', 
+                            background: tab === 'templates' ? 'var(--primary)' : 'transparent', 
+                            color: tab === 'templates' ? 'var(--bg-primary)' : 'var(--text-secondary)', 
+                            cursor: 'pointer', 
+                            fontWeight: 700,
+                            border: tab === 'templates' ? '1px solid var(--border)' : 'none',
+                            borderBottom: 'none'
+                        }}
                     >
                         📦 Templates de Pacotes
                     </button>

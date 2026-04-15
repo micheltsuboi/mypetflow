@@ -726,20 +726,20 @@
 }
 
 .ruleSubmitBtn {
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
-    border: none;
+    border: 1px solid var(--border);
     padding: 0.6rem 1.2rem;
     border-radius: 8px;
     font-weight: 700;
     cursor: pointer;
     font-size: 0.85rem;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(240, 140, 152, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .ruleSubmitBtn:hover {
-    filter: brightness(1.1);
+    filter: brightness(0.9);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(240, 140, 152, 0.4);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
