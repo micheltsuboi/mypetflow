@@ -285,6 +285,7 @@ export async function registerReferencePayment(data: {
         revalidatePath('/owner/financeiro')
         revalidatePath('/owner/pets')
         revalidatePath('/owner/agenda')
+        revalidatePath('/owner')
         
         return { success: true, message: 'Pagamento registrado com sucesso!' }
     } catch (error: any) {
@@ -323,6 +324,7 @@ export async function deleteReferencePayment(transactionId: string, refId: strin
         }
 
         revalidatePath('/owner/financeiro')
+        revalidatePath('/owner')
         return { success: true, message: 'Pagamento removido.' }
     } catch (error: any) {
         return { success: false, message: error.message }

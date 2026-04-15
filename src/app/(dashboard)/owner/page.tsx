@@ -280,27 +280,27 @@ export default function OwnerDashboard() {
                 // Extra pending types for accurate "A Receber"
                 const pendingSalesPromise = supabase
                     .from('orders')
-                    .select('total_amount')
+                    .select('id, total_amount')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .in('payment_status', ['pending', 'partial'])
 
                 const pendingVetsPromise = supabase
                     .from('vet_consultations')
                     .select('*')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .in('payment_status', ['pending', 'partial'])
 
                 const pendingExamsPromise = supabase
                     .from('vet_exams')
                     .select('*')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .in('payment_status', ['pending', 'partial'])
 
                 const pendingAdmissionsPromise = supabase
                     .from('hospital_admissions')
-                    .select('total_amount')
+                    .select('id, total_amount')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .in('payment_status', ['pending', 'partial'])
 
                 // NEW: All pending appointments regardless of date
                 const allPendingApptsPromise = supabase
@@ -313,7 +313,7 @@ export default function OwnerDashboard() {
                     .from('customer_packages')
                     .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
                     .eq('org_id', profile.org_id)
-                    .eq('payment_status', 'pending')
+                    .in('payment_status', ['pending', 'partial'])
 
                 const paidPackagesThisMonthPromise = supabase
                     .from('customer_packages')
@@ -423,7 +423,7 @@ export default function OwnerDashboard() {
                         return sum + Math.max(0, val - (paidMap[e.id] || 0));
                     }, 0)
                     + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + Math.max(0, (ad.total_amount || 0) - (paidMap[ad.id] || 0)), 0)
-                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + Math.max(0, Number(p.total_price || 0) - Number(p.total_paid || 0)), 0)
+                    + (pendingPackages || []).reduce((sum: number, p: any) => sum + Math.max(0, Number(p.total_price || 0) - (paidMap[p.id] || 0)), 0)
 
                 const prevRevenue = prevMonthAppts
                     .filter((a: any) => a.payment_status === 'paid')
