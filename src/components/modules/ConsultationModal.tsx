@@ -22,6 +22,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const [showNFModal, setShowNFModal] = useState(false)
     const [nfData, setNfData] = useState<{ id: string, status: string, pdf_url?: string } | null>(null)
     const autosaveTimer = useRef<NodeJS.Timeout | null>(null)
+    const pendingSave = useRef<{ field: string, value: any } | null>(null)
 
     useEffect(() => {
         getVeterinarians().then(setVets)
@@ -77,6 +78,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const handleFieldChange = (field: string, value: any) => {
         if (readOnly) return;
         setFormData((prev: any) => ({ ...prev, [field]: value }))
+        pendingSave.current = { field, value }
 
         // Autosave logic
         if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
@@ -86,9 +88,29 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
             const res = await autosaveVetConsultation(consultation.id, field, value)
             if (res.success) {
                 setLastSaved(new Date())
+                if (pendingSave.current?.field === field && pendingSave.current?.value === value) {
+                    pendingSave.current = null
+                }
             }
             setSaving(false)
+            autosaveTimer.current = null
         }, 1000)
+    }
+
+    const handleSaveAndClose = async () => {
+        if (readOnly) {
+            onClose()
+            return
+        }
+
+        // Se houver salvamento pendente, executa agora de forma síncrona/await
+        if (pendingSave.current) {
+            const { field, value } = pendingSave.current
+            // Disparamos o salvamento final antes de fechar
+            await autosaveVetConsultation(consultation.id, field, value)
+        }
+        
+        onClose()
     }
 
     const handleFinish = async () => {
@@ -257,6 +279,18 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                             onChange={(e) => handleFieldChange('reason', e.target.value)}
                             className={styles.input}
                             placeholder="Ex: Vômitos, check-up anual, coceira..."
+                            disabled={readOnly}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Anamnese (Histórico e Conversa com o Tutor)</label>
+                        <textarea
+                            value={formData.anamnesis || ''}
+                            onChange={(e) => handleFieldChange('anamnesis', e.target.value)}
+                            className={styles.textarea}
+                            style={{ minHeight: '120px', borderLeft: '4px solid var(--primary)' }}
+                            placeholder="Descreva o histórico, sintomas relatados pelo tutor, alimentação, ambiente..."
                             disabled={readOnly}
                         />
                     </div>
@@ -454,7 +488,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                                 )}
                             </div>
                         )}
-                        <button className={styles.saveBtn} onClick={onClose}>{readOnly ? 'Fechar' : 'Salvar e Sair'}</button>
+                        <button className={styles.saveBtn} onClick={handleSaveAndClose}>{readOnly ? 'Fechar' : 'Salvar e Sair'}</button>
                         {!readOnly && <button className={styles.finishBtn} onClick={handleFinish}>Finalizar Consulta</button>}
                     </div>
                 </div>

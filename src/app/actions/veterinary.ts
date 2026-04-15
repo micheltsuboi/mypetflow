@@ -231,7 +231,7 @@ export async function getVetConsultations(petId: string) {
         const { data, error } = await supabase
             .from('vet_consultations')
             .select(`
-                id, consultation_date, reason, diagnosis, treatment, prescription, notes, 
+                id, consultation_date, reason, anamnesis, diagnosis, treatment, prescription, notes, 
                 consultation_fee, discount_type, discount_percent, discount_fixed, 
                 payment_status, payment_method, pet_id,
                 veterinarians:veterinarian_id(name, crmv)
@@ -268,6 +268,7 @@ export async function createVetConsultation(formData: FormData) {
         const diagnosis = formData.get('diagnosis') as string || null
         const treatment = formData.get('treatment') as string || null
         const prescription = formData.get('prescription') as string || null
+        const anamnesis = formData.get('anamnesis') as string || null
         const notes = formData.get('notes') as string || null
 
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
@@ -290,6 +291,7 @@ export async function createVetConsultation(formData: FormData) {
                 diagnosis,
                 treatment,
                 prescription,
+                anamnesis,
                 notes,
                 consultation_fee,
                 discount_type,
@@ -344,6 +346,7 @@ export async function updateVetConsultation(formData: FormData) {
         const diagnosis = formData.get('diagnosis') as string || null
         const treatment = formData.get('treatment') as string || null
         const prescription = formData.get('prescription') as string || null
+        const anamnesis = formData.get('anamnesis') as string || null
         const notes = formData.get('notes') as string || null
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
         const discount_type = formData.get('discount_type') as string || 'percent'
@@ -361,6 +364,7 @@ export async function updateVetConsultation(formData: FormData) {
                 diagnosis,
                 treatment,
                 prescription,
+                anamnesis,
                 notes,
                 consultation_fee,
                 discount_type,
