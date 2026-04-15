@@ -639,6 +639,7 @@ export default function PackagesPage() {
                                 />
                             </div>
                         </div>
+                    </div>
                 )}
             </div>
         </PlanGuard>

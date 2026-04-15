@@ -858,7 +858,8 @@ function PetsContent() {
                                         ) : (
                                             <div style={{ display: 'grid', gap: '8px' }}>
                                                 {petVaccinations.map(v => (
-                                                    <div key={v.id} style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                    <React.Fragment key={v.id}>
+                                                        <div style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <div>
                                                             <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{v.name}</div>
                                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
