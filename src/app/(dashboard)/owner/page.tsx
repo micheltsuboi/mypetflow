@@ -61,6 +61,7 @@ export default function OwnerDashboard() {
         pendingPayments: 0,
         monthlyGrowth: 0
     })
+    const [paidMap, setPaidMap] = useState<Record<string, number>>({})
     const router = useRouter()
     const pathname = usePathname()
     const [petsToday, setPetsToday] = useState<PetToday[]>([])
@@ -385,6 +386,7 @@ export default function OwnerDashboard() {
                         paidMap[t.reference_id] = (paidMap[t.reference_id] || 0) + Number(t.amount)
                     }
                 })
+                setPaidMap(paidMap)
 
                 if (apptError) {
                     console.error("Error fetching owner appointments:", apptError)
@@ -504,6 +506,23 @@ export default function OwnerDashboard() {
                 .from('appointments')
                 .select('id, final_price, calculated_price, payment_status, scheduled_at, pets ( name ), services ( name )')
                 .or('payment_status.neq.paid,payment_status.is.null')
+            
+            // Also fetch transactions to calculate pending balances
+            const { data: txs } = await supabase
+                .from('financial_transactions')
+                .select('reference_id, amount')
+                .eq('org_id', (await supabase.auth.getUser()).data.user?.id ? (await supabase.from('profiles').select('org_id').eq('id', (await supabase.auth.getUser()).data.user?.id).single()).data?.org_id : '')
+                .eq('type', 'income')
+                .not('reference_id', 'is', null)
+
+            if (txs) {
+                const newPaidMap: Record<string, number> = {}
+                txs.forEach((t: any) => {
+                    newPaidMap[t.reference_id] = (newPaidMap[t.reference_id] || 0) + Number(t.amount)
+                })
+                setPaidMap(newPaidMap)
+            }
+
             if (allPending) appointments = allPending
         } else if (type === 'revenue') {
             // Already fetched in currentMonthAppts mostly, but for simplicity let's stick to current logic
@@ -813,7 +832,7 @@ export default function OwnerDashboard() {
                                                 </div>
                                                 <div className={styles.extractActions}>
                                                     <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
-                                                        {formatCurrency(appt.final_price || appt.calculated_price || 0)}
+                                                        {formatCurrency(Math.max(0, (appt.final_price || appt.calculated_price || 0) - (paidMap[appt.id] || 0)))}
                                                     </span>
                                                     <button
                                                         className={styles.confirmPayBtn}
@@ -822,7 +841,7 @@ export default function OwnerDashboard() {
                                                             recordId: appt.id,
                                                             tableName: 'appointments',
                                                             title: `Pagamento: ${appt.pets?.name}`,
-                                                            baseAmount: appt.final_price || appt.calculated_price || 0
+                                                            baseAmount: Math.max(0, (appt.final_price || appt.calculated_price || 0) - (paidMap[appt.id] || 0))
                                                         })}
                                                     >
                                                         💰 Confirmar Pago
@@ -841,7 +860,7 @@ export default function OwnerDashboard() {
                                             </div>
                                             <div className={styles.extractActions}>
                                                 <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
-                                                    {formatCurrency(sale.total_amount)}
+                                                    {formatCurrency(Math.max(0, (sale.total_amount || 0) - (paidMap[sale.id] || 0)))}
                                                 </span>
                                                 <button
                                                     className={styles.confirmPayBtn}
@@ -850,7 +869,7 @@ export default function OwnerDashboard() {
                                                         recordId: sale.id,
                                                         tableName: 'orders',
                                                         title: `Venda: #${sale.id.slice(0, 8)}`,
-                                                        baseAmount: sale.total_amount
+                                                        baseAmount: Math.max(0, (sale.total_amount || 0) - (paidMap[sale.id] || 0))
                                                     })}
                                                 >
                                                     💰 Confirmar Pago
@@ -864,7 +883,7 @@ export default function OwnerDashboard() {
                                         let val = vet.consultation_fee || 0;
                                         if (vet.discount_type === 'percent') val -= val * ((vet.discount_percent || 0) / 100);
                                         else val -= (vet.discount_fixed || 0);
-                                        const finalVal = Math.max(0, val);
+                                        const finalVal = Math.max(0, val - (paidMap[vet.id] || 0));
                                         return (
                                             <div key={vet.id} className={styles.extractItem}>
                                                 <div className={styles.extractInfo}>
@@ -898,7 +917,7 @@ export default function OwnerDashboard() {
                                         let val = exam.price || 0;
                                         if (exam.discount_type === 'percent') val -= val * ((exam.discount_percent || 0) / 100);
                                         else val -= (exam.discount_fixed || 0);
-                                        const finalVal = Math.max(0, val);
+                                        const finalVal = Math.max(0, val - (paidMap[exam.id] || 0));
                                         return (
                                             <div key={exam.id} className={styles.extractItem}>
                                                 <div className={styles.extractInfo}>
@@ -937,7 +956,7 @@ export default function OwnerDashboard() {
                                             </div>
                                             <div className={styles.extractActions}>
                                                 <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
-                                                    {formatCurrency(adm.total_amount)}
+                                                    {formatCurrency(Math.max(0, (adm.total_amount || 0) - (paidMap[adm.id] || 0)))}
                                                 </span>
                                                 <button
                                                     className={styles.confirmPayBtn}
@@ -946,7 +965,7 @@ export default function OwnerDashboard() {
                                                         recordId: adm.id,
                                                         tableName: 'hospital_admissions',
                                                         title: `Internação`,
-                                                        baseAmount: adm.total_amount
+                                                        baseAmount: Math.max(0, (adm.total_amount || 0) - (paidMap[adm.id] || 0))
                                                     })}
                                                 >
                                                     💰 Confirmar Pago
@@ -965,7 +984,7 @@ export default function OwnerDashboard() {
                                             </div>
                                             <div className={styles.extractActions}>
                                                 <span className={styles.extractAmount} style={{ color: '#f59e0b' }}>
-                                                    {formatCurrency(Number(pkg.total_price || 0) - Number(pkg.total_paid || 0))}
+                                                    {formatCurrency(Math.max(0, Number(pkg.total_price || 0) - (paidMap[pkg.id] || 0)))}
                                                 </span>
                                                 <button
                                                     className={styles.confirmPayBtn}
@@ -974,7 +993,7 @@ export default function OwnerDashboard() {
                                                         recordId: pkg.id,
                                                         tableName: 'customer_packages',
                                                         title: `Pacote do ${pkg.pets?.name || 'Pet'} (${pkg.package_id?.name || 'Pacote'})`,
-                                                        baseAmount: Number(pkg.total_price || 0) - Number(pkg.total_paid || 0)
+                                                        baseAmount: Math.max(0, Number(pkg.total_price || 0) - (paidMap[pkg.id] || 0))
                                                     })}
                                                 >
                                                     💰 Confirmar Pago

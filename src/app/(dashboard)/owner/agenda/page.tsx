@@ -121,6 +121,8 @@ function AgendaContent() {
     // Data State
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [blocks, setBlocks] = useState<ScheduleBlock[]>([])
+    const [paidMap, setPaidMap] = useState<Record<string, number>>({})
+    const [planFeatures, setPlanFeatures] = useState<string[]>([])
     const [pets, setPets] = useState<Pet[]>([])
     const [services, setServices] = useState<Service[]>([])
     const [categories, setCategories] = useState<ServiceCategory[]>([])
@@ -246,6 +248,13 @@ function AgendaContent() {
                 : Promise.resolve({ data: null, error: null })
 
             const blocksPromise = supabase.from('schedule_blocks').select('*').eq('org_id', profile.org_id).lt('start_at', endDateStr).gt('end_at', startDateStr)
+            
+            const txsPromise = supabase
+                .from('financial_transactions')
+                .select('reference_id, amount')
+                .eq('org_id', profile.org_id)
+                .eq('type', 'income')
+                .not('reference_id', 'is', null)
 
             const apptsPromise = supabase.from('appointments').select(`
                     id, pet_id, service_id, scheduled_at, status, checklist, notes,
@@ -257,8 +266,8 @@ function AgendaContent() {
                 `).eq('org_id', profile.org_id).or(`and(scheduled_at.gte.${startDateStr},scheduled_at.lte.${endDateStr}),and(check_in_date.lte.${endDayStr},check_out_date.gte.${startDayStr})`).neq('status', 'cancelled')
 
             // Aguardar todas de uma vez
-            const [vetsRes, petsRes, servicesRes, blocksRes, apptsRes] = await Promise.all([
-                vetsPromise, petsPromise, servicesPromise, blocksPromise, apptsPromise
+            const [vetsRes, petsRes, servicesRes, blocksRes, apptsRes, txsRes] = await Promise.all([
+                vetsPromise, petsPromise, servicesPromise, blocksPromise, apptsPromise, txsPromise
             ])
 
             // Processar resultados
@@ -288,6 +297,15 @@ function AgendaContent() {
             }
 
             if (blocksRes.data) setBlocks(blocksRes.data)
+
+            // Processar transações para o paidMap
+            const newPaidMap: Record<string, number> = {}
+            if (txsRes.data) {
+                txsRes.data.forEach((t: any) => {
+                    newPaidMap[t.reference_id] = (newPaidMap[t.reference_id] || 0) + Number(t.amount)
+                })
+            }
+            setPaidMap(newPaidMap)
 
             if (apptsRes.error) console.error(apptsRes.error)
             if (apptsRes.data) {
@@ -688,6 +706,7 @@ function AgendaContent() {
                     paymentStatus={appt.payment_status ?? null}
                     paymentMethod={appt.payment_method ?? null}
                     isPackage={appt.is_package || !!appt.package_credit_id}
+                    totalPaid={paidMap[appt.id] || 0}
                     onUpdate={() => fetchData()}
                     compact
                 />

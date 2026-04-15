@@ -71,6 +71,7 @@ export default function BanhoTosaPage() {
     const [showNFModal, setShowNFModal] = useState(false)
     const [checkoutNFData, setCheckoutNFData] = useState<any>(null)
     const [nfMap, setNfMap] = useState<Record<string, any>>({})
+    const [paidMap, setPaidMap] = useState<Record<string, number>>({})
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
 
     const fetchBanhoTosaData = useCallback(async (isBackground = false) => {
@@ -102,31 +103,54 @@ export default function BanhoTosaPage() {
                 ? ['pending', 'confirmed', 'in_progress']
                 : ['done', 'completed']
 
-            // Fetch Appointments
-            const { data: appts, error } = await supabase
-                .from('appointments')
-                .select(`
-                    id, pet_id, service_id, scheduled_at, status, notes,
-                    calculated_price, checklist,
-                    final_price, discount_percent, discount_type, discount, payment_status, payment_method,
-                    actual_check_in, actual_check_out,
-                    is_package, package_credit_id,
-                    pets ( 
-                        name, species, breed, 
-                        customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) 
-                    ),
-                    services!inner ( 
-                        name, 
-                        base_price,
-                        service_categories!inner ( name, color, icon )
-                    )
-                `)
-                .eq('org_id', profile.org_id)
-                .eq('services.service_categories.name', 'Banho e Tosa')
-                .gte('scheduled_at', startISO)
-                .lte('scheduled_at', endISO)
-                .in('status', statusFilter)
                 .order('scheduled_at', { ascending: viewMode === 'active' })
+
+            // Fetch transactions to calculate balances
+            const txsPromise = supabase
+                .from('financial_transactions')
+                .select('reference_id, amount')
+                .eq('org_id', profile.org_id)
+                .eq('type', 'income')
+                .not('reference_id', 'is', null)
+
+            const [apptsRes, txsRes] = await Promise.all([
+                supabase
+                    .from('appointments')
+                    .select(`
+                        id, pet_id, service_id, scheduled_at, status, notes,
+                        calculated_price, checklist,
+                        final_price, discount_percent, discount_type, discount, payment_status, payment_method,
+                        actual_check_in, actual_check_out,
+                        is_package, package_credit_id,
+                        pets ( 
+                            name, species, breed, 
+                            customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) 
+                        ),
+                        services!inner ( 
+                            name, 
+                            base_price,
+                            service_categories!inner ( name, color, icon )
+                        )
+                    `)
+                    .eq('org_id', profile.org_id)
+                    .eq('services.service_categories.name', 'Banho e Tosa')
+                    .gte('scheduled_at', startISO)
+                    .lte('scheduled_at', endISO)
+                    .in('status', statusFilter)
+                    .order('scheduled_at', { ascending: viewMode === 'active' }),
+                txsPromise
+            ])
+
+            const { data: appts, error } = apptsRes
+            const { data: txs } = txsRes
+
+            if (txs) {
+                const newPaidMap: Record<string, number> = {}
+                txs.forEach((t: any) => {
+                    newPaidMap[t.reference_id] = (newPaidMap[t.reference_id] || 0) + Number(t.amount)
+                })
+                setPaidMap(newPaidMap)
+            }
 
             // Load pets and services if not loaded yet
             if (pets.length === 0) {
@@ -478,12 +502,13 @@ export default function BanhoTosaPage() {
                                                 discountType={appt.discount_type}
                                                 discountFixed={appt.discount}
                                                 paymentStatus={appt.payment_status}
-                                                paymentMethod={appt.payment_method}
-                                                isPackage={appt.is_package}
-                                                onUpdate={() => {
+                                                paymentMethod={(appt as any).payment_method}
+                                                isPackage={appt.is_package || !!appt.package_credit_id}
+                                                totalPaid={paidMap[appt.id] || 0}
+                                                onUpdate={(newStatus) => {
                                                     fetchBanhoTosaData(true)
-                                                    // Se acabou de pagar, sugerir emitir nota
-                                                    if (appt.payment_status === 'paid') {
+                                                    // Se acabou de pagar COMPLETAMENTE, sugerir emitir nota
+                                                    if (newStatus === 'paid') {
                                                         setCheckoutNFData({
                                                             id: appt.id,
                                                             petName: appt.pets?.name,

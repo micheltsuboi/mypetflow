@@ -17,7 +17,8 @@ interface PaymentControlsProps {
     paymentStatus: string | null
     paymentMethod: string | null
     isPackage?: boolean | null
-    onUpdate?: () => void
+    totalPaid?: number | null
+    onUpdate?: (newStatus?: string) => void
     onPaymentAuthorized?: (method: string) => void
     compact?: boolean
 }
@@ -40,6 +41,7 @@ export default function PaymentControls({
     paymentStatus,
     paymentMethod,
     isPackage,
+    totalPaid,
     onUpdate,
     onPaymentAuthorized,
     compact = false
@@ -62,6 +64,7 @@ export default function PaymentControls({
     const isPaid = paymentStatus === 'paid'
     const basePrice = fetchedPackagePrice ?? calculatedPrice ?? 0
     const displayPrice = fetchedPackagePrice ?? finalPrice ?? calculatedPrice ?? 0
+    const remainingBalance = Math.max(0, displayPrice - (totalPaid || 0))
 
     // Detectar agendamento de pacote via prop explícita ou método de pagamento
     const isPackageAppointment = isPackage === true || paymentMethod === 'credit_package'
@@ -103,7 +106,7 @@ export default function PaymentControls({
         setLoading(true)
         try {
             await updatePaymentStatus(appointmentId, 'paid', method)
-            onUpdate?.()
+            onUpdate?.('paid')
             onPaymentAuthorized?.(method)
             setShowModal(false)
         } finally {
@@ -115,7 +118,7 @@ export default function PaymentControls({
         setLoading(true)
         try {
             await updatePaymentStatus(appointmentId, 'pending')
-            onUpdate?.()
+            onUpdate?.('pending')
             // Keep modal open to show change
         } finally {
             setLoading(false)
@@ -130,7 +133,7 @@ export default function PaymentControls({
         setLoading(true)
         try {
             await applyDiscount(appointmentId, value, discountTypeState, basePrice)
-            onUpdate?.()
+            onUpdate?.(paymentStatus || undefined)
         } finally {
             setLoading(false)
         }
@@ -328,7 +331,7 @@ export default function PaymentControls({
                                 refId={appointmentId}
                                 refType="appointment"
                                 totalDue={displayPrice}
-                                onStatusChange={() => onUpdate?.()}
+                                onStatusChange={(newStatus) => onUpdate?.(newStatus)}
                             />
                         </div>
                     )}
@@ -418,7 +421,7 @@ export default function PaymentControls({
                             fontWeight: 700,
                             color: isPaid ? '#10b981' : '#f59e0b'
                         }}>
-                            R$ {Number(displayPrice || 0).toFixed(2)}
+                            R$ {Number((paymentStatus === 'partial' ? remainingBalance : displayPrice) || 0).toFixed(2)}
                         </span>
                         <span style={{
                             width: '1px',

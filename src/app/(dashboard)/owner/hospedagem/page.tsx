@@ -66,6 +66,7 @@ export default function HospedagemPage() {
     const [showNFModal, setShowNFModal] = useState(false)
     const [nfAppointment, setNfAppointment] = useState<Appointment | null>(null)
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string, ref?: string }>>({})
+    const [paidMap, setPaidMap] = useState<Record<string, number>>({})
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
 
     const handleSendWhatsApp = async (referencia: string) => {
@@ -144,7 +145,25 @@ export default function HospedagemPage() {
                 .in('status', statusFilter)
                 .order('check_in_date', { ascending: viewMode === 'active' })
 
-            const { data: appts, error } = await query
+            // Fetch transactions to calculate balances
+            const txsPromise = supabase
+                .from('financial_transactions')
+                .select('reference_id, amount')
+                .eq('org_id', profile.org_id)
+                .eq('type', 'income')
+                .not('reference_id', 'is', null)
+
+            const [apptsRes, txsRes] = await Promise.all([query, txsPromise])
+            const { data: appts, error } = apptsRes
+            const { data: txs } = txsRes
+
+            if (txs) {
+                const newPaidMap: Record<string, number> = {}
+                txs.forEach((t: any) => {
+                    newPaidMap[t.reference_id] = (newPaidMap[t.reference_id] || 0) + Number(t.amount)
+                })
+                setPaidMap(newPaidMap)
+            }
 
             if (error) {
                 console.error('Error fetching hospedagem:', error)
@@ -536,10 +555,11 @@ export default function HospedagemPage() {
                                                     paymentStatus={appt.payment_status}
                                                     paymentMethod={appt.payment_method}
                                                     isPackage={appt.is_package || !!appt.package_credit_id}
-                                                    onUpdate={() => {
+                                                    totalPaid={paidMap[appt.id] || 0}
+                                                    onUpdate={(newStatus) => {
                                                         fetchHospedagemData(true)
-                                                        // Se acabou de pagar, abrir modal de NF
-                                                        if (appt.payment_status === 'paid') {
+                                                        // Se acabou de pagar COMPLETAMENTE, abrir modal de NF
+                                                        if (newStatus === 'paid') {
                                                             setNfAppointment(appt)
                                                             setShowNFModal(true)
                                                         }
