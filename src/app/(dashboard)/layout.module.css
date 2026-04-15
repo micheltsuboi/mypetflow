@@ -200,7 +200,7 @@
     display: none;
     background: none;
     border: none;
-    color: white;
+    color: var(--text-primary);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0.5rem;
@@ -216,7 +216,7 @@
     display: none;
     background: none;
     border: none;
-    color: white;
+    color: var(--text-primary);
     font-size: 1.5rem;
     cursor: pointer;
 }
@@ -309,8 +309,8 @@
         left: -100%;
         width: 280px;
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
-        background: rgba(13, 27, 42, 0.98);
+        box-shadow: var(--shadow-xl);
+        background: var(--bg-primary);
         backdrop-filter: blur(20px);
         padding: 1.5rem 1rem;
     }
