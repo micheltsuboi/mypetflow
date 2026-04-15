@@ -9,6 +9,7 @@ export const MODULES_LIST = [
     { id: 'pets', label: 'Pets', icon: '🐶', description: 'Fichas e avaliações' },
     { id: 'servicos', label: 'Serviços', icon: '✂️', description: 'Catálogo e preços' },
     { id: 'pacotes', label: 'Pacotes', icon: '📦', description: 'Venda de pacotes' },
+    { id: 'mensalidades', label: 'Mensalidades', icon: '🔄', description: 'Assinaturas recorrentes mensais' },
     { id: 'petshop', label: 'Petshop', icon: '🛍️', description: 'Ponto de venda (PDV)' },
     { id: 'clinica_vet', label: 'Clínica Vet', icon: '🩺', description: 'Consultas e exames' },
     { id: 'hospital', label: 'Hospital Vet', icon: '🏥', description: 'Internamento e leitos' },
