@@ -22,24 +22,6 @@ const DAYS_FULL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 
 
 const initialState = { message: '', success: false }
 
-function computePreviewSessions(daysOfWeek: number[], time: string): string[] {
-    const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    const sessions: string[] = []
-
-    for (const dow of daysOfWeek) {
-        let d = new Date(monthStart)
-        while (d.getDay() !== dow) d.setDate(d.getDate() + 1)
-        while (d <= monthEnd) {
-            sessions.push(`${DAYS_FULL[dow]}, ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${time || '09:00'}`)
-            d.setDate(d.getDate() + 7)
-        }
-    }
-
-    return sessions.sort((a, b) => a.localeCompare(b))
-}
-
 export default function MensalidadesPage() {
     const [plans, setPlans] = useState<any[]>([])
     const [subscriptions, setSubscriptions] = useState<any[]>([])
@@ -51,8 +33,7 @@ export default function MensalidadesPage() {
     const [showPlanModal, setShowPlanModal] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
     const [selectedPlan, setSelectedPlan] = useState<any>(null)
-    const [selectedDays, setSelectedDays] = useState<number[]>([])
-    const [previewTime, setPreviewTime] = useState('09:00')
+    const [selectedServices, setSelectedServices] = useState<string[]>([])
     const [showPaymentId, setShowPaymentId] = useState<string | null>(null)
     const [showSessionsId, setShowSessionsId] = useState<string | null>(null)
     const [subSessions, setSubSessions] = useState<any[]>([])
@@ -94,16 +75,14 @@ export default function MensalidadesPage() {
     const openCreate = () => {
         setSelectedPlan(null)
         setIsEditing(false)
-        setSelectedDays([])
-        setPreviewTime('09:00')
+        setSelectedServices([])
         setShowPlanModal(true)
     }
 
     const openEdit = (plan: any) => {
         setSelectedPlan(plan)
         setIsEditing(true)
-        setSelectedDays(plan.subscription_days_of_week || [])
-        setPreviewTime(plan.subscription_time || '09:00')
+        setSelectedServices(plan.package_items?.map((i: any) => i.service_id) || [])
         setShowPlanModal(true)
     }
 
@@ -132,12 +111,6 @@ export default function MensalidadesPage() {
         else alert(res.message)
     }
 
-    const toggleDay = (day: number) => {
-        setSelectedDays(prev =>
-            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day].sort()
-        )
-    }
-
     const openSessions = async (subId: string) => {
         setShowSessionsId(subId)
         const { data } = await supabase
@@ -147,8 +120,6 @@ export default function MensalidadesPage() {
             .order('scheduled_at', { ascending: true })
         setSubSessions(data || [])
     }
-
-    const previewSessions = computePreviewSessions(selectedDays, previewTime)
 
     return (
         <PlanGuard requiredModule="mensalidades">
@@ -214,16 +185,6 @@ export default function MensalidadesPage() {
                                     <div className={styles.planMetaItem}>
                                         📅 Vencimento: Dia {plan.billing_day || 10} de cada mês
                                     </div>
-                                    {plan.subscription_days_of_week && plan.subscription_days_of_week.length > 0 && (
-                                        <div className={styles.planMetaItem}>
-                                            🗓️ Dias padrão: {plan.subscription_days_of_week.map((d: number) => DAYS[d]).join(', ')}
-                                        </div>
-                                    )}
-                                    {plan.subscription_time && (
-                                        <div className={styles.planMetaItem}>
-                                            ⏰ Horário padrão: {plan.subscription_time}
-                                        </div>
-                                    )}
                                     {plan.package_items && plan.package_items.length > 0 && (
                                         <div className={styles.planMetaItem}>
                                             ✂️ {plan.package_items.map((i: any) => i.services?.name).filter(Boolean).join(', ')}
@@ -309,8 +270,8 @@ export default function MensalidadesPage() {
 
                             <form action={isEditing ? updateAction : createAction} id="planForm">
                                 {isEditing && <input type="hidden" name="id" value={selectedPlan?.id} />}
-                                {selectedDays.map(d => (
-                                    <input key={d} type="hidden" name="default_days_of_week" value={d} />
+                                {selectedServices.map(sid => (
+                                    <input key={sid} type="hidden" name="service_ids" value={sid} />
                                 ))}
 
                                 <div className={styles.formGrid}>
@@ -357,46 +318,25 @@ export default function MensalidadesPage() {
                                         />
                                     </div>
                                     <div className={`${styles.inputGroup} ${styles.fullWidth}`}>
-                                        <label className={styles.label}>Dias da Semana Padrão</label>
-                                        <div className={styles.daysGrid}>
-                                            {DAYS.map((d, i) => (
+                                        <label className={styles.label}>Serviços Inclusos *</label>
+                                        <div className={styles.daysGrid} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                            {services.map(s => (
                                                 <button
-                                                    key={i}
+                                                    key={s.id}
                                                     type="button"
-                                                    className={`${styles.dayChip} ${selectedDays.includes(i) ? styles.selected : ''}`}
-                                                    onClick={() => toggleDay(i)}
+                                                    className={`${styles.dayChip} ${selectedServices.includes(s.id) ? styles.selected : ''}`}
+                                                    onClick={() => {
+                                                        setSelectedServices(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])
+                                                    }}
+                                                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: selectedServices.includes(s.id) ? 'var(--primary)' : 'var(--card-bg)', color: selectedServices.includes(s.id) ? '#fff' : 'inherit', cursor: 'pointer' }}
                                                 >
-                                                    {d}
+                                                    {s.name}
                                                 </button>
                                             ))}
                                         </div>
-                                        <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                                            Dias padrão sugeridos ao contratar. O tutor pode escolher outros dias.
-                                        </small>
-                                    </div>
-                                    <div className={styles.inputGroup}>
-                                        <label className={styles.label}>Horário Padrão</label>
-                                        <input
-                                            name="subscription_time"
-                                            type="time"
-                                            className={styles.input}
-                                            defaultValue={selectedPlan?.subscription_time || '09:00'}
-                                            onChange={e => setPreviewTime(e.target.value)}
-                                        />
+                                        {selectedServices.length === 0 && <small style={{ color: '#ef4444', marginTop: '0.5rem', display: 'block' }}>Selecione pelo menos um serviço.</small>}
                                     </div>
                                 </div>
-
-                                {/* Session Preview */}
-                                {selectedDays.length > 0 && (
-                                    <div className={styles.sessionPreview}>
-                                        <div className={styles.sessionPreviewTitle}>
-                                            📅 Preview de sessões do mês atual ({previewSessions.length} sessões)
-                                        </div>
-                                        {previewSessions.map((s, i) => (
-                                            <div key={i} className={styles.sessionPreviewItem}>• {s}</div>
-                                        ))}
-                                    </div>
-                                )}
 
                                 <div className={styles.modalActions}>
                                     {isEditing && (

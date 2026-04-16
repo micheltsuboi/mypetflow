@@ -22,12 +22,10 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
     const billing_day = parseInt(formData.get('billing_day') as string) || 10
-    const subscription_time = formData.get('subscription_time') as string
+    const rawServices = formData.getAll('service_ids')
+    const service_ids = rawServices.map(s => s as string).filter(Boolean)
 
-    const rawDays = formData.getAll('default_days_of_week')
-    const default_days = rawDays.map(d => parseInt(d as string)).filter(d => !isNaN(d))
-
-    const { error } = await supabase
+    const { data: package_data, error } = await supabase
         .from('service_packages')
         .insert({
             org_id: profile.org_id,
@@ -36,14 +34,24 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
             total_price,
             is_subscription: true,
             billing_day,
-            subscription_time,
-            subscription_days_of_week: default_days.length > 0 ? default_days : null,
             validity_type: 'monthly',
             validity_weeks: 4,
             auto_renew: true
         })
+        .select()
+        .single()
 
-    if (error) return { message: error.message, success: false }
+    if (error || !package_data) return { message: error?.message || 'Erro ao criar plano.', success: false }
+
+    if (service_ids.length > 0) {
+        const items = service_ids.map(sid => ({
+            package_id: package_data.id,
+            service_id: sid,
+            quantity: 1
+        }))
+        const { error: itemsError } = await supabase.from('package_items').insert(items)
+        if (itemsError) return { message: itemsError.message, success: false }
+    }
 
     revalidatePath('/owner/mensalidades')
     return { message: 'Plano de mensalidade criado!', success: true }
@@ -59,10 +67,8 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
     const billing_day = parseInt(formData.get('billing_day') as string) || 10
-    const subscription_time = formData.get('subscription_time') as string
-
-    const rawDays = formData.getAll('default_days_of_week')
-    const default_days = rawDays.map(d => parseInt(d as string)).filter(d => !isNaN(d))
+    const rawServices = formData.getAll('service_ids')
+    const service_ids = rawServices.map(s => s as string).filter(Boolean)
 
     const { error } = await supabase
         .from('service_packages')
@@ -71,12 +77,23 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
             description,
             total_price,
             billing_day,
-            subscription_time,
-            subscription_days_of_week: default_days.length > 0 ? default_days : null,
         })
         .eq('id', id)
 
     if (error) return { message: error.message, success: false }
+
+    // Atualiza links de serviços
+    await supabase.from('package_items').delete().eq('package_id', id)
+    
+    if (service_ids.length > 0) {
+        const items = service_ids.map(sid => ({
+            package_id: id,
+            service_id: sid,
+            quantity: 1
+        }))
+        const { error: itemsError } = await supabase.from('package_items').insert(items)
+        if (itemsError) return { message: itemsError.message, success: false }
+    }
 
     revalidatePath('/owner/mensalidades')
     return { message: 'Plano atualizado!', success: true }
