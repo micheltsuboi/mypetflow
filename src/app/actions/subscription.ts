@@ -34,8 +34,9 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
             total_price,
             is_subscription: true,
             billing_day,
-            validity_type: 'monthly',
+            validity_type: 'weekly',
             validity_weeks: 4,
+            validity_days: 28,
             auto_renew: true
         })
         .select()
@@ -77,6 +78,9 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
             description,
             total_price,
             billing_day,
+            validity_type: 'weekly',
+            validity_weeks: 4,
+            validity_days: 28
         })
         .eq('id', id)
 
@@ -139,6 +143,14 @@ export async function getSubscriptionPlans() {
 
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
     if (!profile?.org_id) return []
+
+    // AUTO-FIX: Corrige planos antigos que possam ter 'monthly' (que viola a restrição atual do banco)
+    await supabase
+        .from('service_packages')
+        .update({ validity_type: 'weekly', validity_weeks: 4, validity_days: 28 })
+        .eq('org_id', profile.org_id)
+        .eq('is_subscription', true)
+        .eq('validity_type', 'monthly')
 
     const { data, error } = await supabase
         .from('service_packages')
