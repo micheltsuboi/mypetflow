@@ -45,7 +45,7 @@ import {
 import { 
     getPetSubscriptions, 
     subscribePetToMensalidade, 
-    cancelSubscription,
+    cancelSubscription as cancelSubAction,
     pauseSubscription,
     updateSubscriptionContract,
     getSubscriptionPlans,
@@ -1612,7 +1612,7 @@ function PetsContent() {
                                                                                         </div>
                                                                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: s.status === 'completed' ? '#dcfce7' : '#fef3c7', color: s.status === 'completed' ? '#166534' : '#92400e' }}>
-                                                                                                {s.status.toUpperCase()}
+                                                                                                {s.status === 'scheduled' ? 'AGENDADO' : s.status === 'completed' ? 'CONCLUÍDO' : s.status.toUpperCase()}
                                                                                             </div>
                                                                                             {s.status !== 'completed' && (
                                                                                                 <button 
