@@ -167,6 +167,3 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
         </div>
     )
 }
-        </div>
-    )
-}
