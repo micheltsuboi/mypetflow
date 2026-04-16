@@ -21,7 +21,9 @@ export default function IntegracoesPage() {
         serviceStatus: true,
         reminder24h: true,
         reminderSameDay: false,
-        vetAlerts: true
+        vetAlerts: true,
+        vaccineReminder: true,
+        subscriptionReminder: true
     })
     const router = useRouter()
 
@@ -68,6 +70,8 @@ export default function IntegracoesPage() {
         formData.append('notify_reminder_24h', String(notifications.reminder24h))
         formData.append('notify_reminder_same_day', String(notifications.reminderSameDay))
         formData.append('notify_vet_alerts', String(notifications.vetAlerts))
+        formData.append('notify_vaccine_reminder', String(notifications.vaccineReminder))
+        formData.append('notify_subscription_reminder', String(notifications.subscriptionReminder))
 
         const res = await saveWhatsAppConfig(formData)
         
@@ -245,7 +249,25 @@ export default function IntegracoesPage() {
                                     checked={notifications.vetAlerts}
                                     onChange={(e) => setNotifications({...notifications, vetAlerts: e.target.checked})}
                                 />
-                                <span>Alertas Veterinários (Vacinas, Vermífugos e Retornos)</span>
+                                <span>Alertas Veterinários (Vermífugos e Retornos)</span>
+                            </label>
+
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.vaccineReminder}
+                                    onChange={(e) => setNotifications({...notifications, vaccineReminder: e.target.checked})}
+                                />
+                                <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>Lembretes de Vacinação (Automático)</span>
+                            </label>
+
+                            <label className={styles.checkboxOption}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={notifications.subscriptionReminder}
+                                    onChange={(e) => setNotifications({...notifications, subscriptionReminder: e.target.checked})}
+                                />
+                                <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>Lembretes de Mensalidade / Plano (Automático)</span>
                             </label>
                         </div>
                     </div>

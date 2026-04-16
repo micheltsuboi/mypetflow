@@ -30,7 +30,7 @@ export async function getWhatsAppConfig() {
     const adminSupabase = await createAdminClient()
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
-      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token, logo_url, notify_appointment_confirmed, notify_service_status, notify_reminder_24h, notify_reminder_same_day, notify_vet_alerts')
+      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token, logo_url, notify_appointment_confirmed, notify_service_status, notify_reminder_24h, notify_reminder_same_day, notify_vet_alerts, notify_vaccine_reminder, notify_subscription_reminder')
       .eq('id', profile.org_id)
       .single()
 
@@ -52,7 +52,9 @@ export async function getWhatsAppConfig() {
           serviceStatus: org.notify_service_status ?? true,
           reminder24h: org.notify_reminder_24h ?? true,
           reminderSameDay: org.notify_reminder_same_day ?? false,
-          vetAlerts: org.notify_vet_alerts ?? true
+          vetAlerts: org.notify_vet_alerts ?? true,
+          vaccineReminder: org.notify_vaccine_reminder ?? true,
+          subscriptionReminder: org.notify_subscription_reminder ?? true
         }
       }
     }
@@ -96,6 +98,8 @@ export async function saveWhatsAppConfig(formData: FormData) {
     const notify_reminder_24h = formData.get('notify_reminder_24h') === 'true'
     const notify_reminder_same_day = formData.get('notify_reminder_same_day') === 'true'
     const notify_vet_alerts = formData.get('notify_vet_alerts') === 'true'
+    const notify_vaccine_reminder = formData.get('notify_vaccine_reminder') === 'true'
+    const notify_subscription_reminder = formData.get('notify_subscription_reminder') === 'true'
 
     // Validate
     if (integrationType === 'custom') {
@@ -113,7 +117,9 @@ export async function saveWhatsAppConfig(formData: FormData) {
       notify_service_status,
       notify_reminder_24h,
       notify_reminder_same_day,
-      notify_vet_alerts
+      notify_vet_alerts,
+      notify_vaccine_reminder,
+      notify_subscription_reminder
     }
 
     if (integrationType === 'custom') {
