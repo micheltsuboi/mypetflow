@@ -142,7 +142,7 @@ export default function PackagesPage() {
             const [packagesRes, servicesRes, cpRes] = await Promise.all([
                 supabase.from('service_packages').select(`
                     *, package_items(id, service_id, quantity, services(id, name, category, base_price))
-                `).eq('org_id', profile.org_id).order('created_at', { ascending: false }),
+                `).eq('org_id', profile.org_id).eq('is_subscription', false).order('created_at', { ascending: false }),
                 supabase.from('services').select('id, name, category, base_price')
                     .eq('org_id', profile.org_id).eq('is_active', true).order('name'),
                 supabase.from('customer_packages').select(`
