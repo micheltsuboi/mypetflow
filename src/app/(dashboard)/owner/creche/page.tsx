@@ -25,6 +25,7 @@ interface Appointment {
     actual_check_out: string | null
     is_package?: boolean
     package_credit_id?: string
+    is_subscription?: boolean // Novo campo detectado via join
     session_number?: number
     total_sessions?: number
     pets: {
@@ -127,6 +128,14 @@ export default function CrechePage() {
                     calculated_price, final_price, discount_percent, discount_type, discount, payment_status, payment_method,
                     actual_check_in, actual_check_out,
                     is_package, package_credit_id,
+                    package_sessions (
+                        id,
+                        session_number,
+                        customer_packages (
+                            id,
+                            is_subscription
+                        )
+                    ),
                     pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
                     services!inner ( 
                         name, 
@@ -162,39 +171,59 @@ export default function CrechePage() {
             } else if (appts) {
                 const apptsTyped = appts as unknown as Appointment[]
 
-                // Buscar info de sessão para agendamentos de pacote
-                const packageApptIds = apptsTyped.filter(a => a.is_package).map(a => a.id)
-                if (packageApptIds.length > 0) {
-                    const { data: sessionData } = await supabase
-                        .from('package_sessions')
-                        .select('appointment_id, session_number, customer_package_id')
-                        .in('appointment_id', packageApptIds)
-                    
-                    if (sessionData && sessionData.length > 0) {
-                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                // Extrair info de sessão e assinatura de forma mais eficiente
+                const apptsWithSession = await Promise.all(apptsTyped.map(async (a: any) => {
+                    const sessionInfo = a.package_sessions?.[0]
+                    const isSubscription = sessionInfo?.customer_packages?.is_subscription || false
+                    let sessionNumber = sessionInfo?.session_number || null
+                    let totalSessions = null
+
+                    if (isSubscription && sessionInfo?.customer_packages?.id) {
+                        // Para mensalidades, o total é o número de sessões no mês
+                        const date = new Date(a.scheduled_at)
+                        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).toISOString()
+                        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59).toISOString()
+
+                        const { count } = await supabase
+                            .from('package_sessions')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('customer_package_id', sessionInfo.customer_packages.id)
+                            .gte('scheduled_at', monthStart)
+                            .lte('scheduled_at', monthEnd)
+                        
+                        totalSessions = count || 0
+
+                        // Recalcular o session_number dentro do mês
+                        const { count: currentCount } = await supabase
+                            .from('package_sessions')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('customer_package_id', sessionInfo.customer_packages.id)
+                            .gte('scheduled_at', monthStart)
+                            .lte('scheduled_at', a.scheduled_at)
+                        
+                        sessionNumber = currentCount || 1
+                    } else if (a.is_package && sessionInfo?.customer_packages?.id) {
+                        // Para pacotes normais, busca o total de créditos
                         const { data: creditData } = await supabase
                             .from('package_credits')
-                            .select('customer_package_id, total_quantity')
-                            .in('customer_package_id', cpIds)
+                            .select('total_quantity')
+                            .eq('customer_package_id', sessionInfo.customer_packages.id)
+                            .order('total_quantity', { ascending: false })
+                            .limit(1)
+                            .single()
                         
-                        const totalMap: Record<string, number> = {}
-                        creditData?.forEach((c: any) => {
-                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
-                                totalMap[c.customer_package_id] = c.total_quantity
-                            }
-                        })
-
-                        apptsTyped.forEach(a => {
-                            const sess = sessionData.find((s: any) => s.appointment_id === a.id)
-                            if (sess) {
-                                a.session_number = sess.session_number
-                                a.total_sessions = totalMap[sess.customer_package_id]
-                            }
-                        })
+                        totalSessions = creditData?.total_quantity || 0
                     }
-                }
 
-                setAppointments(apptsTyped)
+                    return {
+                        ...a,
+                        is_subscription: isSubscription,
+                        session_number: sessionNumber,
+                        total_sessions: totalSessions
+                    }
+                }))
+
+                setAppointments(apptsWithSession)
 
                 // Buscar Notas Fiscais vinculadas
                 const apptIds = apptsTyped.map(a => a.id)
@@ -491,8 +520,8 @@ export default function CrechePage() {
                                                 <span>{appt.services?.name || 'Creche'}</span>
                                                 {(appt.is_package || appt.package_credit_id) && (
                                                     <span style={{
-                                                        background: 'rgba(139,92,246,0.15)',
-                                                        color: '#8b5cf6',
+                                                        background: appt.is_subscription ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                                                        color: appt.is_subscription ? '#10b981' : '#8b5cf6',
                                                         borderRadius: '6px',
                                                         padding: '1px 6px',
                                                         fontSize: '0.7rem',
@@ -501,8 +530,8 @@ export default function CrechePage() {
                                                         whiteSpace: 'nowrap'
                                                     }}>
                                                         {appt.session_number && appt.total_sessions
-                                                            ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
-                                                            : '📦 PACOTE'}
+                                                            ? `${appt.is_subscription ? '🔄' : '📦'} Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                                            : `${appt.is_subscription ? '🔄 MENSALIDADE' : '📦 PACOTE'}`}
                                                     </span>
                                                 )}
                                             </div>
@@ -515,7 +544,8 @@ export default function CrechePage() {
                                                 discountFixed={appt.discount}
                                                 paymentStatus={appt.payment_status}
                                                 paymentMethod={(appt as any).payment_method}
-                                                isPackage={appt.is_package || !!appt.package_credit_id}
+                                                isPackage={appt.is_subscription || appt.is_package || !!appt.package_credit_id}
+                                                isSubscription={appt.is_subscription}
                                                 totalPaid={paidMap[appt.id] || 0}
                                                 onUpdate={(newStatus) => {
                                                     fetchCrecheData(true)
@@ -528,16 +558,16 @@ export default function CrechePage() {
                                             compact
                                         />
                                             <span style={{ fontSize: '0.8rem', color: '#60a5fa', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                🕐 Agendado: {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                🕐 Agendado: {new Date(new Date(appt.scheduled_at).getTime() + (appt.is_subscription ? 3 * 60 * 60 * 1000 : 0)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                             {appt.actual_check_in && (
                                                 <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                    Entrada: {new Date(appt.actual_check_in).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    Entrada: {new Date(new Date(appt.actual_check_in).getTime() + (appt.is_subscription ? 3 * 60 * 60 * 1000 : 0)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             )}
                                             {appt.actual_check_out && (
                                                 <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                                                    Saída: {new Date(appt.actual_check_out).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                    Saída: {new Date(new Date(appt.actual_check_out).getTime() + (appt.is_subscription ? 3 * 60 * 60 * 1000 : 0)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             )}
                                             {appt.payment_status === 'paid' && (

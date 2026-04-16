@@ -35,6 +35,7 @@ interface Appointment {
     payment_method: string | null
     is_package?: boolean
     package_credit_id?: string
+    is_subscription?: boolean // Novo campo detectado via join
     session_number?: number
     total_sessions?: number
     pets: {
@@ -133,6 +134,14 @@ export default function HospedagemPage() {
                     check_in_date, check_out_date,
                     actual_check_in, actual_check_out,
                     is_package, package_credit_id,
+                    package_sessions (
+                        id,
+                        session_number,
+                        customer_packages (
+                            id,
+                            is_subscription
+                        )
+                    ),
                     pets ( name, species, breed, customers ( id, name, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ),
                     services!inner ( 
                         name, 
@@ -170,40 +179,59 @@ export default function HospedagemPage() {
             } else if (appts) {
                 const apptsTyped = appts as unknown as Appointment[]
 
-                // Buscar info de sessão para agendamentos de pacote
-                const packageApptIds = apptsTyped.filter(a => a.is_package).map(a => a.id)
-                if (packageApptIds.length > 0) {
-                    const { data: sessionData } = await supabase
-                        .from('package_sessions')
-                        .select('appointment_id, session_number, customer_package_id')
-                        .in('appointment_id', packageApptIds)
-                    
-                    if (sessionData && sessionData.length > 0) {
-                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                // Extrair info de sessão e assinatura de forma mais eficiente
+                const apptsWithSession = await Promise.all(apptsTyped.map(async (a: any) => {
+                    const sessionInfo = a.package_sessions?.[0]
+                    const isSubscription = sessionInfo?.customer_packages?.is_subscription || false
+                    let sessionNumber = sessionInfo?.session_number || null
+                    let totalSessions = null
+
+                    if (isSubscription && sessionInfo?.customer_packages?.id) {
+                        // Para mensalidades, o total é o número de sessões no mês
+                        const date = new Date(a.scheduled_at)
+                        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).toISOString()
+                        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59).toISOString()
+
+                        const { count } = await supabase
+                            .from('package_sessions')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('customer_package_id', sessionInfo.customer_packages.id)
+                            .gte('scheduled_at', monthStart)
+                            .lte('scheduled_at', monthEnd)
+                        
+                        totalSessions = count || 0
+
+                        // Recalcular o session_number dentro do mês
+                        const { count: currentCount } = await supabase
+                            .from('package_sessions')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('customer_package_id', sessionInfo.customer_packages.id)
+                            .gte('scheduled_at', monthStart)
+                            .lte('scheduled_at', a.scheduled_at)
+                        
+                        sessionNumber = currentCount || 1
+                    } else if (a.is_package && sessionInfo?.customer_packages?.id) {
+                        // Para pacotes normais, busca o total de créditos
                         const { data: creditData } = await supabase
                             .from('package_credits')
-                            .select('customer_package_id, total_quantity')
-                            .in('customer_package_id', cpIds)
+                            .select('total_quantity')
+                            .eq('customer_package_id', sessionInfo.customer_packages.id)
+                            .order('total_quantity', { ascending: false })
+                            .limit(1)
+                            .single()
                         
-                        const totalMap: Record<string, number> = {}
-                        creditData?.forEach((c: any) => {
-                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
-                                totalMap[c.customer_package_id] = c.total_quantity
-                            }
-                        })
-
-                        apptsTyped.forEach(a => {
-                            const sess = sessionData.find((s: any) => s.appointment_id === a.id)
-                            if (sess) {
-                                a.session_number = sess.session_number
-                                a.total_sessions = totalMap[sess.customer_package_id]
-                            }
-                        })
+                        totalSessions = creditData?.total_quantity || 0
                     }
-                }
 
-                // Client-side filtering for better overlap logic
-                const filtered = apptsTyped.filter((a: any) => {
+                    return {
+                        ...a,
+                        is_subscription: isSubscription,
+                        session_number: sessionNumber,
+                        total_sessions: totalSessions
+                    }
+                }))
+
+                const filtered = apptsWithSession.filter((a: any) => {
                     // Always show if in_progress (currently hosted)
                     if (a.status === 'in_progress' && viewMode === 'active') return true
 
@@ -214,7 +242,7 @@ export default function HospedagemPage() {
                     // Check if the appointment interval [checkIn, checkOut] overlaps with [startISO, endISO]
                     return checkIn <= endISO && checkOut >= startISO
                 })
-                setAppointments(filtered as unknown as Appointment[])
+                setAppointments(filtered as any)
 
                 // Buscar Notas Fiscais vinculadas
                 const apptIds = filtered.map((a: any) => a.id)
@@ -510,7 +538,7 @@ export default function HospedagemPage() {
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                         <span>📅 <strong>Check-in:</strong></span>
                                                         {appt.actual_check_in ? (
-                                                            <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_in).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
+                                                            <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(new Date(appt.actual_check_in).getTime() + (appt.is_subscription ? 3 * 60 * 60 * 1000 : 0)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
                                                         ) : (
                                                             <span>{checkInDate.toLocaleDateString('pt-BR')}</span>
                                                         )}
@@ -518,7 +546,7 @@ export default function HospedagemPage() {
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                         <span>📅 <strong>Check-out:</strong></span>
                                                         {appt.actual_check_out ? (
-                                                            <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(appt.actual_check_out).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
+                                                            <span style={{ color: '#10b981', fontWeight: 600 }}>{new Date(new Date(appt.actual_check_out).getTime() + (appt.is_subscription ? 3 * 60 * 60 * 1000 : 0)).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} ✓</span>
                                                         ) : (
                                                             <span>{checkOutDate ? checkOutDate.toLocaleDateString('pt-BR') : '?'}</span>
                                                         )}
@@ -529,8 +557,8 @@ export default function HospedagemPage() {
                                                     <span>{appt.services?.name} ({days} {days === 1 ? 'dia' : 'dias'})</span>
                                                     {(appt.is_package || appt.package_credit_id) && (
                                                         <span style={{
-                                                            background: 'rgba(139,92,246,0.15)',
-                                                            color: '#8b5cf6',
+                                                            background: appt.is_subscription ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                                                            color: appt.is_subscription ? '#10b981' : '#8b5cf6',
                                                             borderRadius: '6px',
                                                             padding: '1px 6px',
                                                             fontSize: '0.7rem',
@@ -539,8 +567,8 @@ export default function HospedagemPage() {
                                                             whiteSpace: 'nowrap'
                                                         }}>
                                                             {appt.session_number && appt.total_sessions
-                                                                ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
-                                                                : '📦 PACOTE'}
+                                                                ? `${appt.is_subscription ? '🔄' : '📦'} Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                                                : `${appt.is_subscription ? '🔄 MENSALIDADE' : '📦 PACOTE'}`}
                                                         </span>
                                                     )}
                                                 </div>
@@ -554,7 +582,8 @@ export default function HospedagemPage() {
                                                     discountFixed={appt.discount}
                                                     paymentStatus={appt.payment_status}
                                                     paymentMethod={appt.payment_method}
-                                                    isPackage={appt.is_package || !!appt.package_credit_id}
+                                                    isPackage={appt.is_subscription || appt.is_package || !!appt.package_credit_id}
+                                                    isSubscription={appt.is_subscription}
                                                     totalPaid={paidMap[appt.id] || 0}
                                                     onUpdate={(newStatus) => {
                                                         fetchHospedagemData(true)
