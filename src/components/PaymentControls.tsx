@@ -78,14 +78,36 @@ export default function PaymentControls({
     useEffect(() => {
         if (isPackageAppointment && !fetchedPackagePrice) {
             const fetchPrice = async () => {
+                // Tenta buscar por package_credit_id primeiro (pacotes tradicionais)
                 const { data } = await supabase.from('appointments').select('package_credit_id').eq('id', appointmentId).single()
-                if (data?.package_credit_id) {
-                    const { data: pc } = await supabase.from('package_credits').select('customer_package_id').eq('id', data.package_credit_id).single()
+                const packageCreditId = (data as any)?.package_credit_id
+
+                if (packageCreditId) {
+                    const { data: pc } = await supabase.from('package_credits').select('customer_package_id').eq('id', packageCreditId).single()
                     if (pc?.customer_package_id) {
                         const { data: cp } = await supabase.from('customer_packages').select('total_paid, total_price').eq('id', pc.customer_package_id).single()
                         if (cp) {
                             setFetchedPackagePrice(Number(cp.total_price || cp.total_paid || 0))
+                            return
                         }
+                    }
+                }
+
+                // Se não encontrou crédito (comum em mensalidades), busca via package_sessions
+                const { data: sessionData } = await supabase
+                    .from('package_sessions')
+                    .select('customer_package_id')
+                    .eq('appointment_id', appointmentId)
+                    .maybeSingle()
+                
+                if (sessionData?.customer_package_id) {
+                    const { data: cp } = await supabase
+                        .from('customer_packages')
+                        .select('total_price')
+                        .eq('id', sessionData.customer_package_id)
+                        .maybeSingle()
+                    if (cp) {
+                        setFetchedPackagePrice(Number((cp as any).total_price || 0))
                     }
                 }
             }
@@ -255,14 +277,14 @@ export default function PaymentControls({
                                     style={{
                                         fontSize: '0.85rem',
                                         padding: '0.5rem 1rem',
-                                        background: 'var(--color-sky)',
-                                        color: 'var(--bg-primary)',
+                                        background: 'var(--primary)',
+                                        color: 'white',
                                         border: 'none',
                                         borderRadius: '8px',
                                         cursor: 'pointer',
                                         fontWeight: 700,
                                         transition: 'all 0.2s',
-                                        boxShadow: 'var(--shadow-glow-sky)'
+                                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
                                     }}
                                 >
                                     Aplicar

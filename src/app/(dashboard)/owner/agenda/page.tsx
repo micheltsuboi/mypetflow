@@ -27,6 +27,7 @@ import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'
 import DateInput from '@/components/ui/DateInput'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
+import AppointmentCard from '@/components/ui/AppointmentCard'
 import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
 import { Trash2 } from 'lucide-react'
 
@@ -697,120 +698,36 @@ function AgendaContent() {
                             onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedAppointment(appt)
-                                setIsEditing(true)
-                                setShowDetailModal(true)
-                            }}
-                            title="Editar Agendamento"
-                        >
-                            ✏️
-                        </button>
-                        <button
-                            className={styles.cardDeleteButton}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                handleDelete(appt)
-                            }}
-                            title="Excluir Agendamento"
-                        >
-                            🗑️
-                        </button>
-                    </div>
-                </div>
-
-                <div className={styles.petInfoMain}>
-                    <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
-                    <div className={styles.petDetails}>
-                        <div className={styles.petName}>
-                            {petName}
-                            {needsAdaptation && (
-                                <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: '#f1c40f', color: '#000', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: 'bold' }}>
-                                    ADAPTAÇÃO
-                                </span>
-                            )}
-                        </div>
-                        <span className={styles.statusBadge}>
-                            {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Atendimento' :
-                                appt.actual_check_out ? '🏁 Finalizado' :
-                                    getStatusLabel(appt.status)}
-                        </span>
-                        <div className={styles.tutorName}>👤 {ownerName}</div>
-                    </div>
-                </div>
-
-                <div className={styles.serviceLine} style={{ marginTop: '0.75rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>{categoryIcon}</span>
-                    <span style={{ fontWeight: 600 }}>{appt.services?.name}</span>
-                </div>
-
-                <PaymentControls
-                    appointmentId={appt.id}
-                    calculatedPrice={appt.calculated_price ?? (appt.services as any)?.base_price ?? null}
-                    finalPrice={appt.final_price ?? null}
-                    discountPercent={appt.discount_percent ?? null}
-                    discountType={appt.discount_type}
-                    discountFixed={appt.discount}
-                    paymentStatus={appt.payment_status ?? null}
-                    paymentMethod={appt.payment_method ?? null}
-                    isPackage={appt.is_package || !!appt.package_credit_id}
-                    isSubscription={(appt as any).is_subscription_session}
-                    totalPaid={paidMap[appt.id] || 0}
-                    onUpdate={() => fetchData()}
-                    compact
-                />
-
-                {appt.payment_status === 'paid' && planFeatures.includes('nota_fiscal') && (
-                    <button 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedAppointment(appt);
-                            setShowNFModal(true);
-                        }}
-                        style={{
-                            marginTop: '0.5rem',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--card-border)',
-                            background: 'var(--bg-primary)',
-                            color: 'var(--text-secondary)',
-                            fontSize: '0.75rem',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                        }}
-                    >
-                        📄 NFSe
-                    </button>
-                )}
-
-                <div className={styles.quickActions} style={{ marginTop: '1rem' }}>
-                    {!appt.actual_check_in && categoryName !== 'Clínica Veterinária' && (
-                        <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkin') }}>Entrada ➡️</button>
-                    )}
-                    {appt.actual_check_in && !appt.actual_check_out && categoryName !== 'Clínica Veterinária' && (
-                        <button className={styles.actionBtn} onClick={(e) => { e.stopPropagation(); handleSmartAction(appt, 'checkout') }}>Saída ⬅️</button>
-                    )}
-                    {(isVet || categoryName === 'Clínica Veterinária') && (
-                        <button
-                            className={styles.actionBtn}
-                            style={{ background: 'var(--primary)', color: 'white' }}
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                const res = await startConsultation(appt.id);
-                                if (res.success) {
-                                    setSelectedConsultation(res.data);
-                                    setShowConsultationModal(true);
-                                } else {
-                                    alert(res.message);
-                                }
-                            }}
-                        >
-                            🩺 Consulta
-                        </button>
-                    )}
-                    <button className={styles.detailBtn} onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}>Detalhes</button>
-                </div>
-            </div>
+    const renderAppointmentCard = (appt: Appointment) => {
+        return (
+            <AppointmentCard
+                key={appt.id}
+                appt={appt}
+                viewMode="active"
+                paidMap={paidMap}
+                nfMap={{}} // Agenda handles NF differently currently, or we can pass its state
+                planFeatures={planFeatures}
+                onCheckIn={(id) => handleSmartAction(appt, 'checkin')}
+                onCheckOut={(id) => handleSmartAction(appt, 'checkout')}
+                onDelete={(id) => handleDelete(appt)}
+                onEdit={(a) => {
+                    setSelectedAppointment(a);
+                    setIsEditing(true);
+                    setShowDetailModal(true);
+                }}
+                onViewReport={(a) => handleOpenDetail(a)}
+                onStartConsultation={async (a) => {
+                    const res = await startConsultation(a.id);
+                    if (res.success) {
+                        setSelectedConsultation(res.data);
+                        setShowConsultationModal(true);
+                    } else {
+                        alert(res.message);
+                    }
+                }}
+                isVet={isVet}
+                showTime={false} // Hours are already in the grid labels
+            />
         )
     }
 
