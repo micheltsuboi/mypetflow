@@ -239,11 +239,24 @@ export async function subscribePetToMensalidade(
     const pet = petRes.data as any
     const plan = planRes.data as any
 
-    // Calculate due_date (day 10 of next month)
+    // Calculate due_date based on plan's billing day
+    const billingDay = plan.billing_day || 10
     const now = new Date()
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 10)
-    const dueDate = nextMonth.toISOString().split('T')[0]
-    const nextRenewal = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString().split('T')[0]
+    
+    // As per user request: if hired today (16/04), next payment is 10/05
+    // Logic: First payment always on the next occurrence of billing_day in the NEXT month
+    let dueMonth = now.getMonth() + 1
+    let dueYear = now.getFullYear()
+    if (dueMonth > 11) {
+        dueMonth = 0
+        dueYear++
+    }
+    
+    const dueDateObj = new Date(dueYear, dueMonth, billingDay)
+    const dueDate = dueDateObj.toISOString().split('T')[0]
+    
+    // next_renewal_date is usually the 1st of the next month for session generation
+    const nextRenewal = new Date(dueYear, dueMonth, 1).toISOString().split('T')[0]
 
     // Create customer_package record
     const { data: cp, error: cpError } = await supabase
@@ -271,18 +284,8 @@ export async function subscribePetToMensalidade(
 
     if (cpError || !cp) return { message: cpError?.message || 'Erro ao criar assinatura.', success: false }
 
-    // Add package credits (one per service item)
-    const credits = plan.package_items.map((item: any) => ({
-        customer_package_id: cp.id,
-        service_id: item.service_id,
-        total_quantity: 100, // Subscription = unlimited montly credits
-        used_quantity: 0,
-        remaining_quantity: 100
-    }))
-
-    if (credits.length > 0) {
-        await supabase.from('package_credits').insert(credits)
-    }
+    // No package_credits for subscriptions to avoid duplication in "Pacotes" tab
+    // Logic: Subscriptions use dynamic session generation via RPC
 
     // Generate sessions for current month using the SQL function
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -329,9 +332,9 @@ export async function subscribePetToMensalidade(
 
         const message =
             `🐾 *${pet.name}* está inscrito(a) em *${plan.name}*!\n\n` +
-            `📅 Sessões de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}:\n` +
+            `📅 *Cronograma de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}*:\n` +
             `${sessionList}\n\n` +
-            `💳 Valor mensal: R$ ${plan.total_price.toFixed(2).replace('.', ',')} (vence dia 10)\n\n` +
+            `💳 Valor mensal: R$ ${plan.total_price.toFixed(2).replace('.', ',')} (Vencimento dia ${billingDay})\n\n` +
             `Qualquer dúvida, fale conosco! 🐶`
 
         await sendWhatsAppMessage(

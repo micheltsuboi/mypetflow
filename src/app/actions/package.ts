@@ -2,6 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
+
+const DAYS_OF_WEEK_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
 interface ActionState {
     message: string
@@ -270,6 +273,42 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         })
     }
 
+    // Enviar confirmação por WhatsApp se houver sessões
+    const { data: sessions } = await supabase
+        .from('package_sessions')
+        .select('scheduled_at, session_number, services(name)')
+        .eq('customer_package_id', customerPackage.id)
+        .order('scheduled_at', { ascending: true })
+
+    if (sessions && sessions.length > 0) {
+        const { data: pet } = await supabase.from('pets').select('name').eq('id', pet_id).single()
+        const { data: customer } = await supabase.from('customers').select('phone_1').eq('id', customer_id).single()
+
+        if (customer?.phone_1) {
+            const sessionList = sessions.map((s: any) => {
+                const d = new Date(s.scheduled_at)
+                const dayName = DAYS_OF_WEEK_PT[d.getDay()]
+                const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                return `• ${dayName}, ${dateStr} às ${timeStr}`
+            }).join('\n')
+
+            const message = 
+                `📦 *Pacote Ativado para ${pet?.name || 'seu pet'}!*\n\n` +
+                `Você contratou o pacote *${packageData.name}*.\n\n` +
+                `📅 *Cronograma de Sessões*:\n` +
+                `${sessionList}\n\n` +
+                `Qualquer dúvida, estamos à disposição! 🐾`
+
+            await sendWhatsAppMessage(
+                profile.org_id,
+                customer.phone_1,
+                message,
+                'appointment-reminder'
+            )
+        }
+    }
+
     revalidatePath('/owner/packages')
     revalidatePath('/owner/financeiro')
     return { message: 'Pacote vendido com sucesso!', success: true }
@@ -372,7 +411,7 @@ export async function sellPackageToPet(
 
     const { data: petData, error: petError } = await supabase
         .from('pets')
-        .select('customer_id, name')
+        .select('customer_id, name, customers(phone_1)')
         .eq('id', petId)
         .single()
 
@@ -454,6 +493,37 @@ export async function sellPackageToPet(
             reference_id: customerPackage.id,
             reference_type: 'package'
         })
+    }
+
+    // Enviar confirmação por WhatsApp se houver sessões
+    const { data: sessions } = await supabase
+        .from('package_sessions')
+        .select('scheduled_at, session_number')
+        .eq('customer_package_id', customerPackage.id)
+        .order('scheduled_at', { ascending: true })
+
+    if (sessions && sessions.length > 0 && petData.customers?.phone_1) {
+        const sessionList = sessions.map((s: any) => {
+            const d = new Date(s.scheduled_at)
+            const dayName = DAYS_OF_WEEK_PT[d.getDay()]
+            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+            const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+            return `• ${dayName}, ${dateStr} às ${timeStr}`
+        }).join('\n')
+
+        const message = 
+            `📦 *Pacote Ativado para ${petData.name}!*\n\n` +
+            `Você contratou o pacote *${packageData.name}*.\n\n` +
+            `📅 *Cronograma de Sessões*:\n` +
+            `${sessionList}\n\n` +
+            `Qualquer dúvida, estamos à disposição! 🐾`
+
+        await sendWhatsAppMessage(
+            profile.org_id,
+            petData.customers.phone_1,
+            message,
+            'appointment-reminder'
+        )
     }
 
     revalidatePath('/owner/packages')
@@ -718,7 +788,12 @@ export async function getPetPackagesWithUsage(petId: string) {
 
     if (!summary || summary.length === 0) return []
 
-    const packagesWithUsage = await Promise.all(summary.map(async (item: any) => {
+    // Filter out subscriptions to avoid duplication in "Pacotes" tab
+    const filteredSummary = summary.filter((item: any) => !item.is_subscription)
+    
+    if (filteredSummary.length === 0) return []
+
+    const packagesWithUsage = await Promise.all(filteredSummary.map(async (item: any) => {
         const { data: credit } = await supabase
             .from('package_credits')
             .select('id')
