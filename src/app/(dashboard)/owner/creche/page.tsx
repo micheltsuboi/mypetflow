@@ -208,7 +208,8 @@ export default function CrechePage() {
                         ...a,
                         is_subscription: isSubscription,
                         session_number: sessionNumber,
-                        total_sessions: totalSessions
+                        total_sessions: totalSessions,
+                        subscription_price: sessionInfo?.customer_packages?.total_price
                     }
                 }))
 

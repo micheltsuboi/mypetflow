@@ -142,7 +142,7 @@ export default function AppointmentCard({
 
                         <PaymentControls
                             appointmentId={appt.id}
-                            calculatedPrice={appt.calculated_price ?? appt.services?.base_price ?? null}
+                            calculatedPrice={appt.subscription_price || appt.calculated_price || appt.services?.base_price || null}
                             finalPrice={appt.final_price}
                             discountPercent={appt.discount_percent}
                             discountType={appt.discount_type}

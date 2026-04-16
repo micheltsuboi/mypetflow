@@ -377,11 +377,16 @@ function AgendaContent() {
                             ? sess.customer_packages[0]?.is_subscription 
                             : sess.customer_packages?.is_subscription
                         
+                        const subPrice = Array.isArray(sess.customer_packages)
+                            ? sess.customer_packages[0]?.total_price
+                            : sess.customer_packages?.total_price
+
                         return {
                             ...a,
                             session_number: sess.session_number,
                             total_sessions: isSub ? monthlyCountMap[sess.customer_package_id] : totalMap[sess.customer_package_id],
-                            is_subscription_session: isSub
+                            is_subscription_session: isSub,
+                            subscription_price: subPrice
                         }
                     }
                     return a
@@ -642,70 +647,13 @@ function AgendaContent() {
     }
 
     const renderAppointmentCard = (appt: Appointment) => {
-        // Safe access for nested category properties
-        const serviceCategory = (appt.services as any)?.service_categories
-        const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
-        const categoryIcon = serviceCategory?.icon || (Array.isArray(serviceCategory) ? serviceCategory[0]?.icon : '📋')
-
-        const serviceNameLower = appt.services?.name?.toLowerCase() || ''
-        const isCrecheOrHotel = serviceNameLower.includes('creche') || serviceNameLower.includes('hospedagem') || serviceNameLower.includes('hotel') || serviceNameLower.includes('day care')
-        const needsAdaptation = isCrecheOrHotel && appt.pets && !appt.pets.is_adapted
-
-        const petName = appt.pets?.name || 'Pet Desconhecido'
-        const ownerName = appt.pets?.customers?.name || 'Cliente'
-        const categoryName = Array.isArray(serviceCategory) ? serviceCategory[0]?.name : serviceCategory?.name
-
-        return (
-            <div
-                key={appt.id}
-                className={styles.appointmentCard}
-                onClick={(e) => { e.stopPropagation(); handleOpenDetail(appt) }}
-                style={{
-                    minWidth: '320px',
-                    borderLeft: `4px solid ${needsAdaptation ? '#f1c40f' : categoryColor}`,
-                    backgroundColor: appt.status === 'done' ? 'var(--bg-tertiary)' : (needsAdaptation ? 'rgba(241, 196, 15, 0.05)' : 'var(--bg-secondary)'),
-                    opacity: appt.status === 'done' ? 0.7 : 1
-                }}
-            >
-                <div className={styles.cardTop}>
-                    <div className={styles.timeDisplay}>
-                        🕐 {new Date(appt.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                        {(appt.is_package || appt.package_credit_id) && (
-                            <span style={{ 
-                                marginLeft: '0.4rem', 
-                                background: (appt as any).is_subscription_session ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139,92,246,0.15)', 
-                                color: (appt as any).is_subscription_session ? '#10b981' : '#8b5cf6', 
-                                borderRadius: '12px', 
-                                padding: '2px 8px', 
-                                fontSize: '0.7rem', 
-                                fontWeight: 700, 
-                                letterSpacing: '0.02em', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                border: (appt as any).is_subscription_session ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(139,92,246,0.3)',
-                                whiteSpace: 'nowrap'
-                            }}>
-                                {(appt as any).is_subscription_session ? '🔄 ' : '📦 '}
-                                {appt.session_number && appt.total_sessions
-                                    ? `Sessão ${appt.session_number} de ${appt.total_sessions}`
-                                    : ((appt as any).is_subscription_session ? 'MENSALIDADE' : 'PACOTE')}
-                            </span>
-                        )}
-                    </div>
-                    <div className={styles.quickActionsRow}>
-                        <button
-                            className={styles.cardIconButton}
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedAppointment(appt)
-    const renderAppointmentCard = (appt: Appointment) => {
         return (
             <AppointmentCard
                 key={appt.id}
                 appt={appt}
                 viewMode="active"
                 paidMap={paidMap}
-                nfMap={{}} // Agenda handles NF differently currently, or we can pass its state
+                nfMap={{}} // Agenda handles NF differently currently
                 planFeatures={planFeatures}
                 onCheckIn={(id) => handleSmartAction(appt, 'checkin')}
                 onCheckOut={(id) => handleSmartAction(appt, 'checkout')}
@@ -726,7 +674,7 @@ function AgendaContent() {
                     }
                 }}
                 isVet={isVet}
-                showTime={false} // Hours are already in the grid labels
+                showTime={false}
             />
         )
     }
