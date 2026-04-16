@@ -147,7 +147,7 @@ export default function PackagesPage() {
                     .eq('org_id', profile.org_id).eq('is_active', true).order('name'),
                 supabase.from('customer_packages').select(`
                     *, customers(name), pets(name), service_packages(name, validity_type, validity_weeks)
-                `).eq('org_id', profile.org_id).eq('is_active', true)
+                `).eq('org_id', profile.org_id).eq('is_active', true).eq('is_subscription', false)
                     .order('purchased_at', { ascending: false }).limit(100)
             ])
 
