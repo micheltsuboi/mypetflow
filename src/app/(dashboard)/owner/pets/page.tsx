@@ -1548,7 +1548,7 @@ function PetsContent() {
                                                                         </div>
                                                                         
                                                                         <div style={{ fontSize: '0.82rem', color: '#f59e0b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                                            <CreditCard size={14} /> R$ {Number(sub.total_price || plan?.total_price || 0).toFixed(2).replace('.', ',')} 
+                                                                            <CreditCard size={14} /> R$ {Number(sub.total_price || (sub as any).service_packages?.total_price || 0).toFixed(2).replace('.', ',')} 
                                                                             <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>• Próximo vencimento: {sub.due_date ? format(new Date(sub.due_date + 'T12:00:00'), 'dd/MM') : 'N/A'}</span>
                                                                         </div>
 
@@ -1655,7 +1655,7 @@ function PetsContent() {
                                                                             <PaymentManager 
                                                                                 refId={sub.id} 
                                                                                 refType="package" 
-                                                                                totalDue={sub.total_price || plan?.total_price || 0}
+                                                                                totalDue={Number(sub.total_price || (sub as any).service_packages?.total_price || 0)}
                                                                                 onStatusChange={(newStatus) => {
                                                                                     if (newStatus === 'paid') {
                                                                                         setShowSubPaymentId(null)
