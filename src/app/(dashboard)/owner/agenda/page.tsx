@@ -349,12 +349,19 @@ function AgendaContent() {
                 // Count sessions per month for subscriptions (to show correct total e.g. "3 de 4")
                 const monthlyCountMap: Record<string, number> = {}
                 if (subscriptionContracts.size > 0) {
+                    // Always calculate full month range for session count, regardless of current viewMode
+                    const countStart = new Date(selectedDate)
+                    countStart.setDate(1)
+                    countStart.setHours(0,0,0,0)
+                    const countEnd = new Date(countStart.getFullYear(), countStart.getMonth() + 1, 0)
+                    countEnd.setHours(23,59,59,999)
+
                     const { data: allSessionsMonth } = await supabase
                         .from('package_sessions')
                         .select('customer_package_id')
                         .in('customer_package_id', Array.from(subscriptionContracts))
-                        .gte('scheduled_at', startDateStr)
-                        .lte('scheduled_at', endDateStr)
+                        .gte('scheduled_at', countStart.toISOString())
+                        .lte('scheduled_at', countEnd.toISOString())
 
                     allSessionsMonth?.forEach((s: any) => {
                         monthlyCountMap[s.customer_package_id] = (monthlyCountMap[s.customer_package_id] || 0) + 1
@@ -745,6 +752,7 @@ function AgendaContent() {
                     paymentStatus={appt.payment_status ?? null}
                     paymentMethod={appt.payment_method ?? null}
                     isPackage={appt.is_package || !!appt.package_credit_id}
+                    isSubscription={(appt as any).is_subscription_session}
                     totalPaid={paidMap[appt.id] || 0}
                     onUpdate={() => fetchData()}
                     compact
@@ -976,14 +984,15 @@ function AgendaContent() {
                                         const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
                                         const petName = appt.pets?.name || 'Pet'
                                         const isPkg = appt.is_package || appt.package_credit_id
+                                        const isSubSession = (appt as any).is_subscription_session
                                         return (
                                             <div
                                                 key={appt.id}
                                                 className={styles.weekEventPill}
-                                                style={{ backgroundColor: isPkg ? '#8b5cf6' : categoryColor }}
-                                                title={`${isPkg ? '📦 ' : ''}${petName} - ${appt.services?.name}`}
+                                                style={{ backgroundColor: isPkg ? (isSubSession ? '#10b981' : '#8b5cf6') : categoryColor }}
+                                                title={`${isPkg ? (isSubSession ? '🔄 ' : '📦 ') : ''}${petName} - ${appt.services?.name}`}
                                             >
-                                                {isPkg ? '📦 ' : ''}{petName}
+                                                {isPkg ? (isSubSession ? '🔄 ' : '📦 ') : ''}{petName}
                                             </div>
                                         )
                                     })}
@@ -1039,14 +1048,15 @@ function AgendaContent() {
                                 const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
                                 const petName = appt.pets?.name || 'Pet'
                                 const isPkg = appt.is_package || appt.package_credit_id
+                                const isSubSession = (appt as any).is_subscription_session
                                 return (
                                     <div
                                         key={appt.id}
                                         className={styles.monthEventDot}
-                                        style={{ borderLeftColor: isPkg ? '#8b5cf6' : categoryColor }}
-                                        title={`${isPkg ? '📦 ' : ''}${petName} - ${appt.services?.name}`}
+                                        style={{ borderLeftColor: isPkg ? (isSubSession ? '#10b981' : '#8b5cf6') : categoryColor }}
+                                        title={`${isPkg ? (isSubSession ? '🔄 ' : '📦 ') : ''}${petName} - ${appt.services?.name}`}
                                     >
-                                        {isPkg && <span style={{ marginRight: '2px', fontSize: '0.7em' }}>📦</span>}{petName}
+                                        {isPkg && <span style={{ marginRight: '2px', fontSize: '0.7em' }}>{isSubSession ? '🔄' : '📦'}</span>}{petName}
                                     </div>
                                 )
                             })}

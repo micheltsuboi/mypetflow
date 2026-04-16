@@ -129,10 +129,10 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
                             <input 
                                 type="number" 
                                 step="0.01"
-                                value={amount}
-                                onChange={(e) => setAmount(parseFloat(e.target.value))}
+                                value={amount || ''}
+                                onChange={(e) => setAmount(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                                 className={styles.input}
-                                max={summary?.balance}
+                                placeholder="0.00"
                             />
                         </div>
                         <div className={styles.inputGroup}>

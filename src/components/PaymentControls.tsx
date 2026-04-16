@@ -17,6 +17,7 @@ interface PaymentControlsProps {
     paymentStatus: string | null
     paymentMethod: string | null
     isPackage?: boolean | null
+    isSubscription?: boolean | null
     totalPaid?: number | null
     onUpdate?: (newStatus?: string) => void
     onPaymentAuthorized?: (method: string) => void
@@ -41,6 +42,7 @@ export default function PaymentControls({
     paymentStatus,
     paymentMethod,
     isPackage,
+    isSubscription,
     totalPaid,
     onUpdate,
     onPaymentAuthorized,
@@ -358,25 +360,25 @@ export default function PaymentControls({
                 onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
             >
                 {isPackageAppointment ? (
-                    /* Badge especial para pacote */
+                    /* Badge especial para pacote/mensalidade */
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
-                        background: isPaid ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.08)',
+                        background: isPaid ? (isSubscription ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)') : (isSubscription ? 'rgba(16, 185, 129, 0.08)' : 'rgba(139, 92, 246, 0.08)'),
                         padding: '4px 8px',
                         borderRadius: '6px',
-                        border: `1px solid ${isPaid ? 'rgba(139, 92, 246, 0.4)' : 'rgba(139, 92, 246, 0.2)'}`
+                        border: `1px solid ${isPaid ? (isSubscription ? 'rgba(16, 185, 129, 0.4)' : 'rgba(139, 92, 246, 0.4)') : (isSubscription ? 'rgba(16, 185, 129, 0.2)' : 'rgba(139, 92, 246, 0.2)')}`
                     }}>
-                        <span style={{ fontSize: '0.8rem' }}>📦</span>
+                        <span style={{ fontSize: '0.8rem' }}>{isSubscription ? '🔄' : '📦'}</span>
                         <span style={{
                             fontSize: '0.85rem',
                             fontWeight: 800,
-                            color: '#8b5cf6',
+                            color: isSubscription ? '#10b981' : '#8b5cf6',
                             letterSpacing: '0.04em',
                             textTransform: 'uppercase'
                         }}>
-                            PACOTE
+                            {isSubscription ? 'MENSALIDADE' : 'PACOTE'}
                         </span>
                         <span style={{
                             fontSize: '0.75rem',
@@ -391,7 +393,7 @@ export default function PaymentControls({
                                 <span style={{
                                     width: '1px',
                                     height: '12px',
-                                    background: 'rgba(139, 92, 246, 0.3)',
+                                    background: isSubscription ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139, 92, 246, 0.3)',
                                     marginLeft: '4px'
                                 }} />
                                 <span style={{
