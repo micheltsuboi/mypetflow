@@ -42,7 +42,15 @@ import {
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
-import { getPetSubscriptions, subscribePetToMensalidade, cancelSubscription as cancelSubAction, getSubscriptionPlans, updateSubscriptionContract } from '@/app/actions/subscription'
+import { 
+    getPetSubscriptions, 
+    subscribePetToMensalidade, 
+    cancelSubscription,
+    pauseSubscription,
+    updateSubscriptionContract,
+    getSubscriptionPlans,
+    getActiveSubscriptions
+} from '@/app/actions/subscription'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
@@ -1547,19 +1555,22 @@ function PetsContent() {
                                                                         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                                                                             <button 
                                                                                 onClick={() => setShowSubSessionsId(sub.id)}
-                                                                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                                                className={styles.actionBtn}
+                                                                                style={{ fontSize: '0.7rem', padding: '4px 8px' }}
                                                                             >
-                                                                                📋 {sessions.length} Sessões
+                                                                                📋 Sessões
                                                                             </button>
                                                                             <button 
                                                                                 onClick={() => setShowSubPaymentId(sub.id)}
-                                                                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                                                className={styles.actionBtn}
+                                                                                style={{ fontSize: '0.7rem', padding: '4px 8px' }}
                                                                             >
                                                                                 💳 Pagar
                                                                             </button>
                                                                             <button 
                                                                                 onClick={() => setEditingSubId(sub.id)}
-                                                                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                                                className={styles.actionBtn}
+                                                                                style={{ fontSize: '0.7rem', padding: '4px 8px' }}
                                                                             >
                                                                                 ⚙️ Ajustar
                                                                             </button>
@@ -1599,8 +1610,32 @@ function PetsContent() {
                                                                                             <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{format(new Date(s.scheduled_at), 'dd/MM/yyyy')}</div>
                                                                                             <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{format(new Date(s.scheduled_at), 'HH:mm')}</div>
                                                                                         </div>
-                                                                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: s.status === 'completed' ? '#dcfce7' : '#fef3c7', color: s.status === 'completed' ? '#166534' : '#92400e' }}>
-                                                                                            {s.status.toUpperCase()}
+                                                                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: s.status === 'completed' ? '#dcfce7' : '#fef3c7', color: s.status === 'completed' ? '#166534' : '#92400e' }}>
+                                                                                                {s.status.toUpperCase()}
+                                                                                            </div>
+                                                                                            {s.status !== 'completed' && (
+                                                                                                <button 
+                                                                                                    className={styles.actionBtn}
+                                                                                                    style={{ fontSize: '0.65rem', padding: '2px 6px' }}
+                                                                                                    onClick={async () => {
+                                                                                                        const dateStr = prompt('Digite a nova data e hora (Ex: 25/03/2026 14:00)', s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('pt-BR').slice(0, 16) : '')
+                                                                                                        if (!dateStr) return
+                                                                                                        
+                                                                                                        const [d, m, y, h, min] = dateStr.match(/\d+/g) || []
+                                                                                                        if (!d || !m || !y || !h || !min) return alert('Formato inválido. Use DD/MM/AAAA HH:MM')
+                                                                                                        
+                                                                                                        const isoDate = `${y}-${m}-${d}T${h}:${min}:00`
+                                                                                                        const res = await reschedulePackageSession(s.id, isoDate, true, selectedPet!.id, sub.org_id, s.service_id)
+                                                                                                        if (res.success) {
+                                                                                                            alert(res.message)
+                                                                                                            getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
+                                                                                                        } else alert(res.message)
+                                                                                                    }}
+                                                                                                >
+                                                                                                    Reagendar
+                                                                                                </button>
+                                                                                            )}
                                                                                         </div>
                                                                                     </div>
                                                                                 ))}
