@@ -15,7 +15,7 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
     const [summary, setSummary] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [adding, setAdding] = useState(false)
-    const [amount, setAmount] = useState<number>(0)
+    const [amountStr, setAmountStr] = useState<string>('0')
     const [paymentMethod, setPaymentMethod] = useState('pix')
 
     const fetchSummary = async () => {
@@ -24,9 +24,9 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
         if (res.success && res.status) {
             setSummary(res)
             onStatusChange?.(res.status)
-            // Default amount to balance
+            // Default amount to balance as string
             if (res.balance !== undefined) {
-                setAmount(res.balance > 0 ? res.balance : 0)
+                setAmountStr(res.balance > 0 ? res.balance.toString() : '0')
             }
         }
         setLoading(false)
@@ -39,7 +39,11 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
     }, [refId, totalDue])
 
     const handleAddPayment = async () => {
-        if (amount <= 0) return
+        const amount = parseFloat(amountStr.replace(',', '.'))
+        if (isNaN(amount) || amount <= 0) {
+            alert('Por favor, insira um valor válido.')
+            return
+        }
         setAdding(true)
         const res = await registerReferencePayment({
             refId,
@@ -52,7 +56,7 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
         })
         if (res.success) {
             await fetchSummary()
-            setAmount(0)
+            setAmountStr('0')
         } else {
             alert(res.message)
         }
@@ -94,20 +98,22 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
 
                 <div className={`${styles.summaryItem} ${styles.balance}`}>
                     <label>Saldo Devedor:</label>
-                    <span>R$ {summary?.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: summary?.balance > 0 ? '#ef4444' : '#10b981', fontWeight: 700 }}>
+                        R$ {summary?.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
                 </div>
             </div>
 
             <div className={styles.history}>
                 <h4>🕒 Histórico de Recebimentos</h4>
                 <div className={styles.transactionList}>
-                    {summary?.transactions.length === 0 ? (
+                    {summary?.transactions?.length === 0 ? (
                         <div className={styles.emptyState}>Nenhum pagamento registrado.</div>
                     ) : (
-                        summary?.transactions.map((t: any) => (
+                        summary?.transactions?.map((t: any) => (
                             <div key={t.id} className={styles.transactionCard}>
                                 <div className={styles.transInfo}>
-                                    <span className={styles.transMethod}>{t.payment_method}</span>
+                                    <span className={styles.transMethod}>{t.payment_method?.toUpperCase()}</span>
                                     <span className={styles.transDate}>{new Date(t.date).toLocaleDateString('pt-BR')}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -120,45 +126,47 @@ export default function PaymentManager({ refId, refType, totalDue, onStatusChang
                 </div>
             </div>
 
-            {summary?.balance > 0 && (
-                <div className={styles.paymentForm}>
-                    <h4>💵 Registrar Novo Pagamento</h4>
-                    <div className={styles.formGrid}>
-                        <div className={styles.inputGroup}>
-                            <label>Valor</label>
-                            <input 
-                                type="number" 
-                                step="0.01"
-                                value={amount || ''}
-                                onChange={(e) => setAmount(e.target.value === '' ? 0 : parseFloat(e.target.value))}
-                                className={styles.input}
-                                placeholder="0.00"
-                            />
-                        </div>
-                        <div className={styles.inputGroup}>
-                            <label>Método</label>
-                            <select 
-                                value={paymentMethod}
-                                onChange={(e) => setPaymentMethod(e.target.value)}
-                                className={styles.select}
-                            >
-                                <option value="pix">PIX</option>
-                                <option value="cash">Dinheiro</option>
-                                <option value="credit">Cartão de Crédito</option>
-                                <option value="debit">Cartão de Débito</option>
-                                <option value="other">Transferência / Outro</option>
-                            </select>
-                        </div>
+            <div className={styles.paymentForm}>
+                <h4>💵 Registrar Novo Pagamento</h4>
+                <div className={styles.formGrid}>
+                    <div className={styles.inputGroup}>
+                        <label>Valor Pago (R$)</label>
+                        <input 
+                            type="text" 
+                            inputMode="decimal"
+                            value={amountStr}
+                            onChange={(e) => setAmountStr(e.target.value)}
+                            className={styles.input}
+                            placeholder="0,00"
+                        />
+                        <small style={{ fontSize: '0.7rem', color: '#666' }}>Use ponto ou vírgula para centavos</small>
                     </div>
-                    <button 
-                        className={styles.addBtn}
-                        onClick={handleAddPayment}
-                        disabled={adding || amount <= 0}
-                    >
-                        {adding ? 'Registrando...' : 'Confirmar Pagamento'}
-                    </button>
+                    <div className={styles.inputGroup}>
+                        <label>Método</label>
+                        <select 
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className={styles.select}
+                        >
+                            <option value="pix">PIX</option>
+                            <option value="cash">Dinheiro</option>
+                            <option value="credit">Cartão de Crédito</option>
+                            <option value="debit">Cartão de Débito</option>
+                            <option value="other">Transferência / Outro</option>
+                        </select>
+                    </div>
                 </div>
-            )}
+                <button 
+                    className={styles.addBtn}
+                    onClick={handleAddPayment}
+                    disabled={adding || !amountStr || parseFloat(amountStr.replace(',', '.')) <= 0}
+                >
+                    {adding ? 'Registrando...' : 'Confirmar Recebimento'}
+                </button>
+            </div>
+        </div>
+    )
+}
         </div>
     )
 }
