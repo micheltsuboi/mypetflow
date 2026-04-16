@@ -255,7 +255,7 @@ export async function subscribePetToMensalidade(
             package_id: planId,
             total_price: plan.total_price,
             total_paid: 0,
-            payment_method: 'pending',
+            payment_method: null,
             payment_status: 'pending',
             notes: `Mensalidade: ${plan.name} — ${pet.name}`,
             is_subscription: true,
