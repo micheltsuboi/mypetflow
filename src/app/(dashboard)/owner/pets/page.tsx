@@ -652,15 +652,17 @@ function PetsContent() {
                                 )}
                             </div>
 
-                            {/* CARTEIRA DE VACINAÇÃO */}
-                            <div className={styles.accordionItem}>
-                                <button type="button" onClick={() => toggleAccordion('vaccines')} className={styles.accordionHeader}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                        <span style={{ fontSize: '18px' }}>💉</span>
-                                        <span>Carteira de Vacinação</span>
-                                    </div>
-                                    <span>{accordions.vaccines ? '−' : '+'}</span>
-                                </button>
+                            {selectedPet ? (
+                                <>
+                                    {/* CARTEIRA DE VACINAÇÃO */}
+                                    <div className={styles.accordionItem}>
+                                        <button type="button" onClick={() => toggleAccordion('vaccines')} className={styles.accordionHeader}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                <span style={{ fontSize: '18px' }}>💉</span>
+                                                <span>Carteira de Vacinação</span>
+                                            </div>
+                                            <span>{accordions.vaccines ? '−' : '+'}</span>
+                                        </button>
                                 {accordions.vaccines && (
                                     <div className={styles.accordionContent}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -1678,11 +1680,24 @@ function PetsContent() {
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
+                            {!selectedPet && (
+                                <div style={{ 
+                                    margin: '1.5rem 0', 
+                                    padding: '1.5rem', 
+                                    background: 'rgba(59, 130, 246, 0.05)', 
+                                    borderRadius: '16px', 
+                                    border: '1px dashed rgba(59, 130, 246, 0.3)',
+                                    textAlign: 'center'
+                                }}>
+                                    <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>💡</span>
+                                    <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                        Após cadastrar o pet acima, você poderá gerenciar a <strong>Carteira de Vacinação, Ficha Médica, Pacotes, Mensalidades</strong> e outros serviços.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
