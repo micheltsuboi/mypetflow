@@ -41,6 +41,9 @@ export default function MensalidadesPage() {
     const [createState, createAction, isCreating] = useActionState(createSubscriptionPlan, initialState)
     const [updateState, updateAction, isUpdating] = useActionState(updateSubscriptionPlan, initialState)
 
+    const [selectedServiceId, setSelectedServiceId] = useState('')
+    const [addingService, setAddingService] = useState(false)
+
     const fetchData = useCallback(async () => {
         const [plansData, subsData] = await Promise.all([
             getSubscriptionPlans(),
@@ -53,7 +56,7 @@ export default function MensalidadesPage() {
         if (user) {
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
             if (profile?.org_id) {
-                const { data: svc } = await supabase.from('services').select('id, name, category').eq('org_id', profile.org_id).eq('is_active', true).order('name')
+                const { data: svc } = await supabase.from('services').select('id, name, category, base_price').eq('org_id', profile.org_id).eq('is_active', true).order('name')
                 setServices(svc || [])
             }
         }
@@ -96,6 +99,27 @@ export default function MensalidadesPage() {
     const handleToggle = async (plan: any) => {
         await toggleSubscriptionPlanStatus(plan.id, !plan.is_active)
         fetchData()
+    }
+
+    const handleAddService = () => {
+        if (!selectedServiceId) return
+        if (!selectedServices.includes(selectedServiceId)) {
+            setSelectedServices(prev => [...prev, selectedServiceId])
+            setSelectedServiceId('')
+        }
+    }
+
+    const handleRemoveService = (serviceId: string) => {
+        setSelectedServices(prev => prev.filter(id => id !== serviceId))
+    }
+
+    const formatCategory = (category: string) => {
+        if (!category) return ''
+        const mapping: Record<string, string> = {
+            'creche': 'Creche', 'hotel': 'Hospedagem',
+            'banho_tosa': 'Banho e Tosa', 'hospedagem': 'Hospedagem'
+        }
+        return mapping[category.toLowerCase()] || category
     }
 
     const handleCancelSubscription = async (id: string) => {
@@ -317,24 +341,66 @@ export default function MensalidadesPage() {
                                             placeholder="Descrição opcional"
                                         />
                                     </div>
-                                    <div className={`${styles.inputGroup} ${styles.fullWidth}`}>
-                                        <label className={styles.label}>Serviços Inclusos *</label>
-                                        <div className={styles.daysGrid} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            {services.map(s => (
-                                                <button
-                                                    key={s.id}
-                                                    type="button"
-                                                    className={`${styles.dayChip} ${selectedServices.includes(s.id) ? styles.selected : ''}`}
-                                                    onClick={() => {
-                                                        setSelectedServices(prev => prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id])
-                                                    }}
-                                                    style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--card-border)', background: selectedServices.includes(s.id) ? 'var(--primary)' : 'var(--card-bg)', color: selectedServices.includes(s.id) ? '#fff' : 'inherit', cursor: 'pointer' }}
-                                                >
-                                                    {s.name}
-                                                </button>
-                                            ))}
+                                    <div className={`${styles.inputGroup} ${styles.fullWidth}`} style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+                                        <label className={styles.label} style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem', display: 'block' }}>
+                                            🛠️ Serviços Inclusos no Plano
+                                        </label>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                                            Selecione quais serviços cadastrados fazem parte desta mensalidade.
+                                        </p>
+
+                                        {/* Lista de selecionados */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                            {selectedServices.map(sid => {
+                                                const s = services.find(srv => srv.id === sid)
+                                                if (!s) return null
+                                                return (
+                                                    <div key={sid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{s.name}</span>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatCategory(s.category)}</span>
+                                                        </div>
+                                                        <button type="button" onClick={() => handleRemoveService(sid)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem' }} title="Remover">
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                )
+                                            })}
+                                            {selectedServices.length === 0 && (
+                                                <div style={{ textAlign: 'center', padding: '1.5rem', border: '2px dashed var(--border)', borderRadius: '12px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                    Nenhum serviço adicionado. Selecione abaixo:
+                                                </div>
+                                            )}
                                         </div>
-                                        {selectedServices.length === 0 && <small style={{ color: '#ef4444', marginTop: '0.5rem', display: 'block' }}>Selecione pelo menos um serviço.</small>}
+
+                                        {/* Dropdown de adição */}
+                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                                            <div style={{ flex: 1 }}>
+                                                <label className={styles.label}>Adicionar Serviço</label>
+                                                <select
+                                                    className={styles.input}
+                                                    value={selectedServiceId}
+                                                    onChange={e => setSelectedServiceId(e.target.value)}
+                                                    style={{ height: '42px' }}
+                                                >
+                                                    <option value="">Escolha um serviço...</option>
+                                                    {services.map(s => (
+                                                        <option key={s.id} value={s.id} disabled={selectedServices.includes(s.id)}>
+                                                            [{formatCategory(s.category)}] {s.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleAddService}
+                                                disabled={!selectedServiceId}
+                                                style={{ height: '42px', padding: '0 1.2rem', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: !selectedServiceId ? 0.5 : 1 }}
+                                            >
+                                                + Adicionar
+                                            </button>
+                                        </div>
+                                        {selectedServices.length === 0 && <small style={{ color: '#ef4444', marginTop: '0.5rem', display: 'block' }}>⚠️ Adicione pelo menos um serviço para continuar.</small>}
                                     </div>
                                 </div>
 
