@@ -261,7 +261,12 @@ function AgendaContent() {
                     actual_check_in, actual_check_out, check_in_date, check_out_date,
                     is_package, package_credit_id,
                     pets ( name, species, breed, perfume_allowed, accessories_allowed, special_care, is_adapted, customers ( name )),
-                    services ( name, duration_minutes, base_price, category_id, service_categories ( name, color, icon ))
+                    services ( name, duration_minutes, base_price, category_id, service_categories ( name, color, icon )),
+                    package_sessions ( 
+                        session_number, 
+                        customer_package_id,
+                        customer_packages ( is_subscription )
+                    )
                 `).eq('org_id', profile.org_id).or(`and(scheduled_at.gte.${startDateStr},scheduled_at.lte.${endDateStr}),and(check_in_date.lte.${endDayStr},check_out_date.gte.${startDayStr})`).neq('status', 'cancelled')
 
             // Aguardar todas de uma vez
@@ -308,54 +313,73 @@ function AgendaContent() {
 
             if (apptsRes.error) console.error(apptsRes.error)
             if (apptsRes.data) {
-                let filteredAppts = apptsRes.data as unknown as Appointment[]
+                let rawAppts = apptsRes.data as any[]
+                
+                // Identify package/subscription IDs to fetch monthly counts for subscriptions
+                const subscriptionContracts = new Set<string>()
+                const packageContracts = new Set<string>()
 
-                // Buscar info de sessão para agendamentos de pacote
-                const packageApptIds = filteredAppts.filter(a => a.is_package).map(a => a.id)
-                if (packageApptIds.length > 0) {
-                    const { data: sessionData } = await supabase
-                        .from('package_sessions')
-                        .select('appointment_id, session_number, customer_package_id, customer_packages(is_subscription)')
-                        .in('appointment_id', packageApptIds)
-                    
-                    if (sessionData && sessionData.length > 0) {
-                        const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                rawAppts.forEach(a => {
+                    const sess = Array.isArray(a.package_sessions) ? a.package_sessions[0] : a.package_sessions
+                    if (sess) {
+                        const isSub = Array.isArray(sess.customer_packages) 
+                            ? sess.customer_packages[0]?.is_subscription 
+                            : sess.customer_packages?.is_subscription
                         
-                        // Count sessions per month for subscriptions to show correct total (e.g., "3 de 4")
-                        const { data: allSessionsMonth } = await supabase
-                            .from('package_sessions')
-                            .select('customer_package_id')
-                            .in('customer_package_id', cpIds)
-                            .gte('scheduled_at', startDateStr)
-                            .lte('scheduled_at', endDateStr)
-
-                        const monthlyCountMap: Record<string, number> = {}
-                        allSessionsMonth?.forEach((s: any) => {
-                            monthlyCountMap[s.customer_package_id] = (monthlyCountMap[s.customer_package_id] || 0) + 1
-                        })
-                        const { data: creditData } = await supabase
-                            .from('package_credits')
-                            .select('customer_package_id, total_quantity')
-                            .in('customer_package_id', cpIds)
-                        
-                        const totalMap: Record<string, number> = {}
-                        creditData?.forEach((c: any) => {
-                            if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
-                                totalMap[c.customer_package_id] = c.total_quantity
-                            }
-                        })
-
-                        filteredAppts.forEach(a => {
-                            const sess = sessionData.find((s: any) => s.appointment_id === a.id)
-                            if (sess) {
-                                a.session_number = sess.session_number
-                                const isSub = (sess.customer_packages as any)?.is_subscription
-                                a.total_sessions = isSub ? monthlyCountMap[sess.customer_package_id] : totalMap[sess.customer_package_id]
-                                (a as any).is_subscription_session = isSub
-                            }
-                        })
+                        if (isSub) subscriptionContracts.add(sess.customer_package_id)
+                        else packageContracts.add(sess.customer_package_id)
                     }
+                })
+
+                // Fetch total counts for regular packages (credits)
+                const totalMap: Record<string, number> = {}
+                if (packageContracts.size > 0) {
+                    const { data: creditData } = await supabase
+                        .from('package_credits')
+                        .select('customer_package_id, total_quantity')
+                        .in('customer_package_id', Array.from(packageContracts))
+                    
+                    creditData?.forEach((c: any) => {
+                        if (!totalMap[c.customer_package_id] || c.total_quantity > totalMap[c.customer_package_id]) {
+                            totalMap[c.customer_package_id] = c.total_quantity
+                        }
+                    })
                 }
+
+                // Count sessions per month for subscriptions (to show correct total e.g. "3 de 4")
+                const monthlyCountMap: Record<string, number> = {}
+                if (subscriptionContracts.size > 0) {
+                    const { data: allSessionsMonth } = await supabase
+                        .from('package_sessions')
+                        .select('customer_package_id')
+                        .in('customer_package_id', Array.from(subscriptionContracts))
+                        .gte('scheduled_at', startDateStr)
+                        .lte('scheduled_at', endDateStr)
+
+                    allSessionsMonth?.forEach((s: any) => {
+                        monthlyCountMap[s.customer_package_id] = (monthlyCountMap[s.customer_package_id] || 0) + 1
+                    })
+                }
+
+                // Map data to appointments
+                const processedAppts = rawAppts.map(a => {
+                    const sess = Array.isArray(a.package_sessions) ? a.package_sessions[0] : a.package_sessions
+                    if (sess) {
+                        const isSub = Array.isArray(sess.customer_packages) 
+                            ? sess.customer_packages[0]?.is_subscription 
+                            : sess.customer_packages?.is_subscription
+                        
+                        return {
+                            ...a,
+                            session_number: sess.session_number,
+                            total_sessions: isSub ? monthlyCountMap[sess.customer_package_id] : totalMap[sess.customer_package_id],
+                            is_subscription_session: isSub
+                        }
+                    }
+                    return a
+                })
+
+                let filteredAppts = processedAppts as Appointment[]
 
                 if (isUserVet) {
                     filteredAppts = filteredAppts.filter(a => {
