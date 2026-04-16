@@ -86,19 +86,19 @@ export default function AppointmentCard({
                 <div className={styles.petInfoMain} style={{ flex: 1, overflow: 'hidden' }}>
                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                     <div className={styles.petDetails} style={{ minWidth: 0 }}>
-                        <div className={styles.petName} style={{ cursor: 'pointer', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }} onClick={(e) => {
+                        <div className={styles.petName} style={{ cursor: 'pointer', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }} onClick={(e) => {
                             e.stopPropagation()
                             onViewReport?.(appt)
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
-                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.pets?.name || 'Pet'}</span>
-                                {appt.pets?.is_adapted === false && (
-                                    <span style={{ fontSize: '0.6rem', padding: '1px 4px', background: '#f1c40f', color: '#000', borderRadius: '4px', fontWeight: 900, whiteSpace: 'nowrap' }}>
-                                        ADAPTAÇÃO
-                                    </span>
-                                )}
-                            </div>
-                            <span className={styles.statusBadge} style={{ fontSize: '0.7rem', padding: '2px 6px', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <span>{appt.pets?.name || 'Pet'}</span>
+                            {appt.pets?.is_adapted === false && (
+                                <span style={{ fontSize: '0.6rem', padding: '1px 4px', background: '#f1c40f', color: '#000', borderRadius: '4px', fontWeight: 900 }}>
+                                    ADAPTAÇÃO
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ marginBottom: '0.5rem' }}>
+                            <span className={styles.statusBadge} style={{ fontSize: '0.7rem', padding: '2px 8px', fontWeight: 600, background: 'rgba(255,255,255,0.05)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
                                 {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Atendimento' :
                                     appt.actual_check_out ? '🏁 Finalizado' :
                                         '⏳ Aguardando'}
