@@ -6,7 +6,7 @@ import styles from './page.module.css'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import { deleteAppointment } from '@/app/actions/appointment'
-import DailyReportModal from '@/components/DailyReportModal'
+import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
@@ -417,10 +417,10 @@ export default function BanhoTosaPage() {
             </div>
 
             {selectedAppointment && (
-                <DailyReportModal
-                    appointment={selectedAppointment}
+                <ServiceExecutionModal
+                    appointment={selectedAppointment as any}
                     onClose={() => setSelectedAppointment(null)}
-                    onUpdate={() => fetchBanhoTosaData(true)}
+                    onSave={() => fetchBanhoTosaData(true)}
                 />
             )}
 

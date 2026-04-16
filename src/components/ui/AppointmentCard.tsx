@@ -86,35 +86,37 @@ export default function AppointmentCard({
                 <div className={styles.petInfoMain} style={{ flex: 1, overflow: 'hidden' }}>
                     <div className={styles.petAvatar}>{appt.pets?.species === 'cat' ? '🐱' : '🐶'}</div>
                     <div className={styles.petDetails} style={{ minWidth: 0 }}>
-                        <div className={styles.petName} style={{ flexWrap: 'wrap', cursor: 'pointer', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center' }} onClick={(e) => {
+                        <div className={styles.petName} style={{ cursor: 'pointer', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '0.5rem' }} onClick={(e) => {
                             e.stopPropagation()
                             onViewReport?.(appt)
                         }}>
-                            {appt.pets?.name || 'Pet'}
-                            {appt.pets?.is_adapted === false && (
-                                <span style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem', background: '#f1c40f', color: '#000', borderRadius: '4px', marginLeft: '0.5rem', fontWeight: 900 }}>
-                                    ADAPTAÇÃO
-                                </span>
-                            )}
-                            <span className={styles.statusBadge} style={{ fontSize: '0.75rem', padding: '2px 8px', fontWeight: 600, marginLeft: 'auto' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
+                                <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.pets?.name || 'Pet'}</span>
+                                {appt.pets?.is_adapted === false && (
+                                    <span style={{ fontSize: '0.6rem', padding: '1px 4px', background: '#f1c40f', color: '#000', borderRadius: '4px', fontWeight: 900, whiteSpace: 'nowrap' }}>
+                                        ADAPTAÇÃO
+                                    </span>
+                                )}
+                            </div>
+                            <span className={styles.statusBadge} style={{ fontSize: '0.7rem', padding: '2px 6px', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
                                 {appt.actual_check_in && !appt.actual_check_out ? '🟢 Em Atendimento' :
                                     appt.actual_check_out ? '🏁 Finalizado' :
                                         '⏳ Aguardando'}
                             </span>
                         </div>
-                        <div className={styles.tutorName} style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }} onClick={(e) => {
+                        <div className={styles.tutorName} style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }} onClick={(e) => {
                             e.stopPropagation()
                             onViewReport?.(appt)
                         }}>👤 {appt.pets?.customers?.name || 'Cliente'}</div>
 
                         {/* Info Row: Time and Service */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem', flexWrap: 'wrap', gap: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span style={{ fontSize: '1.2rem', filter: 'grayscale(0.5)' }}>{appt.services?.service_categories?.icon || '🐕‍🦺'}</span>
-                                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{appt.services?.name || 'Serviço'}</span>
+                                <span style={{ fontSize: '1.1rem', filter: 'grayscale(0.5)' }}>{appt.services?.service_categories?.icon || '🐕‍🦺'}</span>
+                                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{appt.services?.name || 'Serviço'}</span>
                             </div>
                             {showTime && (
-                                <span style={{ fontSize: '0.85rem', color: '#3b82f6', fontWeight: 700, background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: 700, background: 'rgba(59, 130, 246, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                                     🕐 {new Date(new Date(appt.scheduled_at).getTime() + ((appt.is_subscription || appt.is_subscription_session) ? 3 * 60 * 60 * 1000 : 0)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             )}
@@ -122,20 +124,19 @@ export default function AppointmentCard({
 
                         {/* Session Badge */}
                         {(appt.is_package || appt.package_credit_id) && (
-                            <div style={{ marginBottom: '0.75rem' }}>
+                            <div style={{ marginBottom: '1rem' }}>
                                 <span style={{
-                                    background: (appt.is_subscription || appt.is_subscription_session) ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                                    background: (appt.is_subscription || appt.is_subscription_session) ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)',
                                     color: (appt.is_subscription || appt.is_subscription_session) ? '#10b981' : '#8b5cf6',
-                                    borderRadius: '6px',
-                                    padding: '2px 8px',
-                                    fontSize: '0.75rem',
+                                    borderRadius: '4px',
+                                    padding: '2px 6px',
+                                    fontSize: '0.7rem',
                                     fontWeight: 700,
-                                    letterSpacing: '0.01em',
-                                    border: `1px solid ${(appt.is_subscription || appt.is_subscription_session) ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139, 92, 246, 0.3)'}`
+                                    border: `1px solid ${(appt.is_subscription || appt.is_subscription_session) ? 'rgba(16, 185, 129, 0.2)' : 'rgba(139, 92, 246, 0.2)'}`
                                 }}>
                                     {appt.session_number && appt.total_sessions
                                         ? `${(appt.is_subscription || appt.is_subscription_session) ? '🔄' : '📦'} Sessão ${appt.session_number} de ${appt.total_sessions}`
-                                        : `${(appt.is_subscription || appt.is_subscription_session) ? '🔄 MENSALIDADE' : '📦 PACOTE'}`}
+                                        : `${(appt.is_subscription || appt.is_subscription_session) ? '🔄 ASSINATURA' : '📦 PACOTE'}`}
                                 </span>
                             </div>
                         )}

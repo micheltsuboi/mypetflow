@@ -386,29 +386,29 @@ export default function PaymentControls({
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.5rem',
-                        background: isPaid ? (isSubscription ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)') : (isSubscription ? 'rgba(16, 185, 129, 0.08)' : 'rgba(139, 92, 246, 0.08)'),
-                        padding: '4px 8px',
-                        borderRadius: '6px',
-                        border: `1px solid ${isPaid ? (isSubscription ? 'rgba(16, 185, 129, 0.4)' : 'rgba(139, 92, 246, 0.4)') : (isSubscription ? 'rgba(16, 185, 129, 0.2)' : 'rgba(139, 92, 246, 0.2)')}`
+                        gap: '0.4rem',
+                        background: isPaid ? (isSubscription ? 'rgba(16, 185, 129, 0.1)' : 'rgba(139, 92, 246, 0.1)') : (isSubscription ? 'rgba(16, 185, 129, 0.05)' : 'rgba(139, 92, 246, 0.05)'),
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        border: `1px solid ${isPaid ? (isSubscription ? 'rgba(16, 185, 129, 0.3)' : 'rgba(139, 92, 246, 0.3)') : (isSubscription ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)')}`
                     }}>
-                        <span style={{ fontSize: '0.8rem' }}>{isSubscription ? '🔄' : '📦'}</span>
+                        <span style={{ fontSize: '0.75rem' }}>{isSubscription ? '🔄' : '📦'}</span>
                         <span style={{
-                            fontSize: '0.85rem',
-                            fontWeight: 800,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
                             color: isSubscription ? '#10b981' : '#8b5cf6',
-                            letterSpacing: '0.04em',
+                            letterSpacing: '0.02em',
                             textTransform: 'uppercase'
                         }}>
-                            {isSubscription ? 'MENSALIDADE' : 'PACOTE'}
+                            {isSubscription ? 'ASSINATURA' : 'PACOTE'}
                         </span>
                         <span style={{
-                            fontSize: '0.75rem',
+                            fontSize: '0.7rem',
                             fontWeight: 600,
                             color: isPaid ? '#10b981' : '#f59e0b',
-                            marginLeft: '4px'
+                            marginLeft: '2px'
                         }}>
-                            {isPaid ? '✓ Pago' : '⏳ Pendente'}
+                            {isPaid ? '• Pago' : '• Pendente'}
                         </span>
                         {fetchedPackagePrice !== null && (
                             <>
