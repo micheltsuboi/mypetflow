@@ -652,7 +652,7 @@ function PetsContent() {
                                 )}
                             </div>
 
-                            {selectedPet ? (
+                            {selectedPet && (
                                 <>
                                     {/* CARTEIRA DE VACINAÇÃO */}
                                     <div className={styles.accordionItem}>
@@ -1680,8 +1680,12 @@ function PetsContent() {
                                                     </div>
                                                 ))}
                                             </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
+                        </>
+                    )}
 
                             {!selectedPet && (
                                 <div style={{ 

@@ -213,14 +213,14 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             const dateObj = (isHospedagem || isCreche)
                 ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
                 : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
-            let formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-            let formattedTime = isHospedagem ? 'horário de entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            let formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
+            let formattedTime = isHospedagem ? 'horário de entrada' : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
 
             if (isHospedagem && checkInDate && checkOutDate) {
                 const start = new Date(`${checkInDate}T12:00:00-03:00`)
                 const end = new Date(`${checkOutDate}T12:00:00-03:00`)
-                const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-                const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
                 formattedDate = `${startFmt} a ${endFmt}`
                 formattedTime = 'entrada e saída'
             }

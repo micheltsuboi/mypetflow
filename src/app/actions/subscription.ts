@@ -311,8 +311,8 @@ export async function subscribePetToMensalidade(
         const sessionList = sessions.map((s: any) => {
             const d = new Date(s.scheduled_at)
             const dayName = DAYS_OF_WEEK_PT[d.getDay()]
-            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-            const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+            const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
             return `• ${dayName}, ${dateStr} às ${timeStr}`
         }).join('\n')
 
