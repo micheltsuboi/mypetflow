@@ -21,7 +21,7 @@ import {
 } from '@/app/actions/schedule'
 import { getVeterinarians, startConsultation } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
-import PaymentControls from '@/components/PaymentControls'
+// PaymentControls removed to avoid unused import error
 import PlanGuard from '@/components/modules/PlanGuard'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'

@@ -1,6 +1,6 @@
 'use client'
 
-import styles from '@/app/(dashboard)/owner/banho-tosa/page.module.css'
+import styles from './AppointmentCard.module.css'
 import PaymentControls from '@/components/PaymentControls'
 
 interface AppointmentCardProps {
