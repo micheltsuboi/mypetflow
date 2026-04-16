@@ -12,7 +12,8 @@ import {
     getSubscriptionPlans,
     getActiveSubscriptions,
     cancelSubscription,
-    pauseSubscription
+    pauseSubscription,
+    updateSubscriptionContract
 } from '@/app/actions/subscription'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PaymentManager from '@/components/finance/PaymentManager'
@@ -37,6 +38,9 @@ export default function MensalidadesPage() {
     const [showPaymentId, setShowPaymentId] = useState<string | null>(null)
     const [showSessionsId, setShowSessionsId] = useState<string | null>(null)
     const [subSessions, setSubSessions] = useState<any[]>([])
+    const [editingContractId, setEditingContractId] = useState<string | null>(null)
+    const [editContDays, setEditContDays] = useState<number[]>([])
+    const [editContTime, setEditContTime] = useState('09:00')
 
     const [createState, createAction, isCreating] = useActionState(createSubscriptionPlan, initialState)
     const [updateState, updateAction, isUpdating] = useActionState(updateSubscriptionPlan, initialState)
@@ -254,6 +258,14 @@ export default function MensalidadesPage() {
                                     </div>
                                     <div className={styles.subscriptionActions}>
                                         <button className={styles.btnAction} onClick={() => openSessions(sub.id)}>📋 Sessões</button>
+                                        <button
+                                            className={styles.btnAction}
+                                            onClick={() => {
+                                                setEditingContractId(sub.id)
+                                                setEditContDays(sub.preferred_days_of_week || [])
+                                                setEditContTime(sub.preferred_time || '09:00')
+                                            }}
+                                        >✏️ Ajustar</button>
                                         <button
                                             className={styles.btnAction}
                                             onClick={() => setShowPaymentId(showPaymentId === sub.id ? null : sub.id)}

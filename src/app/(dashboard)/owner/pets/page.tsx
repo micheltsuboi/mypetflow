@@ -42,7 +42,7 @@ import {
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
-import { getPetSubscriptions, subscribePetToMensalidade, cancelSubscription as cancelSubAction, getSubscriptionPlans } from '@/app/actions/subscription'
+import { getPetSubscriptions, subscribePetToMensalidade, cancelSubscription as cancelSubAction, getSubscriptionPlans, updateSubscriptionContract } from '@/app/actions/subscription'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
@@ -181,6 +181,9 @@ function PetsContent() {
     const [subSelectedTime, setSubSelectedTime] = useState('09:00')
     const [subSelectedPlanId, setSubSelectedPlanId] = useState('')
     const [isSubscribing, setIsSubscribing] = useState(false)
+    const [showSubPaymentId, setShowSubPaymentId] = useState<string | null>(null)
+    const [showSubSessionsId, setShowSubSessionsId] = useState<string | null>(null)
+    const [editingSubId, setEditingSubId] = useState<string | null>(null)
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
@@ -1520,21 +1523,49 @@ function PetsContent() {
                                                         const plan = sub.service_packages
                                                         const days = (sub.preferred_days_of_week || []).map((d: number) => ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d]).join(', ')
                                                         const sessions = (sub.package_sessions || []).filter((s: any) => s.status !== 'cancelled')
+                                                        const nextRenewal = sub.next_renewal_date ? new Date(sub.next_renewal_date + 'T12:00:00') : null
+                                                        
                                                         return (
-                                                            <div key={sub.id} style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-lg)', border: `1px solid ${sub.is_active ? 'var(--border)' : 'rgba(239,68,68,0.3)'}` }}>
+                                                            <div key={sub.id} style={{ background: 'var(--bg-tertiary)', padding: '16px', borderRadius: 'var(--radius-lg)', border: `1px solid ${sub.is_active ? 'var(--border)' : 'rgba(239,68,68,0.3)'}`, position: 'relative' }}>
                                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                                    <div>
-                                                                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>🔄 {plan?.name}</div>
-                                                                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                                                            {days && `🗓️ ${days}`}{sub.preferred_time && ` às ${sub.preferred_time}`}
+                                                                    <div style={{ flex: 1 }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>🔄 {plan?.name}</div>
+                                                                            {!sub.is_active && <span style={{ fontSize: '0.7rem', background: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>INATIVO</span>}
+                                                                            {sub.paused && <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#d97706', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>PAUSADO</span>}
                                                                         </div>
-                                                                        <div style={{ fontSize: '0.78rem', color: '#f59e0b', marginTop: '2px' }}>
-                                                                            💳 R$ {Number(plan?.total_price || 0).toFixed(2).replace('.', ',')} — Vence dia {plan?.billing_day || 10}
+                                                                        
+                                                                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <Calendar size={14} /> {days && `${days}`}{sub.preferred_time && ` às ${sub.preferred_time.substring(0,5)}`}
                                                                         </div>
-                                                                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                                                                            {sessions.length} sessão(ões) no mês
+                                                                        
+                                                                        <div style={{ fontSize: '0.82rem', color: '#f59e0b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                            <CreditCard size={14} /> R$ {Number(sub.total_price || plan?.total_price || 0).toFixed(2).replace('.', ',')} 
+                                                                            <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>• Próximo vencimento: {sub.due_date ? format(new Date(sub.due_date + 'T12:00:00'), 'dd/MM') : 'N/A'}</span>
+                                                                        </div>
+
+                                                                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                                                                            <button 
+                                                                                onClick={() => setShowSubSessionsId(sub.id)}
+                                                                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                                            >
+                                                                                📋 {sessions.length} Sessões
+                                                                            </button>
+                                                                            <button 
+                                                                                onClick={() => setShowSubPaymentId(sub.id)}
+                                                                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                                            >
+                                                                                💳 Pagar
+                                                                            </button>
+                                                                            <button 
+                                                                                onClick={() => setEditingSubId(sub.id)}
+                                                                                style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                                                            >
+                                                                                ⚙️ Ajustar
+                                                                            </button>
                                                                         </div>
                                                                     </div>
+                                                                    
                                                                     {sub.is_active && (
                                                                         <button
                                                                             onClick={async () => {
@@ -1545,15 +1576,139 @@ function PetsContent() {
                                                                                     alert(res.message)
                                                                                 } else alert(res.message)
                                                                             }}
-                                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600 }}
+                                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '0.75rem', fontWeight: 600, padding: '4px' }}
+                                                                            title="Cancelar Mensalidade"
                                                                         >
-                                                                            ✕ Cancelar
+                                                                            ✕
                                                                         </button>
                                                                     )}
                                                                 </div>
+
+                                                                {/* MODAL DE SESSÕES */}
+                                                                {showSubSessionsId === sub.id && (
+                                                                    <div style={{ position: 'fixed', inset: 0, zindex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowSubSessionsId(null)}>
+                                                                        <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Sessões do Mês</h3>
+                                                                                <button onClick={() => setShowSubSessionsId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+                                                                            </div>
+                                                                            <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                                                {sessions.length === 0 ? <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>Nenhuma sessão gerada.</p> : sessions.map((s: any) => (
+                                                                                    <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-tertiary)', borderRadius: '8px', alignItems: 'center' }}>
+                                                                                        <div>
+                                                                                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{format(new Date(s.scheduled_at), 'dd/MM/yyyy')}</div>
+                                                                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{format(new Date(s.scheduled_at), 'HH:mm')}</div>
+                                                                                        </div>
+                                                                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: s.status === 'completed' ? '#dcfce7' : '#fef3c7', color: s.status === 'completed' ? '#166534' : '#92400e' }}>
+                                                                                            {s.status.toUpperCase()}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* MODAL DE PAGAMENTO */}
+                                                                {showSubPaymentId === sub.id && (
+                                                                    <div style={{ position: 'fixed', inset: 0, zindex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.5)' }} onClick={() => setShowSubPaymentId(null)}>
+                                                                        <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '500px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Pagamento de Mensalidade</h3>
+                                                                                <button onClick={() => setShowSubPaymentId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+                                                                            </div>
+                                                                            <PaymentManager 
+                                                                                refId={sub.id} 
+                                                                                refType="package" 
+                                                                                totalDue={sub.total_price || plan?.total_price || 0}
+                                                                                onStatusChange={(newStatus) => {
+                                                                                    if (newStatus === 'paid') {
+                                                                                        setShowSubPaymentId(null)
+                                                                                        getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
+                                                                                        alert('Pagamento registrado!')
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* MODAL DE AJUSTE (EDIT) */}
+                                                                {editingSubId === sub.id && (
+                                                                    <div style={{ position: 'fixed', inset: 0, zindex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.5)' }} onClick={() => setEditingSubId(null)}>
+                                                                        <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                                                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Ajustar Mensalidade</h3>
+                                                                                <button onClick={() => setEditingSubId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+                                                                            </div>
+                                                                            
+                                                                            <div className={styles.formGroup}>
+                                                                                <label>Dias da Semana</label>
+                                                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginTop: '8px' }}>
+                                                                                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
+                                                                                        const currentDays = sub.preferred_days_of_week || []
+                                                                                        const isSelected = currentDays.includes(idx)
+                                                                                        return (
+                                                                                            <button
+                                                                                                key={idx}
+                                                                                                type="button"
+                                                                                                onClick={() => {
+                                                                                                    const newDays = isSelected 
+                                                                                                        ? currentDays.filter((d: number) => d !== idx)
+                                                                                                        : [...currentDays, idx]
+                                                                                                    // Directly update local state for the modal's input reference
+                                                                                                    sub.preferred_days_of_week = newDays
+                                                                                                    setPetSubscriptions([...petSubscriptions])
+                                                                                                }}
+                                                                                                style={{
+                                                                                                    padding: '8px 4px',
+                                                                                                    borderRadius: '6px',
+                                                                                                    border: '1px solid var(--border)',
+                                                                                                    background: isSelected ? 'var(--primary)' : 'var(--bg-primary)',
+                                                                                                    color: isSelected ? 'white' : 'var(--text-primary)',
+                                                                                                    fontSize: '0.8rem',
+                                                                                                    cursor: 'pointer',
+                                                                                                    fontWeight: isSelected ? 600 : 400
+                                                                                                }}
+                                                                                            >
+                                                                                                {day}
+                                                                                            </button>
+                                                                                        )
+                                                                                    })}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+                                                                                <label>Horário</label>
+                                                                                <input 
+                                                                                    type="time" 
+                                                                                    className={styles.input}
+                                                                                    defaultValue={sub.preferred_time?.substring(0,5) || '09:00'}
+                                                                                    onChange={(e) => sub.preferred_time = e.target.value}
+                                                                                />
+                                                                            </div>
+
+                                                                            <button
+                                                                                onClick={async () => {
+                                                                                    const res = await updateSubscriptionContract(sub.id, sub.preferred_days_of_week, sub.preferred_time)
+                                                                                    if (res.success) {
+                                                                                        alert(res.message)
+                                                                                        setEditingSubId(null)
+                                                                                        getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
+                                                                                    } else alert(res.message)
+                                                                                }}
+                                                                                className={styles.submitButton}
+                                                                                style={{ width: '100%', marginTop: '24px' }}
+                                                                            >
+                                                                                Salvar Alterações
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )
                                                     })}
+
                                                 </div>
                                             )}
                                         </div>

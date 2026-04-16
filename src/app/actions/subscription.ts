@@ -286,16 +286,25 @@ export async function subscribePetToMensalidade(
 
     // Generate sessions for current month using the SQL function
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-    await supabase.rpc('generate_subscription_sessions_for_month', {
+    const { data: genData, error: genError } = await supabase.rpc('generate_subscription_sessions_for_month', {
         p_customer_package_id: cp.id,
         p_month_start: monthStart
     })
 
+    if (genError) {
+        console.error('Error generating sessions:', genError)
+        return { message: 'Plano ativado, mas erro ao gerar sessões: ' + genError.message, success: true }
+    }
+
     // Create appointments in the agenda
-    await supabase.rpc('create_appointments_from_subscription_sessions', {
+    const { data: apptData, error: apptError } = await supabase.rpc('create_appointments_from_subscription_sessions', {
         p_customer_package_id: cp.id,
         p_org_id: profile.org_id
     })
+
+    if (apptError) {
+        console.error('Error creating appointments:', apptError)
+    }
 
     // Fetch the generated sessions to build WhatsApp message
     const { data: sessions } = await supabase
@@ -520,3 +529,71 @@ export async function sendSubscriptionDueDateReminders(orgId?: string) {
 
     return { success: true, count: sent, message: `${sent} lembretes enviados.` }
 }
+
+export async function updateSubscriptionContract(
+    id: string,
+    daysOfWeek: number[],
+    time: string
+) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { message: 'Não autorizado.', success: false }
+
+    const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+    if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
+
+    // 1. Update contract preferences
+    const { error: updateError } = await supabase
+        .from('customer_packages')
+        .update({
+            preferred_days_of_week: daysOfWeek,
+            preferred_day_of_week: daysOfWeek[0] ?? null,
+            preferred_time: time
+        })
+        .eq('id', id)
+
+    if (updateError) return { message: updateError.message, success: false }
+
+    // 2. Clean up future sessions and appointments that are still "scheduled/pending"
+    // We only remove from today onwards
+    const today = new Date().toISOString().split('T')[0]
+    
+    // First, find appointments to delete
+    const { data: sessionsToDelete } = await supabase
+        .from('package_sessions')
+        .select('appointment_id')
+        .eq('customer_package_id', id)
+        .gte('scheduled_at', today)
+        .eq('status', 'scheduled')
+
+    const apptIds = sessionsToDelete?.map(s => s.appointment_id).filter(Boolean) as string[]
+    
+    if (apptIds && apptIds.length > 0) {
+        await supabase.from('appointments').delete().in('id', apptIds).eq('status', 'pending')
+    }
+
+    await supabase.from('package_sessions')
+        .delete()
+        .eq('customer_package_id', id)
+        .gte('scheduled_at', today)
+        .eq('status', 'scheduled')
+
+    // 3. Re-generate sessions for the rest of the month
+    const monthStart = new Date().toISOString().split('T')[0] // Use current date as reference
+    await supabase.rpc('generate_subscription_sessions_for_month', {
+        p_customer_package_id: id,
+        p_month_start: monthStart
+    })
+
+    await supabase.rpc('create_appointments_from_subscription_sessions', {
+        p_customer_package_id: id,
+        p_org_id: profile.org_id
+    })
+
+    revalidatePath('/owner/mensalidades')
+    revalidatePath('/owner/pets')
+    revalidatePath('/owner/agenda')
+
+    return { message: 'Ajustes da mensalidade salvos e agenda atualizada!', success: true }
+}
+
