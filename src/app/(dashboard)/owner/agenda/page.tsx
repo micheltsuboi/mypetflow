@@ -315,11 +315,24 @@ function AgendaContent() {
                 if (packageApptIds.length > 0) {
                     const { data: sessionData } = await supabase
                         .from('package_sessions')
-                        .select('appointment_id, session_number, customer_package_id')
+                        .select('appointment_id, session_number, customer_package_id, customer_packages(is_subscription)')
                         .in('appointment_id', packageApptIds)
                     
                     if (sessionData && sessionData.length > 0) {
                         const cpIds = [...new Set(sessionData.map((s: any) => s.customer_package_id))]
+                        
+                        // Count sessions per month for subscriptions to show correct total (e.g., "3 de 4")
+                        const { data: allSessionsMonth } = await supabase
+                            .from('package_sessions')
+                            .select('customer_package_id')
+                            .in('customer_package_id', cpIds)
+                            .gte('scheduled_at', startDateStr)
+                            .lte('scheduled_at', endDateStr)
+
+                        const monthlyCountMap: Record<string, number> = {}
+                        allSessionsMonth?.forEach((s: any) => {
+                            monthlyCountMap[s.customer_package_id] = (monthlyCountMap[s.customer_package_id] || 0) + 1
+                        })
                         const { data: creditData } = await supabase
                             .from('package_credits')
                             .select('customer_package_id, total_quantity')
@@ -336,7 +349,9 @@ function AgendaContent() {
                             const sess = sessionData.find((s: any) => s.appointment_id === a.id)
                             if (sess) {
                                 a.session_number = sess.session_number
-                                a.total_sessions = totalMap[sess.customer_package_id]
+                                const isSub = (sess.customer_packages as any)?.is_subscription
+                                a.total_sessions = isSub ? monthlyCountMap[sess.customer_package_id] : totalMap[sess.customer_package_id]
+                                (a as any).is_subscription_session = isSub
                             }
                         })
                     }
@@ -626,8 +641,8 @@ function AgendaContent() {
                         {(appt.is_package || appt.package_credit_id) && (
                             <span style={{ 
                                 marginLeft: '0.4rem', 
-                                background: 'rgba(139,92,246,0.15)', 
-                                color: '#8b5cf6', 
+                                background: (appt as any).is_subscription_session ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139,92,246,0.15)', 
+                                color: (appt as any).is_subscription_session ? '#10b981' : '#8b5cf6', 
                                 borderRadius: '12px', 
                                 padding: '2px 8px', 
                                 fontSize: '0.7rem', 
@@ -635,12 +650,13 @@ function AgendaContent() {
                                 letterSpacing: '0.02em', 
                                 display: 'inline-flex', 
                                 alignItems: 'center', 
-                                border: '1px solid rgba(139,92,246,0.3)',
+                                border: (appt as any).is_subscription_session ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(139,92,246,0.3)',
                                 whiteSpace: 'nowrap'
                             }}>
+                                {(appt as any).is_subscription_session ? '🔄 ' : '📦 '}
                                 {appt.session_number && appt.total_sessions
-                                    ? `📦 Sessão ${appt.session_number} de ${appt.total_sessions}`
-                                    : '📦 PACOTE'}
+                                    ? `Sessão ${appt.session_number} de ${appt.total_sessions}`
+                                    : ((appt as any).is_subscription_session ? 'MENSALIDADE' : 'PACOTE')}
                             </span>
                         )}
                     </div>

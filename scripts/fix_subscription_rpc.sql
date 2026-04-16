@@ -43,7 +43,7 @@ BEGIN
 
       WHILE v_current_date <= v_month_end LOOP
         v_total_sessions := v_total_sessions + 1;
-        v_scheduled_at := (v_current_date + v_session_time) AT TIME ZONE 'UTC';
+        v_scheduled_at := (v_current_date + v_session_time) AT TIME ZONE 'America/Sao_Paulo';
 
         IF NOT EXISTS (
           SELECT 1 FROM package_sessions
