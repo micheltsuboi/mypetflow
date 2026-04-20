@@ -287,7 +287,9 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         if (customer?.phone_1) {
             const sessionList = sessions.map((s: any) => {
                 const d = new Date(s.scheduled_at)
-                const dayName = DAYS_OF_WEEK_PT[d.getDay()]
+                // Usar Intl.DateTimeFormat para garantir o nome do dia correto no fuso horário de SP
+                const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+                const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
                 const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
                 const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
                 return `• ${dayName}, ${dateStr} às ${timeStr}`
@@ -304,7 +306,7 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
                 profile.org_id,
                 customer.phone_1,
                 message,
-                'appointment-reminder'
+                'package-confirmation'
             )
         }
     }
@@ -505,7 +507,8 @@ export async function sellPackageToPet(
     if (sessions && sessions.length > 0 && petData.customers?.phone_1) {
         const sessionList = sessions.map((s: any) => {
             const d = new Date(s.scheduled_at)
-            const dayName = DAYS_OF_WEEK_PT[d.getDay()]
+            const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+            const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
             const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
             const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
             return `• ${dayName}, ${dateStr} às ${timeStr}`
@@ -522,7 +525,7 @@ export async function sellPackageToPet(
             profile.org_id,
             petData.customers.phone_1,
             message,
-            'appointment-reminder'
+            'package-confirmation'
         )
     }
 

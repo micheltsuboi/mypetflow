@@ -322,7 +322,8 @@ export async function subscribePetToMensalidade(
         const dayNames = daysOfWeek.map(d => DAYS_OF_WEEK_PT[d]).join(' e ')
         const sessionList = sessions.map((s: any) => {
             const d = new Date(s.scheduled_at)
-            const dayName = DAYS_OF_WEEK_PT[d.getDay()]
+            const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+            const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
             const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
             const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
             return `• ${dayName}, ${dateStr} às ${timeStr}`
@@ -341,7 +342,7 @@ export async function subscribePetToMensalidade(
             profile.org_id,
             customerPhone,
             message,
-            'appointment-reminder',
+            'package-confirmation',
             { type: 'subscription_confirmation', petName: pet.name, planName: plan.name }
         )
     }
