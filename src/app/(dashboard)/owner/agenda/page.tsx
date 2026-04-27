@@ -24,6 +24,7 @@ import ConsultationModal from '@/components/modules/ConsultationModal'
 // PaymentControls removed to avoid unused import error
 import PlanGuard from '@/components/modules/PlanGuard'
 import EmitirNFModal from '@/components/EmitirNFModal'
+import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import { format } from 'date-fns'
 import DateInput from '@/components/ui/DateInput'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
@@ -600,7 +601,20 @@ function AgendaContent() {
         else if (action === 'checkout') res = await checkOutAppointment(appt.id)
         else if (action === 'start') res = await updateAppointmentStatus(appt.id, 'in_progress')
 
-        if (res?.success) fetchData()
+        if (res?.success) {
+            fetchData()
+            if (action === 'checkin' || action === 'start') {
+                // Abre o modal de execução após o check-in ou início
+                const updated = {
+                    ...appt,
+                    status: 'in_progress' as const,
+                    actual_check_in: appt.actual_check_in || new Date().toISOString()
+                }
+                setSelectedAppointment(updated)
+                setIsEditing(false)
+                setShowDetailModal(false) // Fecha o de detalhes se estiver aberto
+            }
+        }
         else alert(res?.message || 'Erro ao atualizar status')
     }
 
@@ -1472,6 +1486,14 @@ function AgendaContent() {
                             setShowNFModal(false)
                             fetchData()
                         }}
+                    />
+                )}
+
+                {selectedAppointment && selectedAppointment.status === 'in_progress' && !isEditing && !showDetailModal && (
+                    <ServiceExecutionModal
+                        appointment={selectedAppointment as any}
+                        onClose={() => setSelectedAppointment(null)}
+                        onSave={() => fetchData()}
                     />
                 )}
             </div>

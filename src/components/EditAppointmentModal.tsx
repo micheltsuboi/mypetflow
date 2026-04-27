@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { updateAppointment, deleteAppointment } from '@/app/actions/appointment'
+import { updateAppointment, deleteAppointment, createAppointment } from '@/app/actions/appointment'
+import PetSearchSelect from '@/components/ui/PetSearchSelect'
 
 interface Service {
     id: string
@@ -21,23 +22,26 @@ interface EditAppointmentModalProps {
         check_out_date?: string | null
         pets: { name: string }
         services?: { name: string, service_categories?: { name: string } }
-    }
+    } | null
+    defaultCategory?: string
     onClose: () => void
-    onSave: () => void
+    onUpdate?: () => void
+    onSave?: () => void
 }
 
-export default function EditAppointmentModal({ appointment, onClose, onSave }: EditAppointmentModalProps) {
+export default function EditAppointmentModal({ appointment, defaultCategory, onClose, onUpdate, onSave }: EditAppointmentModalProps) {
     const supabase = createClient()
     const [loading, setLoading] = useState(false)
     const [services, setServices] = useState<Service[]>([])
+    const [selectedPet, setSelectedPet] = useState<{ id: string, name: string } | null>(null)
 
     // Form State
-    const [serviceId, setServiceId] = useState(appointment.service_id)
-    const [date, setDate] = useState(appointment.scheduled_at ? new Date(appointment.scheduled_at).toISOString().split('T')[0] : '')
-    const [time, setTime] = useState(appointment.scheduled_at ? new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5) : '12:00')
-    const [checkInDate, setCheckInDate] = useState(appointment.check_in_date ? appointment.check_in_date.split('T')[0] : (appointment.scheduled_at ? appointment.scheduled_at.split('T')[0] : ''))
-    const [checkOutDate, setCheckOutDate] = useState(appointment.check_out_date ? appointment.check_out_date.split('T')[0] : '')
-    const [notes, setNotes] = useState(appointment.notes || '')
+    const [serviceId, setServiceId] = useState(appointment?.service_id || '')
+    const [date, setDate] = useState(appointment?.scheduled_at ? new Date(appointment.scheduled_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+    const [time, setTime] = useState(appointment?.scheduled_at ? new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5) : '12:00')
+    const [checkInDate, setCheckInDate] = useState(appointment?.check_in_date ? appointment.check_in_date.split('T')[0] : (appointment?.scheduled_at ? appointment.scheduled_at.split('T')[0] : ''))
+    const [checkOutDate, setCheckOutDate] = useState(appointment?.check_out_date ? appointment.check_out_date.split('T')[0] : '')
+    const [notes, setNotes] = useState(appointment?.notes || '')
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -47,23 +51,30 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
             const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
             if (!profile) return
 
-            const { data } = await supabase
+            let query = supabase
                 .from('services')
                 .select('id, name, base_price, duration_minutes, service_categories(name)')
                 .eq('org_id', profile.org_id)
-                .order('name')
+            
+            if (defaultCategory) {
+                query = query.eq('service_categories.name', defaultCategory)
+            }
 
-            if (data) setServices(data)
+            const { data } = await query.order('name')
+
+            if (data) {
+                setServices(data)
+                if (!serviceId && data.length > 0) setServiceId(data[0].id)
+            }
         }
         fetchServices()
-    }, [])
+    }, [defaultCategory])
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
         const formData = new FormData()
-        formData.append('id', appointment.id)
         formData.append('serviceId', serviceId)
         formData.append('date', date)
         formData.append('time', time)
@@ -71,12 +82,25 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
         formData.append('checkOutDate', checkOutDate)
         formData.append('notes', notes)
 
-        const result = await updateAppointment({ message: '', success: false }, formData)
+        let result;
+        if (appointment) {
+            formData.append('id', appointment.id)
+            result = await updateAppointment({ message: '', success: false }, formData)
+        } else {
+            if (!selectedPet) {
+                alert('Por favor, selecione um pet.')
+                setLoading(false)
+                return
+            }
+            formData.append('petId', selectedPet.id)
+            result = await createAppointment({ message: '', success: false }, formData)
+        }
 
         setLoading(false)
         if (result.success) {
             alert(result.message)
-            onSave()
+            if (onSave) onSave()
+            if (onUpdate) onUpdate()
             onClose()
         } else {
             alert(result.message)
@@ -84,6 +108,7 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
     }
 
     const handleDelete = async () => {
+        if (!appointment) return
         if (!confirm('Tem certeza que deseja excluir este agendamento? Esta ação não pode ser desfeita.')) return
 
         setLoading(true)
@@ -92,7 +117,8 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
 
         if (result.success) {
             alert(result.message)
-            onSave()
+            if (onSave) onSave()
+            if (onUpdate) onUpdate()
             onClose()
         } else {
             alert(result.message)
@@ -124,14 +150,24 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
             }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', margin: 0 }}>
-                        Editar Agendamento
+                        {appointment ? 'Editar Agendamento' : 'Novo Agendamento'}
                     </h2>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                 </div>
 
-                <div style={{ marginBottom: '1rem', color: '#cbd5e1', fontSize: '0.9rem' }}>
-                    Pet: <strong style={{ color: 'white' }}>{appointment.pets.name}</strong>
-                </div>
+                {!appointment ? (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Selecionar Pet</label>
+                        <PetSearchSelect 
+                            onSelect={setSelectedPet}
+                            placeholder="Buscar pet..."
+                        />
+                    </div>
+                ) : (
+                    <div style={{ marginBottom: '1rem', color: '#cbd5e1', fontSize: '0.9rem' }}>
+                        Pet: <strong style={{ color: 'white' }}>{appointment.pets.name}</strong>
+                    </div>
+                )}
 
                 <form onSubmit={handleSave}>
                     <div style={{ display: 'grid', gap: '1rem' }}>
@@ -142,6 +178,7 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
                                 onChange={e => setServiceId(e.target.value)}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
                             >
+                                <option value="">Selecione um serviço</option>
                                 {services.map(s => (
                                     <option key={s.id} value={s.id}>{s.name}</option>
                                 ))}
@@ -224,23 +261,25 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
                         </div>
 
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #334155', paddingTop: '1rem' }}>
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                disabled={loading}
-                                style={{
-                                    padding: '0.75rem 1rem',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    background: 'rgba(239, 68, 68, 0.1)',
-                                    color: '#ef4444',
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    marginRight: 'auto'
-                                }}
-                            >
-                                Excluir
-                            </button>
+                            {appointment && (
+                                <button
+                                    type="button"
+                                    onClick={handleDelete}
+                                    disabled={loading}
+                                    style={{
+                                        padding: '0.75rem 1rem',
+                                        borderRadius: '8px',
+                                        border: 'none',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        color: '#ef4444',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        marginRight: 'auto'
+                                    }}
+                                >
+                                    Excluir
+                                </button>
+                            )}
                             <button
                                 type="button"
                                 onClick={onClose}
@@ -252,7 +291,8 @@ export default function EditAppointmentModal({ appointment, onClose, onSave }: E
                                     background: 'transparent',
                                     color: 'white',
                                     cursor: 'pointer',
-                                    fontWeight: 600
+                                    fontWeight: 600,
+                                    marginLeft: !appointment ? 'auto' : '0'
                                 }}
                             >
                                 Cancelar

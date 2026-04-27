@@ -6,7 +6,7 @@ import styles from './page.module.css'
 import DateRangeFilter, { DateRange, getDateRange } from '@/components/DateRangeFilter'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import { deleteAppointment } from '@/app/actions/appointment'
-import DailyReportModal from '@/components/DailyReportModal'
+import ServiceExecutionModal from '@/components/ServiceExecutionModal'
 import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PlanGuard from '@/components/modules/PlanGuard'
 import EmitirNFModal from '@/components/EmitirNFModal'
@@ -401,10 +401,10 @@ export default function HospedagemPage() {
             </div>
 
             {selectedAppointment && (
-                <DailyReportModal
-                    appointment={selectedAppointment}
+                <ServiceExecutionModal
+                    appointment={selectedAppointment as any}
                     onClose={() => setSelectedAppointment(null)}
-                    onUpdate={() => fetchHospedagemData(true)}
+                    onSave={() => fetchHospedagemData(true)}
                 />
             )}
 
