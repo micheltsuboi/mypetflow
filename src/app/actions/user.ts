@@ -35,6 +35,8 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     const role = formData.get('role') as string
     const workScheduleStr = formData.get('workSchedule') as string
     const permissionsStr = formData.get('permissions') as string
+    const crmv = formData.get('crmv') as string
+    const specialty = formData.get('specialty') as string || null
 
     if (!email || !password || !fullName || !role) {
         return { message: 'Todos os campos são obrigatórios.', success: false }
@@ -96,6 +98,26 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
         return { message: `Erro ao criar perfil do usuário: ${profileError.message}`, success: false }
     }
 
+    // 5. Handle Veterinarian Profile
+    if (crmv) {
+        const { error: vetError } = await supabaseAdmin
+            .from('veterinarians')
+            .upsert({
+                org_id: profile.org_id,
+                user_id: newUser.user.id,
+                name: fullName,
+                crmv,
+                specialty,
+                email,
+                is_active: true
+            })
+        
+        if (vetError) {
+            console.error('Error creating vet profile:', vetError)
+            // We don't roll back the whole user, just inform or log
+        }
+    }
+
     revalidatePath('/owner/usuarios')
     return { message: 'Usuário criado com sucesso!', success: true }
 }
@@ -126,6 +148,8 @@ export async function updateUser(prevState: any, formData: FormData) {
     const workScheduleStr = formData.get('workSchedule') as string
     const permissionsStr = formData.get('permissions') as string
     const isActive = formData.get('isActive') === 'true'
+    const crmv = formData.get('crmv') as string
+    const specialty = formData.get('specialty') as string || null
 
     if (!userId || !fullName || !role) {
         return { message: 'Campos obrigatórios faltando.', success: false }
@@ -169,6 +193,28 @@ export async function updateUser(prevState: any, formData: FormData) {
 
     if (updateError) {
         return { message: `Erro ao atualizar usuário: ${updateError.message}`, success: false }
+    }
+
+    // 4. Handle Veterinarian Profile
+    if (crmv) {
+        const { error: vetError } = await supabaseAdmin
+            .from('veterinarians')
+            .upsert({
+                org_id: profile.org_id,
+                user_id: userId,
+                name: fullName,
+                crmv,
+                specialty,
+                is_active: isActive
+            }, { onConflict: 'user_id' })
+        
+        if (vetError) {
+            console.error('Error updating vet profile:', vetError)
+        }
+    } else {
+        // If CRMV is empty, check if we should deactivate/delete? 
+        // For now, let's just allow deactivation if the admin unsets it.
+        // Or do nothing to keep existing record.
     }
 
     revalidatePath('/owner/usuarios')

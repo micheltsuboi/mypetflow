@@ -218,7 +218,7 @@ export default function ProfilePage() {
                         <label>Função</label>
                         <input
                             type="text"
-                            value={profile?.role.toUpperCase()}
+                            value={isVet ? 'VETERINÁRIO (A)' : profile?.role.toUpperCase()}
                             disabled
                             className={`${styles.input} ${styles.disabled}`}
                         />

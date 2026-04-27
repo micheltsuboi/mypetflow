@@ -70,13 +70,15 @@ export default function UsuariosPage() {
     const supabase = createClient()
     const [users, setUsers] = useState<Profile[]>([])
     const [loading, setLoading] = useState(true)
-    const [showModal, setShowModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null)
+    const [vets, setVets] = useState<any[]>([])
     const [searchTerm, setSearchTerm] = useState('')
     const [workSchedule, setWorkSchedule] = useState<WorkScheduleDay[]>(defaultSchedule)
     const [selectedRole, setSelectedRole] = useState<string>('staff')
     const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
+    const [crmv, setCrmv] = useState('')
+    const [specialty, setSpecialty] = useState('')
 
     // Server Action State - Create
     const [state, formAction, isPending] = useActionState(createUser, initialState)
@@ -109,6 +111,14 @@ export default function UsuariosPage() {
 
             if (error) throw error
             if (profiles) setUsers(profiles)
+
+            // Fetch veterinarians
+            const { data: vetsData } = await supabase
+                .from('veterinarians')
+                .select('user_id, crmv, specialty')
+                .eq('org_id', currentUserProfile.org_id)
+            
+            if (vetsData) setVets(vetsData)
         } catch (error) {
             console.error('Erro ao buscar usuários:', error)
         } finally {
@@ -141,6 +151,9 @@ export default function UsuariosPage() {
         setSelectedRole(user.role)
         setWorkSchedule(Array.isArray(user.work_schedule) && user.work_schedule.length > 0 ? user.work_schedule : defaultSchedule)
         setSelectedPermissions(user.permissions || [])
+        const vet = vets.find(v => v.user_id === user.id)
+        setCrmv(vet?.crmv || '')
+        setSpecialty(vet?.specialty || '')
         setShowEditModal(true)
     }
 
@@ -191,6 +204,8 @@ export default function UsuariosPage() {
                         + Novo Usuário
                     </button>
                 </div>
+                <input type="hidden" name="crmv" value={crmv} />
+                <input type="hidden" name="specialty" value={specialty} />
 
                 <div style={{ marginBottom: '1rem' }}>
                     <input
@@ -241,9 +256,15 @@ export default function UsuariosPage() {
                                             </div>
                                         </td>
                                         <td>
-                                            <span className={`${styles.roleBadge} ${styles[user.role]}`}>
-                                                {user.role.includes('admin') ? '👑' : '🛠️'} {roleLabels[user.role] || user.role}
-                                            </span>
+                                            {vets.some(v => v.user_id === user.id) ? (
+                                                <span className={`${styles.roleBadge}`} style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
+                                                    🩺 Veterinário (a)
+                                                </span>
+                                            ) : (
+                                                <span className={`${styles.roleBadge} ${styles[user.role]}`}>
+                                                    {user.role.includes('admin') ? '👑' : '🛠️'} {roleLabels[user.role] || user.role}
+                                                </span>
+                                            )}
                                         </td>
                                         <td>
                                             <span className={`${styles.statusBadge} ${user.is_active ? styles.active : styles.inactive}`}>
@@ -341,6 +362,34 @@ export default function UsuariosPage() {
                                                 <option value="staff">Staff (Operacional)</option>
                                                 <option value="admin">Administrador</option>
                                             </select>
+                                        </div>
+                                    </div>
+
+                                    <div className={styles.sectionDivider}>🩺 Perfil Veterinário (Opcional)</div>
+                                    <div className={styles.row}>
+                                        <div className={styles.formGroup} style={{ flex: 1 }}>
+                                            <label htmlFor="crmv" className={styles.label}>CRMV</label>
+                                            <input
+                                                id="crmv"
+                                                name="crmv"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="Ex: 12345/SP"
+                                                value={crmv}
+                                                onChange={e => setCrmv(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ flex: 1 }}>
+                                            <label htmlFor="specialty" className={styles.label}>Especialidade</label>
+                                            <input
+                                                id="specialty"
+                                                name="specialty"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="Ex: Dermatologia"
+                                                value={specialty}
+                                                onChange={e => setSpecialty(e.target.value)}
+                                            />
                                         </div>
                                     </div>
 
@@ -470,6 +519,34 @@ export default function UsuariosPage() {
                                             <option value="staff">Staff (Operacional)</option>
                                             <option value="admin">Administrador</option>
                                         </select>
+                                    </div>
+
+                                    <div className={styles.sectionDivider}>🩺 Perfil Veterinário (Opcional)</div>
+                                    <div className={styles.row}>
+                                        <div className={styles.formGroup} style={{ flex: 1 }}>
+                                            <label htmlFor="editCrmv" className={styles.label}>CRMV</label>
+                                            <input
+                                                id="editCrmv"
+                                                name="crmv"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="Ex: 12345/SP"
+                                                value={crmv}
+                                                onChange={e => setCrmv(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ flex: 1 }}>
+                                            <label htmlFor="editSpecialty" className={styles.label}>Especialidade</label>
+                                            <input
+                                                id="editSpecialty"
+                                                name="specialty"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="Ex: Dermatologia"
+                                                value={specialty}
+                                                onChange={e => setSpecialty(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
 
                                     {selectedRole === 'staff' && (
