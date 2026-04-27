@@ -685,6 +685,58 @@ export async function deleteVetExam(id: string) {
     }
 }
 
+export async function registerCurrentAdminAsVet(formData: FormData) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado.' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return { success: false, message: 'Organização não encontrada.' }
+
+        const crmv = formData.get('crmv') as string
+        const specialty = formData.get('specialty') as string || null
+
+        if (!crmv) return { success: false, message: 'CRMV é obrigatório.' }
+
+        // Check if already registered
+        const { data: existing } = await supabase
+            .from('veterinarians')
+            .select('id')
+            .eq('user_id', user.id)
+            .single()
+
+        if (existing) return { success: false, message: 'Você já possui um perfil de veterinário ativo.' }
+
+        const { error } = await supabase
+            .from('veterinarians')
+            .insert({
+                org_id: profile.org_id,
+                user_id: user.id,
+                name: profile.full_name || user.email,
+                crmv,
+                specialty,
+                phone: profile.phone,
+                email: user.email,
+                is_active: true
+            })
+
+        if (error) throw error
+
+        revalidatePath('/owner/profile')
+        revalidatePath('/owner/veterinary')
+        return { success: true, message: 'Perfil de veterinário ativado com sucesso!' }
+    } catch (error: any) {
+        console.error('Error registering admin as vet:', error)
+        return { success: false, message: error.message || 'Erro ao ativar perfil.' }
+    }
+}
+
 // ==========================================
 // VET DASHBOARD / LISTING
 // ==========================================

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
 import ImageUpload from '@/components/ImageUpload'
 import { maskPhone } from '@/utils/masks'
+import { registerCurrentAdminAsVet } from '@/app/actions/veterinary'
 
 import { Profile } from '@/types/database'
 
@@ -21,6 +22,12 @@ export default function ProfilePage() {
     const [passwordData, setPasswordData] = useState({
         new: '',
         confirm: '',
+        loading: false
+    })
+    const [isVet, setIsVet] = useState(false)
+    const [vetData, setVetData] = useState({
+        crmv: '',
+        specialty: '',
         loading: false
     })
 
@@ -44,8 +51,23 @@ export default function ProfilePage() {
                         full_name: data.full_name || '',
                         phone: maskPhone(data.phone || ''),
                         avatar_url: data.avatar_url || null
-
                     })
+
+                    // Check if already a vet
+                    const { data: vet } = await supabase
+                        .from('veterinarians')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .single()
+                    
+                    if (vet) {
+                        setIsVet(true)
+                        setVetData({
+                            crmv: vet.crmv || '',
+                            specialty: vet.specialty || '',
+                            loading: false
+                        })
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error)
@@ -109,6 +131,29 @@ export default function ProfilePage() {
             console.error('Error updating password:', error)
             alert('Erro ao atualizar senha.')
             setPasswordData(prev => ({ ...prev, loading: false }))
+        }
+    }
+
+    const handleActivateVet = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            setVetData(prev => ({ ...prev, loading: true }))
+            const form = new FormData()
+            form.append('crmv', vetData.crmv)
+            form.append('specialty', vetData.specialty)
+
+            const res = await registerCurrentAdminAsVet(form)
+            if (res.success) {
+                alert(res.message)
+                setIsVet(true)
+            } else {
+                alert(res.message)
+            }
+        } catch (error) {
+            console.error('Error activating vet profile:', error)
+            alert('Erro ao ativar perfil de veterinário.')
+        } finally {
+            setVetData(prev => ({ ...prev, loading: false }))
         }
     }
 
@@ -214,6 +259,53 @@ export default function ProfilePage() {
                                 {passwordData.loading ? 'Atualizando...' : 'Atualizar Senha'}
                             </button>
                         </div>
+                    </form>
+                </div>
+
+                <div className={styles.passwordSection}>
+                    <h3 className={styles.sectionTitle}>Perfil Profissional</h3>
+                    <p className={styles.sectionDescription} style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                        {isVet 
+                            ? "Seu perfil de veterinário está ativo. Você pode ser selecionado em consultas e acessar o painel clínico."
+                            : "Ative seu perfil de veterinário para realizar consultas, emitir prontuários e aparecer nas listagens da clínica."}
+                    </p>
+                    
+                    <form onSubmit={handleActivateVet} className={styles.form}>
+                        <div className={styles.formGroup}>
+                            <label>Número do CRMV</label>
+                            <input
+                                type="text"
+                                value={vetData.crmv}
+                                onChange={e => setVetData({ ...vetData, crmv: e.target.value })}
+                                className={styles.input}
+                                placeholder="Ex: 12345/SP"
+                                disabled={isVet}
+                                required
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>Especialidade</label>
+                            <input
+                                type="text"
+                                value={vetData.specialty}
+                                onChange={e => setVetData({ ...vetData, specialty: e.target.value })}
+                                className={styles.input}
+                                placeholder="Ex: Dermatologia, Cirurgia"
+                                disabled={isVet}
+                            />
+                        </div>
+                        {!isVet && (
+                            <div className={styles.buttonGroup}>
+                                <button type="submit" className={styles.saveButton} disabled={vetData.loading || !vetData.crmv}>
+                                    {vetData.loading ? 'Ativando...' : 'Ativar Perfil de Veterinário'}
+                                </button>
+                            </div>
+                        )}
+                        {isVet && (
+                            <p style={{ color: 'var(--success)', fontWeight: '500', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                                ✓ Perfil de Veterinário Ativo
+                            </p>
+                        )}
                     </form>
                 </div>
             </div>
