@@ -854,6 +854,7 @@ export async function startConsultation(appointmentId: string) {
                     customers (id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1)
                 )
             `)
+            .eq('appointment_id', appointmentId)
             .maybeSingle()
 
         if (existing) {
