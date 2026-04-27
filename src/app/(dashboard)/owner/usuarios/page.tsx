@@ -70,6 +70,7 @@ export default function UsuariosPage() {
     const supabase = createClient()
     const [users, setUsers] = useState<Profile[]>([])
     const [loading, setLoading] = useState(true)
+    const [showModal, setShowModal] = useState(false)
     const [showEditModal, setShowEditModal] = useState(false)
     const [selectedUser, setSelectedUser] = useState<Profile | null>(null)
     const [vets, setVets] = useState<any[]>([])
@@ -199,13 +200,13 @@ export default function UsuariosPage() {
                         setWorkSchedule(defaultSchedule);
                         setSelectedRole('staff');
                         setSelectedPermissions([]);
+                        setCrmv('');
+                        setSpecialty('');
                         setShowModal(true)
                     }}>
                         + Novo Usuário
                     </button>
                 </div>
-                <input type="hidden" name="crmv" value={crmv} />
-                <input type="hidden" name="specialty" value={specialty} />
 
                 <div style={{ marginBottom: '1rem' }}>
                     <input
