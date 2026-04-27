@@ -102,7 +102,7 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     if (crmv) {
         const { error: vetError } = await supabaseAdmin
             .from('veterinarians')
-            .upsert({
+            .insert({
                 org_id: profile.org_id,
                 user_id: newUser.user.id,
                 name: fullName,
@@ -196,25 +196,58 @@ export async function updateUser(prevState: any, formData: FormData) {
     }
 
     // 4. Handle Veterinarian Profile
-    if (crmv) {
-        const { error: vetError } = await supabaseAdmin
-            .from('veterinarians')
-            .upsert({
-                org_id: profile.org_id,
-                user_id: userId,
-                name: fullName,
-                crmv,
-                specialty,
-                is_active: isActive
-            }, { onConflict: 'user_id' })
-        
-        if (vetError) {
-            console.error('Error updating vet profile:', vetError)
+    // If formData has 'crmv', it means we are editing the profile form, not just toggling status
+    if (formData.has('crmv')) {
+        if (crmv) {
+            // Check if exists
+            const { data: existingVet } = await supabaseAdmin
+                .from('veterinarians')
+                .select('id')
+                .eq('user_id', userId)
+                .single()
+
+            if (existingVet) {
+                const { error: vetError } = await supabaseAdmin
+                    .from('veterinarians')
+                    .update({
+                        name: fullName,
+                        crmv,
+                        specialty,
+                        is_active: isActive
+                    })
+                    .eq('id', existingVet.id)
+                    
+                if (vetError) console.error('Error updating vet profile:', vetError)
+            } else {
+                const { error: vetError } = await supabaseAdmin
+                    .from('veterinarians')
+                    .insert({
+                        org_id: profile.org_id,
+                        user_id: userId,
+                        name: fullName,
+                        crmv,
+                        specialty,
+                        is_active: isActive
+                    })
+                    
+                if (vetError) console.error('Error creating vet profile:', vetError)
+            }
+        } else {
+            // If CRMV was explicitly cleared in the form
+            // Soft delete or deactivate the veterinarian profile
+            const { data: existingVet } = await supabaseAdmin
+                .from('veterinarians')
+                .select('id')
+                .eq('user_id', userId)
+                .single()
+                
+            if (existingVet) {
+                await supabaseAdmin
+                    .from('veterinarians')
+                    .update({ is_active: false })
+                    .eq('id', existingVet.id)
+            }
         }
-    } else {
-        // If CRMV is empty, check if we should deactivate/delete? 
-        // For now, let's just allow deactivation if the admin unsets it.
-        // Or do nothing to keep existing record.
     }
 
     revalidatePath('/owner/usuarios')
