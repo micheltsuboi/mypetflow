@@ -108,7 +108,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : 'https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text' }}",
+        "url": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : 'https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

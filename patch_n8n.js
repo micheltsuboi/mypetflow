@@ -16,7 +16,7 @@ function patchCode(nodes) {
       }
     }
     if (n.type === 'n8n-nodes-base.httpRequest' && n.name.includes('Z-API')) {
-       n.parameters.url = "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : 'https://api.z-api.io/instances/3ED9BA904B506170EBAEF600A127D137/token/945E1301884A1F957BA8EF84/send-text' }}";
+       n.parameters.url = "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : 'https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text' }}";
        const headers = n.parameters.headerParameters.parameters;
        const hasAuth = headers.find(h => h.name === "={{ $json.wa_integration_type === 'custom' && $json.wa_api_token ? 'Authorization' : 'Client-Token' }}");
        if (!hasAuth) {
