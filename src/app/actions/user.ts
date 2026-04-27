@@ -198,6 +198,15 @@ export async function updateUser(prevState: any, formData: FormData) {
     // 4. Handle Veterinarian Profile
     // If formData has 'crmv', it means we are editing the profile form, not just toggling status
     if (formData.has('crmv')) {
+        // Get the target user's email
+        const { data: targetUser } = await supabaseAdmin
+            .from('profiles')
+            .select('email')
+            .eq('id', userId)
+            .single()
+            
+        const userEmail = targetUser?.email || null
+
         if (crmv) {
             // Check if exists
             const { data: existingVet } = await supabaseAdmin
@@ -213,11 +222,15 @@ export async function updateUser(prevState: any, formData: FormData) {
                         name: fullName,
                         crmv,
                         specialty,
+                        email: userEmail,
                         is_active: isActive
                     })
                     .eq('id', existingVet.id)
                     
-                if (vetError) console.error('Error updating vet profile:', vetError)
+                if (vetError) {
+                    console.error('Error updating vet profile:', vetError)
+                    return { message: `Erro ao atualizar perfil veterinário: ${vetError.message}`, success: false }
+                }
             } else {
                 const { error: vetError } = await supabaseAdmin
                     .from('veterinarians')
@@ -227,10 +240,15 @@ export async function updateUser(prevState: any, formData: FormData) {
                         name: fullName,
                         crmv,
                         specialty,
-                        is_active: isActive
+                        email: userEmail,
+                        is_active: isActive,
+                        consultation_base_price: 0
                     })
                     
-                if (vetError) console.error('Error creating vet profile:', vetError)
+                if (vetError) {
+                    console.error('Error creating vet profile:', vetError)
+                    return { message: `Erro ao criar perfil veterinário: ${vetError.message}`, success: false }
+                }
             }
         } else {
             // If CRMV was explicitly cleared in the form
@@ -242,10 +260,15 @@ export async function updateUser(prevState: any, formData: FormData) {
                 .single()
                 
             if (existingVet) {
-                await supabaseAdmin
+                const { error: deleteError } = await supabaseAdmin
                     .from('veterinarians')
                     .update({ is_active: false })
                     .eq('id', existingVet.id)
+                    
+                if (deleteError) {
+                    console.error('Error deactivating vet profile:', deleteError)
+                    return { message: `Erro ao desativar perfil veterinário: ${deleteError.message}`, success: false }
+                }
             }
         }
     }

@@ -257,15 +257,16 @@ export default function UsuariosPage() {
                                             </div>
                                         </td>
                                         <td>
-                                            {vets.some(v => v.user_id === user.id) ? (
-                                                <span className={`${styles.roleBadge}`} style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
-                                                    🩺 Veterinário (a)
-                                                </span>
-                                            ) : (
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                 <span className={`${styles.roleBadge} ${styles[user.role]}`}>
                                                     {user.role.includes('admin') ? '👑' : '🛠️'} {roleLabels[user.role] || user.role}
                                                 </span>
-                                            )}
+                                                {vets.some(v => v.user_id === user.id) && (
+                                                    <span className={`${styles.roleBadge}`} style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
+                                                        🩺 Veterinário (a)
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td>
                                             <span className={`${styles.statusBadge} ${user.is_active ? styles.active : styles.inactive}`}>
