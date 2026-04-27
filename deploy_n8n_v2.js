@@ -53,7 +53,9 @@ async function main() {
   await deploy("T9SUV3RmaHJz22jr", patchAgendamento);
   await deploy("UglCywyV0m6k6EUg", patchStatus);
   await deploy("UPbdPVXyiGhTdLVh", patchLembrete);
-  await deploy("3SPEn65b7asWmbBY", null); // Vacinação (apenas troca URL da Z-API)
-  await deploy("iGv778THSMg82jrs", null); // Mensalidade (apenas troca URL da Z-API)
+  await deploy("3SPEn65b7asWmbBY", null); // Vacinação
+  await deploy("iGv778THSMg82jrs", null); // Mensalidade
+  await deploy("txMLm3AbqST4GN60", null); // Envio de NF
+  await deploy("FIrW5nHbdT89gc7Q", null); // Alerta Veterinário
 }
 main();
