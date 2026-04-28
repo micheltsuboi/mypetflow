@@ -1159,7 +1159,7 @@ function AgendaContent() {
                                     const selectedService = services.find(s => s.id === selectedServiceId)
                                     const sc = (selectedService as any)?.service_categories
                                     const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
-                                    const isVetCategory = categoryName === 'Clínica Veterinária'
+                                    const isVetCategory = categoryName === 'Clínica Veterinária' || (!selectedServiceId && categoryFilter === 'Clínica Veterinária')
 
                                     if (isVetCategory) {
                                         return (
