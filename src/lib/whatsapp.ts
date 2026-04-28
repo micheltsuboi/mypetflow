@@ -56,6 +56,7 @@ export async function sendWhatsAppMessage(
         tutorPhone: normalizedPhone,
         normalizedPhone: normalizedPhone,
         message: message,
+        customMessage: message,
         tenant_id: orgId,
         type: 'system_notification',
         wa_api_url: org.wa_api_url,
