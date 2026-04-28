@@ -833,8 +833,8 @@ export async function startConsultation(appointmentId: string) {
 
         if (apptError || !appt) return { success: false, message: 'Agendamento não encontrado' }
 
-        // Fetch organization
-        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        // Fetch organization and role
+        const { data: profile } = await supabase.from('profiles').select('org_id, role').eq('id', user.id).single()
         if (!profile?.org_id) return { success: false, message: 'Organização não encontrada' }
 
         // Fetch current veterinarian account for this user
@@ -844,8 +844,10 @@ export async function startConsultation(appointmentId: string) {
             .eq('user_id', user.id)
             .single()
 
+        const supabaseAdmin = createAdminClient()
+
         // Check if consultation record already exists for this appointment
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseAdmin
             .from('vet_consultations')
             .select(`
                 *,
@@ -858,7 +860,18 @@ export async function startConsultation(appointmentId: string) {
             .maybeSingle()
 
         if (existing) {
-            return { success: true, data: existing }
+            // Check permissions
+            const isOwner = existing.veterinarian_id === vet?.id
+            const isAdmin = ['superadmin', 'admin'].includes(profile?.role || '')
+            
+            if (isOwner || isAdmin) {
+                return { success: true, data: existing }
+            } else {
+                return { 
+                    success: false, 
+                    message: 'Acesso restrito. Por questões de proteção de dados, este prontuário só pode ser acessado pelo veterinário responsável ou administradores.' 
+                }
+            }
         }
 
         // Create new consultation record
