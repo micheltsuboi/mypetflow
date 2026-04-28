@@ -404,7 +404,7 @@ function AgendaContent() {
 
                 let filteredAppts = processedAppts as Appointment[]
 
-                if (isUserVet) {
+                if (isUserVet && !isUserAdmin) {
                     filteredAppts = filteredAppts.filter(a => {
                         const sc = (a.services as any)?.service_categories
                         const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
