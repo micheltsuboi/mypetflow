@@ -212,6 +212,9 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
 
         // WhatsApp notify
         try {
+            const { data: orgData } = await supabase.from('organizations').select('name').eq('id', profile.org_id).single()
+            const orgName = orgData?.name || ''
+
             const dateObj = (isHospedagem || isCreche)
                 ? (checkInDate ? new Date(`${checkInDate}T12:00:00-03:00`) : new Date())
                 : (date && time ? new Date(`${date}T${time}:00-03:00`) : new Date())
@@ -237,6 +240,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
                 service_name: serviceName, // Fallback for snake_case
                 formattedDate,
                 formattedTime,
+                orgName,
                 date_start: checkInDate || formattedDate,
                 date_end: checkOutDate || null,
                 is_hospedagem: isHospedagem,
