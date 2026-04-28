@@ -783,14 +783,22 @@ export async function getVetDashboardAppointments() {
         const apptIds = data?.map(d => d.id) || []
         const { data: consultations } = await supabase
             .from('vet_consultations')
-            .select('id, appointment_id')
+            .select('id, appointment_id, veterinarian_id, veterinarians(name)')
             .in('appointment_id', apptIds)
 
-        const apptsWithConsultation = data?.map(appt => ({
-            ...appt,
-            has_consultation: consultations?.some(c => c.appointment_id === appt.id),
-            consultation_id: consultations?.find(c => c.appointment_id === appt.id)?.id
-        }))
+        const apptsWithConsultation = data?.map(appt => {
+            const consultation = consultations?.find(c => c.appointment_id === appt.id)
+            const vetObj = Array.isArray(consultation?.veterinarians) 
+                ? consultation?.veterinarians[0] 
+                : consultation?.veterinarians
+
+            return {
+                ...appt,
+                has_consultation: !!consultation,
+                consultation_id: consultation?.id,
+                veterinarian_name: (vetObj as any)?.name || null
+            }
+        })
 
         return apptsWithConsultation || []
     } catch (error) {

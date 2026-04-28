@@ -161,7 +161,12 @@ export default function ConsultasPage() {
                                         <div className={styles.details}>
                                             <h3>{appt.pets?.name}</h3>
                                             <p className={styles.owner}>{appt.pets?.customers?.name}</p>
-                                            <span className={styles.serviceName}>{appt.services?.name}</span>
+                                            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                <span className={styles.serviceName}>{appt.services?.name}</span>
+                                                {appt.veterinarian_name && (
+                                                    <span className={styles.vetBadge}>👨‍⚕️ {appt.veterinarian_name}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className={styles.cardStatus}>
