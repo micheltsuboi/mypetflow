@@ -72,8 +72,24 @@ export default function DateInput({
 
     const { y, m, d } = getParts()
 
+    const getDaysInMonth = (yearStr: string, monthStr: string) => {
+        if (!yearStr || !monthStr) return 31
+        const year = Number(yearStr)
+        const month = Number(monthStr)
+        return new Date(year, month, 0).getDate()
+    }
+
     const handlePartChange = (part: 'y' | 'm' | 'd', newVal: string) => {
-        const parts = { y, m, d, [part]: newVal }
+        let nextY = part === 'y' ? newVal : y
+        let nextM = part === 'm' ? newVal : m
+        let nextD = part === 'd' ? newVal : d
+
+        const daysInMonth = getDaysInMonth(nextY, nextM)
+        if (nextD && Number(nextD) > daysInMonth) {
+            nextD = daysInMonth.toString().padStart(2, '0')
+        }
+
+        const parts = { y: nextY, m: nextM, d: nextD }
         const formattedDate = (parts.y && parts.m && parts.d)
             ? `${parts.y}-${parts.m.padStart(2, '0')}-${parts.d.padStart(2, '0')}`
             : ''
@@ -83,7 +99,7 @@ export default function DateInput({
         } else {
             if (part === 'y') setInternalYear(newVal)
             if (part === 'm') setInternalMonth(newVal)
-            if (part === 'd') setInternalDay(newVal)
+            if (part === 'd') setInternalDay(nextD)
         }
     }
 
@@ -103,7 +119,9 @@ export default function DateInput({
         { value: '11', label: 'Nov' },
         { value: '12', label: 'Dez' }
     ]
-    const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'))
+    
+    const daysCount = getDaysInMonth(y, m)
+    const days = Array.from({ length: daysCount }, (_, i) => (i + 1).toString().padStart(2, '0'))
 
     const finalDateStr = (y && m && d) ? `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}` : ''
 
