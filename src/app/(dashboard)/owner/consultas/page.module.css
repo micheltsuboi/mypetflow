@@ -289,3 +289,22 @@
         font-size: 1rem;
     }
 }
+
+.newBtn {
+    background: var(--primary);
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: filter 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.newBtn:hover {
+    filter: brightness(1.1);
+}

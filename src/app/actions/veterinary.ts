@@ -861,14 +861,22 @@ export async function startConsultation(appointmentId: string) {
 
         if (existing) {
             // Ensure multi-tenant security: check if belongs to the same organization
-            if (existing.org_id === profile?.org_id) {
-                return { success: true, data: existing }
-            } else {
+            if (existing.org_id !== profile?.org_id) {
+                return { success: false, message: 'Acesso negado. Este prontuário pertence a outra empresa.' }
+            }
+
+            // Se a consulta não está finalizada, apenas o veterinário responsável pode acessar
+            const isFinished = appt.status === 'done'
+            const isOwner = existing.veterinarian_id === vet?.id
+
+            if (!isFinished && !isOwner) {
                 return { 
                     success: false, 
-                    message: 'Acesso negado. Este prontuário pertence a outra empresa.' 
+                    message: 'Este prontuário ainda está indisponível. O atendimento está em andamento e só pode ser acessado pelo veterinário responsável.' 
                 }
             }
+
+            return { success: true, data: existing }
         }
 
         // Create new consultation record

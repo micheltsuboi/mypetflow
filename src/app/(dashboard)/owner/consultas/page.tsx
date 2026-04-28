@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { getVetDashboardAppointments, startConsultation } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
@@ -9,6 +10,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 export default function ConsultasPage() {
+    const router = useRouter()
     const [appointments, setAppointments] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<'day' | 'week' | 'month'>('month')
@@ -96,11 +98,17 @@ export default function ConsultasPage() {
     return (
         <PlanGuard requiredModule="clinica_vet">
             <div className={styles.container}>
-                <div className={styles.header}>
+                <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
                         <h1 className={styles.title}>🩺 Consultas Veterinárias</h1>
                         <p className={styles.subtitle}>Gerencie os atendimentos clínicos e prontuários.</p>
                     </div>
+                    <button 
+                        className={styles.newBtn}
+                        onClick={() => router.push('/owner/agenda?mode=new&category=Clínica Veterinária')}
+                    >
+                        ➕ Nova Consulta
+                    </button>
                 </div>
 
                 <div className={styles.toolbar}>
