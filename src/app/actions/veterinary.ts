@@ -810,6 +810,28 @@ export async function getVetDashboardAppointments() {
 export async function autosaveVetConsultation(id: string, field: string, value: any) {
     try {
         const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        // Buscar a consulta e o veterinário responsável
+        const { data: consultation } = await supabase
+            .from('vet_consultations')
+            .select('veterinarian_id')
+            .eq('id', id)
+            .single()
+
+        // Buscar o veterinário do usuário logado
+        const { data: vet } = await supabase
+            .from('veterinarians')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        // Se a consulta já tiver um veterinário atribuído e for diferente do logado, barra a edição
+        if (consultation?.veterinarian_id && consultation.veterinarian_id !== vet?.id) {
+            return { success: false, message: 'Você não tem permissão para alterar esta consulta.' }
+        }
+
         const { error } = await supabase
             .from('vet_consultations')
             .update({ [field]: value, updated_at: new Date().toISOString() })
@@ -928,6 +950,28 @@ export async function startConsultation(appointmentId: string) {
 export async function finishVetConsultation(appointmentId: string) {
     try {
         const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        // Buscar a consulta vinculada
+        const { data: consultation } = await supabase
+            .from('vet_consultations')
+            .select('veterinarian_id')
+            .eq('appointment_id', appointmentId)
+            .maybeSingle()
+
+        // Buscar o veterinário logado
+        const { data: vet } = await supabase
+            .from('veterinarians')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        // Se a consulta já tiver um veterinário atribuído e for diferente do logado, barra a finalização
+        if (consultation?.veterinarian_id && consultation.veterinarian_id !== vet?.id) {
+            return { success: false, message: 'Você não tem permissão para finalizar esta consulta.' }
+        }
+
         const { error } = await supabase
             .from('appointments')
             .update({
