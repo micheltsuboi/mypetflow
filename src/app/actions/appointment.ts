@@ -41,6 +41,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
         const time = formData.get('time') as string
         const notes = formData.get('notes') as string
         const staffId = formData.get('staffId') as string // Optional
+        const veterinarianId = formData.get('veterinarianId') as string || null
 
         // Hospedagem Specifics
         const checkInDate = formData.get('checkInDate') as string
@@ -190,6 +191,7 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
                 service_category_id: serviceAny.category_id,
                 customer_id: petData.customer_id,
                 staff_id: staffId || null,
+                veterinarian_id: veterinarianId,
                 scheduled_at: scheduledAt,
                 notes: notes || null,
                 status: 'pending',
@@ -399,6 +401,7 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
     const notes = formData.get('notes') as string
     const checkInDate = formData.get('checkInDate') as string
     const checkOutDate = formData.get('checkOutDate') as string
+    const veterinarianId = formData.get('veterinarianId') as string || null
 
     if (!id || !serviceId) {
         return { message: 'ID e Serviço são obrigatórios.', success: false }
@@ -425,7 +428,8 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
             scheduled_at: scheduledAt || null,
             notes: notes || null,
             check_in_date: checkInDate || null,
-            check_out_date: checkOutDate || null
+            check_out_date: checkOutDate || null,
+            veterinarian_id: veterinarianId
         })
         .eq('id', id)
 

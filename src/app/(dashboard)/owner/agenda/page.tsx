@@ -128,6 +128,7 @@ function AgendaContent() {
     const [pets, setPets] = useState<Pet[]>([])
     const [services, setServices] = useState<Service[]>([])
     const [categories, setCategories] = useState<ServiceCategory[]>([])
+    const [vets, setVets] = useState<any[]>([])
 
     // UI State
     const [todayStr] = useState(() => {
@@ -281,6 +282,8 @@ function AgendaContent() {
             const isUserVet = !!currentVetAccount
             setIsVet(isUserVet)
             if (isUserVet) setCategoryFilter('Clínica Veterinária')
+            
+            setVets(vetsRes || [])
 
             if (petsRes.data) setPets(petsRes.data as any)
 
@@ -1152,6 +1155,28 @@ function AgendaContent() {
                                     }
                                     return null
                                 })()}
+                                {(() => {
+                                    const selectedService = services.find(s => s.id === selectedServiceId)
+                                    const sc = (selectedService as any)?.service_categories
+                                    const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                    const isVetCategory = categoryName === 'Clínica Veterinária'
+
+                                    if (isVetCategory) {
+                                        return (
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>🩺 Veterinário Responsável</label>
+                                                <select name="veterinarianId" className={styles.select} defaultValue="">
+                                                    <option value="">Selecione um veterinário...</option>
+                                                    {vets.map((v: any) => (
+                                                        <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )
+                                    }
+                                    return null
+                                })()}
+
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Observações</label>
                                     <textarea name="notes" className={styles.textarea} rows={3} />
@@ -1259,6 +1284,27 @@ function AgendaContent() {
                                         </select>
                                     </div>
 
+                                    {(() => {
+                                        const sc = (selectedAppointment?.services as any)?.service_categories
+                                        const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                        const isVetCategory = categoryName === 'Clínica Veterinária'
+
+                                        if (isVetCategory) {
+                                            return (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.label}>🩺 Veterinário Responsável</label>
+                                                    <select name="veterinarianId" className={styles.select} defaultValue={selectedAppointment.veterinarian_id || ""}>
+                                                        <option value="">Selecione um veterinário...</option>
+                                                        {vets.map((v: any) => (
+                                                            <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )
+                                        }
+                                        return null
+                                    })()}
+
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>📝 Observações</label>
                                         <textarea 
@@ -1306,6 +1352,19 @@ function AgendaContent() {
                                     <div className={styles.detailRow}>
                                         <strong>Status:</strong> {getStatusLabel(selectedAppointment.status)}
                                     </div>
+                                    {(() => {
+                                        if (selectedAppointment.veterinarian_id) {
+                                            const vet = vets.find((v: any) => v.id === selectedAppointment.veterinarian_id)
+                                            if (vet) {
+                                                return (
+                                                    <div className={styles.detailRow}>
+                                                        <strong>🩺 Veterinário:</strong> {vet.name} (CRMV: {vet.crmv})
+                                                    </div>
+                                                )
+                                            }
+                                        }
+                                        return null
+                                    })()}
                                     {selectedAppointment.notes && (
                                         <div className={styles.detailRow}>
                                             <strong>Notas:</strong> {selectedAppointment.notes}

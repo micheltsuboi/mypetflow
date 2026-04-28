@@ -163,6 +163,7 @@ export interface Appointment {
     used_credit: boolean
     credit_id: string | null
     checklist: ChecklistItem[]
+    veterinarian_id?: string | null
     created_at: string
     updated_at: string
 }
@@ -256,6 +257,7 @@ export interface AppointmentFormData {
     service_id: string
     scheduled_at: string
     staff_id?: string
+    veterinarian_id?: string
     notes?: string
 }
 
