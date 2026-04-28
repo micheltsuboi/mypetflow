@@ -192,7 +192,7 @@ export default function ConsultasPage() {
                 {showModal && selectedConsultation && (
                     <ConsultationModal
                         consultation={selectedConsultation}
-                        readOnly={isReadOnly}
+                        readOnly={isReadOnly || selectedConsultation?.veterinarian_id !== currentVet?.id}
                         onClose={() => {
                             setShowModal(false)
                             fetchData()
