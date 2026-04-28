@@ -279,7 +279,7 @@ function AgendaContent() {
             ])
 
             // Processar resultados
-            const isUserAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'superadmin'
+            const isUserAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'superadmin' || profile?.role === 'staff'
             setIsAdmin(isUserAdmin)
 
             const isUserVet = vetsRes ? vetsRes.some((v: any) => v.user_id === user.id) : false
