@@ -1155,27 +1155,15 @@ function AgendaContent() {
                                     }
                                     return null
                                 })()}
-                                {(() => {
-                                    const selectedService = services.find(s => s.id === selectedServiceId)
-                                    const sc = (selectedService as any)?.service_categories
-                                    const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
-                                    const isVetCategory = categoryName === 'Clínica Veterinária' || (!selectedServiceId && categoryFilter === 'Clínica Veterinária')
-
-                                    if (isVetCategory) {
-                                        return (
-                                            <div className={styles.formGroup}>
-                                                <label className={styles.label}>🩺 Veterinário Responsável</label>
-                                                <select name="veterinarianId" className={styles.select} defaultValue="">
-                                                    <option value="">Selecione um veterinário...</option>
-                                                    {vets.map((v: any) => (
-                                                        <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )
-                                    }
-                                    return null
-                                })()}
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>🩺 Veterinário Responsável</label>
+                                    <select name="veterinarianId" className={styles.select} defaultValue="">
+                                        <option value="">Selecione um veterinário...</option>
+                                        {vets.map((v: any) => (
+                                            <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
+                                        ))}
+                                    </select>
+                                </div>
 
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Observações</label>
@@ -1284,26 +1272,15 @@ function AgendaContent() {
                                         </select>
                                     </div>
 
-                                    {(() => {
-                                        const sc = (selectedAppointment?.services as any)?.service_categories
-                                        const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
-                                        const isVetCategory = categoryName === 'Clínica Veterinária'
-
-                                        if (isVetCategory) {
-                                            return (
-                                                <div className={styles.formGroup}>
-                                                    <label className={styles.label}>🩺 Veterinário Responsável</label>
-                                                    <select name="veterinarianId" className={styles.select} defaultValue={selectedAppointment.veterinarian_id || ""}>
-                                                        <option value="">Selecione um veterinário...</option>
-                                                        {vets.map((v: any) => (
-                                                            <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            )
-                                        }
-                                        return null
-                                    })()}
+                                    <div className={styles.formGroup}>
+                                        <label className={styles.label}>🩺 Veterinário Responsável</label>
+                                        <select name="veterinarianId" className={styles.select} defaultValue={selectedAppointment.veterinarian_id || ""}>
+                                            <option value="">Selecione um veterinário...</option>
+                                            {vets.map((v: any) => (
+                                                <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
+                                            ))}
+                                        </select>
+                                    </div>
 
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>📝 Observações</label>
