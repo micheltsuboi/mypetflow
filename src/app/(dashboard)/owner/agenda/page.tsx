@@ -146,6 +146,7 @@ function AgendaContent() {
 
     const [categoryFilter, setCategoryFilter] = useState<string>('')
     const [isVet, setIsVet] = useState(false)
+    const [isAdmin, setIsAdmin] = useState(false)
 
     // Modal State
     const [showNewModal, setShowNewModal] = useState(false)
@@ -278,10 +279,15 @@ function AgendaContent() {
             ])
 
             // Processar resultados
-            const currentVetAccount = vetsRes.find((v: any) => v.user_id === user.id)
+            const isUserAdmin = profile.role === 'admin' || profile.role === 'owner' || profile.role === 'superadmin'
+            setIsAdmin(isUserAdmin)
+
             const isUserVet = !!currentVetAccount
             setIsVet(isUserVet)
-            if (isUserVet) setCategoryFilter('Clínica Veterinária')
+
+            if (isUserVet && !isUserAdmin) {
+                setCategoryFilter('Clínica Veterinária')
+            }
             
             setVets(vetsRes || [])
 
@@ -691,7 +697,7 @@ function AgendaContent() {
                         alert(res.message);
                     }
                 }}
-                isVet={isVet}
+                isVet={isVet && !isAdmin}
                 showTime={false}
             />
         )
@@ -966,7 +972,7 @@ function AgendaContent() {
                         </select>
                         <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
                             <button className={styles.actionButton} style={{ flex: 1 }} onClick={() => handleNewAppointment()}>+ Agendar</button>
-                            {!isVet && <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
+                            {(!isVet || isAdmin) && <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
                         </div>
                     </div>
                 </div>
@@ -1067,7 +1073,7 @@ function AgendaContent() {
                                             const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
                                             const cat = catName || 'Outros'
 
-                                            if (isVet && cat !== 'Clínica Veterinária') return acc
+                                            if (isVet && !isAdmin && cat !== 'Clínica Veterinária') return acc
 
                                             // Filter by Plan
                                             const planFeat = planFeatures || []
