@@ -860,16 +860,13 @@ export async function startConsultation(appointmentId: string) {
             .maybeSingle()
 
         if (existing) {
-            // Check permissions
-            const isOwner = existing.veterinarian_id === vet?.id
-            const isAdmin = ['superadmin', 'admin'].includes(profile?.role || '')
-            
-            if (isOwner || isAdmin) {
+            // Ensure multi-tenant security: check if belongs to the same organization
+            if (existing.org_id === profile?.org_id) {
                 return { success: true, data: existing }
             } else {
                 return { 
                     success: false, 
-                    message: 'Acesso restrito. Por questões de proteção de dados, este prontuário só pode ser acessado pelo veterinário responsável ou administradores.' 
+                    message: 'Acesso negado. Este prontuário pertence a outra empresa.' 
                 }
             }
         }
