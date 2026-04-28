@@ -577,6 +577,7 @@ function AgendaContent() {
 
     const handleOpenDetail = (appt: Appointment) => {
         setSelectedAppointment(appt)
+        setSelectedServiceId(appt.service_id || (appt as any).services?.id || '')
         setIsEditing(false)
         setCurrentChecklist(normalizeChecklist(appt.checklist as any[]))
         setShowDetailModal(true)
@@ -1155,15 +1156,27 @@ function AgendaContent() {
                                     }
                                     return null
                                 })()}
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>🩺 Veterinário Responsável</label>
-                                    <select name="veterinarianId" className={styles.select} defaultValue="">
-                                        <option value="">Selecione um veterinário...</option>
-                                        {vets.map((v: any) => (
-                                            <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                {(() => {
+                                    const selectedService = services.find(s => s.id === selectedServiceId)
+                                    const sc = (selectedService as any)?.service_categories
+                                    const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                    const isVetCategory = categoryName === 'Clínica Veterinária' || (categoryFilter === 'Clínica Veterinária' && !selectedServiceId)
+
+                                    if (isVetCategory) {
+                                        return (
+                                            <div className={styles.formGroup}>
+                                                <label className={styles.label}>🩺 Veterinário Responsável</label>
+                                                <select name="veterinarianId" className={styles.select} defaultValue="">
+                                                    <option value="">Selecione um veterinário...</option>
+                                                    {vets.map((v: any) => (
+                                                        <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )
+                                    }
+                                    return null
+                                })()}
 
                                 <div className={styles.formGroup}>
                                     <label className={styles.label}>Observações</label>
@@ -1265,22 +1278,35 @@ function AgendaContent() {
                                         <select 
                                             name="serviceId" 
                                             className={styles.select} 
-                                            defaultValue={selectedAppointment.services?.id}
+                                            value={selectedServiceId}
+                                            onChange={(e) => setSelectedServiceId(e.target.value)}
                                             required
                                         >
                                             {services.map(s => <option key={s.id} value={s.id}>{s.name} - R$ {s.base_price.toFixed(2)}</option>)}
                                         </select>
                                     </div>
 
-                                    <div className={styles.formGroup}>
-                                        <label className={styles.label}>🩺 Veterinário Responsável</label>
-                                        <select name="veterinarianId" className={styles.select} defaultValue={selectedAppointment.veterinarian_id || ""}>
-                                            <option value="">Selecione um veterinário...</option>
-                                            {vets.map((v: any) => (
-                                                <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    {(() => {
+                                        const selectedService = services.find(s => s.id === selectedServiceId)
+                                        const sc = (selectedService as any)?.service_categories
+                                        const categoryName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                                        const isVetCategory = categoryName === 'Clínica Veterinária'
+
+                                        if (isVetCategory) {
+                                            return (
+                                                <div className={styles.formGroup}>
+                                                    <label className={styles.label}>🩺 Veterinário Responsável</label>
+                                                    <select name="veterinarianId" className={styles.select} defaultValue={selectedAppointment.veterinarian_id || ""}>
+                                                        <option value="">Selecione um veterinário...</option>
+                                                        {vets.map((v: any) => (
+                                                            <option key={v.id} value={v.id}>{v.name} (CRMV: {v.crmv})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )
+                                        }
+                                        return null
+                                    })()}
 
                                     <div className={styles.formGroup}>
                                         <label className={styles.label}>📝 Observações</label>
