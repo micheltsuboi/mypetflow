@@ -656,15 +656,64 @@ export async function createVetExam(formData: FormData) {
     }
 }
 
-export async function updateExamPayment(id: string, obj: { payment_status: 'paid' | 'pending' }) {
+export async function updateExamPayment(id: string, obj: { payment_status: 'paid' | 'pending', payment_method?: string }) {
     try {
         const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+
+        // Busca os dados completos do exame antes de atualizar
+        const { data: exam, error: examError } = await supabase
+            .from('vet_exams')
+            .select('id, pet_id, exam_type_name, price, discount_type, discount_percent, discount_fixed, payment_method, org_id')
+            .eq('id', id)
+            .single()
+
+        if (examError || !exam) return { success: false, message: 'Exame não encontrado' }
+
+        const finalMethod = obj.payment_method || exam.payment_method || 'cash'
+
         const { error } = await supabase
             .from('vet_exams')
-            .update({ payment_status: obj.payment_status })
+            .update({ payment_status: obj.payment_status, payment_method: finalMethod })
             .eq('id', id)
 
         if (error) throw error
+
+        // Registrar transação financeira ao marcar como PAGO
+        if (obj.payment_status === 'paid' && exam.price > 0) {
+            let finalTotal = exam.price
+            if (exam.discount_type === 'percent') {
+                finalTotal = exam.price - (exam.price * ((exam.discount_percent ?? 0) / 100))
+            } else if (exam.discount_type === 'fixed') {
+                finalTotal = Math.max(0, exam.price - (exam.discount_fixed ?? 0))
+            }
+
+            await supabase.from('financial_transactions').insert({
+                org_id: exam.org_id || profile?.org_id,
+                type: 'income',
+                category: 'Exame Veterinário',
+                amount: finalTotal,
+                description: `Exame (${exam.exam_type_name}) [${finalMethod}] - Pet: ${exam.pet_id}`,
+                payment_method: finalMethod,
+                created_by: user.id,
+                date: new Date().toISOString(),
+                reference_id: exam.id,
+                reference_type: 'exam'
+            })
+        }
+
+        // Remover transação financeira ao desfazer pagamento
+        if (obj.payment_status === 'pending') {
+            await supabase
+                .from('financial_transactions')
+                .delete()
+                .eq('reference_id', id)
+                .eq('reference_type', 'exam')
+        }
+
         revalidatePath('/owner/pets')
         return { success: true, message: 'Status atualizado com sucesso.' }
     } catch (error: any) {

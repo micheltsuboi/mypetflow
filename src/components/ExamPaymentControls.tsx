@@ -56,7 +56,7 @@ export default function ExamPaymentControls({
     const handlePayment = async (method: string) => {
         setLoading(true)
         try {
-            await updateExamPayment(examId, { payment_status: 'paid' })
+            await updateExamPayment(examId, { payment_status: 'paid', payment_method: method })
             onUpdate?.()
             setShowModal(false)
         } finally {

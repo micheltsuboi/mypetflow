@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 import styles from './ConsultationModal.module.css'
-import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOrganizationLogo } from '@/app/actions/veterinary'
+import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOrganizationLogo, getVetExamTypes, createVetExam, getVetExams, deleteVetExam } from '@/app/actions/veterinary'
 import BodyMap from './BodyMap'
 import DateInput from '../ui/DateInput'
 import EmitirNFModal from '../EmitirNFModal'
 import PaymentManager from '../finance/PaymentManager'
+import ExamPaymentControls from '../ExamPaymentControls'
 
 interface ConsultationModalProps {
     consultation: any
@@ -25,19 +26,51 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const autosaveTimer = useRef<NodeJS.Timeout | null>(null)
     const pendingSave = useRef<{ field: string, value: any } | null>(null)
 
+    // Exames
+    const [examTypes, setExamTypes] = useState<any[]>([])
+    const [consultationExams, setConsultationExams] = useState<any[]>([])
+    const [selectedExamTypeId, setSelectedExamTypeId] = useState('')
+    const [addingExam, setAddingExam] = useState(false)
+
     const calculateFinalTotal = () => {
         const fee = Number(formData.consultation_fee || 0)
         const discFixed = Number(formData.discount_fixed || 0)
         const discPercent = Number(formData.discount_percent || 0)
         
+        let consultationTotal = fee
         if (formData.discount_type === 'percent') {
-            return fee - (fee * (discPercent / 100))
+            consultationTotal = fee - (fee * (discPercent / 100))
+        } else {
+            consultationTotal = Math.max(0, fee - discFixed)
         }
-        return Math.max(0, fee - discFixed)
+
+        // Soma os exames pendentes/já solicitados (preço base)
+        const examsTotal = consultationExams.reduce((acc: number, exam: any) => {
+            const basePrice = Number(exam.price || 0)
+            let examFinal = basePrice
+            if (exam.discount_type === 'percent') {
+                examFinal = basePrice - (basePrice * ((exam.discount_percent ?? 0) / 100))
+            } else if (exam.discount_type === 'fixed') {
+                examFinal = Math.max(0, basePrice - (exam.discount_fixed ?? 0))
+            }
+            return acc + examFinal
+        }, 0)
+
+        return consultationTotal + examsTotal
+    }
+
+    const refreshExams = async () => {
+        if (consultation.pet_id) {
+            const exams = await getVetExams(consultation.pet_id)
+            // Filtra somente exames vinculados a esta consulta (se tiver consultation_id) ou todos do pet
+            setConsultationExams(exams)
+        }
     }
 
     useEffect(() => {
         getVeterinarians().then(setVets)
+        getVetExamTypes().then(setExamTypes)
+        refreshExams()
         
         // Fetch NF Status
         const fetchNF = async () => {
@@ -368,6 +401,161 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                             species={consultation.pets?.species}
                             onChange={(data) => handleFieldChange('body_map_data', data)}
                         />
+                    </div>
+
+                    {/* SEÇÃO DE EXAMES */}
+                    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                🧪 Exames Solicitados
+                            </h3>
+                            {!readOnly && examTypes.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setAddingExam(!addingExam)}
+                                    style={{
+                                        background: addingExam ? 'transparent' : 'var(--gradient-primary)',
+                                        color: addingExam ? 'var(--text-secondary)' : 'white',
+                                        border: addingExam ? '1px solid var(--border)' : 'none',
+                                        padding: '0.4rem 0.9rem',
+                                        borderRadius: '8px',
+                                        fontWeight: 600,
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    {addingExam ? '✕ Cancelar' : '+ Solicitar Exame'}
+                                </button>
+                            )}
+                        </div>
+
+                        {addingExam && !readOnly && (
+                            <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: '200px' }}>
+                                    <label style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '4px', display: 'block', color: 'var(--text-secondary)' }}>Tipo de Exame</label>
+                                    <select
+                                        value={selectedExamTypeId}
+                                        onChange={(e) => setSelectedExamTypeId(e.target.value)}
+                                        className={styles.select}
+                                    >
+                                        <option value="">Selecione um exame...</option>
+                                        {examTypes.map((t: any) => (
+                                            <option key={t.id} value={t.id}>
+                                                {t.name} — R$ {Number(t.base_price).toFixed(2)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={!selectedExamTypeId}
+                                    onClick={async () => {
+                                        const selectedType = examTypes.find((t: any) => t.id === selectedExamTypeId)
+                                        if (!selectedType) return
+                                        const fd = new FormData()
+                                        fd.append('pet_id', consultation.pet_id)
+                                        fd.append('exam_type_id', selectedType.id)
+                                        fd.append('exam_type_name', selectedType.name)
+                                        fd.append('price', String(selectedType.base_price))
+                                        fd.append('exam_date', new Date().toISOString().split('T')[0])
+                                        fd.append('payment_status', 'pending')
+                                        fd.append('payment_method', 'cash')
+                                        const res = await createVetExam(fd)
+                                        if (res.success) {
+                                            setSelectedExamTypeId('')
+                                            setAddingExam(false)
+                                            await refreshExams()
+                                        } else {
+                                            alert(res.message)
+                                        }
+                                    }}
+                                    style={{
+                                        background: selectedExamTypeId ? 'var(--gradient-primary)' : 'var(--bg-secondary)',
+                                        color: selectedExamTypeId ? 'white' : 'var(--text-muted)',
+                                        border: 'none',
+                                        padding: '0.6rem 1.25rem',
+                                        borderRadius: '8px',
+                                        fontWeight: 700,
+                                        cursor: selectedExamTypeId ? 'pointer' : 'not-allowed',
+                                        fontSize: '0.9rem',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    ✓ Adicionar
+                                </button>
+                            </div>
+                        )}
+
+                        {consultationExams.length === 0 ? (
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', textAlign: 'center', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px' }}>
+                                Nenhum exame solicitado nesta consulta.
+                            </p>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {consultationExams.map((exam: any) => (
+                                    <div key={exam.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '10px', border: '1px solid var(--border)', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                            <span style={{ fontSize: '1rem' }}>🧪</span>
+                                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{exam.exam_type_name}</span>
+                                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                                {new Date(exam.exam_date).toLocaleDateString('pt-BR')}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <ExamPaymentControls
+                                                examId={exam.id}
+                                                price={exam.price}
+                                                discountPercent={exam.discount_percent}
+                                                discountType={exam.discount_type}
+                                                discountFixed={exam.discount_fixed}
+                                                paymentStatus={exam.payment_status}
+                                                paymentMethod={exam.payment_method}
+                                                onUpdate={refreshExams}
+                                                compact
+                                            />
+                                            {!readOnly && (
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        if (confirm('Remover este exame?')) {
+                                                            await deleteVetExam(exam.id)
+                                                            await refreshExams()
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        border: 'none',
+                                                        color: 'var(--text-muted)',
+                                                        cursor: 'pointer',
+                                                        fontSize: '0.8rem',
+                                                        padding: '2px 6px'
+                                                    }}
+                                                    title="Remover exame"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* RESUMO DE VALORES */}
+                                <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', background: 'rgba(var(--primary-rgb, 232, 130, 106), 0.08)', borderRadius: '10px', border: '1px solid rgba(var(--primary-rgb, 232, 130, 106), 0.2)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        <span>Consulta:</span>
+                                        <span>R$ {(() => { const fee = Number(formData.consultation_fee || 0); const disc = Number(formData.discount_percent || 0); const discF = Number(formData.discount_fixed || 0); return formData.discount_type === 'percent' ? Math.max(0, fee - fee * disc / 100).toFixed(2) : Math.max(0, fee - discF).toFixed(2) })()}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                                        <span>Exames ({consultationExams.length}):</span>
+                                        <span>R$ {consultationExams.reduce((acc: number, exam: any) => { const p = Number(exam.price || 0); let f = p; if (exam.discount_type === 'percent') f = p - p * ((exam.discount_percent ?? 0) / 100); else if (exam.discount_type === 'fixed') f = Math.max(0, p - (exam.discount_fixed ?? 0)); return acc + f }, 0).toFixed(2)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', borderTop: '1px solid var(--border)', paddingTop: '6px', marginTop: '4px' }}>
+                                        <span>Total Geral:</span>
+                                        <span style={{ color: 'var(--primary)' }}>R$ {calculateFinalTotal().toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className={styles.footerGrid}>
