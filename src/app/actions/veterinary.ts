@@ -620,11 +620,8 @@ export async function createVetExam(formData: FormData) {
                 result_notes,
                 file_url,
                 price,
-                discount_type,
                 discount_percent,
-                discount_fixed,
                 payment_status,
-                payment_method,
                 created_by: user.id
             })
 
@@ -667,17 +664,17 @@ export async function updateExamPayment(id: string, obj: { payment_status: 'paid
         // Busca os dados completos do exame antes de atualizar
         const { data: exam, error: examError } = await supabase
             .from('vet_exams')
-            .select('id, pet_id, exam_type_name, price, discount_type, discount_percent, discount_fixed, payment_method, org_id')
+            .select('id, pet_id, exam_type_name, price, discount_percent, org_id')
             .eq('id', id)
             .single()
 
         if (examError || !exam) return { success: false, message: 'Exame não encontrado' }
 
-        const finalMethod = obj.payment_method || exam.payment_method || 'cash'
+        const finalMethod = obj.payment_method || 'cash'
 
         const { error } = await supabase
             .from('vet_exams')
-            .update({ payment_status: obj.payment_status, payment_method: finalMethod })
+            .update({ payment_status: obj.payment_status })
             .eq('id', id)
 
         if (error) throw error
@@ -685,10 +682,8 @@ export async function updateExamPayment(id: string, obj: { payment_status: 'paid
         // Registrar transação financeira ao marcar como PAGO
         if (obj.payment_status === 'paid' && exam.price > 0) {
             let finalTotal = exam.price
-            if (exam.discount_type === 'percent') {
+            if (exam.discount_percent) {
                 finalTotal = exam.price - (exam.price * ((exam.discount_percent ?? 0) / 100))
-            } else if (exam.discount_type === 'fixed') {
-                finalTotal = Math.max(0, exam.price - (exam.discount_fixed ?? 0))
             }
 
             await supabase.from('financial_transactions').insert({
