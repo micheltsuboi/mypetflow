@@ -593,7 +593,7 @@ export async function createVetExam(formData: FormData) {
         const veterinarian_id = formData.get('veterinarian_id') as string || null
         const exam_type_id = formData.get('exam_type_id') as string || null
         const exam_type_name = formData.get('exam_type_name') as string
-        const exam_date = formData.get('exam_date') as string || new Date().toISOString()
+        const exam_date = formData.get('exam_date') as string || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' })
         const result_notes = formData.get('result_notes') as string || null
 
         const price = parseFloat(formData.get('price') as string || '0')

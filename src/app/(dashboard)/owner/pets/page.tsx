@@ -1050,7 +1050,7 @@ function PetsContent() {
                                                         </div>
                                                         <div className={styles.formGroup}>
                                                             <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Data da Solicitação</label>
-                                                            <input type="date" name="exam_date" className={styles.input} defaultValue={new Date().toISOString().split('T')[0]} />
+                                                            <input type="date" name="exam_date" className={styles.input} defaultValue={new Date().toLocaleDateString('en-CA')} />
                                                         </div>
                                                         <button type="submit" className={styles.addButton} style={{ width: '100%', marginTop: '0.5rem' }}>
                                                             ✓ Solicitar Exame

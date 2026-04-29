@@ -457,7 +457,7 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                                         fd.append('exam_type_id', selectedType.id)
                                         fd.append('exam_type_name', selectedType.name)
                                         fd.append('price', String(selectedType.base_price))
-                                        fd.append('exam_date', new Date().toISOString().split('T')[0])
+                                        fd.append('exam_date', new Date().toLocaleDateString('en-CA'))
                                         fd.append('payment_status', 'pending')
                                         fd.append('payment_method', 'cash')
                                         const res = await createVetExam(fd)
