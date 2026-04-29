@@ -618,7 +618,22 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                             refId={consultation.id}
                             refType="consultation"
                             totalDue={calculateFinalTotal()}
-                            onStatusChange={(newStatus) => handleFieldChange('payment_status', newStatus)}
+                            onStatusChange={async (newStatus) => {
+                                handleFieldChange('payment_status', newStatus)
+                                if (newStatus === 'paid') {
+                                    // Marca todos os exames pendentes desta consulta como pagos
+                                    let updatedAny = false
+                                    for (const exam of consultationExams) {
+                                        if (exam.payment_status !== 'paid') {
+                                            await updateExamPayment(exam.id, { payment_status: 'paid', payment_method: 'pix' })
+                                            updatedAny = true
+                                        }
+                                    }
+                                    if (updatedAny) {
+                                        await refreshExams()
+                                    }
+                                }
+                            }}
                         />
                     </div>
                 </div>
