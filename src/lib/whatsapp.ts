@@ -59,9 +59,9 @@ export async function sendWhatsAppMessage(
         customMessage: message,
         tenant_id: orgId,
         type: 'system_notification',
-        wa_api_url: org.wa_api_url,
-        wa_api_token: org.wa_api_token,
-        wa_client_token: org.wa_client_token || org.wa_api_token,
+        wa_api_url: org.wa_api_url || (process.env.ZAPI_INSTANCE_ID ? `https://api.z-api.io/instances/${process.env.ZAPI_INSTANCE_ID}/token/${process.env.ZAPI_TOKEN}` : null),
+        wa_api_token: org.wa_api_token || process.env.ZAPI_TOKEN,
+        wa_client_token: org.wa_client_token || org.wa_api_token || process.env.ZAPI_CLIENT_TOKEN,
         wa_integration_type: integrationType
     }
 
