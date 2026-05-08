@@ -22,8 +22,17 @@ export interface NFCeBuilderParams {
 
 /**
  * Builds the payload for Focus NFe API for NFC-e (Cupom Fiscal Eletrônico)
- * NFC-e is simpler: for consumer final, no address needed, CPF optional.
- * CFOP for NFC-e should be 5102 (venda no estado) - same as NFe for products.
+ * NFC-e é para venda presencial ao consumidor final.
+ * 
+ * CAMPO CRÍTICO: indicador_presenca = 1 (Operação presencial)
+ * Sem este campo a SEFAZ rejeita com erro 717 "NFC-e em operação não presencial"
+ * 
+ * Valores possíveis para indicador_presenca:
+ * 1 = Operação presencial (PADRÃO para PDV físico)
+ * 2 = Operação não presencial, pela Internet
+ * 3 = Operação não presencial, Teleatendimento
+ * 4 = NFC-e em operação com entrega em domicílio
+ * 9 = Operação não presencial, outros
  */
 export function buildNFCePayload({ config, ref_uuid, total_amount, tutor, items }: NFCeBuilderParams) {
     const totalFormatado = (total_amount || 0).toFixed(2)
@@ -56,6 +65,16 @@ export function buildNFCePayload({ config, ref_uuid, total_amount, tutor, items 
         ref: `petflow_${ref_uuid}`,
         natureza_operacao: 'Venda ao Consumidor',
         data_emissao: new Date().toISOString(),
+
+        // ===== CAMPOS OBRIGATÓRIOS PARA NFC-e =====
+        // indicador_presenca = 1: Operação presencial no estabelecimento
+        // SEM este campo → SEFAZ retorna erro 717 "NFC-e em operação não presencial"
+        indicador_presenca: 1,
+
+        tipo_documento: 1,       // 1 = Saída (venda)
+        finalidade_emissao: 1,   // 1 = Normal
+        // ==========================================
+
         cnpj_emitente: config.cnpj?.replace(/\D/g, ''),
         inscricao_estadual_emitente: (config.inscricao_estadual?.trim().toUpperCase() === 'ISENTO'
             ? 'ISENTO'
@@ -71,10 +90,10 @@ export function buildNFCePayload({ config, ref_uuid, total_amount, tutor, items 
         valor_seguro: 0.0,
         valor_total: totalFormatado,
         valor_produtos: totalFormatado,
-        modalidade_frete: 9,
+        modalidade_frete: 9, // Sem frete
         items: formattedItems,
 
-        // Responsável Técnico
+        // Responsável Técnico (obrigatório em vários estados)
         cnpj_responsavel_tecnico: config.resp_tecnico_cnpj?.replace(/\D/g, ''),
         contato_responsavel_tecnico: config.resp_tecnico_contato,
         email_responsavel_tecnico: config.resp_tecnico_email,
@@ -82,7 +101,7 @@ export function buildNFCePayload({ config, ref_uuid, total_amount, tutor, items 
         id_csrt: config.resp_tecnico_id_csrt,
     }
 
-    // CPF do consumidor é opcional na NFC-e
+    // CPF do consumidor é opcional na NFC-e (mas recomendado quando disponível)
     const numCpf = tutor?.cpf?.replace(/\D/g, '')
     if (numCpf && numCpf.length === 11) {
         root.cpf_destinatario = numCpf
