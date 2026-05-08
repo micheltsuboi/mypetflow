@@ -189,6 +189,7 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                     justifyContent: 'space-between', 
                     alignItems: 'center' 
                 }}>
+                    <div>
                         <h2 style={{ fontSize: '1.5rem', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <ShoppingBag size={24} color="#60a5fa" /> Extrato de Vendas
                         </h2>
