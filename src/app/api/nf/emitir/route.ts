@@ -174,6 +174,17 @@ export async function POST(req: NextRequest) {
             console.error("Critical fail saving nota:", dbError)
         }
 
+        // 4. Se usamos numeração manual, limpamos agora para que a próxima use o sequencial da Focus
+        if (config.proximo_numero_nfe || config.proximo_numero_nfce) {
+            await supabase
+                .from('fiscal_config')
+                .update({ 
+                    proximo_numero_nfe: null,
+                    proximo_numero_nfce: null
+                })
+                .eq('org_id', orgId)
+        }
+
         return NextResponse.json({ success: true, message: 'Nota fiscal enviada para processamento', status: initialStatus })
 
     } catch (error: any) {

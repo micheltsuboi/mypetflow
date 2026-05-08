@@ -110,5 +110,13 @@ export function buildNFCePayload({ config, ref_uuid, total_amount, tutor, items 
         }
     }
 
+    // Controle de numeração e série (Override)
+    if (config.proximo_numero_nfce) {
+        root.numero = config.proximo_numero_nfce
+    }
+    if (config.serie_nfce) {
+        root.serie = config.serie_nfce
+    }
+
     return root
 }

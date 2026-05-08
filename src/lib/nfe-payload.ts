@@ -115,5 +115,13 @@ export function buildNFePayload({ config, ref_uuid, total_amount, tutor, items }
         root.indicador_inscricao_estadual_destinatario = 9;
     }
 
+    // Controle de numeração e série (Override)
+    if (config.proximo_numero_nfe) {
+        root.numero = config.proximo_numero_nfe;
+    }
+    if (config.serie_nfe) {
+        root.serie = config.serie_nfe;
+    }
+
     return root;
 }

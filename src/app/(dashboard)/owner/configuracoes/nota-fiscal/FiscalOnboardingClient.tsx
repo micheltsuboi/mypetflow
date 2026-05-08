@@ -42,6 +42,10 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
         resp_tecnico_email: initialConfig?.resp_tecnico_email || '',
         resp_tecnico_telefone: initialConfig?.resp_tecnico_telefone || '',
         resp_tecnico_id_csrt: initialConfig?.resp_tecnico_id_csrt || '',
+        proximo_numero_nfe: initialConfig?.proximo_numero_nfe || '',
+        serie_nfe: initialConfig?.serie_nfe || '',
+        proximo_numero_nfce: initialConfig?.proximo_numero_nfce || '',
+        serie_nfce: initialConfig?.serie_nfce || '',
         dry_run: false
     })
 
@@ -105,6 +109,10 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
                 resp_tecnico_email: formData.resp_tecnico_email,
                 resp_tecnico_telefone: formData.resp_tecnico_telefone,
                 resp_tecnico_id_csrt: formData.resp_tecnico_id_csrt,
+                proximo_numero_nfe: formData.proximo_numero_nfe,
+                serie_nfe: formData.serie_nfe,
+                proximo_numero_nfce: formData.proximo_numero_nfce,
+                serie_nfce: formData.serie_nfce,
                 dry_run: formData.dry_run
             }
 
@@ -302,11 +310,37 @@ export default function FiscalOnboardingClient({ initialConfig }: FiscalOnboardi
                                 </div>
                             )}
 
-                            <h3 className={styles.sectionTitle}>Configurações de Produtos do PDV</h3>
-                            <label className={styles.checkboxGroup}>
+                            <h3 className={styles.sectionTitle}>Configurações de Produtos (NFe/NFCe)</h3>
+                            <label className={styles.checkboxGroup} style={{ marginBottom: '1.5rem' }}>
                                 <input type="checkbox" name="habilita_nfe" checked={formData.habilita_nfe} onChange={handleChange} />
-                                <span>Habilitar emissão de NFe p/ produtos (exige Inscrição Estadual)</span>
+                                <span>Habilitar emissão de Notas/Cupons de Produtos (exige Inscrição Estadual)</span>
                             </label>
+
+                            <div style={{ background: 'rgba(0,0,0,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--card-border)' }}>
+                                <h4 style={{ fontSize: '1rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Controle de Numeração (Opcional)</h4>
+                                <p className={styles.subtitle} style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+                                    Use apenas se precisar "pular" números devido a erros de inutilização ou duplicidade na SEFAZ. 
+                                    Deixe vazio para usar o sequencial automático da Focus NFe.
+                                </p>
+                                <div className={styles.formGrid}>
+                                    <div className={styles.formGroup}>
+                                        <label>Próximo Número NFC-e</label>
+                                        <input type="number" className={styles.input} name="proximo_numero_nfce" value={formData.proximo_numero_nfce} onChange={handleChange} placeholder="Ex: 15" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Série NFC-e</label>
+                                        <input className={styles.input} name="serie_nfce" value={formData.serie_nfce} onChange={handleChange} placeholder="Ex: 1" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Próximo Número NF-e</label>
+                                        <input type="number" className={styles.input} name="proximo_numero_nfe" value={formData.proximo_numero_nfe} onChange={handleChange} placeholder="Ex: 1" />
+                                    </div>
+                                    <div className={styles.formGroup}>
+                                        <label>Série NF-e</label>
+                                        <input className={styles.input} name="serie_nfe" value={formData.serie_nfe} onChange={handleChange} placeholder="Ex: 1" />
+                                    </div>
+                                </div>
+                            </div>
 
                             <div className={styles.buttonGroup}>
                                 <button type="button" className={styles.backButton} onClick={prevStep}>Voltar</button>

@@ -90,6 +90,10 @@ export async function POST(req: NextRequest) {
             resp_tecnico_telefone: body.resp_tecnico_telefone,
             resp_tecnico_id_csrt: body.resp_tecnico_id_csrt,
             resp_tecnico_hash_csrt: body.resp_tecnico_hash_csrt,
+            proximo_numero_nfe: body.proximo_numero_nfe ? Number(body.proximo_numero_nfe) : null,
+            serie_nfe: body.serie_nfe || null,
+            proximo_numero_nfce: body.proximo_numero_nfce ? Number(body.proximo_numero_nfce) : null,
+            serie_nfce: body.serie_nfce || null,
             ativo: true
         }
 

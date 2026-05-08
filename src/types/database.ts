@@ -544,6 +544,10 @@ export interface FiscalConfig {
     resp_tecnico_telefone: string | null
     resp_tecnico_id_csrt: string | null
     resp_tecnico_hash_csrt: string | null
+    proximo_numero_nfe: number | null
+    serie_nfe: string | null
+    proximo_numero_nfce: number | null
+    serie_nfce: string | null
     ativo: boolean
     created_at: string
     updated_at: string
