@@ -13,7 +13,8 @@ import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import SalesHistoryModal from '@/components/petshop/SalesHistoryModal'
 import FiscalDocumentModal, { FiscalDocumentType } from '@/components/petshop/FiscalDocumentModal'
-import { ReceiptText } from 'lucide-react'
+import { ReceiptText, ShoppingBag, LayoutDashboard } from 'lucide-react'
+import InventoryManagement from '@/components/petshop/InventoryManagement'
 
 // Interfaces locais para o Carrinho
 interface CartItem {
@@ -51,6 +52,9 @@ export default function PetshopPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('Todas')
+
+    // Navegação
+    const [activeTab, setActiveTab] = useState<'pdv' | 'stock'>('pdv')
 
     // Gerenciador de Produtos (CRUD Modal)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -427,27 +431,45 @@ export default function PetshopPage() {
     return (
         <PlanGuard requiredModule="petshop">
             <div className={styles.pdvContainer}>
+                
+                {/* Tabs Navigation */}
+                <div className={styles.tabNav}>
+                    <button 
+                        className={`${styles.tabBtn} ${activeTab === 'pdv' ? styles.tabActive : ''}`}
+                        onClick={() => setActiveTab('pdv')}
+                    >
+                        <ShoppingBag size={18} /> Vendas
+                    </button>
+                    <button 
+                        className={`${styles.tabBtn} ${activeTab === 'stock' ? styles.tabActive : ''}`}
+                        onClick={() => setActiveTab('stock')}
+                    >
+                        <LayoutDashboard size={18} /> Gestão de Estoque
+                    </button>
+                </div>
 
-                {/* LADO ESQUERDO: Catálogo de Produtos */}
-                <div className={styles.catalogSection}>
-                    <div className={styles.catalogHeader}>
-                        <div>
-                            <h1 className={styles.title}>🛒 Ponto de Venda</h1>
-                            <p className={styles.subtitle}>Selecione os produtos para adicionar ao carrinho</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.75rem' }}>
-                            <button 
-                                className={styles.addButton} 
-                                style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
-                                onClick={() => setShowHistoryModal(true)}
-                            >
-                                <ReceiptText size={18} /> Extrato
-                            </button>
-                            <button className={styles.addButton} onClick={() => handleOpenModal()}>
-                                + Produto
-                            </button>
-                        </div>
-                    </div>
+                {activeTab === 'stock' ? (
+                    <InventoryManagement products={products} onUpdate={fetchProducts} />
+                ) : (
+                    <div className={styles.pdvContent}>
+                        {/* LADO ESQUERDO: Catálogo de Produtos */}
+                        <div className={styles.catalogSection}>
+                            <div className={styles.catalogHeader}>
+                                <div>
+                                    <h1 className={styles.title}>🛒 Ponto de Venda</h1>
+                                    <p className={styles.subtitle}>Selecione os produtos para adicionar ao carrinho</p>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button 
+                                        className={styles.addButton} 
+                                        style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+                                        onClick={() => setShowHistoryModal(true)}
+                                    >
+                                        <ReceiptText size={18} /> Extrato
+                                    </button>
+                                </div>
+                            </div>
+
 
                     <div className={styles.filters}>
                         <div className={styles.searchBox}>
@@ -744,100 +766,9 @@ export default function PetshopPage() {
                     </div>
                 </div>
 
-                {/* Modal Gestão Produtos - Mantido Quase Igual */}
-                {isModalOpen && (
-                    <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
-                        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-                            <button className={styles.closeButton} onClick={() => setIsModalOpen(false)}>×</button>
-                            <h2>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</h2>
-                            <form onSubmit={handleSaveProduct}>
-                                {/* Campos padrão ocultados p/ condensar o dump, manter inputs originais */}
-                                <div className={styles.formGroup} style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-                                    <ImageUpload bucket="products" url={formData.image_url} onUpload={v => setFormData(p => ({ ...p, image_url: v }))} onRemove={() => setFormData(p => ({ ...p, image_url: null }))} label="Foto" />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Nome</label>
-                                    <input className={styles.input} type="text" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                                </div>
-                                <div className={styles.row}>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>Preço Custo (R$)</label>
-                                        <input className={styles.input} type="number" step="0.01" value={formData.cost_price} onChange={e => setFormData({ ...formData, cost_price: parseFloat(e.target.value) })} />
-                                    </div>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>Preço Venda (R$)</label>
-                                        <input className={styles.input} type="number" step="0.01" required value={formData.selling_price} onChange={e => setFormData({ ...formData, selling_price: parseFloat(e.target.value) })} />
-                                    </div>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>Estoque</label>
-                                        <input className={styles.input} type="number" required value={formData.stock_quantity} onChange={e => setFormData({ ...formData, stock_quantity: parseInt(e.target.value) })} />
-                                    </div>
-                                </div>
-                                <div className={styles.row}>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>Categoria</label>
-                                        <select className={styles.select} value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}>
-                                            {categories.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>Código de Barras</label>
-                                        <input className={styles.input} type="text" value={formData.bar_code} onChange={e => setFormData({ ...formData, bar_code: e.target.value })} />
-                                    </div>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>Validade</label>
-                                        <DateInput
-                                            value={formData.expiration_date}
-                                            onChange={val => setFormData({ ...formData, expiration_date: val })}
-                                            className={styles.input}
-                                            yearRange={[new Date().getFullYear(), new Date().getFullYear() + 10]}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className={styles.row}>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>NCM (Fiscal)</label>
-                                        <input 
-                                            className={styles.input} 
-                                            type="text" 
-                                            placeholder="Ex: 1234.56.78"
-                                            value={formData.codigo_ncm} 
-                                            onChange={e => setFormData({ ...formData, codigo_ncm: e.target.value })} 
-                                        />
-                                    </div>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>CFOP (Fiscal)</label>
-                                        <input 
-                                            className={styles.input} 
-                                            type="text" 
-                                            placeholder="Ex: 5102"
-                                            value={formData.cfop} 
-                                            onChange={e => setFormData({ ...formData, cfop: e.target.value })} 
-                                        />
-                                    </div>
-                                    <div className={styles.col}>
-                                        <label className={styles.label}>CSOSN / CST</label>
-                                        <input 
-                                            className={styles.input} 
-                                            type="text" 
-                                            placeholder="Ex: 102"
-                                            value={formData.icms_situacao_tributaria} 
-                                            onChange={e => setFormData({ ...formData, icms_situacao_tributaria: e.target.value })} 
-                                        />
-                                    </div>
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label className={styles.label}>Descrição</label>
-                                    <textarea className={styles.input} rows={3} value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                                </div>
-                                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
-                                    <button type="submit" className={styles.submitButton} style={{ width: 'auto' }}>Salvar</button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
                 )}
+
 
                 {showFiscalModal && checkoutSaleData && (
                     <FiscalDocumentModal

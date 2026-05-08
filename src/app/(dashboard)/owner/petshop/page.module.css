@@ -1,11 +1,54 @@
 .pdvContainer {
     display: flex;
-    gap: 1.5rem;
+    flex-direction: column;
     height: calc(100vh - 80px);
-    /* Ocupa toda tela menos header global */
+    background-color: var(--bg-primary);
+    overflow: hidden;
+}
+
+.tabNav {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.tabBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tabBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.tabActive {
+    background: var(--color-navy) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pdvContent {
+    display: flex;
+    flex: 1;
+    gap: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
     padding: 1.5rem;
+    width: 100%;
+    overflow: hidden;
 }
 
 /* Esquerda: Catálogo */
@@ -433,6 +476,54 @@
     justify-content: space-between;
     align-items: center;
     margin-top: 0.4rem;
+}
+
+.pdvContainer {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--bg-primary);
+    overflow: hidden;
+}
+
+.tabNav {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.tabBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tabBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.tabActive {
+    background: var(--color-navy) !important;
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.pdvContent {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
 }
 
 .quantityControls {
