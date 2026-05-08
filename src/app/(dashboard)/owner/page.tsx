@@ -319,19 +319,13 @@ export default function OwnerDashboard() {
                     .eq('org_id', profile.org_id)
                     .in('payment_status', ['pending', 'partial'])
 
-                const paidPackagesThisMonthPromise = supabase
-                    .from('customer_packages')
-                    .select('*, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), package_id ( name )')
+                // Promise 7: Paid sales this month
+                const paidSalesThisMonthPromise = supabase
+                    .from('orders')
+                    .select('id, total_amount')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
-
-                // NEW: Fetch all transactions for pending items to calculate real balance
-                const pendingTransactionsPromise = supabase
-                    .from('financial_transactions')
-                    .select('reference_id, amount')
-                    .eq('org_id', profile.org_id)
-                    .eq('type', 'income')
-                    .not('reference_id', 'is', null)
+                    .gte('created_at', startOfCurrentMonth)
 
                 // Execute all promises in parallel
                 const [
@@ -348,7 +342,8 @@ export default function OwnerDashboard() {
                     allPendingApptsRes,
                     pendingPackagesRes,
                     paidPackagesThisMonthRes,
-                    pendingTransactionsRes
+                    pendingTransactionsRes,
+                    paidSalesThisMonthRes
                 ] = await Promise.all([
                     currentMonthApptsPromise,
                     prevMonthApptsPromise,
@@ -363,7 +358,8 @@ export default function OwnerDashboard() {
                     allPendingApptsPromise,
                     pendingPackagesPromise,
                     paidPackagesThisMonthPromise,
-                    pendingTransactionsPromise
+                    pendingTransactionsPromise,
+                    paidSalesThisMonthPromise
                 ])
 
                 const currentMonthAppts = currentMonthApptsRes.data || []
@@ -381,6 +377,7 @@ export default function OwnerDashboard() {
                 const pendingPackages = pendingPackagesRes.data || []
                 const paidPackagesThisMonth = paidPackagesThisMonthRes.data || []
                 const pendingTransactions = pendingTransactionsRes.data || []
+                const paidSalesThisMonth = paidSalesThisMonthRes.data || []
 
                 // Map of total paid per refId
                 const paidMap: Record<string, number> = {}
@@ -400,17 +397,25 @@ export default function OwnerDashboard() {
                 const expenseTxs = (transactions || []).filter((t: any) => t.type === 'expense')
                 const referencedIds = new Set(incomeTxs.map((t: any) => t.reference_id).filter(id => !!id))
 
-                const paidAppts = currentMonthAppts.filter((a: any) => 
-                    a.payment_status === 'paid' && 
-                    !referencedIds.has(a.id) &&
-                    (a.final_price || a.calculated_price || 0) > 0
-                )
-                
-                const currentRevenue = incomeTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0)
-                    + paidAppts.reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                const totalRevenue = incomeTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0)
+                    + currentMonthAppts.filter((a: any) => 
+                        a.payment_status === 'paid' && 
+                        !referencedIds.has(a.id) &&
+                        (a.final_price || a.calculated_price || 0) > 0
+                    ).reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
                     + (paidPackagesThisMonth || [])
-                    .filter((p: any) => !referencedIds.has(p.id))
-                    .reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
+                        .filter((p: any) => !referencedIds.has(p.id))
+                        .reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
+                    + (paidSalesThisMonth || [])
+                        .filter((s: any) => !referencedIds.has(s.id))
+                        .reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0)
+
+                const prevRevenue = prevMonthAppts
+                    .filter((a: any) => a.payment_status === 'paid')
+                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+
+                const expenses = expenseTxs.reduce((sum: number, t: Record<string, any>) => sum + Number(t.amount), 0)
+                const growth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0
 
                 // Sum ALL pending items for accurate "A Receber" (Total - Paid)
                 const pendingPayments = allPendingAppts.reduce((sum: number, a: any) => sum + Math.max(0, (a.final_price ?? a.calculated_price ?? 0) - (paidMap[a.id] || 0)), 0)
@@ -429,16 +434,6 @@ export default function OwnerDashboard() {
                     }, 0)
                     + (pendingAdmissions || []).reduce((sum: number, ad: any) => sum + Math.max(0, (ad.total_amount || 0) - (paidMap[ad.id] || 0)), 0)
                     + (pendingPackages || []).reduce((sum: number, p: any) => sum + Math.max(0, Number(p.total_price || 0) - (paidMap[p.id] || 0)), 0)
-
-                const prevRevenue = prevMonthAppts
-                    .filter((a: any) => a.payment_status === 'paid')
-                    .reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
-
-                const productRevenue = incomeTxs.reduce((sum: number, t: Record<string, any>) => sum + t.amount, 0)
-                const expenses = expenseTxs.reduce((sum: number, t: Record<string, any>) => sum + t.amount, 0)
-
-                const totalRevenue = currentRevenue + productRevenue
-                const growth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0
 
                 setFinancials({
                     revenue: totalRevenue,

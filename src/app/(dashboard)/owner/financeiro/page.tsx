@@ -282,6 +282,16 @@ export default function FinanceiroPage() {
             setRecurringExpenses(recExps)
             setRecurringExceptions(recExcs)
 
+            // Map of total paid per refId (from ALL transactions)
+            const paidMap: Record<string, number> = {}
+            if (pendingTransactionsRes.data) {
+                pendingTransactionsRes.data.forEach((t: any) => {
+                    if (t.reference_id) {
+                        paidMap[t.reference_id] = (paidMap[t.reference_id] || 0) + Number(t.amount)
+                    }
+                })
+            }
+
             // --- Process Monthly Chart Data (Last 6 Months) ---
             const monthMap = new Map<string, MonthlyData>()
             const chartMonths: { key: string, date: Date, monthYear: string }[] = []
@@ -369,8 +379,12 @@ export default function FinanceiroPage() {
 
             // --- Process Summary and Categories (filtered by startDate/endDate) ---
             const filterByPeriod = (dateStr: string) => {
+                if (!dateStr) return false
                 const d = new Date(dateStr)
-                return d >= new Date(startDate) && d <= new Date(endDate + 'T23:59:59')
+                // Normalize dates to start/end of day for comparison
+                const start = new Date(startDate + 'T00:00:00')
+                const end = new Date(endDate + 'T23:59:59')
+                return d >= start && d <= end
             }
 
             const activeAppts = appointments.filter((a: any) => filterByPeriod(a.payment_status === 'paid' ? a.paid_at! : a.scheduled_at))
