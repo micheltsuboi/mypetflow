@@ -22,6 +22,7 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
     
     // NF Handling
     const [showNFModal, setShowNFModal] = useState(false)
+    const [nfType, setNfType] = useState<'nfe' | 'nfce'>('nfe')
     const [selectedOrderForNF, setSelectedOrderForNF] = useState<any>(null)
 
     const fetchOrders = useCallback(async () => {
@@ -321,45 +322,87 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                         </div>
 
                                         {(!order.nf || order.nf.status === 'erro') && order.payment_status === 'paid' && (
-                                            <button 
-                                                onClick={() => {
-                                                    setSelectedOrderForNF({
-                                                        orderId: order.id,
-                                                        total_amount: order.total_amount,
-                                                        tutor: order.customers ? {
-                                                            nome: order.customers.name,
-                                                            cpf: order.customers.cpf_cnpj || order.customers.cpf,
-                                                            email: order.customers.email,
-                                                            endereco: {
-                                                                logradouro: order.customers.address,
-                                                                bairro: order.customers.neighborhood,
-                                                                city: order.customers.city,
-                                                                // We'll skip cep/uf here as we fixed the builder fallback
-                                                            }
-                                                        } : undefined,
-                                                        produtos: order.order_items.map((it: any) => ({
-                                                            id: it.product_id,
-                                                            descricao: it.product_name,
-                                                            quantidade: it.quantity,
-                                                            total_price: it.total_price,
-                                                            valor_unitario: it.unit_price,
-                                                            discount_percent: it.discount_percent,
-                                                            ncm: it.product?.codigo_ncm || '00000000',
-                                                            cfop: it.product?.cfop || '5102',
-                                                            unidade: it.product?.unidade_comercial || 'un'
-                                                        }))
-                                                    })
-                                                    setShowNFModal(true)
-                                                }}
-                                                style={{
-                                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                                    background: '#3b82f6', color: '#fff', border: 'none',
-                                                    padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer',
-                                                    fontSize: '0.85rem', fontWeight: 600
-                                                }}
-                                            >
-                                                <FileText size={16} /> {order.nf?.status === 'erro' ? 'Tentar Novamente' : 'Emitir Nota Fiscal'}
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedOrderForNF({
+                                                            orderId: order.id,
+                                                            total_amount: order.total_amount,
+                                                            tutor: order.customers ? {
+                                                                nome: order.customers.name,
+                                                                cpf: order.customers.cpf_cnpj || order.customers.cpf,
+                                                                email: order.customers.email,
+                                                                endereco: {
+                                                                    logradouro: order.customers.address,
+                                                                    bairro: order.customers.neighborhood,
+                                                                    city: order.customers.city,
+                                                                }
+                                                            } : undefined,
+                                                            produtos: order.order_items.map((it: any) => ({
+                                                                id: it.product_id,
+                                                                descricao: it.product_name,
+                                                                quantidade: it.quantity,
+                                                                total_price: it.total_price,
+                                                                valor_unitario: it.unit_price,
+                                                                discount_percent: it.discount_percent,
+                                                                ncm: it.product?.codigo_ncm || '00000000',
+                                                                cfop: it.product?.cfop || '5102',
+                                                                unidade: it.product?.unidade_comercial || 'un'
+                                                            }))
+                                                        })
+                                                        setNfType('nfe')
+                                                        setShowNFModal(true)
+                                                    }}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                        background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', border: '1px solid rgba(99, 102, 241, 0.3)',
+                                                        padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer',
+                                                        fontSize: '0.8rem', fontWeight: 600
+                                                    }}
+                                                >
+                                                    <FileText size={14} /> {order.nf?.status === 'erro' ? 'Tentar NFe' : 'Emitir NF-e'}
+                                                </button>
+
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedOrderForNF({
+                                                            orderId: order.id,
+                                                            total_amount: order.total_amount,
+                                                            tutor: order.customers ? {
+                                                                nome: order.customers.name,
+                                                                cpf: order.customers.cpf_cnpj || order.customers.cpf,
+                                                                email: order.customers.email,
+                                                                endereco: {
+                                                                    logradouro: order.customers.address,
+                                                                    bairro: order.customers.neighborhood,
+                                                                    city: order.customers.city,
+                                                                }
+                                                            } : undefined,
+                                                            produtos: order.order_items.map((it: any) => ({
+                                                                id: it.product_id,
+                                                                descricao: it.product_name,
+                                                                quantidade: it.quantity,
+                                                                total_price: it.total_price,
+                                                                valor_unitario: it.unit_price,
+                                                                discount_percent: it.discount_percent,
+                                                                ncm: it.product?.codigo_ncm || '00000000',
+                                                                cfop: it.product?.cfop || '5102',
+                                                                unidade: it.product?.unidade_comercial || 'un'
+                                                            }))
+                                                        })
+                                                        setNfType('nfce')
+                                                        setShowNFModal(true)
+                                                    }}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                                        background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.3)',
+                                                        padding: '0.4rem 0.8rem', borderRadius: '8px', cursor: 'pointer',
+                                                        fontSize: '0.8rem', fontWeight: 600
+                                                    }}
+                                                >
+                                                    <FileText size={14} /> {order.nf?.status === 'erro' ? 'Tentar Cupom' : 'Emitir Cupom'}
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -419,7 +462,7 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
 
             {showNFModal && selectedOrderForNF && (
                 <EmitirNFModal 
-                    tipo="nfe"
+                    tipo={nfType}
                     origemTipo="pdv"
                     refId={selectedOrderForNF.orderId}
                     total_amount={selectedOrderForNF.total_amount}

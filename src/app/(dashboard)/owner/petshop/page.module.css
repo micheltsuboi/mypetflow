@@ -132,13 +132,14 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding-right: 1rem;
+    padding-right: 0.75rem;
+    height: 60px; /* Altura fixa para lista simples */
 }
 
 .pdvProductCard:hover {
     border-color: var(--primary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: var(--bg-tertiary);
+    transform: translateX(4px);
 }
 
 .pdvProductCard.outOfStock {
@@ -147,14 +148,13 @@
 }
 
 .pdvImageHero {
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     background: rgba(255, 255, 255, 0.02);
     display: flex;
     align-items: center;
     justify-content: center;
     border-right: 1px solid var(--border);
-    border-bottom: none;
     overflow: hidden;
     flex-shrink: 0;
 }
@@ -170,12 +170,13 @@
 }
 
 .pdvProductInfo {
-    padding: 0.5rem 1rem;
+    padding: 0 0.75rem;
     flex: 1;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    height: 100%;
 }
 
 .pdvProductDetails {
@@ -186,23 +187,21 @@
 }
 
 .pdvCategory {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
     color: var(--text-secondary);
     font-weight: 600;
-    margin-bottom: 0.1rem;
+    margin-bottom: 0;
 }
 
 .pdvName {
-    font-size: 0.95rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 500;
     color: var(--text-primary);
     margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pdvPriceRow {
@@ -215,7 +214,7 @@
 .pdvPrice {
     font-weight: 700;
     color: var(--primary);
-    font-size: 1.1rem;
+    font-size: 0.95rem;
 }
 
 .pdvStock {

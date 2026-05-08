@@ -443,12 +443,21 @@ export default function BanhoTosaPage() {
 
             {showNFModal && checkoutNFData && (
                 <EmitirNFModal
-                    isOpen={showNFModal}
+                    tipo="nfse"
+                    origemTipo="atendimento"
+                    refId={checkoutNFData.id}
+                    total_amount={checkoutNFData.total_amount}
+                    tutor={checkoutNFData.tutor}
+                    servico={checkoutNFData.servico}
+                    tutorPhone={checkoutNFData.tutorPhone}
                     onClose={() => {
                         setShowNFModal(false)
                         setCheckoutNFData(null)
                     }}
-                    data={checkoutNFData}
+                    onSuccess={() => {
+                        setShowNFModal(false)
+                        fetchBanhoTosaData()
+                    }}
                 />
             )}
         </PlanGuard>
