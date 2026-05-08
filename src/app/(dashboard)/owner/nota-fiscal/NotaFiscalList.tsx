@@ -153,7 +153,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         try {
             const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
             if (!res.ok) throw new Error('Erro ao sincronizar')
-            await fetchNotas() // Fallback se realtime demorar
+            await fetchNotas() // Recarregar dados após sincronizar
         } catch (error: any) {
             alert(error.message)
         }
@@ -276,28 +276,36 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                 </td>
                                 <td>
                                     <div className={styles.actionsRow}>
-                                        {nota.status === 'autorizado' && (
+                                        {nota.status.toLowerCase().includes('autorizado') && (
                                             <>
-                                                {nota.caminho_pdf && (
-                                                    <button 
-                                                        className={styles.actionBtn}
-                                                        onClick={() => window.open(nota.caminho_pdf!.startsWith('http') ? nota.caminho_pdf! : `https://api.focusnfe.com.br${nota.caminho_pdf}`, '_blank')}
-                                                        title="Ver PDF"
-                                                    >
-                                                        <FileText size={16} />
-                                                        <span>PDF</span>
-                                                    </button>
-                                                )}
-                                                {nota.caminho_xml && (
-                                                    <button 
-                                                        className={`${styles.actionBtn} ${styles.xmlBtn}`}
-                                                        onClick={() => window.open(nota.caminho_xml!.startsWith('http') ? nota.caminho_xml! : `https://api.focusnfe.com.br${nota.caminho_xml}`, '_blank')}
-                                                        title="Baixar XML"
-                                                    >
-                                                        <FileCode size={16} />
-                                                        <span>XML</span>
-                                                    </button>
-                                                )}
+                                                <button 
+                                                    className={styles.actionBtn}
+                                                    onClick={() => {
+                                                        const url = nota.caminho_pdf 
+                                                            ? (nota.caminho_pdf.startsWith('http') ? nota.caminho_pdf : `https://api.focusnfe.com.br${nota.caminho_pdf}`)
+                                                            : `https://api.focusnfe.com.br/v2/${nota.tipo === 'nfce' ? 'nfce' : 'nfe'}/${nota.referencia}.pdf`
+                                                        window.open(url, '_blank')
+                                                    }}
+                                                    title="Ver PDF"
+                                                >
+                                                    <FileText size={16} />
+                                                    <span>PDF</span>
+                                                </button>
+                                                
+                                                <button 
+                                                    className={`${styles.actionBtn} ${styles.xmlBtn}`}
+                                                    onClick={() => {
+                                                        const url = nota.caminho_xml
+                                                            ? (nota.caminho_xml.startsWith('http') ? nota.caminho_xml : `https://api.focusnfe.com.br${nota.caminho_xml}`)
+                                                            : `https://api.focusnfe.com.br/v2/${nota.tipo === 'nfce' ? 'nfce' : 'nfe'}/${nota.referencia}.xml`
+                                                        window.open(url, '_blank')
+                                                    }}
+                                                    title="Baixar XML"
+                                                >
+                                                    <FileCode size={16} />
+                                                    <span>XML</span>
+                                                </button>
+
                                                 <button 
                                                     className={`${styles.actionBtn} ${styles.whatsappBtn}`}
                                                     onClick={() => handleSendWhatsApp(nota)}
@@ -314,7 +322,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                 </button>
                                             </>
                                         )}
-                                        {(nota.status === 'processando' || nota.status === 'erro') && (
+                                        {(nota.status.toLowerCase().includes('processando') || nota.status.toLowerCase().includes('erro')) && (
                                             <button 
                                                 onClick={() => handleSync(nota)}
                                                 className={styles.actionBtn}
