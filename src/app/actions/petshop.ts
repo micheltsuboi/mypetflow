@@ -538,23 +538,36 @@ export async function payPetshopSale(orderId: string, paymentMethod: string) {
 }
 
 export async function deleteNotaFiscal(id: string) {
-    const supabase = createAdminClient()
+    const supabase = await createClient()
+    const adminSupabase = createAdminClient()
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, message: 'Não autorizado.' }
 
     try {
-        // Em vez de deletar fisicamente, marcamos como oculta no JSONB para evitar que o sync a traga de volta
-        // Mas se a nota for apenas um rascunho local sem referência na Focus, podemos deletar
-        const { data: nota } = await supabase
+        const { data: nota } = await adminSupabase
             .from('notas_fiscais')
-            .select('referencia, retorno_focus')
+            .select('org_id, referencia, retorno_focus')
             .eq('id', id)
             .single()
 
-        if (nota?.referencia) {
+        if (!nota) throw new Error('Nota não encontrada')
+
+        // Verificar org
+        const { data: profile } = await adminSupabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+        
+        if (!profile || nota.org_id !== profile.org_id) {
+            return { success: false, message: 'Não autorizado para esta organização.' }
+        }
+
+        if (nota.referencia) {
             // Nota já existe na Focus, apenas escondemos no sistema
             const currentFocusData = (nota.retorno_focus && typeof nota.retorno_focus === 'object') ? nota.retorno_focus : {}
-            const { error } = await supabase
+            const { error } = await adminSupabase
                 .from('notas_fiscais')
                 .update({ 
                     retorno_focus: { ...currentFocusData, _sistema_oculto: true } 
@@ -564,7 +577,7 @@ export async function deleteNotaFiscal(id: string) {
             if (error) throw error
         } else {
             // Nota ainda não foi enviada ou deu erro sem gerar ref, pode deletar
-            const { error } = await supabase
+            const { error } = await adminSupabase
                 .from('notas_fiscais')
                 .delete()
                 .eq('id', id)
@@ -582,13 +595,15 @@ export async function deleteNotaFiscal(id: string) {
 }
 
 export async function deletePetshopOrder(orderId: string) {
-    const supabase = createAdminClient()
+    const supabase = await createClient()
+    const adminSupabase = createAdminClient()
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, message: 'Não autorizado.' }
 
     try {
-        // 1. Obter info da order antes de deletar
-        const { data: order, error: orderFetchErr } = await supabase
+        // 1. Obter info da order antes de deletar (usando admin para garantir acesso)
+        const { data: order, error: orderFetchErr } = await adminSupabase
             .from('orders')
             .select('*')
             .eq('id', orderId)
@@ -596,22 +611,33 @@ export async function deletePetshopOrder(orderId: string) {
 
         if (orderFetchErr || !order) throw new Error('Venda não encontrada')
 
+        // Verificar se a venda pertence à organização do usuário
+        const { data: profile } = await adminSupabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+        
+        if (!profile || order.org_id !== profile.org_id) {
+            return { success: false, message: 'Não autorizado para esta organização.' }
+        }
+
         // 2. Se tiver transação financeira (direta ou por referência), deletar
         if (order.financial_transaction_id) {
-            await supabase
+            await adminSupabase
                 .from('financial_transactions')
                 .delete()
                 .eq('id', order.financial_transaction_id)
         }
 
         // Também deletar transações que usem a order como referência (pagamentos posteriores)
-        await supabase
+        await adminSupabase
             .from('financial_transactions')
             .delete()
             .eq('reference_id', orderId)
 
         // 2.2 Se tiver NF vinculada, esconder ou deletar
-        const { data: nfs } = await supabase
+        const { data: nfs } = await adminSupabase
             .from('notas_fiscais')
             .select('id, referencia, retorno_focus')
             .eq('origem_id', orderId)
@@ -621,20 +647,20 @@ export async function deletePetshopOrder(orderId: string) {
             for (const nf of nfs) {
                 if (nf.referencia) {
                     const currentFocusData = (nf.retorno_focus && typeof nf.retorno_focus === 'object') ? nf.retorno_focus : {}
-                    await supabase
+                    await adminSupabase
                         .from('notas_fiscais')
                         .update({ 
                             retorno_focus: { ...currentFocusData, _sistema_oculto: true } 
                         })
                         .eq('id', nf.id)
                 } else {
-                    await supabase.from('notas_fiscais').delete().eq('id', nf.id)
+                    await adminSupabase.from('notas_fiscais').delete().eq('id', nf.id)
                 }
             }
         }
 
         // 2.5 Reverter Estoque
-        const { data: items } = await supabase
+        const { data: items } = await adminSupabase
             .from('order_items')
             .select('product_id, quantity')
             .eq('order_id', orderId)
@@ -642,14 +668,14 @@ export async function deletePetshopOrder(orderId: string) {
         if (items) {
             for (const item of items) {
                 if (item.product_id) {
-                    const { data: product } = await supabase
+                    const { data: product } = await adminSupabase
                         .from('products')
                         .select('stock_quantity')
                         .eq('id', item.product_id)
                         .single()
                     
                     if (product) {
-                        await supabase
+                        await adminSupabase
                             .from('products')
                             .update({ stock_quantity: (product.stock_quantity || 0) + item.quantity })
                             .eq('id', item.product_id)
@@ -659,7 +685,7 @@ export async function deletePetshopOrder(orderId: string) {
         }
 
         // 3. Se tiver cashback acumulado nessa venda, estornar do saldo do cliente
-        const { data: earnedTxs } = await supabase
+        const { data: earnedTxs } = await adminSupabase
             .from('cashback_transactions')
             .select('amount, tutor_id')
             .eq('order_id', orderId)
@@ -670,26 +696,26 @@ export async function deletePetshopOrder(orderId: string) {
             const tutorId = earnedTxs[0].tutor_id
 
             // Atualizar saldo consolidado
-            const { data: cb } = await supabase
+            const { data: cb } = await adminSupabase
                 .from('cashbacks')
                 .select('balance')
                 .eq('tutor_id', tutorId)
                 .single()
             
             if (cb) {
-                await supabase
+                await adminSupabase
                     .from('cashbacks')
                     .update({ balance: Math.max(0, Number(cb.balance) - totalToRevert) })
                     .eq('tutor_id', tutorId)
             }
 
             // Deletar transações e histórico
-            await supabase.from('cashback_transactions').delete().eq('order_id', orderId)
-            await supabase.from('cashback_history').delete().eq('order_id', orderId)
+            await adminSupabase.from('cashback_transactions').delete().eq('order_id', orderId)
+            await adminSupabase.from('cashback_history').delete().eq('order_id', orderId)
         }
 
         // 4. Deletar a Order (Cascade deleta order_items)
-        const { error: delError } = await supabase
+        const { error: delError } = await adminSupabase
             .from('orders')
             .delete()
             .eq('id', orderId)

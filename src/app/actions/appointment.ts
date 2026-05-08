@@ -368,29 +368,44 @@ export async function seedServices() {
 }
 
 export async function deleteAppointment(id: string) {
-    const supabase = createAdminClient()
+    const supabase = await createClient()
+    const adminSupabase = createAdminClient()
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
 
     // **NOVO**: Buscar se o agendamento usou crédito de pacote
-    const { data: appointment } = await supabase
+    const { data: appointment } = await adminSupabase
         .from('appointments')
-        .select('package_credit_id')
+        .select('package_credit_id, org_id')
         .eq('id', id)
         .single()
+    
+    if (!appointment) return { message: 'Agendamento não encontrado.', success: false }
+
+    // Verificar org
+    const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('org_id')
+        .eq('id', user.id)
+        .single()
+    
+    if (!profile || appointment.org_id !== profile.org_id) {
+        return { message: 'Não autorizado para esta organização.', success: false }
+    }
 
     // Se usou crédito, devolver antes de deletar
     if (appointment?.package_credit_id) {
-        await supabase.rpc('return_package_credit', {
+        await adminSupabase.rpc('return_package_credit', {
             p_credit_id: appointment.package_credit_id
         })
     }
 
     // Deletar transações vinculadas
-    await supabase.from('financial_transactions').delete().eq('reference_id', id)
+    await adminSupabase.from('financial_transactions').delete().eq('reference_id', id)
 
     // Deletar ou esconder NF vinculada
-    const { data: nfs } = await supabase
+    const { data: nfs } = await adminSupabase
         .from('notas_fiscais')
         .select('id, referencia, retorno_focus')
         .eq('origem_id', id)
@@ -400,19 +415,19 @@ export async function deleteAppointment(id: string) {
         for (const nf of nfs) {
             if (nf.referencia) {
                 const currentFocusData = (nf.retorno_focus && typeof nf.retorno_focus === 'object') ? nf.retorno_focus : {}
-                await supabase
+                await adminSupabase
                     .from('notas_fiscais')
                     .update({ 
                         retorno_focus: { ...currentFocusData, _sistema_oculto: true } 
                     })
                     .eq('id', nf.id)
             } else {
-                await supabase.from('notas_fiscais').delete().eq('id', nf.id)
+                await adminSupabase.from('notas_fiscais').delete().eq('id', nf.id)
             }
         }
     }
 
-    const { error } = await supabase.from('appointments').delete().eq('id', id)
+    const { error } = await adminSupabase.from('appointments').delete().eq('id', id)
     if (error) return { message: error.message, success: false }
 
     revalidatePath('/owner/agenda')
