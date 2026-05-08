@@ -26,6 +26,12 @@ interface CartItem {
     total_price: number
     stock_quantity: number
     image_url: string | null
+    fiscal?: {
+        codigo_ncm: string
+        cfop: string
+        icms_situacao_tributaria: string
+        unidade_comercial: string
+    }
 }
 
 interface TutorSearchResult {
@@ -159,17 +165,25 @@ export default function PetshopPage() {
                 alert('Produto sem estoque!')
                 return prev
             }
-            return [...prev, {
+            const fiscalData = (product as any).produtos_fiscal?.[0]
+            const newItem: CartItem = {
                 id: Math.random().toString(36).substr(2, 9),
                 product_id: product.id,
                 name: product.name,
-                unit_price: product.price,
                 quantity: 1,
+                unit_price: product.price,
                 discount_percent: 0,
                 total_price: product.price,
                 stock_quantity: product.stock_quantity,
-                image_url: product.image_url
-            }]
+                image_url: product.image_url,
+                fiscal: fiscalData ? {
+                    codigo_ncm: fiscalData.codigo_ncm,
+                    cfop: fiscalData.cfop,
+                    icms_situacao_tributaria: fiscalData.icms_situacao_tributaria,
+                    unidade_comercial: fiscalData.unidade_comercial
+                } : undefined
+            }
+            return [...prev, newItem]
         })
     }
 
@@ -244,25 +258,22 @@ export default function PetshopPage() {
             }
 
             // Mapeia itens para a emissão de nota
-            const nfeProducts = cart.map((item, idx) => {
-                const productEntity = products.find(p => p.id === item.product_id) as any
-                const fiscal = productEntity?.produtos_fiscal?.[0] || productEntity?.produtos_fiscal
-
-                return {
-                    id: item.product_id,
-                    descricao: item.name,
-                    quantidade: item.quantity,
-                    valor_unitario: item.unit_price,
-                    ncm: fiscal?.codigo_ncm || '00000000',
-                    cfop: fiscal?.cfop || '5102',
-                    cst: '102',
-                    unidade: fiscal?.unidade_comercial || 'un'
-                }
-            })
+            const nfeProducts = cart.map(item => ({
+                id: item.product_id,
+                descricao: item.name,
+                quantidade: item.quantity,
+                valor_unitario: item.unit_price,
+                total_price: item.total_price,
+                discount_percent: item.discount_percent,
+                ncm: item.fiscal?.codigo_ncm || '00000000',
+                cfop: item.fiscal?.cfop || '5102',
+                cst: item.fiscal?.icms_situacao_tributaria || '102',
+                unidade: item.fiscal?.unidade_comercial || 'un'
+            }))
 
             // Popula dados para NFe
             setCheckoutSaleData({
-                orderId: res.orderId || Math.random().toString(), // Handle properly
+                orderId: res.orderId || Math.random().toString(), 
                 total_amount: cartTotals.finalTotal,
                 tutor: selectedTutor ? {
                     nome: selectedTutor.name,

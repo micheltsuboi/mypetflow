@@ -395,7 +395,21 @@ export async function getPetshopOrders(filters: {
             .select(`
                 id, total_amount, discount_amount, payment_status, payment_method, created_at,
                 customer_id, pet_id, financial_transaction_id,
-                order_items (product_name, quantity, unit_price, total_price, product_id, discount_percent),
+                order_items (
+                    product_name, quantity, unit_price, total_price, product_id, discount_percent,
+                    products (
+                        id,
+                        produtos_fiscal (
+                            codigo_ncm,
+                            cfop,
+                            icms_situacao_tributaria,
+                            icms_origem,
+                            pis_situacao_tributaria,
+                            cofins_situacao_tributaria,
+                            unidade_comercial
+                        )
+                    )
+                ),
                 customers (name, cpf, cpf_cnpj, phone_1, email, address, neighborhood, city),
                 pets (name)
             `)

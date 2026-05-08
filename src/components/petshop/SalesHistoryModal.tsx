@@ -338,17 +338,21 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                                     city: order.customers.city,
                                                                 }
                                                             } : undefined,
-                                                            produtos: order.order_items.map((it: any) => ({
-                                                                id: it.product_id,
-                                                                descricao: it.product_name,
-                                                                quantidade: it.quantity,
-                                                                total_price: it.total_price,
-                                                                valor_unitario: it.unit_price,
-                                                                discount_percent: it.discount_percent,
-                                                                ncm: it.product?.codigo_ncm || '00000000',
-                                                                cfop: it.product?.cfop || '5102',
-                                                                unidade: it.product?.unidade_comercial || 'un'
-                                                            }))
+                                                            produtos: order.order_items.map((it: any) => {
+                                                                const fiscal = it.products?.produtos_fiscal?.[0] || {}
+                                                                return {
+                                                                    id: it.product_id,
+                                                                    descricao: it.product_name,
+                                                                    quantidade: it.quantity,
+                                                                    total_price: it.total_price,
+                                                                    valor_unitario: it.unit_price,
+                                                                    discount_percent: it.discount_percent,
+                                                                    ncm: fiscal.codigo_ncm || '00000000',
+                                                                    cfop: fiscal.cfop || '5102',
+                                                                    cst: fiscal.icms_situacao_tributaria || '102',
+                                                                    unidade: fiscal.unidade_comercial || 'un'
+                                                                }
+                                                            })
                                                         })
                                                         setNfType('nfe')
                                                         setShowNFModal(true)
@@ -378,17 +382,21 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                                     city: order.customers.city,
                                                                 }
                                                             } : undefined,
-                                                            produtos: order.order_items.map((it: any) => ({
-                                                                id: it.product_id,
-                                                                descricao: it.product_name,
-                                                                quantidade: it.quantity,
-                                                                total_price: it.total_price,
-                                                                valor_unitario: it.unit_price,
-                                                                discount_percent: it.discount_percent,
-                                                                ncm: it.product?.codigo_ncm || '00000000',
-                                                                cfop: it.product?.cfop || '5102',
-                                                                unidade: it.product?.unidade_comercial || 'un'
-                                                            }))
+                                                            produtos: order.order_items.map((it: any) => {
+                                                                const fiscal = it.products?.produtos_fiscal?.[0] || {}
+                                                                return {
+                                                                    id: it.product_id,
+                                                                    descricao: it.product_name,
+                                                                    quantidade: it.quantity,
+                                                                    total_price: it.total_price,
+                                                                    valor_unitario: it.unit_price,
+                                                                    discount_percent: it.discount_percent,
+                                                                    ncm: fiscal.codigo_ncm || '00000000',
+                                                                    cfop: fiscal.cfop || '5102',
+                                                                    cst: fiscal.icms_situacao_tributaria || '102',
+                                                                    unidade: fiscal.unidade_comercial || 'un'
+                                                                }
+                                                            })
                                                         })
                                                         setNfType('nfce')
                                                         setShowNFModal(true)
