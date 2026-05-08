@@ -188,7 +188,7 @@ export default function FinanceiroPage() {
                     .order('created_at', { ascending: true }),
                 supabase
                     .from('orders')
-                    .select('id, total_amount, payment_status, created_at, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), order_items(product_name)')
+                    .select('id, total_amount, payment_status, created_at, financial_transaction_id, pets ( name, customers ( id, name, cpf, cpf_cnpj, address, neighborhood, city, email, phone_1 ) ), order_items(product_name)')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', fetchStart)
@@ -391,51 +391,53 @@ export default function FinanceiroPage() {
             const activeTxs = transactions.filter((t: any) => filterByPeriod(t.date))
             const activePaidSales = paidSales.filter((s: any) => filterByPeriod(s.created_at))
 
-            const referencedIds = new Set(
-                activeTxs
-                    .filter(t => t.type === 'income' && t.reference_id)
-                    .map(t => t.reference_id)
-            )
-
+            const referencedIds = new Set([
+                ...activeTxs.filter(t => t.type === 'income' && t.reference_id).map(t => t.reference_id),
+                ...paidSales.map((s: any) => s.financial_transaction_id).filter(id => !!id),
+                ...appointments.map((a: any) => (a as any).financial_transaction_id).filter(id => !!id)
+            ])
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
+            let pTotal = 0
 
-            // Combine income sources for categories (excluir agendamentos de pacote com valor zero)
+            // Combine income sources for categories (excluir agendamentos de pacote com valor zero)            
             activeAppts.forEach((a: any) => {
-                // Pular agendamentos de pacote sem valor real OR que já tenham transação
-                if (a.is_package && (a.final_price ?? a.calculated_price ?? 0) === 0) return
+                const catName = (a.services as any)?.service_categories?.name || 'Serviços'
+                const amount = Number(a.final_price || a.calculated_price || 0)
+                
                 if (referencedIds.has(a.id)) return
                 if (a.payment_status === 'paid') {
-                    const catName = (a.services as any)?.service_categories?.name || 'Serviços'
-                    const amount = a.final_price ?? a.calculated_price ?? 0
-                    const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
-                    current.revenue += amount
-                    current.count += 1
-                    catMap.set(catName, current)
                     totalRev += amount
+                    const catData = catMap.get(catName) || { name: catName, revenue: 0, count: 0 }
+                    catData.revenue += amount
+                    catData.count += 1
+                    catMap.set(catName, catData)
+                } else if (a.payment_status !== 'paid') {
+                    pTotal += Math.max(0, amount - (paidMap[a.id] || 0))
                 }
             })
 
             activeTxs.forEach((t: any) => {
+                const amount = Number(t.amount || 0)
                 if (t.type === 'income') {
                     const catName = t.category || 'Outros'
-                    const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
-                    current.revenue += t.amount
-                    current.count += 1
-                    catMap.set(catName, current)
-                    totalRev += t.amount
+                    totalRev += amount
+                    const catData = catMap.get(catName) || { name: catName, revenue: 0, count: 0 }
+                    catData.revenue += amount
+                    catData.count += 1
+                    catMap.set(catName, catData)
                 }
             })
 
             activePaidSales.forEach((s: any) => {
                 if (referencedIds.has(s.id)) return
-                const catName = 'Petshop'
-                const amount = s.total_amount || 0
-                const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }
-                current.revenue += amount
-                current.count += 1
-                catMap.set(catName, current)
+                const amount = Number(s.total_amount || 0)
+                const catName = 'Venda Produto'
                 totalRev += amount
+                const catData = catMap.get(catName) || { name: catName, revenue: 0, count: 0 }
+                catData.revenue += amount
+                catData.count += 1
+                catMap.set(catName, catData)
             })
 
             const activePaidPackages = paidPackages.filter((p: any) => filterByPeriod(p.created_at))

@@ -322,7 +322,7 @@ export default function OwnerDashboard() {
                 // Promise 7: Paid sales this month
                 const paidSalesThisMonthPromise = supabase
                     .from('orders')
-                    .select('id, total_amount')
+                    .select('id, total_amount, financial_transaction_id')
                     .eq('org_id', profile.org_id)
                     .eq('payment_status', 'paid')
                     .gte('created_at', startOfCurrentMonth)
@@ -395,20 +395,26 @@ export default function OwnerDashboard() {
                 // Process financial data after all promises resolved
                 const incomeTxs = (transactions || []).filter((t: any) => t.type === 'income')
                 const expenseTxs = (transactions || []).filter((t: any) => t.type === 'expense')
-                const referencedIds = new Set(incomeTxs.map((t: any) => t.reference_id).filter(id => !!id))
+                
+                // Set of IDs that ALREADY have a transaction recorded
+                const referencedIds = new Set([
+                    ...incomeTxs.map((t: any) => t.reference_id).filter(id => !!id),
+                    ...paidSalesThisMonth.map((s: any) => s.financial_transaction_id).filter(id => !!id),
+                    ...currentMonthAppts.map((a: any) => (a as any).financial_transaction_id).filter(id => !!id)
+                ])
 
-                const totalRevenue = incomeTxs.reduce((sum: number, t: any) => sum + Number(t.amount), 0)
+                const totalRevenue = incomeTxs.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
                     + currentMonthAppts.filter((a: any) => 
                         a.payment_status === 'paid' && 
                         !referencedIds.has(a.id) &&
-                        (a.final_price || a.calculated_price || 0) > 0
-                    ).reduce((sum: number, a: Record<string, any>) => sum + (a.final_price ?? a.calculated_price ?? 0), 0)
+                        (Number(a.final_price) || Number(a.calculated_price) || 0) > 0
+                    ).reduce((sum: number, a: Record<string, any>) => sum + Number(a.final_price ?? a.calculated_price ?? 0), 0)
                     + (paidPackagesThisMonth || [])
                         .filter((p: any) => !referencedIds.has(p.id))
-                        .reduce((sum: number, p: any) => sum + (p.total_paid || p.total_price || 0), 0)
+                        .reduce((sum: number, p: any) => sum + Number(p.total_paid || p.total_price || 0), 0)
                     + (paidSalesThisMonth || [])
                         .filter((s: any) => !referencedIds.has(s.id))
-                        .reduce((sum: number, s: any) => sum + (s.total_amount || 0), 0)
+                        .reduce((sum: number, s: any) => sum + Number(s.total_amount || 0), 0)
 
                 const prevRevenue = prevMonthAppts
                     .filter((a: any) => a.payment_status === 'paid')

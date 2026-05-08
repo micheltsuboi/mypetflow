@@ -188,6 +188,17 @@ export async function checkoutCart(checkoutData: CheckoutData) {
             .single()
 
         if (orderError) throw orderError
+        
+        // 3.1 Vincular a transação de volta para a Order (para evitar duplicidade no financeiro)
+        if (transactionId) {
+            await supabase
+                .from('financial_transactions')
+                .update({ 
+                    reference_id: orderData.id,
+                    reference_type: 'order'
+                })
+                .eq('id', transactionId)
+        }
 
         // Atualizar histórico de uso com o order_id real
         if (checkoutData.cashbackUsed && checkoutData.cashbackUsed > 0 && checkoutData.customerId) {
