@@ -111,7 +111,10 @@ export default function OwnerDashboard() {
 
     useEffect(() => {
         const fetchInitialNFs = async () => {
-            const { data } = await supabase.from('notas_fiscais').select('*')
+            const { data } = await supabase
+                .from('notas_fiscais')
+                .select('*')
+                .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
             if (data) {
                 const map: Record<string, NotaFiscal> = {}
                 data.forEach(nf => {

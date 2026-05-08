@@ -36,6 +36,7 @@ export default async function NotaFiscalPage() {
         .from('notas_fiscais')
         .select('*')
         .eq('org_id', profile.org_id)
+        .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
         .order('created_at', { ascending: false })
 
     return (

@@ -349,8 +349,9 @@ export default function FinanceiroPage() {
             if (allRevenueIds.length > 0) {
                 const { data: nfs } = await supabase
                     .from('notas_fiscais')
-                    .select('id, origem_id, status, caminho_pdf')
+                    .select('id, origem_id, status, caminho_pdf, retorno_focus')
                     .in('origem_id', allRevenueIds)
+                    .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
 
                 if (nfs) {
                     const map: any = {}

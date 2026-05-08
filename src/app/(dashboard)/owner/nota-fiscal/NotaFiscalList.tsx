@@ -91,6 +91,11 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
 
     const filteredNotas = useMemo(() => {
         return notas.filter(nota => {
+            // Filtrar notas marcadas como ocultas (soft-delete)
+            if (nota.retorno_focus && typeof nota.retorno_focus === 'object' && (nota.retorno_focus as any)._sistema_oculto) {
+                return false
+            }
+
             const matchesSearch = 
                 (nota.tomador_nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (nota.referencia || '').toLowerCase().includes(searchTerm.toLowerCase()) ||

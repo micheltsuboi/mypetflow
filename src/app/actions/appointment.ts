@@ -385,6 +385,9 @@ export async function deleteAppointment(id: string) {
         })
     }
 
+    // Deletar transações vinculadas
+    await supabase.from('financial_transactions').delete().eq('reference_id', id)
+
     const { error } = await supabase.from('appointments').delete().eq('id', id)
     if (error) return { message: error.message, success: false }
 

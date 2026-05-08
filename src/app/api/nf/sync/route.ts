@@ -17,12 +17,17 @@ export async function GET(req: NextRequest) {
         // 1. Buscar nota fiscal para saber o tipo
         const { data: nota, error: notaError } = await supabase
             .from('notas_fiscais')
-            .select('tipo')
+            .select('tipo, retorno_focus')
             .eq('referencia', ref)
             .single()
 
         if (notaError || !nota) {
             return NextResponse.json({ error: 'Nota fiscal não encontrada no banco de dados.' }, { status: 404 })
+        }
+
+        // Se a nota está marcada como oculta (soft-delete), não sincronizamos nada
+        if (nota.retorno_focus && (nota.retorno_focus as any)._sistema_oculto) {
+            return NextResponse.json({ success: true, message: 'Nota ignorada (oculta pelo usuário)' })
         }
 
         // 2. Buscar configuração fiscal da org

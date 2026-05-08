@@ -215,14 +215,14 @@ export default function BanhoTosaPage() {
                 }))
 
                 setAppointments(apptsWithSession)
-
                 const apptIds = apptsTyped.map(a => a.id)
                 if (apptIds.length > 0) {
                     const { data: nfs } = await supabase
                         .from('notas_fiscais')
-                        .select('id, origem_id, status, caminho_pdf, referencia')
+                        .select('id, origem_id, status, caminho_pdf, referencia, retorno_focus')
                         .eq('origem_tipo', 'atendimento')
                         .in('origem_id', apptIds)
+                        .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
 
                     if (nfs) {
                         const map: any = {}

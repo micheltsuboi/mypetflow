@@ -49,6 +49,18 @@ export async function POST(req: NextRequest) {
 
         console.log(`Webhook Action: Updating NF ${ref} to ${internalStatus}`)
 
+        // 1. Verificar se a nota existe e se está oculta
+        const { data: notaExistente } = await supabase
+            .from('notas_fiscais')
+            .select('retorno_focus')
+            .eq('referencia', ref)
+            .single()
+        
+        if (notaExistente?.retorno_focus && (notaExistente.retorno_focus as any)._sistema_oculto) {
+            console.log(`[Webhook] NF ${ref} está oculta pelo usuário. Ignorando update.`)
+            return NextResponse.json({ success: true, message: 'Nota ignorada (oculta pelo usuário)' })
+        }
+
         const { error: updateError } = await supabase
             .from('notas_fiscais')
             .update({

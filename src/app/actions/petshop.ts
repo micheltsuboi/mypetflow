@@ -450,9 +450,10 @@ export async function getPetshopOrders(filters: {
         if (orderIds.length > 0) {
             const { data: nfs } = await supabase
                 .from('notas_fiscais')
-                .select('id, status, referencia, caminho_pdf, origem_id')
+                .select('id, status, referencia, caminho_pdf, origem_id, retorno_focus')
                 .in('origem_id', orderIds)
                 .eq('origem_tipo', 'pdv')
+                .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
 
             if (nfs) {
                 filteredOrders = filteredOrders.map(order => ({
@@ -541,16 +542,38 @@ export async function deleteNotaFiscal(id: string) {
     if (!user) return { success: false, message: 'Não autorizado.' }
 
     try {
-        const { error } = await supabase
+        // Em vez de deletar fisicamente, marcamos como oculta no JSONB para evitar que o sync a traga de volta
+        // Mas se a nota for apenas um rascunho local sem referência na Focus, podemos deletar
+        const { data: nota } = await supabase
             .from('notas_fiscais')
-            .delete()
+            .select('referencia, retorno_focus')
             .eq('id', id)
+            .single()
 
-        if (error) throw error
+        if (nota?.referencia) {
+            // Nota já existe na Focus, apenas escondemos no sistema
+            const currentFocusData = (nota.retorno_focus && typeof nota.retorno_focus === 'object') ? nota.retorno_focus : {}
+            const { error } = await supabase
+                .from('notas_fiscais')
+                .update({ 
+                    retorno_focus: { ...currentFocusData, _sistema_oculto: true } 
+                })
+                .eq('id', id)
+
+            if (error) throw error
+        } else {
+            // Nota ainda não foi enviada ou deu erro sem gerar ref, pode deletar
+            const { error } = await supabase
+                .from('notas_fiscais')
+                .delete()
+                .eq('id', id)
+
+            if (error) throw error
+        }
 
         revalidatePath('/owner/nota-fiscal')
         revalidatePath('/owner/petshop')
-        return { success: true, message: 'Nota fiscal excluída com sucesso.' }
+        return { success: true, message: 'Nota fiscal removida da lista.' }
     } catch (error: any) {
         console.error('Error deleting NF:', error)
         return { success: false, message: 'Erro ao excluir nota: ' + error.message }
@@ -572,12 +595,43 @@ export async function deletePetshopOrder(orderId: string) {
 
         if (orderFetchErr || !order) throw new Error('Venda não encontrada')
 
-        // 2. Se tiver transação financeira, deletar
+        // 2. Se tiver transação financeira (direta ou por referência), deletar
         if (order.financial_transaction_id) {
             await supabase
                 .from('financial_transactions')
                 .delete()
                 .eq('id', order.financial_transaction_id)
+        }
+
+        // Também deletar transações que usem a order como referência (pagamentos posteriores)
+        await supabase
+            .from('financial_transactions')
+            .delete()
+            .eq('reference_id', orderId)
+
+        // 2.5 Reverter Estoque
+        const { data: items } = await supabase
+            .from('order_items')
+            .select('product_id, quantity')
+            .eq('order_id', orderId)
+        
+        if (items) {
+            for (const item of items) {
+                if (item.product_id) {
+                    const { data: product } = await supabase
+                        .from('products')
+                        .select('stock_quantity')
+                        .eq('id', item.product_id)
+                        .single()
+                    
+                    if (product) {
+                        await supabase
+                            .from('products')
+                            .update({ stock_quantity: (product.stock_quantity || 0) + item.quantity })
+                            .eq('id', item.product_id)
+                    }
+                }
+            }
         }
 
         // 3. Se tiver cashback acumulado nessa venda, estornar do saldo do cliente
