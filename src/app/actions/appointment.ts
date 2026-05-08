@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
@@ -367,7 +368,7 @@ export async function seedServices() {
 }
 
 export async function deleteAppointment(id: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
 
@@ -387,6 +388,29 @@ export async function deleteAppointment(id: string) {
 
     // Deletar transações vinculadas
     await supabase.from('financial_transactions').delete().eq('reference_id', id)
+
+    // Deletar ou esconder NF vinculada
+    const { data: nfs } = await supabase
+        .from('notas_fiscais')
+        .select('id, referencia, retorno_focus')
+        .eq('origem_id', id)
+        .eq('origem_tipo', 'agendamento')
+    
+    if (nfs) {
+        for (const nf of nfs) {
+            if (nf.referencia) {
+                const currentFocusData = (nf.retorno_focus && typeof nf.retorno_focus === 'object') ? nf.retorno_focus : {}
+                await supabase
+                    .from('notas_fiscais')
+                    .update({ 
+                        retorno_focus: { ...currentFocusData, _sistema_oculto: true } 
+                    })
+                    .eq('id', nf.id)
+            } else {
+                await supabase.from('notas_fiscais').delete().eq('id', nf.id)
+            }
+        }
+    }
 
     const { error } = await supabase.from('appointments').delete().eq('id', id)
     if (error) return { message: error.message, success: false }

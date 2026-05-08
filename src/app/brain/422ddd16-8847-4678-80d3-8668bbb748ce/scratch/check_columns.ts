@@ -10,10 +10,11 @@ const supabase = createClient(
 )
 
 async function checkColumns() {
-    const { data, error } = await supabase.rpc('get_table_columns', { table_name: 'notas_fiscais' })
+    const tableName = process.argv[2] || 'notas_fiscais'
+    const { data, error } = await supabase.rpc('get_table_columns', { table_name: tableName })
     if (error) {
         // If RPC doesn't exist, try a sample query
-        const { data: sample, error: sampleError } = await supabase.from('notas_fiscais').select('*').limit(1)
+        const { data: sample, error: sampleError } = await supabase.from(tableName).select('*').limit(1)
         if (sampleError) {
             console.error('Error:', sampleError)
         } else {

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 interface CartItem {
@@ -537,7 +538,7 @@ export async function payPetshopSale(orderId: string, paymentMethod: string) {
 }
 
 export async function deleteNotaFiscal(id: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, message: 'Não autorizado.' }
 
@@ -581,7 +582,7 @@ export async function deleteNotaFiscal(id: string) {
 }
 
 export async function deletePetshopOrder(orderId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, message: 'Não autorizado.' }
 
@@ -608,6 +609,29 @@ export async function deletePetshopOrder(orderId: string) {
             .from('financial_transactions')
             .delete()
             .eq('reference_id', orderId)
+
+        // 2.2 Se tiver NF vinculada, esconder ou deletar
+        const { data: nfs } = await supabase
+            .from('notas_fiscais')
+            .select('id, referencia, retorno_focus')
+            .eq('origem_id', orderId)
+            .eq('origem_tipo', 'venda_petshop')
+        
+        if (nfs) {
+            for (const nf of nfs) {
+                if (nf.referencia) {
+                    const currentFocusData = (nf.retorno_focus && typeof nf.retorno_focus === 'object') ? nf.retorno_focus : {}
+                    await supabase
+                        .from('notas_fiscais')
+                        .update({ 
+                            retorno_focus: { ...currentFocusData, _sistema_oculto: true } 
+                        })
+                        .eq('id', nf.id)
+                } else {
+                    await supabase.from('notas_fiscais').delete().eq('id', nf.id)
+                }
+            }
+        }
 
         // 2.5 Reverter Estoque
         const { data: items } = await supabase
