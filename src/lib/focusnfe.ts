@@ -207,6 +207,26 @@ export const FocusNfeApi = {
   },
 
   /**
+   * Cancelar NFe ou NFCe
+   */
+  async cancelarNfe(ref: string, justificativa: string, env: FocusEnv, token: string) {
+    const url = `${getBaseUrl(env)}/nfe/${encodeURIComponent(ref)}/cancelamento`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 
+        'Authorization': getAuthHeader(token),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ justificativa })
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(JSON.stringify(err));
+    }
+    return response.json();
+  },
+
+  /**
    * Buscar Município IBGE
    */
   async buscarMunicipio(nome: string) {

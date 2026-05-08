@@ -67,8 +67,7 @@ export async function POST(req: NextRequest) {
             if (nota.tipo === 'nfse') {
                 focusResponse = await FocusNfeApi.cancelarNfse(nota.referencia, justificativa, env, token)
             } else {
-                // TODO: Implementar cancelamento de NFe (produtos) se necessário futuramente
-                return NextResponse.json({ error: 'Cancelamento automatizado disponível apenas para NFSe no momento.' }, { status: 400 })
+                focusResponse = await FocusNfeApi.cancelarNfe(nota.referencia, justificativa, env, token)
             }
         } catch (err: any) {
             const focusErr = JSON.parse(err.message)

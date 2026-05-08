@@ -63,14 +63,15 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Não foi possível baixar o arquivo da Focus NFe.' }, { status: response.status })
         }
 
-        const blob = await response.blob()
+        const arrayBuffer = await response.arrayBuffer()
         const contentType = response.headers.get('content-type') || (type === 'pdf' ? 'application/pdf' : 'application/xml')
 
-        // 4. Retornar o arquivo
-        return new NextResponse(blob, {
+        // 4. Retornar o arquivo como Stream para garantir interpretação correta do browser
+        return new NextResponse(arrayBuffer, {
             headers: {
                 'Content-Type': contentType,
-                'Content-Disposition': `inline; filename="${ref}.${type}"`
+                'Content-Disposition': `inline; filename="${ref}.${type}"`,
+                'Content-Length': arrayBuffer.byteLength.toString()
             }
         })
 
