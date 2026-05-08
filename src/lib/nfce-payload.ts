@@ -67,9 +67,9 @@ export function buildNFCePayload({ config, ref_uuid, total_amount, tutor, items 
         data_emissao: new Date().toISOString(),
 
         // ===== CAMPOS OBRIGATÓRIOS PARA NFC-e =====
-        // indicador_presenca = 1: Operação presencial no estabelecimento
-        // SEM este campo → SEFAZ retorna erro 717 "NFC-e em operação não presencial"
-        indicador_presenca: 1,
+        // presenca_comprador = 1: Operação presencial no estabelecimento
+        // SEM este campo (ou com nome errado) → SEFAZ retorna erro 717 "NFC-e em operação não presencial"
+        presenca_comprador: 1,
 
         tipo_documento: 1,       // 1 = Saída (venda)
         finalidade_emissao: 1,   // 1 = Normal
