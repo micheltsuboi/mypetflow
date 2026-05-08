@@ -77,13 +77,13 @@ export async function POST(req: NextRequest) {
             }, { status: 400 })
         }
 
-        // 4. Atualizar status no banco
-        // O cancelamento pode ser síncrono ou assíncrono. Na NFSe costuma ser rápido.
+        // O cancelamento é assíncrono. Marcamos como processando para o usuário saber que foi enviado.
+        // O usuário poderá clicar em "Sincronizar" depois para ver se a SEFAZ aceitou ou rejeitou o cancelamento.
         const { error: updateError } = await adminSupabase
             .from('notas_fiscais')
             .update({
-                status: 'cancelado',
-                mensagem_sefaz: `Cancelada: ${justificativa}`,
+                status: 'processando',
+                mensagem_sefaz: `Processando Cancelamento: ${justificativa}`,
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
