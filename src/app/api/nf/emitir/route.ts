@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { FocusNfeApi } from '@/lib/focusnfe'
 import { buildNFSePayload } from '@/lib/nfse-payload'
 import { buildNFePayload } from '@/lib/nfe-payload'
+import { buildNFCePayload } from '@/lib/nfce-payload'
 import { NotaFiscalOrigem, NotaFiscalTipo } from '@/types/database'
 
 export async function POST(req: NextRequest) {
@@ -112,6 +113,28 @@ export async function POST(req: NextRequest) {
             } catch (err: any) {
                  console.error("Focus NFe error:", err)
                  return NextResponse.json({ error: 'Erro ao conectar à Focus NFe (NFe)', details: err.message }, { status: 400 })
+            }
+        } else if (tipo === 'nfce') {
+            if (!config.habilita_nfe) {
+                return NextResponse.json({ error: 'NFC-e não está habilitada (requer habilitação de NFe).' }, { status: 400 })
+            }
+            if (!produtos || produtos.length === 0) {
+                return NextResponse.json({ error: 'Itens (produtos) necessários para NFC-e.' }, { status: 400 })
+            }
+
+            payloadToSend = buildNFCePayload({
+                config,
+                ref_uuid: refId,
+                total_amount,
+                tutor,
+                items: produtos
+            })
+
+            try {
+                focusResponse = await FocusNfeApi.emitirNfce({ ref: refStr, data: payloadToSend, env, token })
+            } catch (err: any) {
+                console.error("Focus NFC-e error:", err)
+                return NextResponse.json({ error: 'Erro ao conectar à Focus NFe (NFC-e)', details: err.message }, { status: 400 })
             }
         } else {
             return NextResponse.json({ error: 'Tipo inválido de Nota Fiscal' }, { status: 400 })

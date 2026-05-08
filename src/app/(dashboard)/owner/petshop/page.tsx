@@ -12,6 +12,7 @@ import { ShoppingCart, Plus, Minus, Trash2, Search, PackageOpen, Coins, Edit2 } 
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import SalesHistoryModal from '@/components/petshop/SalesHistoryModal'
+import FiscalDocumentModal, { FiscalDocumentType } from '@/components/petshop/FiscalDocumentModal'
 import { ReceiptText } from 'lucide-react'
 
 // Interfaces locais para o Carrinho
@@ -76,7 +77,9 @@ export default function PetshopPage() {
     const [isUsingCashback, setIsUsingCashback] = useState(false)
 
     // Emissão NFe
+    const [showFiscalModal, setShowFiscalModal] = useState(false)
     const [showNFModal, setShowNFModal] = useState(false)
+    const [selectedFiscalType, setSelectedFiscalType] = useState<FiscalDocumentType | null>(null)
     const [checkoutSaleData, setCheckoutSaleData] = useState<any>(null)
 
     const categories = ['Todas', 'Alimentação', 'Higiene', 'Brinquedos', 'Farmácia', 'Acessórios']
@@ -277,9 +280,9 @@ export default function PetshopPage() {
 
             alert('Venda finalizada com sucesso!')
             
-            // Pergunta se quer emitir NFe ou exibe o modal
+            // Abre o modal de seleção de tipo de documento fiscal
             if (res.orderId) {
-                setShowNFModal(true)
+                setShowFiscalModal(true)
             }
 
             // Reset cart and states
@@ -813,9 +816,23 @@ export default function PetshopPage() {
                     </div>
                 )}
 
-                {showNFModal && checkoutSaleData && (
+                {showFiscalModal && checkoutSaleData && (
+                    <FiscalDocumentModal
+                        totalAmount={checkoutSaleData.total_amount}
+                        onClose={() => setShowFiscalModal(false)}
+                        onSelect={(type: FiscalDocumentType) => {
+                            setShowFiscalModal(false)
+                            if (type !== 'none') {
+                                setSelectedFiscalType(type)
+                                setShowNFModal(true)
+                            }
+                        }}
+                    />
+                )}
+
+                {showNFModal && checkoutSaleData && selectedFiscalType && selectedFiscalType !== 'none' && (
                     <EmitirNFModal
-                        tipo="nfe"
+                        tipo={selectedFiscalType as any}
                         origemTipo="pdv"
                         refId={checkoutSaleData.orderId}
                         total_amount={checkoutSaleData.total_amount}
@@ -823,7 +840,7 @@ export default function PetshopPage() {
                         produtos={checkoutSaleData.produtos}
                         onClose={() => setShowNFModal(false)}
                         onSuccess={(status) => {
-                            alert(`Nota Fiscal solicitada! Status: ${status}`)
+                            alert(`Documento fiscal solicitado! Status: ${status}`)
                             setShowNFModal(false)
                         }}
                     />

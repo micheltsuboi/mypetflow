@@ -79,7 +79,11 @@ export default function EmitirNFModal({
         }
     }
 
-    const title = tipo === 'nfse' ? 'Emitir Nota Fiscal de Serviço (NFSe)' : 'Emitir Nota Fiscal Eletrônica (NFe)'
+    const title = tipo === 'nfse' 
+        ? 'Emitir Nota Fiscal de Serviço (NFSe)' 
+        : tipo === 'nfce'
+            ? '🧾 Emitir Cupom Fiscal Eletrônico (NFC-e)'
+            : '📄 Emitir Nota Fiscal Eletrônica (NF-e)'
 
     return (
         <div style={{
@@ -108,8 +112,13 @@ export default function EmitirNFModal({
                         </>
                     )}
                     
-                    {tipo === 'nfe' && produtos && (
+                    {(tipo === 'nfe' || tipo === 'nfce') && produtos && (
                         <p style={{ marginTop: '0.5rem' }}><strong>Itens:</strong> {produtos.length} produto(s)</p>
+                    )}
+                    {tipo === 'nfce' && (
+                        <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#F59E0B' }}>
+                            ⚡ NFC-e é emitida instantaneamente para o consumidor final
+                        </p>
                     )}
                 </div>
 
@@ -161,7 +170,9 @@ export default function EmitirNFModal({
                         onClick={handleEmitir} 
                         disabled={loading}
                         style={{
-                            background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8A66 100%)', 
+                            background: tipo === 'nfce'
+                                ? 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
+                                : 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', 
                             color: '#fff', border: 'none', padding: '0.75rem 1.5rem', 
                             borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
                         }}

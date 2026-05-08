@@ -132,6 +132,32 @@ export const FocusNfeApi = {
   },
 
   /**
+   * Emitir NFC-e (Cupom Fiscal Eletrônico - Consumidor Final)
+   */
+  async emitirNfce({ ref, data, env, token }: EmitirNfeRequest) {
+    const url = `${getBaseUrl(env)}/nfce?ref=${encodeURIComponent(ref)}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': getAuthHeader(token)
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        let errorData;
+        try { errorData = JSON.parse(errorText); } catch { errorData = errorText; }
+        console.error("Focus NFC-e emitirNfce Error", errorData);
+        throw new Error(JSON.stringify(errorData));
+    }
+
+    return response.json();
+  },
+
+  /**
    * Consultar NFSe
    */
   async consultarNfse(ref: string, env: FocusEnv, token: string, isNacional: boolean = false) {
