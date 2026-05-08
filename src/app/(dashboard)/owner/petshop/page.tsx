@@ -59,7 +59,7 @@ export default function PetshopPage() {
     const [formData, setFormData] = useState<ProductFormData>({
         name: '', category: 'Alimentação', cost_price: 0, selling_price: 0,
         stock_quantity: 0, expiration_date: '', bar_code: '', description: '',
-        codigo_ncm: '', cfop: '5102'
+        codigo_ncm: '', cfop: '5102', icms_situacao_tributaria: '102'
     })
 
     // Carrinho de Compras (PDV)
@@ -348,14 +348,15 @@ export default function PetshopPage() {
                 description: product.description || '', 
                 image_url: product.image_url,
                 codigo_ncm: fiscal?.codigo_ncm || '',
-                cfop: fiscal?.cfop || '5102'
+                cfop: fiscal?.cfop || '5102',
+                icms_situacao_tributaria: fiscal?.icms_situacao_tributaria || '102'
             })
         } else {
             setEditingProduct(null)
             setFormData({
                 name: '', category: 'Alimentação', cost_price: 0, selling_price: 0,
                 stock_quantity: 0, expiration_date: '', bar_code: '', description: '', image_url: null,
-                codigo_ncm: '', cfop: '5102'
+                codigo_ncm: '', cfop: '5102', icms_situacao_tributaria: '102'
             })
         }
         setIsModalOpen(true)
@@ -401,6 +402,7 @@ export default function PetshopPage() {
                     produto_id: productId,
                     codigo_ncm: formData.codigo_ncm?.replace(/\D/g, '') || '00000000',
                     cfop: formData.cfop || '5102',
+                    icms_situacao_tributaria: formData.icms_situacao_tributaria || '102',
                     unidade_comercial: 'un'
                 }, { onConflict: 'produto_id' })
                 
@@ -812,6 +814,16 @@ export default function PetshopPage() {
                                             placeholder="Ex: 5102"
                                             value={formData.cfop} 
                                             onChange={e => setFormData({ ...formData, cfop: e.target.value })} 
+                                        />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>CSOSN / CST</label>
+                                        <input 
+                                            className={styles.input} 
+                                            type="text" 
+                                            placeholder="Ex: 102"
+                                            value={formData.icms_situacao_tributaria} 
+                                            onChange={e => setFormData({ ...formData, icms_situacao_tributaria: e.target.value })} 
                                         />
                                     </div>
                                 </div>

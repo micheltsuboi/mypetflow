@@ -398,6 +398,7 @@ export interface ProductFormData {
     description?: string
     codigo_ncm?: string
     cfop?: string
+    icms_situacao_tributaria?: string
 }
 
 export interface ExpenseCategory {
