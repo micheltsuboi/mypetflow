@@ -8,7 +8,8 @@ import { FinancialTransaction } from '@/types/database'
 import { exportToCsv } from '@/utils/export'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { payPetshopSale } from '@/app/actions/petshop'
+import { payPetshopSale, deletePetshopOrder } from '@/app/actions/petshop'
+import { deleteAppointment } from '@/app/actions/appointment'
 import PlanGuard from '@/components/modules/PlanGuard'
 import DateInput from '@/components/ui/DateInput'
 import EmitirNFModal from '@/components/EmitirNFModal'
@@ -705,9 +706,45 @@ export default function FinanceiroPage() {
 
     const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
-    const handleDeleteTransaction = async (txId: string) => {
-        if (!confirm('Tem certeza que deseja excluir esta transação? Isso também reverterá o status de pagamento do item original para pendente.')) return
+    const handleDeleteSale = async (saleId: string) => {
+        if (!confirm('🚨 ATENÇÃO: Deseja realmente EXCLUIR esta venda permanentemente? \n\nIsso irá remover os itens do extrato, EXCLUIR a transação financeira e REVERTER o estoque dos produtos.')) return
+        setLoading(true)
+        try {
+            const res = await deletePetshopOrder(saleId)
+            if (res.success) {
+                alert('✅ Venda e registros associados excluídos com sucesso!')
+                fetchFinancials()
+            } else {
+                alert('❌ Erro ao excluir: ' + res.message)
+            }
+        } catch (error) {
+            console.error(error)
+            alert('❌ Erro ao processar exclusão.')
+        } finally {
+            setLoading(false)
+        }
+    }
 
+    const handleDeleteAppt = async (apptId: string) => {
+        if (!confirm('🚨 ATENÇÃO: Deseja realmente EXCLUIR este agendamento permanentemente? \n\nIsso irá remover o item do extrato e EXCLUIR a transação financeira vinculada.')) return
+        setLoading(true)
+        try {
+            const res = await deleteAppointment(apptId)
+            if (res.success) {
+                alert('✅ Agendamento excluído com sucesso!')
+                fetchFinancials()
+            } else {
+                alert('❌ Erro ao excluir: ' + res.message)
+            }
+        } catch (error) {
+            console.error(error)
+            alert('❌ Erro ao processar exclusão.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleDeleteTransaction = async (txId: string) => {
         try {
             // First, get the transaction details to find the reference
             const { data: tx, error: fetchError } = await supabase
@@ -718,6 +755,23 @@ export default function FinanceiroPage() {
 
             if (fetchError) throw fetchError
 
+            // Se for venda ou agendamento, oferecer exclusão completa
+            if (tx?.reference_id) {
+                const isSale = tx.category === 'Venda Produto' || tx.category === 'Venda Caixa/PDV'
+                const isAppt = tx.category === 'Serviços'
+
+                if (isSale || isAppt) {
+                    const deleteComplete = confirm(`Esta transação está vinculada a uma ${isSale ? 'venda' : 'agenda'}. \n\nDeseja EXCLUIR permanentemente o registro original também? \n\n- OK: Exclui TUDO (venda/agenda + financeiro)\n- Cancelar: Apenas REVERTE o pagamento (o item volta a ficar pendente)`)
+                    
+                    if (deleteComplete) {
+                        if (isSale) return handleDeleteSale(tx.reference_id)
+                        if (isAppt) return handleDeleteAppt(tx.reference_id)
+                    }
+                }
+            }
+
+            if (!confirm('Tem certeza que deseja excluir esta transação? O item original voltará a ficar como "pendente".')) return
+
             // If there's a reference, revert the status on the source table
             if (tx?.reference_id) {
                 let table = ''
@@ -726,7 +780,7 @@ export default function FinanceiroPage() {
                 if (tx.category === 'Serviços') {
                     table = 'appointments'
                     updateData.paid_at = null
-                } else if (tx.category === 'Venda Produto') {
+                } else if (tx.category === 'Venda Produto' || tx.category === 'Venda Caixa/PDV') {
                     table = 'orders'
                 } else if (tx.category === 'Consulta Veterinária') {
                     table = 'vet_consultations'
@@ -742,15 +796,7 @@ export default function FinanceiroPage() {
                 }
 
                 if (table) {
-                    const { error: revertError } = await supabase
-                        .from(table)
-                        .update(updateData)
-                        .eq('id', tx.reference_id)
-
-                    if (revertError) {
-                        console.warn('Erro ao reverter status do item original:', revertError)
-                        // We continue anyway so the user can at least delete the entry if it was a ghost record
-                    }
+                    await supabase.from(table).update(updateData).eq('id', tx.reference_id)
                 }
             }
 
@@ -1416,6 +1462,7 @@ export default function FinanceiroPage() {
                                                                     <div className={styles.actionButtons}>
                                                                         <button onClick={() => handleSendWhatsApp(appt.id)} className={styles.actionBtn} title="WhatsApp"><Send size={18} /></button>
                                                                         <button onClick={() => handleOpenNFSe(appt)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                        <button onClick={() => handleDeleteAppt(appt.id)} className={styles.deleteBtn} title="Excluir Agendamento"><Trash2 size={18} /></button>
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -1429,7 +1476,10 @@ export default function FinanceiroPage() {
                                                                 <td>Produtos</td>
                                                                 <td className={styles.revenueValue}>+ {formatCurrency(sale.total_amount)}</td>
                                                                 <td>
-                                                                    <button onClick={() => handleOpenNFe(sale)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                    <div className={styles.actionButtons}>
+                                                                        <button onClick={() => handleOpenNFe(sale)} className={styles.actionBtn} title="Emitir NF"><FileCode size={18} /></button>
+                                                                        <button onClick={() => handleDeleteSale(sale.id)} className={styles.deleteBtn} title="Excluir Venda"><Trash2 size={18} /></button>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -1462,12 +1512,15 @@ export default function FinanceiroPage() {
                                                         <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
                                                         <td className={styles.pendingValue}>{formatCurrency((appt.final_price || appt.calculated_price || 0) - (extractRecords.paidMap[appt.id] || 0))}</td>
                                                         <td>
-                                                            <button 
-                                                                onClick={() => handleOpenPaymentModal(appt.id, 'appointments', (appt.services?.name || 'Serviço'), (appt.final_price || appt.calculated_price || 0))}
-                                                                className={styles.payBtn}
-                                                            >
-                                                                <DollarSign size={16} /> Receber
-                                                            </button>
+                                                            <div className={styles.actionButtons}>
+                                                                <button 
+                                                                    onClick={() => handleOpenPaymentModal(appt.id, 'appointments', (appt.services?.name || 'Serviço'), (appt.final_price || appt.calculated_price || 0))}
+                                                                    className={styles.payBtn}
+                                                                >
+                                                                    <DollarSign size={16} /> Receber
+                                                                </button>
+                                                                <button onClick={() => handleDeleteAppt(appt.id)} className={styles.deleteBtn} title="Excluir Agendamento"><Trash2 size={18} /></button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -1478,12 +1531,15 @@ export default function FinanceiroPage() {
                                                         <td>Produtos</td>
                                                         <td className={styles.pendingValue}>{formatCurrency((sale.total_amount || 0) - (extractRecords.paidMap[sale.id] || 0))}</td>
                                                         <td>
-                                                            <button 
-                                                                onClick={() => handleOpenPaymentModal(sale.id, 'orders', 'Venda Petshop', sale.total_amount)}
-                                                                className={styles.payBtn}
-                                                            >
-                                                                <DollarSign size={16} /> Receber
-                                                            </button>
+                                                            <div className={styles.actionButtons}>
+                                                                <button 
+                                                                    onClick={() => handleOpenPaymentModal(sale.id, 'orders', 'Venda Petshop', sale.total_amount)}
+                                                                    className={styles.payBtn}
+                                                                >
+                                                                    <DollarSign size={16} /> Receber
+                                                                </button>
+                                                                <button onClick={() => handleDeleteSale(sale.id)} className={styles.deleteBtn} title="Excluir Venda"><Trash2 size={18} /></button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
