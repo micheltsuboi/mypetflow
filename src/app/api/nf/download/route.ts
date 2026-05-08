@@ -42,14 +42,26 @@ export async function GET(req: NextRequest) {
 
         const baseUrl = env === 'producao' ? 'https://api.focusnfe.com.br' : 'https://homologacao.focusnfe.com.br'
         
-        // Construir URL da Focus
+        // Construir URL da Focus - Forçar .pdf ou .xml para evitar JSON de consulta
         let focusUrl = ''
+        const extension = `.${type}`
+        const baseEndpoint = nota.tipo === 'nfse' ? 'nfse' : (nota.tipo === 'nfce' ? 'nfce' : 'nfe')
+        
         if (type === 'pdf') {
-            const path = nota.caminho_pdf || `/v2/${nota.tipo === 'nfce' ? 'nfce' : 'nfe'}/${ref}.pdf`
+            // Se já tiver um caminho salvo e ele não for apenas a consulta, tenta usar, senão monta o padrão
+            const path = (nota.caminho_pdf && !nota.caminho_pdf.includes('consulta')) 
+                ? nota.caminho_pdf 
+                : `/v2/${baseEndpoint}/${ref}.pdf`
+            
             focusUrl = path.startsWith('http') ? path : `${baseUrl}${path}`
+            if (!focusUrl.endsWith('.pdf')) focusUrl += '.pdf'
         } else {
-            const path = nota.caminho_xml || `/v2/${nota.tipo === 'nfce' ? 'nfce' : 'nfe'}/${ref}.xml`
+            const path = (nota.caminho_xml && !nota.caminho_xml.includes('consulta'))
+                ? nota.caminho_xml 
+                : `/v2/${baseEndpoint}/${ref}.xml`
+            
             focusUrl = path.startsWith('http') ? path : `${baseUrl}${path}`
+            if (!focusUrl.endsWith('.xml')) focusUrl += '.xml'
         }
 
         // 3. Fazer o request para a Focus com Auth

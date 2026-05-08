@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
             if (nota.tipo === 'nfse') {
                 focusResponse = await FocusNfeApi.cancelarNfse(nota.referencia, justificativa, env, token)
             } else {
-                focusResponse = await FocusNfeApi.cancelarNfe(nota.referencia, justificativa, env, token)
+                focusResponse = await FocusNfeApi.cancelarNfe(nota.referencia, justificativa, env, token, nota.tipo as 'nfe' | 'nfce')
             }
         } catch (err: any) {
             const focusErr = JSON.parse(err.message)
