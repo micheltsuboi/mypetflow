@@ -42,30 +42,35 @@ export async function GET(req: NextRequest) {
 
         const baseUrl = env === 'producao' ? 'https://api.focusnfe.com.br' : 'https://homologacao.focusnfe.com.br'
         
-        // Construir URL da Focus - Forçar .pdf ou .xml para evitar JSON de consulta
-        let focusUrl = ''
-        const extension = `.${type}`
-        const baseEndpoint = nota.tipo === 'nfse' ? 'nfse' : (nota.tipo === 'nfce' ? 'nfce' : 'nfe')
+        // 3. Consultar a nota primeiro para pegar os caminhos reais atualizados
+        const consultaUrl = `${baseUrl}/v2/${nota.tipo === 'nfse' ? 'nfse' : (nota.tipo === 'nfce' ? 'nfce' : 'nfe')}/${ref}`
+        const auth = Buffer.from(`${token}:`).toString('base64')
         
-        if (type === 'pdf') {
-            // Se já tiver um caminho salvo e ele não for apenas a consulta, tenta usar, senão monta o padrão
-            const path = (nota.caminho_pdf && !nota.caminho_pdf.includes('consulta')) 
-                ? nota.caminho_pdf 
-                : `/v2/${baseEndpoint}/${ref}.pdf`
-            
-            focusUrl = path.startsWith('http') ? path : `${baseUrl}${path}`
-            if (!focusUrl.endsWith('.pdf')) focusUrl += '.pdf'
-        } else {
-            const path = (nota.caminho_xml && !nota.caminho_xml.includes('consulta'))
-                ? nota.caminho_xml 
-                : `/v2/${baseEndpoint}/${ref}.xml`
-            
-            focusUrl = path.startsWith('http') ? path : `${baseUrl}${path}`
-            if (!focusUrl.endsWith('.xml')) focusUrl += '.xml'
+        const consultaRes = await fetch(consultaUrl, {
+            headers: { 'Authorization': `Basic ${auth}` }
+        })
+
+        if (!consultaRes.ok) {
+            return NextResponse.json({ error: 'Erro ao consultar nota na Focus NFe.' }, { status: consultaRes.status })
         }
 
-        // 3. Fazer o request para a Focus com Auth
-        const auth = Buffer.from(`${token}:`).toString('base64')
+        const focusData = await consultaRes.json()
+        
+        // 4. Identificar o caminho do arquivo solicitado
+        let path = ''
+        if (type === 'pdf') {
+            path = focusData.caminho_pdf || focusData.caminho_danfe || focusData.url_danfse || null
+        } else {
+            path = focusData.caminho_xml || focusData.caminho_xml_nota_fiscal || null
+        }
+
+        if (!path) {
+            return NextResponse.json({ error: `Arquivo ${type.toUpperCase()} não disponível no momento. Tente novamente em instantes.` }, { status: 404 })
+        }
+
+        const focusUrl = path.startsWith('http') ? path : `${baseUrl}${path}`
+
+        // 5. Fazer o request para baixar o arquivo real
         const response = await fetch(focusUrl, {
             headers: { 'Authorization': `Basic ${auth}` }
         })

@@ -210,9 +210,9 @@ export const FocusNfeApi = {
    * Cancelar NFe ou NFCe
    */
   async cancelarNfe(ref: string, justificativa: string, env: FocusEnv, token: string, tipo: 'nfe' | 'nfce' = 'nfe') {
-    const url = `${getBaseUrl(env)}/${tipo}/${encodeURIComponent(ref)}/cancelamento`;
+    const url = `${getBaseUrl(env)}/${tipo}/${encodeURIComponent(ref)}`;
     const response = await fetch(url, {
-      method: 'POST',
+      method: 'DELETE',
       headers: { 
         'Authorization': getAuthHeader(token),
         'Content-Type': 'application/json'
