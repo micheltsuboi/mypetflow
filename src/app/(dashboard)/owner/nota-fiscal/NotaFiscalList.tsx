@@ -281,9 +281,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                 <button 
                                                     className={styles.actionBtn}
                                                     onClick={() => {
-                                                        const url = nota.caminho_pdf 
-                                                            ? (nota.caminho_pdf.startsWith('http') ? nota.caminho_pdf : `https://api.focusnfe.com.br${nota.caminho_pdf}`)
-                                                            : `https://api.focusnfe.com.br/v2/${nota.tipo === 'nfce' ? 'nfce' : 'nfe'}/${nota.referencia}.pdf`
+                                                        const url = `/api/nf/download?ref=${nota.referencia}&org_id=${nota.org_id}&type=pdf`
                                                         window.open(url, '_blank')
                                                     }}
                                                     title="Ver PDF"
@@ -295,9 +293,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                 <button 
                                                     className={`${styles.actionBtn} ${styles.xmlBtn}`}
                                                     onClick={() => {
-                                                        const url = nota.caminho_xml
-                                                            ? (nota.caminho_xml.startsWith('http') ? nota.caminho_xml : `https://api.focusnfe.com.br${nota.caminho_xml}`)
-                                                            : `https://api.focusnfe.com.br/v2/${nota.tipo === 'nfce' ? 'nfce' : 'nfe'}/${nota.referencia}.xml`
+                                                        const url = `/api/nf/download?ref=${nota.referencia}&org_id=${nota.org_id}&type=xml`
                                                         window.open(url, '_blank')
                                                     }}
                                                     title="Baixar XML"
