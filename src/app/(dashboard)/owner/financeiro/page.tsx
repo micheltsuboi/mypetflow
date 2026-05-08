@@ -399,7 +399,6 @@ export default function FinanceiroPage() {
             ])
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
-            let pTotal = 0
 
             // Combine income sources for categories (excluir agendamentos de pacote com valor zero)            
             activeAppts.forEach((a: any) => {
@@ -413,8 +412,6 @@ export default function FinanceiroPage() {
                     catData.revenue += amount
                     catData.count += 1
                     catMap.set(catName, catData)
-                } else if (a.payment_status !== 'paid') {
-                    pTotal += Math.max(0, amount - (paidMap[a.id] || 0))
                 }
             })
 
