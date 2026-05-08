@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { NotaFiscal } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
-import { Search, FileText, FileCode, Send, XCircle, Download, Settings, RefreshCw, AlertTriangle } from 'lucide-react'
+import { Search, FileText, FileCode, Send, XCircle, Download, Settings, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react'
 import DateInput from '@/components/ui/DateInput'
 import CancelamentoNFModal from '@/components/CancelamentoNFModal'
 import { exportToCsv } from '@/utils/export'
+
+import { deleteNotaFiscal } from '@/app/actions/petshop'
 
 interface Props {
     notas: NotaFiscal[]
@@ -162,6 +164,23 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         setIsCancelModalOpen(true)
     }
 
+    const handleDelete = async (id: string) => {
+        if (!confirm('Tem certeza que deseja excluir esta nota fiscal do sistema? Esta ação não pode ser desfeita.')) return
+        
+        try {
+            const res = await deleteNotaFiscal(id)
+            if (res.success) {
+                // Atualizar lista local
+                setNotas(prev => prev.filter(n => n.id !== id))
+            } else {
+                alert(res.message)
+            }
+        } catch (error) {
+            console.error('Erro ao excluir NF:', error)
+            alert('Erro interno ao excluir nota.')
+        }
+    }
+
     const formatCurrency = (value: number | null) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
     }
@@ -305,6 +324,14 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                 <span>Sincronizar</span>
                                             </button>
                                         )}
+                                        <button 
+                                            onClick={() => handleDelete(nota.id)}
+                                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
+                                            title="Excluir Registro"
+                                            style={{ color: '#ff6b6b' }}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>

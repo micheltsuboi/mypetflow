@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { getPetshopOrders } from '@/app/actions/petshop'
-import { Search, Calendar, User, ShoppingBag, X, FileText, Send, RefreshCw, Eye } from 'lucide-react'
+import { Search, Calendar, User, ShoppingBag, X, FileText, Send, RefreshCw, Eye, Trash2 } from 'lucide-react'
+import { getPetshopOrders, deletePetshopOrder } from '@/app/actions/petshop'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'
 import { jsPDF } from 'jspdf'
@@ -91,6 +91,25 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
         document.body.removeChild(link)
     }
 
+    const handleDeleteOrder = async (orderId: string) => {
+        if (!confirm('🚨 ATENÇÃO: Deseja excluir esta venda? \n\nIsso irá remover os itens do extrato e também EXCLUIR a transação financeira vinculada. Esta ação não pode ser desfeita.')) return
+        
+        setLoading(true)
+        try {
+            const res = await deletePetshopOrder(orderId)
+            if (res.success) {
+                fetchOrders()
+            } else {
+                alert(res.message)
+                setLoading(false)
+            }
+        } catch (error) {
+            console.error('Error deleting order:', error)
+            alert('Erro ao tentar excluir venda.')
+            setLoading(false)
+        }
+    }
+
     const exportPDF = () => {
         if (orders.length === 0) return
         
@@ -170,18 +189,25 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                     justifyContent: 'space-between', 
                     alignItems: 'center' 
                 }}>
-                    <div>
                         <h2 style={{ fontSize: '1.5rem', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <ShoppingBag size={24} color="#60a5fa" /> Extrato de Vendas
                         </h2>
-                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.25rem' }}>Histórico detalhado do PDV</p>
+                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.25rem' }}>Gerencie suas vendas e registros financeiros</p>
                     </div>
-                    <button onClick={onClose} style={{ 
-                        background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', 
-                        padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
-                    }}>
-                        <X size={20} />
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={fetchOrders} style={{ 
+                            background: 'rgba(255,255,255,0.05)', border: 'none', color: '#60a5fa', 
+                            padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
+                        }}>
+                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                        <button onClick={onClose} style={{ 
+                            background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', 
+                            padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
+                        }}>
+                            <X size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filters */}
@@ -274,6 +300,17 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
                                                 {order.payment_method?.toUpperCase()} • {order.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
                                             </div>
+                                            <button 
+                                                onClick={() => handleDeleteOrder(order.id)}
+                                                style={{
+                                                    marginTop: '0.5rem',
+                                                    background: 'transparent', border: 'none', color: '#ef4444',
+                                                    cursor: 'pointer', padding: '0.25rem', opacity: 0.6
+                                                }}
+                                                title="Excluir Venda"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                         </div>
                                     </div>
 

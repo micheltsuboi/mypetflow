@@ -534,3 +534,97 @@ export async function payPetshopSale(orderId: string, paymentMethod: string) {
         return { success: false, message: 'Erro ao registrar pagamento.' }
     }
 }
+
+export async function deleteNotaFiscal(id: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, message: 'Não autorizado.' }
+
+    try {
+        const { error } = await supabase
+            .from('notas_fiscais')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+
+        revalidatePath('/owner/nota-fiscal')
+        revalidatePath('/owner/petshop')
+        return { success: true, message: 'Nota fiscal excluída com sucesso.' }
+    } catch (error: any) {
+        console.error('Error deleting NF:', error)
+        return { success: false, message: 'Erro ao excluir nota: ' + error.message }
+    }
+}
+
+export async function deletePetshopOrder(orderId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, message: 'Não autorizado.' }
+
+    try {
+        // 1. Obter info da order antes de deletar
+        const { data: order, error: orderFetchErr } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId)
+            .single()
+
+        if (orderFetchErr || !order) throw new Error('Venda não encontrada')
+
+        // 2. Se tiver transação financeira, deletar
+        if (order.financial_transaction_id) {
+            await supabase
+                .from('financial_transactions')
+                .delete()
+                .eq('id', order.financial_transaction_id)
+        }
+
+        // 3. Se tiver cashback acumulado nessa venda, estornar do saldo do cliente
+        const { data: earnedTxs } = await supabase
+            .from('cashback_transactions')
+            .select('amount, tutor_id')
+            .eq('order_id', orderId)
+            .eq('org_id', order.org_id)
+
+        if (earnedTxs && earnedTxs.length > 0) {
+            const totalToRevert = earnedTxs.reduce((sum, tx) => sum + Number(tx.amount), 0)
+            const tutorId = earnedTxs[0].tutor_id
+
+            // Atualizar saldo consolidado
+            const { data: cb } = await supabase
+                .from('cashbacks')
+                .select('balance')
+                .eq('tutor_id', tutorId)
+                .single()
+            
+            if (cb) {
+                await supabase
+                    .from('cashbacks')
+                    .update({ balance: Math.max(0, Number(cb.balance) - totalToRevert) })
+                    .eq('tutor_id', tutorId)
+            }
+
+            // Deletar transações e histórico
+            await supabase.from('cashback_transactions').delete().eq('order_id', orderId)
+            await supabase.from('cashback_history').delete().eq('order_id', orderId)
+        }
+
+        // 4. Deletar a Order (Cascade deleta order_items)
+        const { error: delError } = await supabase
+            .from('orders')
+            .delete()
+            .eq('id', orderId)
+
+        if (delError) throw delError
+
+        revalidatePath('/owner/petshop')
+        revalidatePath('/owner/financeiro')
+        return { success: true, message: 'Venda e registros associados excluídos.' }
+    } catch (error: any) {
+        console.error('Error deleting order:', error)
+        return { success: false, message: 'Erro ao excluir venda: ' + error.message }
+    }
+}
+
+
