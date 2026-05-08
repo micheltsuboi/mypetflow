@@ -185,6 +185,10 @@ export async function POST(req: NextRequest) {
                 .eq('org_id', orgId)
         }
 
+        const { revalidatePath } = await import('next/cache')
+        revalidatePath('/owner/nota-fiscal')
+        revalidatePath('/owner/petshop')
+
         return NextResponse.json({ success: true, message: 'Nota fiscal enviada para processamento', status: initialStatus })
 
     } catch (error: any) {

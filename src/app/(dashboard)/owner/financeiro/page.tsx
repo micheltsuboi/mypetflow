@@ -391,10 +391,11 @@ export default function FinanceiroPage() {
             const activeTxs = transactions.filter((t: any) => filterByPeriod(t.date))
             const activePaidSales = paidSales.filter((s: any) => filterByPeriod(s.created_at))
 
-            const referencedIds = new Set([
+            const idsToSkip = new Set([
                 ...activeTxs.filter(t => t.type === 'income' && t.reference_id).map(t => t.reference_id),
-                ...paidSales.map((s: any) => s.financial_transaction_id).filter(id => !!id),
-                ...appointments.map((a: any) => (a as any).financial_transaction_id).filter(id => !!id)
+                ...paidSales.map((s: any) => s.id).filter(id => !!(s as any).financial_transaction_id),
+                ...appointments.map((a: any) => a.id).filter(id => !!(a as any).financial_transaction_id),
+                ...paidPackages.map((p: any) => p.id).filter(id => !!(p as any).financial_transaction_id)
             ])
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0
@@ -405,7 +406,7 @@ export default function FinanceiroPage() {
                 const catName = (a.services as any)?.service_categories?.name || 'Serviços'
                 const amount = Number(a.final_price || a.calculated_price || 0)
                 
-                if (referencedIds.has(a.id)) return
+                if (idsToSkip.has(a.id)) return
                 if (a.payment_status === 'paid') {
                     totalRev += amount
                     const catData = catMap.get(catName) || { name: catName, revenue: 0, count: 0 }
@@ -430,7 +431,7 @@ export default function FinanceiroPage() {
             })
 
             activePaidSales.forEach((s: any) => {
-                if (referencedIds.has(s.id)) return
+                if (idsToSkip.has(s.id)) return
                 const amount = Number(s.total_amount || 0)
                 const catName = 'Venda Produto'
                 totalRev += amount
@@ -443,7 +444,7 @@ export default function FinanceiroPage() {
             const activePaidPackages = paidPackages.filter((p: any) => filterByPeriod(p.created_at))
             activePaidPackages.forEach((p: any) => {
                 // Pular se já tiver transação
-                if (referencedIds.has(p.id)) return
+                if (idsToSkip.has(p.id)) return
                 const catName = 'Pacotes'
                 const amount = Number(p.total_paid || p.total_price || 0)
                 const current = catMap.get(catName) || { name: catName, revenue: 0, count: 0, percentage: 0 }

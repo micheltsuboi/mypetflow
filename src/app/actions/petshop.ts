@@ -191,11 +191,12 @@ export async function checkoutCart(checkoutData: CheckoutData) {
         
         // 3.1 Vincular a transação de volta para a Order (para evitar duplicidade no financeiro)
         if (transactionId) {
-            await supabase
+            const adminSupabase = createAdminClient()
+            await adminSupabase
                 .from('financial_transactions')
                 .update({ 
                     reference_id: orderData.id,
-                    reference_type: 'order'
+                    reference_type: 'venda_petshop'
                 })
                 .eq('id', transactionId)
         }
@@ -652,7 +653,7 @@ export async function deletePetshopOrder(orderId: string) {
             .from('notas_fiscais')
             .select('id, referencia, retorno_focus')
             .eq('origem_id', orderId)
-            .eq('origem_tipo', 'venda_petshop')
+            .eq('origem_tipo', 'pdv')
         
         if (nfs) {
             for (const nf of nfs) {
