@@ -222,7 +222,7 @@ export default function CrechePage() {
                         .select('id, origem_id, status, caminho_pdf, referencia, retorno_focus')
                         .eq('origem_tipo', 'atendimento')
                         .in('origem_id', apptIds)
-                        .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
+                        .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
 
                     if (nfs) {
                         const map: any = {}

@@ -466,7 +466,7 @@ export async function getPetshopOrders(filters: {
                 .select('id, status, referencia, caminho_pdf, origem_id, retorno_focus')
                 .in('origem_id', orderIds)
                 .eq('origem_tipo', 'pdv')
-                .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
+                .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
 
             if (nfs) {
                 filteredOrders = filteredOrders.map(order => ({

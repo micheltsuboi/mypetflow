@@ -362,7 +362,7 @@ export default function FinanceiroPage() {
                     .from('notas_fiscais')
                     .select('id, origem_id, status, caminho_pdf, retorno_focus')
                     .in('origem_id', allRevenueIds)
-                    .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
+                    .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
 
                 if (nfs) {
                     const map: any = {}
@@ -393,9 +393,9 @@ export default function FinanceiroPage() {
 
             const idsToSkip = new Set([
                 ...activeTxs.filter(t => t.type === 'income' && t.reference_id).map(t => t.reference_id),
-                ...paidSales.map((s: any) => s.id).filter(id => !!(s as any).financial_transaction_id),
-                ...appointments.map((a: any) => a.id).filter(id => !!(a as any).financial_transaction_id),
-                ...paidPackages.map((p: any) => p.id).filter(id => !!(p as any).financial_transaction_id)
+                ...paidSales.filter((s: any) => !!s.financial_transaction_id).map((s: any) => s.id),
+                ...appointments.filter((a: any) => !!(a as any).financial_transaction_id).map((a: any) => a.id),
+                ...paidPackages.filter((p: any) => !!(p as any).financial_transaction_id).map((p: any) => p.id)
             ])
             const catMap = new Map<string, CategoryRevenue>()
             let totalRev = 0

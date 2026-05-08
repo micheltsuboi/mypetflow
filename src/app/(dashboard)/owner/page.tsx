@@ -114,7 +114,7 @@ export default function OwnerDashboard() {
             const { data } = await supabase
                 .from('notas_fiscais')
                 .select('*')
-                .not('retorno_focus->>_sistema_oculto', 'eq', 'true')
+                .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
             if (data) {
                 const map: Record<string, NotaFiscal> = {}
                 data.forEach(nf => {
@@ -399,9 +399,9 @@ export default function OwnerDashboard() {
                 // Set of IDs that ALREADY have a transaction recorded (Deduplication)
                 const idsToSkip = new Set([
                     ...incomeTxs.map((t: any) => t.reference_id).filter(id => !!id),
-                    ...paidSalesThisMonth.map((s: any) => s.id).filter(id => !!(s as any).financial_transaction_id),
-                    ...currentMonthAppts.map((a: any) => a.id).filter(id => !!(a as any).financial_transaction_id),
-                    ...paidPackagesThisMonth.map((p: any) => p.id).filter(id => !!(p as any).financial_transaction_id)
+                    ...paidSalesThisMonth.filter((s: any) => !!s.financial_transaction_id).map((s: any) => s.id),
+                    ...currentMonthAppts.filter((a: any) => !!(a as any).financial_transaction_id).map((a: any) => a.id),
+                    ...paidPackagesThisMonth.filter((p: any) => !!(p as any).financial_transaction_id).map((p: any) => p.id)
                 ])
 
                 const totalRevenue = incomeTxs.reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0)
