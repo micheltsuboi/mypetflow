@@ -15,6 +15,7 @@ import SalesHistoryModal from '@/components/petshop/SalesHistoryModal'
 import FiscalDocumentModal, { FiscalDocumentType } from '@/components/petshop/FiscalDocumentModal'
 import { ReceiptText, ShoppingBag, LayoutDashboard } from 'lucide-react'
 import InventoryManagement from '@/components/petshop/InventoryManagement'
+import StatusModal, { StatusModalType } from '@/components/ui/StatusModal'
 
 // Interfaces locais para o Carrinho
 interface CartItem {
@@ -55,6 +56,9 @@ export default function PetshopPage() {
 
     // Navegação
     const [activeTab, setActiveTab] = useState<'pdv' | 'stock'>('pdv')
+
+    // Modais de Status
+    const [statusModal, setStatusModal] = useState<{ type: StatusModalType, title: string, message: string } | null>(null)
 
     // Gerenciador de Produtos (CRUD Modal)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -156,7 +160,11 @@ export default function PetshopPage() {
             const existing = prev.find(item => item.product_id === product.id)
             if (existing) {
                 if (existing.quantity >= product.stock_quantity) {
-                    alert(`Estoque máximo atingido para ${product.name} (${product.stock_quantity})`)
+                    setStatusModal({
+                        type: 'warning',
+                        title: 'Limite de Estoque',
+                        message: `Estoque máximo atingido para ${product.name} (${product.stock_quantity} un)`
+                    })
                     return prev
                 }
                 return prev.map(item =>
@@ -166,7 +174,11 @@ export default function PetshopPage() {
                 )
             }
             if (product.stock_quantity <= 0) {
-                alert('Produto sem estoque!')
+                setStatusModal({
+                    type: 'error',
+                    title: 'Sem Estoque',
+                    message: `O produto ${product.name} não possui estoque disponível no momento.`
+                })
                 return prev
             }
             const fiscalData = (product as any).produtos_fiscal?.[0]
@@ -293,7 +305,7 @@ export default function PetshopPage() {
                 produtos: nfeProducts
             })
 
-            alert('Venda finalizada com sucesso!')
+            // MUDANÇA: Não mostramos alert(), vamos direto para o modal fiscal que já diz "Venda Finalizada"
             
             // Abre o modal de seleção de tipo de documento fiscal
             if (res.orderId) {
@@ -310,11 +322,19 @@ export default function PetshopPage() {
             setUseCashbackAmount(0)
             fetchProducts() // Update local stock display
         } else {
-                alert(res.message || 'Erro ao finalizar venda.')
+                setStatusModal({
+                    type: 'error',
+                    title: 'Falha no Checkout',
+                    message: res.message || 'Ocorreu um erro ao processar o pagamento.'
+                })
             }
         } catch (error) {
             console.error('Checkout error:', error)
-            alert('Erro ao tentar finalizar a transação.')
+            setStatusModal({
+                type: 'error',
+                title: 'Erro de Sistema',
+                message: 'Não foi possível completar a transação. Verifique sua conexão.'
+            })
         } finally {
             setIsCheckingOut(false)
         }
@@ -417,10 +437,18 @@ export default function PetshopPage() {
 
             await fetchProducts()
             setIsModalOpen(false)
-            alert(editingProduct ? 'Produto atualizado!' : 'Produto cadastrado!')
+            setStatusModal({
+                type: 'success',
+                title: 'Sucesso',
+                message: editingProduct ? 'Produto atualizado com sucesso!' : 'Produto cadastrado com sucesso!'
+            })
         } catch (error) {
             console.error('Erro ao salvar produto:', error)
-            alert('Erro ao salvar produto.')
+            setStatusModal({
+                type: 'error',
+                title: 'Erro ao Salvar',
+                message: 'Não foi possível salvar as alterações do produto.'
+            })
         }
     }
 
@@ -794,7 +822,11 @@ export default function PetshopPage() {
                         produtos={checkoutSaleData.produtos}
                         onClose={() => setShowNFModal(false)}
                         onSuccess={(status) => {
-                            alert(`Documento fiscal solicitado! Status: ${status}`)
+                            setStatusModal({
+                                type: 'success',
+                                title: 'Solicitação Enviada',
+                                message: `O documento fiscal foi solicitado com sucesso! Status: ${status}`
+                            })
                             setShowNFModal(false)
                         }}
                     />
@@ -802,6 +834,15 @@ export default function PetshopPage() {
 
                 {showHistoryModal && (
                     <SalesHistoryModal onClose={() => setShowHistoryModal(false)} />
+                )}
+
+                {statusModal && (
+                    <StatusModal 
+                        type={statusModal.type}
+                        title={statusModal.title}
+                        message={statusModal.message}
+                        onClose={() => setStatusModal(null)}
+                    />
                 )}
             </div>
         </PlanGuard>
