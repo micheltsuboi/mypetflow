@@ -459,24 +459,27 @@ export async function getPetshopOrders(filters: {
         }
 
         // Fetch NF info separately to avoid complex joins if needed, or just map it
+        // Normalize and attach NF info
         const orderIds = filteredOrders.map(o => o.id)
+        let nfs: any[] = []
         if (orderIds.length > 0) {
-            const { data: nfs } = await supabase
+            const { data } = await supabase
                 .from('notas_fiscais')
-                .select('id, status, referencia, caminho_pdf, origem_id, retorno_focus')
+                .select('id, status, referencia, caminho_pdf, url_pdf, origem_id, retorno_focus')
                 .in('origem_id', orderIds)
                 .eq('origem_tipo', 'pdv')
                 .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
-
-            if (nfs) {
-                filteredOrders = filteredOrders.map(order => ({
-                    ...order,
-                    nf: nfs.find(nf => nf.origem_id === order.id) || null
-                }))
-            }
+            nfs = data || []
         }
 
-        return { success: true, data: filteredOrders }
+        const normalizedOrders = filteredOrders.map(order => ({
+            ...order,
+            customers: Array.isArray(order.customers) ? order.customers[0] : (order.customers || null),
+            pets: Array.isArray(order.pets) ? order.pets[0] : (order.pets || null),
+            nf: nfs.find(nf => nf.origem_id === order.id) || null
+        }))
+
+        return { success: true, data: normalizedOrders }
     } catch (error) {
         console.error('Error fetching orders:', error)
         return { success: false, error: 'Erro ao buscar extrato.' }

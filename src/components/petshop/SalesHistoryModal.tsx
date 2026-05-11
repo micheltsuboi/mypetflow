@@ -215,16 +215,30 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                         <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '0.25rem' }}>Gerencie suas vendas e registros financeiros</p>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={fetchOrders} style={{ 
-                            background: 'rgba(255,255,255,0.05)', border: 'none', color: '#60a5fa', 
-                            padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
-                        }}>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                try {
+                                    fetchOrders();
+                                } catch (e) {
+                                    console.error("Error refreshing orders:", e);
+                                }
+                            }} 
+                            style={{ 
+                                background: 'rgba(255,255,255,0.05)', border: 'none', color: '#60a5fa', 
+                                padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
+                            }}
+                        >
                             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
                         </button>
-                        <button onClick={onClose} style={{ 
-                            background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', 
-                            padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
-                        }}>
+                        <button 
+                            type="button"
+                            onClick={onClose} 
+                            style={{ 
+                                background: 'rgba(255,255,255,0.05)', border: 'none', color: '#94a3b8', 
+                                padding: '0.5rem', borderRadius: '8px', cursor: 'pointer' 
+                            }}
+                        >
                             <X size={20} />
                         </button>
                     </div>
@@ -280,12 +294,12 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                 <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
                     {loading ? (
                         <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Carregando vendas...</div>
-                    ) : orders.length === 0 ? (
+                    ) : (orders || []).length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>Nenhuma venda encontrada no período.</div>
                     ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {orders.map(order => (
-                                <div key={order.id} style={{
+                            {orders.map((order, orderIdx) => (
+                                <div key={order?.id || orderIdx} style={{
                                     background: '#1e293b',
                                     borderRadius: '12px',
                                     padding: '1.25rem',
@@ -305,25 +319,25 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                             </div>
                                             <div>
                                                 <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>
-                                                    {(Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'Venda Avulsa'}
+                                                    {order?.customers?.name || 'Venda Avulsa'}
                                                 </div>
                                                 <div style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    {(Array.isArray(order.pets) ? order.pets[0]?.name : order.pets?.name) && (
-                                                        <span style={{ color: '#60a5fa' }}>🐾 {Array.isArray(order.pets) ? order.pets[0].name : order.pets.name}</span>
+                                                    {order?.pets?.name && (
+                                                        <span style={{ color: '#60a5fa' }}>🐾 {order.pets.name}</span>
                                                     )}
-                                                    <span>• {safeFormatDate(order.created_at, 'dd/MM/yy HH:mm')}</span>
+                                                    <span>• {safeFormatDate(order?.created_at, 'dd/MM/yy HH:mm')}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <div style={{ fontWeight: 700, color: '#10b981', fontSize: '1.1rem' }}>
-                                                {safeFormatCurrency(order.total_amount)}
+                                                {safeFormatCurrency(order?.total_amount)}
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                                {order.payment_method?.toUpperCase()} • {order.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
+                                                {order?.payment_method?.toUpperCase() || '-'} • {order?.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
                                             </div>
                                             <button 
-                                                onClick={() => handleDeleteOrder(order.id)}
+                                                onClick={() => order?.id && handleDeleteOrder(order.id)}
                                                 style={{
                                                     marginTop: '0.5rem',
                                                     background: 'transparent', border: 'none', color: '#ef4444',
@@ -341,10 +355,10 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                         padding: '0.75rem', borderRadius: '8px', 
                                         background: 'rgba(0,0,0,0.2)', fontSize: '0.85rem', color: '#cbd5e1' 
                                     }}>
-                                        {order.order_items?.map((item: any, idx: number) => (
-                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: (order.order_items && idx === order.order_items.length - 1) ? 0 : '0.25rem' }}>
-                                                <span>{item.quantity}x {item.product_name}</span>
-                                                <span style={{ color: '#94a3b8' }}>{safeFormatCurrency(item.total_price)}</span>
+                                        {(order?.order_items || []).map((item: any, idx: number) => (
+                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: (order?.order_items && idx === order.order_items.length - 1) ? 0 : '0.25rem' }}>
+                                                <span>{item?.quantity || 0}x {item?.product_name || 'Produto'}</span>
+                                                <span style={{ color: '#94a3b8' }}>{safeFormatCurrency(item?.total_price)}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -352,11 +366,11 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                     {/* NF Actions */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.5rem' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                            {nfeStatusBadge(order.nf?.status)}
-                                            {order.nf?.status === 'autorizado' && (
+                                            {nfeStatusBadge(order?.nf?.status)}
+                                            {order?.nf?.status === 'autorizado' && (
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                     <a 
-                                                        href={order.nf.caminho_pdf.startsWith('http') ? order.nf.caminho_pdf : `https://api.focusnfe.com.br${order.nf.caminho_pdf}`}
+                                                        href={order.nf.caminho_pdf?.startsWith('http') ? order.nf.caminho_pdf : `https://api.focusnfe.com.br${order.nf.caminho_pdf || ''}`}
                                                         target="_blank" rel="noopener noreferrer"
                                                         style={{ 
                                                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
@@ -367,7 +381,7 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                         <Eye size={14} /> PDF
                                                     </a>
                                                     <button 
-                                                        onClick={() => handleSendWhatsApp(order.nf.referencia)}
+                                                        onClick={() => order?.nf?.referencia && handleSendWhatsApp(order.nf.referencia)}
                                                         style={{ 
                                                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
                                                             fontSize: '0.75rem', color: '#2ecc71', border: 'none', cursor: 'pointer',
@@ -380,10 +394,11 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                             )}
                                         </div>
 
-                                        {(!order.nf || order.nf.status === 'erro') && order.payment_status === 'paid' && (
+                                        {(!order?.nf || order.nf.status === 'erro') && order?.payment_status === 'paid' && (
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button 
                                                     onClick={() => {
+                                                        if (!order) return;
                                                         setSelectedOrderForNF({
                                                             orderId: order.id,
                                                             total_amount: order.total_amount,
@@ -397,15 +412,15 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                                     city: order.customers.city,
                                                                 }
                                                             } : undefined,
-                                                            produtos: order.order_items.map((it: any) => {
-                                                                const fiscal = it.products?.produtos_fiscal?.[0] || {}
+                                                            produtos: (order.order_items || []).map((it: any) => {
+                                                                const fiscal = it?.products?.produtos_fiscal?.[0] || {}
                                                                 return {
-                                                                    id: it.product_id,
-                                                                    descricao: it.product_name,
-                                                                    quantidade: it.quantity,
-                                                                    total_price: it.total_price,
-                                                                    valor_unitario: it.unit_price,
-                                                                    discount_percent: it.discount_percent,
+                                                                    id: it?.product_id,
+                                                                    descricao: it?.product_name || 'Produto',
+                                                                    quantidade: it?.quantity || 0,
+                                                                    total_price: it?.total_price || 0,
+                                                                    valor_unitario: it?.unit_price || 0,
+                                                                    discount_percent: it?.discount_percent || 0,
                                                                     ncm: fiscal.codigo_ncm || '00000000',
                                                                     cfop: fiscal.cfop || '5102',
                                                                     cst: fiscal.icms_situacao_tributaria || '102',
@@ -428,6 +443,7 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
 
                                                 <button 
                                                     onClick={() => {
+                                                        if (!order) return;
                                                         setSelectedOrderForNF({
                                                             orderId: order.id,
                                                             total_amount: order.total_amount,
@@ -441,15 +457,15 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                                     city: order.customers.city,
                                                                 }
                                                             } : undefined,
-                                                            produtos: order.order_items.map((it: any) => {
-                                                                const fiscal = it.products?.produtos_fiscal?.[0] || {}
+                                                            produtos: (order.order_items || []).map((it: any) => {
+                                                                const fiscal = it?.products?.produtos_fiscal?.[0] || {}
                                                                 return {
-                                                                    id: it.product_id,
-                                                                    descricao: it.product_name,
-                                                                    quantidade: it.quantity,
-                                                                    total_price: it.total_price,
-                                                                    valor_unitario: it.unit_price,
-                                                                    discount_percent: it.discount_percent,
+                                                                    id: it?.product_id,
+                                                                    descricao: it?.product_name || 'Produto',
+                                                                    quantidade: it?.quantity || 0,
+                                                                    total_price: it?.total_price || 0,
+                                                                    valor_unitario: it?.unit_price || 0,
+                                                                    discount_percent: it?.discount_percent || 0,
                                                                     ncm: fiscal.codigo_ncm || '00000000',
                                                                     cfop: fiscal.cfop || '5102',
                                                                     cst: fiscal.icms_situacao_tributaria || '102',
