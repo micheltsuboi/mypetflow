@@ -227,9 +227,9 @@ export default function OwnerDashboard() {
 
                 // 1. Fetch Financial Data from APPOINTMENTS
                 const now = new Date()
-                const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-                const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString()
-                const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString()
+                const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA') // YYYY-MM-DD
+                const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleDateString('en-CA')
+                const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0).toLocaleDateString('en-CA')
 
                 // Promise 1: Current month appointments (paid and unpaid)
                 const currentMonthApptsPromise = supabase
@@ -248,7 +248,7 @@ export default function OwnerDashboard() {
                     .select('final_price, calculated_price, payment_status')
                     .eq('org_id', profile.org_id)
                     .gte('scheduled_at', startOfPreviousMonth)
-                    .lte('scheduled_at', endOfPreviousMonth)
+                    .lte('scheduled_at', endOfPreviousMonth + 'T23:59:59')
 
                 // Promise 3: Fetch all financial transactions (income and expenses) for the month
                 const transactionsPromise = supabase
@@ -270,14 +270,14 @@ export default function OwnerDashboard() {
                     .eq('customers.org_id', profile.org_id)
 
                 // Promise 6: Today's appointments for petsToday list and count
-                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-                const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString()
+                const todayStart = now.toLocaleDateString('en-CA')
+                const todayEnd = todayStart + 'T23:59:59'
 
                 const apptsPromise = supabase
                     .from('appointments')
                     .select('id, scheduled_at, status, payment_status, check_in_date, check_out_date, pets ( id, name, breed, species, customers ( * ) ), services ( name, service_categories ( name ) )')
                     .eq('org_id', profile.org_id)
-                    .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart.split('T')[0]},check_out_date.gte.${todayStart.split('T')[0]})`)
+                    .or(`and(scheduled_at.gte.${todayStart},scheduled_at.lte.${todayEnd}),and(check_in_date.lte.${todayStart},check_out_date.gte.${todayStart})`)
                     .neq('status', 'cancelled')
                     .order('scheduled_at', { ascending: true })
 
@@ -318,6 +318,22 @@ export default function OwnerDashboard() {
                     .select('id, total_price, total_paid, payment_status, created_at, pets ( name ), package_id ( name )')
                     .eq('org_id', profile.org_id)
                     .in('payment_status', ['pending', 'partial'])
+
+                // NEW: Paid packages this month
+                const paidPackagesThisMonthPromise = supabase
+                    .from('customer_packages')
+                    .select('id, total_price, total_paid, payment_status, created_at, financial_transaction_id, pets ( name ), package_id ( name )')
+                    .eq('org_id', profile.org_id)
+                    .eq('payment_status', 'paid')
+                    .gte('created_at', startOfCurrentMonth)
+
+                // NEW: All transactions with reference_id to calculate real balance
+                const pendingTransactionsPromise = supabase
+                    .from('financial_transactions')
+                    .select('reference_id, amount')
+                    .eq('org_id', profile.org_id)
+                    .eq('type', 'income')
+                    .not('reference_id', 'is', null)
 
                 // Promise 7: Paid sales this month
                 const paidSalesThisMonthPromise = supabase
