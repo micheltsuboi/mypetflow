@@ -967,11 +967,26 @@ export default function FinanceiroPage() {
         ? ((currentMonthData.revenue - previousMonthData.revenue) / previousMonthData.revenue * 100).toFixed(1)
         : '0.0'
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL'
-        }).format(value)
+    const formatCurrency = (value: any) => {
+        try {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value || 0)
+        } catch (e) {
+            return 'R$ 0,00'
+        }
+    }
+
+    const safeFormatDate = (dateVal: any) => {
+        try {
+            if (!dateVal) return '-'
+            const d = new Date(dateVal)
+            if (isNaN(d.getTime())) return '-'
+            return d.toLocaleDateString('pt-BR')
+        } catch (e) {
+            return '-'
+        }
     }
 
     const maxRevenue = Math.max(...monthlyData.map(d => d.revenue), 1)
@@ -1406,7 +1421,7 @@ export default function FinanceiroPage() {
                                             .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                             .map((tx: any) => (
                                             <tr key={tx.id}>
-                                                <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
+                                                <td>{safeFormatDate(tx.date)}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                         {tx.description}
@@ -1455,7 +1470,7 @@ export default function FinanceiroPage() {
                                                 <>
                                                     {extractRecords.transactions.filter(t => t.type === 'income').map((tx: any) => (
                                                         <tr key={tx.id}>
-                                                            <td>{new Date(tx.date).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{safeFormatDate(tx.date)}</td>
                                                             <td>{formatTransactionDescription(tx)}</td>
                                                             <td>{tx.category}</td>
                                                             <td className={styles.revenueValue}>+ {formatCurrency(tx.amount)}</td>
@@ -1468,7 +1483,7 @@ export default function FinanceiroPage() {
                                                         .filter(a => a.payment_status === 'paid' && !referencedIds.has(a.id) && (a.final_price || a.calculated_price || 0) > 0)
                                                         .map((appt: any) => (
                                                             <tr key={appt.id}>
-                                                                <td>{new Date(appt.paid_at).toLocaleDateString('pt-BR')}</td>
+                                                                <td>{safeFormatDate(appt.paid_at)}</td>
                                                                 <td>{appt.pets?.name} • {appt.services?.name}</td>
                                                                 <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
                                                                 <td className={styles.revenueValue}>+ {formatCurrency(appt.final_price || appt.calculated_price || 0)}</td>
@@ -1485,7 +1500,7 @@ export default function FinanceiroPage() {
                                                         .filter(s => !referencedIds.has(s.id))
                                                         .map((sale: any) => (
                                                             <tr key={sale.id}>
-                                                                <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
+                                                                <td>{safeFormatDate(sale.created_at)}</td>
                                                                 <td>Venda Petshop</td>
                                                                 <td>Produtos</td>
                                                                 <td className={styles.revenueValue}>+ {formatCurrency(sale.total_amount)}</td>
@@ -1501,7 +1516,7 @@ export default function FinanceiroPage() {
                                                         .filter(p => !referencedIds.has(p.id))
                                                         .map((pkg: any) => (
                                                             <tr key={pkg.id}>
-                                                                <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
+                                                                <td>{safeFormatDate(pkg.created_at)}</td>
                                                                 <td>Pacote do {pkg.pets?.name} ({pkg.service_packages?.name || 'Pacote'})</td>
                                                                 <td>Pacotes</td>
                                                                 <td className={styles.revenueValue}>+ {formatCurrency(pkg.total_paid || pkg.total_price || 0)}</td>
@@ -1521,7 +1536,7 @@ export default function FinanceiroPage() {
                                             <>
                                                 {extractRecords.allPendingAppointments.map((appt: any) => (
                                                     <tr key={appt.id}>
-                                                        <td>{new Date(appt.scheduled_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{safeFormatDate(appt.scheduled_at)}</td>
                                                         <td>{appt.pets?.name} • {appt.services?.name}</td>
                                                         <td>{(appt.services as any)?.service_categories?.name || 'Serviços'}</td>
                                                         <td className={styles.pendingValue}>{formatCurrency((appt.final_price || appt.calculated_price || 0) - (extractRecords.paidMap[appt.id] || 0))}</td>
@@ -1540,7 +1555,7 @@ export default function FinanceiroPage() {
                                                 ))}
                                                 {extractRecords.pendingSales.map((sale: any) => (
                                                     <tr key={sale.id}>
-                                                        <td>{new Date(sale.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{safeFormatDate(sale.created_at)}</td>
                                                         <td>Venda Petshop</td>
                                                         <td>Produtos</td>
                                                         <td className={styles.pendingValue}>{formatCurrency((sale.total_amount || 0) - (extractRecords.paidMap[sale.id] || 0))}</td>
@@ -1559,7 +1574,7 @@ export default function FinanceiroPage() {
                                                 ))}
                                                 {extractRecords.pendingVaccines.map((v: any) => (
                                                     <tr key={v.id}>
-                                                        <td>{new Date(v.application_date).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{safeFormatDate(v.application_date)}</td>
                                                         <td>{v.pets?.name} • Vacina: {v.name}</td>
                                                         <td>Vacinas</td>
                                                         <td className={styles.pendingValue}>{formatCurrency((v.price || 0) - (extractRecords.paidMap[v.id] || 0))}</td>
@@ -1580,7 +1595,7 @@ export default function FinanceiroPage() {
                                                     const finalVal = Math.max(0, val);
                                                     return (
                                                         <tr key={v.id}>
-                                                            <td>{new Date(v.created_at).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{safeFormatDate(v.created_at)}</td>
                                                             <td>{v.pets?.name} • Consulta Veterinária</td>
                                                             <td>Consulta</td>
                                                             <td className={styles.pendingValue}>{formatCurrency(finalVal - (extractRecords.paidMap[v.id] || 0))}</td>
@@ -1602,7 +1617,7 @@ export default function FinanceiroPage() {
                                                     const finalVal = Math.max(0, val);
                                                     return (
                                                         <tr key={e.id}>
-                                                            <td>{new Date(e.created_at).toLocaleDateString('pt-BR')}</td>
+                                                            <td>{safeFormatDate(e.created_at)}</td>
                                                             <td>{e.pets?.name} • Exame: {e.name}</td>
                                                             <td>Exames</td>
                                                             <td className={styles.pendingValue}>{formatCurrency(finalVal - (extractRecords.paidMap[e.id] || 0))}</td>
@@ -1619,7 +1634,7 @@ export default function FinanceiroPage() {
                                                 })}
                                                 {extractRecords.pendingAdmissions.map((ad: any) => (
                                                     <tr key={ad.id}>
-                                                        <td>{new Date(ad.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{safeFormatDate(ad.created_at)}</td>
                                                         <td>{ad.pets?.name} • Internamento</td>
                                                         <td>Internamento</td>
                                                         <td className={styles.pendingValue}>{formatCurrency((ad.total_amount || 0) - (extractRecords.paidMap[ad.id] || 0))}</td>
@@ -1635,7 +1650,7 @@ export default function FinanceiroPage() {
                                                 ))}
                                                 {extractRecords.pendingPackages.map((pkg: any) => (
                                                     <tr key={pkg.id}>
-                                                        <td>{new Date(pkg.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{safeFormatDate(pkg.created_at)}</td>
                                                         <td>{pkg.pets?.name} • Pacote contratado ({pkg.service_packages?.name})</td>
                                                         <td>Pacotes</td>
                                                         <td className={styles.pendingValue}>{formatCurrency(Number(pkg.total_price || 0) - Number(pkg.total_paid || 0))}</td>

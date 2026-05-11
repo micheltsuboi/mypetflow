@@ -66,9 +66,9 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
         
         const headers = ['Data', 'Cliente', 'Pet', 'Total', 'Metodo Pagamento', 'Status Pagamento', 'Itens']
         const rows = orders.map(order => [
-            format(new Date(order.created_at), 'dd/MM/yyyy HH:mm'),
-            order.customers?.name || 'Venda Avulsa',
-            order.pets?.name || '-',
+            safeFormatDate(order.created_at, 'dd/MM/yyyy HH:mm'),
+            (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'Venda Avulsa',
+            (Array.isArray(order.pets) ? order.pets[0]?.name : order.pets?.name) || '-',
             order.total_amount,
             order.payment_method,
             order.payment_status,
@@ -119,9 +119,9 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
         doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 22)
         
         const tableData = orders.map(order => [
-            format(new Date(order.created_at), 'dd/MM/yy HH:mm'),
-            order.customers?.name || 'Venda Avulsa',
-            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount),
+            safeFormatDate(order.created_at, 'dd/MM/yy HH:mm'),
+            (Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'Venda Avulsa',
+            safeFormatCurrency(order.total_amount),
             order.payment_method?.toUpperCase() || '-',
             order.order_items?.map((i: any) => `${i.quantity}x ${i.product_name}`).join(', ')
         ])
@@ -160,6 +160,25 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                 {status || 'Sem Nota'}
             </span>
         )
+    }
+
+    const safeFormatDate = (dateStr: string, formatStr: string) => {
+        try {
+            if (!dateStr) return '-'
+            const d = new Date(dateStr)
+            if (isNaN(d.getTime())) return '-'
+            return format(d, formatStr)
+        } catch (e) {
+            return '-'
+        }
+    }
+
+    const safeFormatCurrency = (value: number) => {
+        try {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0)
+        } catch (e) {
+            return 'R$ 0,00'
+        }
     }
 
     return (
@@ -286,17 +305,19 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                             </div>
                                             <div>
                                                 <div style={{ fontWeight: 600, color: '#f8fafc', fontSize: '1rem' }}>
-                                                    {order.customers?.name || 'Venda Avulsa'}
+                                                    {(Array.isArray(order.customers) ? order.customers[0]?.name : order.customers?.name) || 'Venda Avulsa'}
                                                 </div>
                                                 <div style={{ color: '#94a3b8', fontSize: '0.8rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    {order.pets?.name && <span style={{ color: '#60a5fa' }}>🐾 {order.pets.name}</span>}
-                                                    <span>• {format(new Date(order.created_at), 'dd/MM/yy HH:mm')}</span>
+                                                    {(Array.isArray(order.pets) ? order.pets[0]?.name : order.pets?.name) && (
+                                                        <span style={{ color: '#60a5fa' }}>🐾 {Array.isArray(order.pets) ? order.pets[0].name : order.pets.name}</span>
+                                                    )}
+                                                    <span>• {safeFormatDate(order.created_at, 'dd/MM/yy HH:mm')}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <div style={{ fontWeight: 700, color: '#10b981', fontSize: '1.1rem' }}>
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total_amount)}
+                                                {safeFormatCurrency(order.total_amount)}
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem' }}>
                                                 {order.payment_method?.toUpperCase()} • {order.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
@@ -321,9 +342,9 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                         background: 'rgba(0,0,0,0.2)', fontSize: '0.85rem', color: '#cbd5e1' 
                                     }}>
                                         {order.order_items?.map((item: any, idx: number) => (
-                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: idx === order.order_items.length - 1 ? 0 : '0.25rem' }}>
+                                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: (order.order_items && idx === order.order_items.length - 1) ? 0 : '0.25rem' }}>
                                                 <span>{item.quantity}x {item.product_name}</span>
-                                                <span style={{ color: '#94a3b8' }}>{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.total_price)}</span>
+                                                <span style={{ color: '#94a3b8' }}>{safeFormatCurrency(item.total_price)}</span>
                                             </div>
                                         ))}
                                     </div>
