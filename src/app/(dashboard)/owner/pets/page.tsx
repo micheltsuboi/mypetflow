@@ -371,15 +371,15 @@ function PetsContent() {
         })
 
         // Margins and styling
-        const margin = 10
+        const margin = 15
         
         // DATA SECTION - ALL BLACK
         doc.setFontSize(9) // Smaller font for more compactness
         doc.setTextColor(0, 0, 0)
         
-        let y = 10 // Start higher
+        let y = 15 // Start higher
         const col1 = margin
-        const col2 = 114
+        const col2 = 124
 
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
