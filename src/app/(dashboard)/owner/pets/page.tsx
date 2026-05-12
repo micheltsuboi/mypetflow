@@ -371,7 +371,7 @@ function PetsContent() {
         })
 
         // Margins and styling
-        const margin = 15
+        const margin = 20
         
         // DATA SECTION - ALL BLACK
         doc.setFontSize(9) // Smaller font for more compactness
@@ -379,7 +379,7 @@ function PetsContent() {
         
         let y = 15 // Start higher
         const col1 = margin
-        const col2 = 124
+        const col2 = 130
 
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
