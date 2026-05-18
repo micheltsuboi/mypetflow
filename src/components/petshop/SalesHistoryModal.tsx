@@ -61,6 +61,16 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
         }
     }
 
+    const handleSync = async (nota: any) => {
+        try {
+            const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
+            if (!res.ok) throw new Error('Erro ao sincronizar')
+            fetchOrders() // Recarregar dados após sincronizar
+        } catch (error: any) {
+            alert(error.message)
+        }
+    }
+
     const exportCSV = () => {
         if (orders.length === 0) return
         
