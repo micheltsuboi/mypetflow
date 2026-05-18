@@ -465,7 +465,7 @@ export async function getPetshopOrders(filters: {
         if (orderIds.length > 0) {
             const { data } = await supabase
                 .from('notas_fiscais')
-                .select('id, org_id, status, referencia, caminho_pdf, url_pdf, caminho_xml, origem_id, retorno_focus')
+                .select('id, org_id, status, referencia, caminho_pdf, caminho_xml, origem_id, retorno_focus')
                 .in('origem_id', orderIds)
                 .in('origem_tipo', ['pdv', 'venda'])
                 .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
