@@ -406,7 +406,7 @@ export async function getPetshopOrders(filters: {
         let query = supabase
             .from('orders')
             .select(`
-                id, total_amount, discount_amount, payment_status, payment_method, created_at,
+                id, org_id, total_amount, discount_amount, payment_status, payment_method, created_at,
                 customer_id, pet_id, financial_transaction_id,
                 order_items (
                     product_name, quantity, unit_price, total_price, product_id, discount_percent,
@@ -465,9 +465,9 @@ export async function getPetshopOrders(filters: {
         if (orderIds.length > 0) {
             const { data } = await supabase
                 .from('notas_fiscais')
-                .select('id, status, referencia, caminho_pdf, url_pdf, origem_id, retorno_focus')
+                .select('id, org_id, status, referencia, caminho_pdf, url_pdf, caminho_xml, origem_id, retorno_focus')
                 .in('origem_id', orderIds)
-                .eq('origem_tipo', 'pdv')
+                .in('origem_tipo', ['pdv', 'venda'])
                 .or('retorno_focus->>_sistema_oculto.is.null,retorno_focus->>_sistema_oculto.eq.false')
             nfs = data || []
         }
@@ -656,7 +656,7 @@ export async function deletePetshopOrder(orderId: string) {
             .from('notas_fiscais')
             .select('id, referencia, retorno_focus')
             .eq('origem_id', orderId)
-            .eq('origem_tipo', 'pdv')
+            .in('origem_tipo', ['pdv', 'venda'])
         
         if (nfs) {
             for (const nf of nfs) {

@@ -315,7 +315,7 @@
 
 /* Direita: Carrinho */
 .cartSection {
-    width: 320px;
+    width: 380px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -421,6 +421,7 @@
     flex: 1;
     overflow-y: auto;
     padding: 0.8rem 1rem;
+    min-height: 220px;
 }
 
 .emptyCart {
