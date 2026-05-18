@@ -309,8 +309,25 @@ function PetsContent() {
                     color, characteristics,
                     customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
                 `).eq('customers.org_id', profile.org_id).order('name')
-            if (debouncedSearchTerm) query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
-            else query = query.limit(50)
+
+            if (debouncedSearchTerm) {
+                // Busca tutores correspondentes para incluir na pesquisa
+                const { data: matchedCustomers } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('org_id', profile.org_id)
+                    .or(`name.ilike.%${debouncedSearchTerm}%,physical_file_number.ilike.%${debouncedSearchTerm}%`)
+                
+                const customerIds = (matchedCustomers || []).map(c => c.id)
+                
+                if (customerIds.length > 0) {
+                    query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%,customer_id.in.(${customerIds.join(',')})`)
+                } else {
+                    query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
+                }
+            } else {
+                query = query.limit(50)
+            }
 
             const petsPromise = query.then(({ data: petsData }) => {
                 if (petsData) setPets(petsData as unknown as Pet[])
@@ -522,7 +539,24 @@ function PetsContent() {
                                         )}
                                         <div>
                                             <div className={styles.itemName}>{pet.name} {pet.customers?.name && <span style={{ fontWeight: 400, opacity: 0.8 }}>({pet.customers.name})</span>}</div>
-                                            <div className={styles.itemSub}>{pet.breed} {pet.color && `• ${pet.color}`}</div>
+                                            <div className={styles.itemSub}>
+                                                {pet.breed || 'SRD'} {pet.color && `• ${pet.color}`}
+                                                {pet.customers?.physical_file_number && (
+                                                    <span style={{ 
+                                                        marginLeft: '0.5rem',
+                                                        padding: '0.1rem 0.4rem', 
+                                                        borderRadius: '4px', 
+                                                        fontSize: '0.7rem', 
+                                                        fontWeight: 600,
+                                                        backgroundColor: 'rgba(232, 130, 106, 0.15)', 
+                                                        color: 'var(--primary)',
+                                                        textTransform: 'uppercase',
+                                                        border: '1px solid rgba(232, 130, 106, 0.2)'
+                                                    }}>
+                                                        Ficha: {pet.customers.physical_file_number}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -572,7 +606,26 @@ function PetsContent() {
                             <X size={24} />
                         </button>
                         <div className={styles.modalHeader}>
-                            <h2>{selectedPet ? `Ficha Pet: ${selectedPet.name}` : 'Novo Pet'}</h2>
+                            <h2>
+                                {selectedPet ? `Ficha Pet: ${selectedPet.name}` : 'Novo Pet'}
+                                {selectedPet?.customers?.physical_file_number && (
+                                    <span style={{ 
+                                        fontSize: '0.85rem', 
+                                        fontWeight: 600, 
+                                        opacity: 0.9, 
+                                        marginLeft: '0.75rem', 
+                                        padding: '0.2rem 0.5rem', 
+                                        borderRadius: '4px', 
+                                        background: 'rgba(232, 130, 106, 0.15)', 
+                                        color: 'var(--primary)',
+                                        border: '1px solid rgba(232, 130, 106, 0.2)',
+                                        display: 'inline-block',
+                                        verticalAlign: 'middle'
+                                    }}>
+                                        Ficha nº: {selectedPet.customers.physical_file_number}
+                                    </span>
+                                )}
+                            </h2>
                             {selectedPet && (
                                 <button 
                                     className={styles.actionBtn} 
