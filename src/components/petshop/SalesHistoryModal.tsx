@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Calendar, User, ShoppingBag, X, FileText, Send, RefreshCw, Eye, Trash2, FileCode, AlertTriangle } from 'lucide-react'
+import { Search, Calendar, User, ShoppingBag, X, FileText, Send, RefreshCw, Eye, Trash2 } from 'lucide-react'
 import { getPetshopOrders, deletePetshopOrder } from '@/app/actions/petshop'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'
@@ -58,22 +58,6 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
         } catch (error) {
             console.error(error)
             alert('❌ Erro de conexão ao tentar enviar WhatsApp.')
-        }
-    }
-
-    const handleSync = async (nota: any) => {
-        setLoading(true)
-        try {
-            const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.error || 'Erro ao sincronizar')
-            alert('✅ Nota Fiscal sincronizada com sucesso!')
-            fetchOrders()
-        } catch (error: any) {
-            console.error('Error syncing NF:', error)
-            alert('❌ ' + error.message)
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -395,58 +379,93 @@ export default function SalesHistoryModal({ onClose }: SalesHistoryModalProps) {
                                                         }}
                                                     >
                                                         <FileText size={14} /> PDF
-                                                     </a>
-                                                     <a 
-                                                         href={`/api/nf/download?ref=${order.nf.referencia}&org_id=${order.org_id}&type=xml`}
-                                                         target="_blank" rel="noopener noreferrer"
-                                                         style={{ 
-                                                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                             fontSize: '0.75rem', color: '#a78bfa', textDecoration: 'none',
-                                                             background: 'rgba(167, 139, 250, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
-                                                         }}
-                                                     >
-                                                         <FileCode size={14} /> XML
-                                                     </a>
-                                                     <button 
-                                                         onClick={() => order?.nf?.referencia && handleSendWhatsApp(order.nf.referencia)}
-                                                         style={{ 
-                                                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                             fontSize: '0.75rem', color: '#2ecc71', border: 'none', cursor: 'pointer',
-                                                             background: 'rgba(46, 204, 113, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
-                                                         }}
-                                                     >
-                                                         <Send size={14} /> WhatsApp
-                                                     </button>
-                                                 </div>
-                                             )}
-                                             {order?.nf && (order.nf.status === 'processando' || order.nf.status === 'erro') && (
-                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                     <button 
-                                                         onClick={() => handleSync(order.nf)}
-                                                         style={{ 
-                                                             display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                             fontSize: '0.75rem', color: '#fbbf24', border: 'none', cursor: 'pointer',
-                                                             background: 'rgba(245, 158, 11, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
-                                                         }}
-                                                         title="Sincronizar com SEFAZ"
-                                                     >
-                                                         <RefreshCw size={14} /> Sincronizar
-                                                     </button>
-                                                     {order.nf.status === 'erro' && (
-                                                         <button 
-                                                             onClick={() => alert(order.nf.mensagem_sefaz || 'Erro não detalhado')}
-                                                             style={{ 
-                                                                 display: 'flex', alignItems: 'center', gap: '0.4rem', 
-                                                                 fontSize: '0.75rem', color: '#ef4444', border: 'none', cursor: 'pointer',
-                                                                 background: 'rgba(239, 68, 68, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
-                                                             }}
-                                                             title="Ver Motivo do Erro"
-                                                         >
-                                                             <AlertTriangle size={14} /> Ver Erro
-                                                         </button>
-                                                     )}
-                                                 </div>
-                                             )}
+                                                    </a>
+                                                    <a 
+                                                        href={`/api/nf/download?ref=${order.nf.referencia}&org_id=${order.org_id}&type=xml`}
+                                                        target="_blank" rel="noopener noreferrer"
+                                                        style={{ 
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                            fontSize: '0.75rem', color: '#a78bfa', textDecoration: 'none',
+                                                            background: 'rgba(167, 139, 250, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
+                                                        }}
+                                                    >
+                                                        <FileCode size={14} /> XML
+                                                    </a>
+                                                    <button 
+                                                        onClick={() => order?.nf?.referencia && handleSendWhatsApp(order.nf.referencia)}
+                                                        style={{ 
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                            fontSize: '0.75rem', color: '#2ecc71', border: 'none', cursor: 'pointer',
+                                                            background: 'rgba(46, 204, 113, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
+                                                        }}
+                                                    >
+                                                        <Send size={14} /> WhatsApp
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {order?.nf && (order.nf.status === 'processando' || order.nf.status === 'erro') && (
+                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button 
+                                                        onClick={() => handleSync(order.nf)}
+                                                        style={{ 
+                                                            display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                            fontSize: '0.75rem', color: '#fbbf24', border: 'none', cursor: 'pointer',
+                                                            background: 'rgba(245, 158, 11, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
+                                                        }}
+                                                        title="Sincronizar com SEFAZ"
+                                                    >
+                                                        <RefreshCw size={14} /> Sincronizar
+                                                    </button>
+                                                    {order.nf.status === 'erro' && (
+                                                        <button 
+                                                            onClick={() => alert(order.nf.mensagem_sefaz || 'Erro não detalhado')}
+                                                            style={{ 
+                                                                display: 'flex', alignItems: 'center', gap: '0.4rem', 
+                                                                fontSize: '0.75rem', color: '#ef4444', border: 'none', cursor: 'pointer',
+                                                                background: 'rgba(239, 68, 68, 0.1)', padding: '0.4rem 0.6rem', borderRadius: '6px'
+                                                            }}
+                                                            title="Ver Motivo do Erro"
+                                                        >
+                                                            <AlertTriangle size={14} /> Ver Erro
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {(!order?.nf || order.nf.status === 'erro') && order?.payment_status === 'paid' && (
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        if (!order) return;
+                                                        setSelectedOrderForNF({
+                                                            orderId: order.id,
+                                                            total_amount: order.total_amount,
+                                                            tutor: order.customers ? {
+                                                                nome: order.customers.name,
+                                                                cpf: order.customers.cpf_cnpj || order.customers.cpf,
+                                                                email: order.customers.email,
+                                                                endereco: {
+                                                                    logradouro: order.customers.address,
+                                                                    bairro: order.customers.neighborhood,
+                                                                    city: order.customers.city,
+                                                                }
+                                                            } : undefined,
+                                                            produtos: (order.order_items || []).map((it: any) => {
+                                                                const fiscal = it?.products?.produtos_fiscal?.[0] || {}
+                                                                return {
+                                                                    id: it?.product_id,
+                                                                    descricao: it?.product_name || 'Produto',
+                                                                    quantidade: it?.quantity || 0,
+                                                                    total_price: it?.total_price || 0,
+                                                                    valor_unitario: it?.unit_price || 0,
+                                                                    discount_percent: it?.discount_percent || 0,
+                                                                    ncm: fiscal.codigo_ncm || '00000000',
+                                                                    cfop: fiscal.cfop || '5102',
+                                                                    cst: fiscal.icms_situacao_tributaria || '102',
+                                                                    unidade: fiscal.unidade_comercial || 'un'
+                                                                }
+                                                            })
                                                         })
                                                         setNfType('nfe')
                                                         setShowNFModal(true)
