@@ -7,7 +7,7 @@ import EmitirNFModal from '@/components/EmitirNFModal'
 import { format } from 'date-fns'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { Download, FileDown } from 'lucide-react'
+import { Download, FileDown, FileCode, AlertTriangle } from 'lucide-react'
 
 interface SalesHistoryModalProps {
     onClose: () => void
