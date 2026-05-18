@@ -100,7 +100,7 @@
 }
 
 .addButton {
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
     border: none;
     border-radius: 8px;
@@ -110,11 +110,18 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: filter 0.2s;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.3);
 }
 
 .addButton:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(240, 140, 152, 0.5);
     filter: brightness(1.1);
+}
+
+.addButton:active {
+    transform: translateY(-1px) scale(0.98);
 }
 
 /* Table Styles */
@@ -326,11 +333,28 @@
 }
 
 .saveBtn {
-    background: var(--primary);
+    background: var(--gradient-primary);
     color: white;
     border: none;
     padding: 0.6rem 2rem;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(240, 140, 152, 0.3);
+}
+
+.saveBtn:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(240, 140, 152, 0.5);
+    filter: brightness(1.1);
+}
+
+.saveBtn:active:not(:disabled) {
+    transform: translateY(-1px) scale(0.98);
+}
+
+.saveBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
