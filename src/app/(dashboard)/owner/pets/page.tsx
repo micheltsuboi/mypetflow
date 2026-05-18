@@ -114,6 +114,12 @@ interface Pet {
         name: string
         org_id: string
         phone_1: string | null
+        cpf_cnpj?: string | null
+        address?: string | null
+        neighborhood?: string | null
+        city?: string | null
+        cep?: string | null
+        physical_file_number?: string | null
     }
 }
 
@@ -301,7 +307,7 @@ function PetsContent() {
                     id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
                     color, characteristics,
-                    customers!inner ( id, name, org_id, phone_1 )
+                    customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
                 `).eq('customers.org_id', profile.org_id).order('name')
             if (debouncedSearchTerm) query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
             else query = query.limit(50)
@@ -370,6 +376,15 @@ function PetsContent() {
             format: [228.6, 152.4] // 9x6 inches
         })
 
+        const formatCPF = (val?: string | null) => {
+            if (!val) return 'Não informado'
+            const clean = val.replace(/\D/g, '')
+            if (clean.length === 11) {
+                return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+            }
+            return val
+        }
+
         // Margins and styling
         const margin = 10
         
@@ -384,10 +399,30 @@ function PetsContent() {
         // TUTOR INFO
         doc.setFont('helvetica', 'bold')
         doc.text('DADOS DO TUTOR', col1, y)
+        
+        // Ficha nº in the top-right corner
+        doc.text(`Ficha nº: ${pet.customers?.physical_file_number || '-'}`, 218.6, y, { align: 'right' })
+        
         y += 5
         doc.setFont('helvetica', 'normal')
+        
+        // Row 1
         doc.text(`Nome: ${pet.customers?.name || 'Não informado'}`, col1, y)
-        doc.text(`Tel: ${pet.customers?.phone_1 || 'Não informado'}`, col2, y)
+        doc.text(`CPF: ${formatCPF(pet.customers?.cpf_cnpj)}`, col2, y)
+        y += 5
+        
+        // Row 2
+        doc.text(`Tel: ${pet.customers?.phone_1 || 'Não informado'}`, col1, y)
+        
+        const addrParts: string[] = []
+        if (pet.customers?.address) addrParts.push(pet.customers.address)
+        if (pet.customers?.neighborhood) addrParts.push(pet.customers.neighborhood)
+        if (pet.customers?.city) addrParts.push(pet.customers.city)
+        if (pet.customers?.cep) addrParts.push(`CEP: ${pet.customers.cep}`)
+        const fullAddress = addrParts.join(', ') || 'Não informado'
+        
+        const addressLines = doc.splitTextToSize(`Endereço: ${fullAddress}`, 98)
+        doc.text(addressLines, col2, y)
         
         y += 8
         
