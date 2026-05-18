@@ -337,7 +337,6 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                             onClick={() => handleDelete(nota.id)}
                                             className={`${styles.actionBtn} ${styles.deleteBtn}`}
                                             title="Excluir Registro"
-                                            style={{ color: '#ff6b6b' }}
                                         >
                                             <Trash2 size={16} />
                                         </button>
