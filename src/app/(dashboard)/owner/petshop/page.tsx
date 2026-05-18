@@ -490,7 +490,7 @@ export default function PetshopPage() {
                                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                                     <button 
                                         className={styles.addButton} 
-                                        style={{ background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }}
+                                        style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
                                         onClick={() => setShowHistoryModal(true)}
                                     >
                                         <ReceiptText size={18} /> Extrato
@@ -843,6 +843,83 @@ export default function PetshopPage() {
                         message={statusModal.message}
                         onClose={() => setStatusModal(null)}
                     />
+                )}
+
+                {isModalOpen && (
+                    <div className={styles.modalOverlay} onClick={() => setIsModalOpen(false)}>
+                        <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+                            <button className={styles.closeButton} onClick={() => setIsModalOpen(false)}>
+                                ✕
+                            </button>
+                            <h2>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</h2>
+                            <form onSubmit={handleSaveProduct} style={{ marginTop: '1.5rem' }}>
+                                <div className={styles.row}>
+                                    <div className={styles.col} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        <ImageUpload 
+                                            bucket="products" 
+                                            url={formData.image_url} 
+                                            onUpload={v => setFormData(p => ({ ...p, image_url: v }))} 
+                                            onRemove={() => setFormData(p => ({ ...p, image_url: null }))} 
+                                            label="Foto do Produto" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Nome do Produto</label>
+                                    <input className={styles.input} required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                                </div>
+                                <div className={styles.row}>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Preço de Custo (R$)</label>
+                                        <input className={styles.input} type="number" step="0.01" value={formData.cost_price} onChange={e => setFormData({...formData, cost_price: parseFloat(e.target.value) || 0})} />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Preço de Venda (R$)</label>
+                                        <input className={styles.input} type="number" step="0.01" required value={formData.selling_price} onChange={e => setFormData({...formData, selling_price: parseFloat(e.target.value) || 0})} />
+                                    </div>
+                                </div>
+                                <div className={styles.row}>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Estoque Atual</label>
+                                        <input className={styles.input} type="number" required value={formData.stock_quantity} onChange={e => setFormData({...formData, stock_quantity: parseInt(e.target.value) || 0})} />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Categoria</label>
+                                        <select className={styles.select} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                                            {categories.filter(c => c !== 'Todas').map(c => <option key={c} value={c}>{c}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className={styles.row}>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>NCM</label>
+                                        <input className={styles.input} placeholder="0000.00.00" value={formData.codigo_ncm} onChange={e => setFormData({...formData, codigo_ncm: e.target.value})} />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>CFOP</label>
+                                        <input className={styles.input} placeholder="5102" value={formData.cfop} onChange={e => setFormData({...formData, cfop: e.target.value})} />
+                                    </div>
+                                </div>
+                                <div className={styles.row}>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>CSOSN / CST</label>
+                                        <input className={styles.input} placeholder="102" value={formData.icms_situacao_tributaria} onChange={e => setFormData({...formData, icms_situacao_tributaria: e.target.value})} />
+                                    </div>
+                                    <div className={styles.col}>
+                                        <label className={styles.label}>Código de Barras</label>
+                                        <input className={styles.input} value={formData.bar_code} onChange={e => setFormData({...formData, bar_code: e.target.value})} />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label className={styles.label}>Descrição</label>
+                                    <textarea className={styles.input} rows={2} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                                </div>
+                                <button type="submit" className={styles.submitButton} style={{ marginTop: '1rem' }}>
+                                    {editingProduct ? 'Salvar Alterações' : 'Salvar Produto'}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 )}
             </div>
         </PlanGuard>

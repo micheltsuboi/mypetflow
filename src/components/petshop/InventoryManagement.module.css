@@ -290,17 +290,23 @@
 }
 
 .input, .selectField {
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
+    background: var(--bg-input);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     padding: 0.6rem 0.8rem;
     color: var(--text-primary);
     font-size: 0.9rem;
 }
 
-.input:focus {
-    border-color: var(--primary);
+.input:focus, .selectField:focus {
+    border-color: var(--color-coral);
+    box-shadow: 0 0 0 3px rgba(240, 140, 152, 0.2);
     outline: none;
+}
+
+.selectField option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .footer {

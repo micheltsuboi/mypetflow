@@ -39,6 +39,7 @@
   --bg-secondary: #162638;
   --bg-tertiary: #1E344B;
   --bg-card: rgba(27, 59, 90, 0.4);
+  --card-bg: var(--bg-card);
   --bg-card-hover: rgba(27, 59, 90, 0.6);
 
   /* Gradientes baseados na paleta (Ciano para Rosa) */
@@ -106,6 +107,7 @@
     --bg-secondary: #FFFFFF;
     --bg-tertiary: #E2E8F0;
     --bg-card: #FFFFFF;
+    --card-bg: var(--bg-card);
     --bg-card-hover: #F8FAFC;
     --border: rgba(27, 59, 90, 0.1);
     --bg-input: #FFFFFF;
