@@ -64,26 +64,38 @@ export async function createPet(prevState: CreatePetState, formData: FormData) {
 
     const photo_url = formData.get('photo_url') as string
     const isAdapted = formData.get('is_adapted') === 'on'
+    const isDeceased = formData.get('is_deceased') === 'on'
 
-    const { error } = await supabaseAdmin
+    const insertPayload: any = {
+        customer_id: customerId,
+        name: name,
+        species: species as 'dog' | 'cat' | 'other',
+        breed: breed || null,
+        gender: gender as 'male' | 'female',
+        size: size as 'small' | 'medium' | 'large' | 'giant',
+        weight_kg: weight,
+        birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
+        is_neutered: isNeutered,
+        existing_conditions: existing_conditions || null,
+        vaccination_up_to_date: vaccination_up_to_date,
+        photo_url: photo_url || null,
+        is_adapted: isAdapted,
+        color: color || null,
+        characteristics: characteristics || null,
+        is_deceased: isDeceased
+    }
+
+    let { error } = await supabaseAdmin
         .from('pets')
-        .insert({
-            customer_id: customerId,
-            name: name,
-            species: species as 'dog' | 'cat' | 'other',
-            breed: breed || null,
-            gender: gender as 'male' | 'female',
-            size: size as 'small' | 'medium' | 'large' | 'giant',
-            weight_kg: weight,
-            birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
-            is_neutered: isNeutered,
-            existing_conditions: existing_conditions || null,
-            vaccination_up_to_date: vaccination_up_to_date,
-            photo_url: photo_url || null,
-            is_adapted: isAdapted,
-            color: color || null,
-            characteristics: characteristics || null
-        })
+        .insert(insertPayload)
+
+    if (error && error.message.includes('is_deceased')) {
+        delete insertPayload.is_deceased
+        const retry = await supabaseAdmin
+            .from('pets')
+            .insert(insertPayload)
+        error = retry.error
+    }
 
     if (error) {
         return { message: `Erro ao cadastrar pet: ${error.message}`, success: false }
@@ -118,31 +130,44 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
     const isAdapted = formData.get('is_adapted') === 'on'
     const color = formData.get('color') as string
     const characteristics = formData.get('characteristics') as string
+    const isDeceased = formData.get('is_deceased') === 'on'
 
 
     const supabaseAdmin = createAdminClient()
 
+    const updatePayload: any = {
+        name,
+        species: species as 'dog' | 'cat' | 'other',
+        breed: breed || null,
+        gender: gender as 'male' | 'female',
+        size: size as 'small' | 'medium' | 'large' | 'giant',
+        weight_kg: weight,
+        birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
+        is_neutered: isNeutered,
+        customer_id: customerId,
+        existing_conditions: existing_conditions || null,
+        vaccination_up_to_date: vaccination_up_to_date,
+        photo_url: photo_url || null,
+        is_adapted: isAdapted,
+        color: color || null,
+        characteristics: characteristics || null,
+        is_deceased: isDeceased
+    }
+
     // Update
-    const { error } = await supabaseAdmin
+    let { error } = await supabaseAdmin
         .from('pets')
-        .update({
-            name,
-            species: species as 'dog' | 'cat' | 'other',
-            breed: breed || null,
-            gender: gender as 'male' | 'female',
-            size: size as 'small' | 'medium' | 'large' | 'giant',
-            weight_kg: weight,
-            birth_date: birthDateStr ? new Date(birthDateStr).toISOString() : null,
-            is_neutered: isNeutered,
-            customer_id: customerId,
-            existing_conditions: existing_conditions || null,
-            vaccination_up_to_date: vaccination_up_to_date,
-            photo_url: photo_url || null,
-            is_adapted: isAdapted,
-            color: color || null,
-            characteristics: characteristics || null
-        })
+        .update(updatePayload)
         .eq('id', id)
+
+    if (error && error.message.includes('is_deceased')) {
+        delete updatePayload.is_deceased
+        const retry = await supabaseAdmin
+            .from('pets')
+            .update(updatePayload)
+            .eq('id', id)
+        error = retry.error
+    }
 
     if (error) {
         return { message: `Erro ao atualizar pet: ${error.message}`, success: false }
@@ -295,19 +320,37 @@ export async function searchPets(query: string) {
     if (!profile?.org_id) return { success: false, message: 'Org não encontrada', data: [] }
 
     try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('pets')
             .select(`
-                id, name, species, breed,
+                id, name, species, breed, is_deceased,
                 customers!inner(name, org_id)
             `)
             .eq('customers.org_id', profile.org_id)
             .ilike('name', `%${query}%`)
             .order('name')
-            .limit(10)
+            .limit(20)
 
-        if (error) throw error
-        return { success: true, data }
+        if (error && error.message.includes('is_deceased')) {
+            const fallback = await supabase
+                .from('pets')
+                .select(`
+                    id, name, species, breed,
+                    customers!inner(name, org_id)
+                `)
+                .eq('customers.org_id', profile.org_id)
+                .ilike('name', `%${query}%`)
+                .order('name')
+                .limit(10)
+            if (fallback.error) throw fallback.error
+            data = fallback.data
+        } else if (error) {
+            throw error
+        }
+
+        // Filtra pets falecidos para não permitir agendamentos/vendas indesejadas
+        const activePets = (data || []).filter((pet: any) => !pet.is_deceased).slice(0, 10)
+        return { success: true, data: activePets }
     } catch (error: any) {
         console.error('Error searching pets:', error)
         return { success: false, message: error.message, data: [] }

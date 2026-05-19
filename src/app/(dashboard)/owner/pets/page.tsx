@@ -109,6 +109,7 @@ interface Pet {
     color?: string
     characteristics?: string
     customer_id: string
+    is_deceased?: boolean
     customers: {
         id: string
         name: string
@@ -142,6 +143,7 @@ function PetsContent() {
     const [showModal, setShowModal] = useState(false)
     const [selectedPet, setSelectedPet] = useState<Pet | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [activeTab, setActiveTab] = useState<'active' | 'deceased'>('active')
     const debouncedSearchTerm = useDebounce(searchTerm, 500)
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
     const [vetAlertsForPet, setVetAlertsForPet] = useState<any[]>([])
@@ -302,11 +304,11 @@ function PetsContent() {
                 if (org?.saas_plans) setPlanFeatures((org.saas_plans as any).features || []);
             });
 
-            // Constrói a query dos Pets
+            // Constrói a query dos Pets com is_deceased
             let query = supabase.from('pets').select(`
                     id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
-                    color, characteristics,
+                    color, characteristics, is_deceased,
                     customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
                 `).eq('customers.org_id', profile.org_id).order('name')
 
@@ -329,8 +331,38 @@ function PetsContent() {
                 query = query.limit(50)
             }
 
-            const petsPromise = query.then(({ data: petsData }) => {
-                if (petsData) setPets(petsData as unknown as Pet[])
+            const petsPromise = query.then(async ({ data: petsData, error }) => {
+                if (error && error.message.includes('is_deceased')) {
+                    // Fallback to query without is_deceased column
+                    let fallbackQuery = supabase.from('pets').select(`
+                            id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
+                            existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
+                            color, characteristics,
+                            customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
+                        `).eq('customers.org_id', profile.org_id).order('name')
+
+                    if (debouncedSearchTerm) {
+                        const { data: matchedCustomers } = await supabase
+                            .from('customers')
+                            .select('id')
+                            .eq('org_id', profile.org_id)
+                            .or(`name.ilike.%${debouncedSearchTerm}%,physical_file_number.ilike.%${debouncedSearchTerm}%`)
+                        
+                        const customerIds = (matchedCustomers || []).map(c => c.id)
+                        
+                        if (customerIds.length > 0) {
+                            fallbackQuery = fallbackQuery.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%,customer_id.in.(${customerIds.join(',')})`)
+                        } else {
+                            fallbackQuery = fallbackQuery.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
+                        }
+                    } else {
+                        fallbackQuery = fallbackQuery.limit(50)
+                    }
+                    const { data: fallbackData } = await fallbackQuery
+                    if (fallbackData) setPets(fallbackData as unknown as Pet[])
+                } else if (petsData) {
+                    setPets(petsData as unknown as Pet[])
+                }
             })
 
             const customersPromise = supabase.from('customers').select('id, name, phone_1').eq('org_id', profile.org_id).order('name').then(({ data: customersData }) => {
@@ -491,6 +523,13 @@ function PetsContent() {
             alert(res.message)
         }
     }
+    const filteredPets = pets.filter(pet => {
+        if (activeTab === 'active') {
+            return !pet.is_deceased
+        } else {
+            return pet.is_deceased
+        }
+    })
 
     return (
         <div className={styles.container}>
@@ -515,6 +554,55 @@ function PetsContent() {
                 />
             </div>
 
+            {/* Abas de Pets Ativos / Falecidos */}
+            <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginBottom: '1.25rem',
+                borderBottom: '1px solid rgba(226, 232, 240, 0.4)',
+                paddingBottom: '0.5rem',
+                width: '100%'
+            }}>
+                <button
+                    onClick={() => setActiveTab('active')}
+                    style={{
+                        padding: '0.6rem 1.2rem',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        color: activeTab === 'active' ? '#e28743' : '#64748b',
+                        background: activeTab === 'active' ? 'rgba(226, 135, 67, 0.1)' : 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}
+                >
+                    <span>🐾</span> Pets Ativos
+                </button>
+                <button
+                    onClick={() => setActiveTab('deceased')}
+                    style={{
+                        padding: '0.6rem 1.2rem',
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        color: activeTab === 'deceased' ? '#ef4444' : '#64748b',
+                        background: activeTab === 'deceased' ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}
+                >
+                    <span>🖤</span> Memorial (Falecidos)
+                </button>
+            </div>
+
             <div className={styles.tableContainer}>
                 <table className={styles.table}>
                     <thead>
@@ -526,7 +614,21 @@ function PetsContent() {
                         </tr>
                     </thead>
                     <tbody>
-                        {pets.map(pet => (
+                        {filteredPets.length === 0 ? (
+                            <tr>
+                                <td colSpan={4} style={{ textAlign: 'center', padding: '3rem 1.5rem', color: '#64748b' }}>
+                                    <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+                                        {activeTab === 'active' ? '🐾' : '👼 🖤'}
+                                    </div>
+                                    <div style={{ fontWeight: 600, fontSize: '1.1rem', color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+                                        {activeTab === 'active' ? 'Nenhum pet ativo encontrado' : 'Nenhum pet no memorial'}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', opacity: 0.8 }}>
+                                        {activeTab === 'active' ? 'Cadastre um novo pet para começar.' : 'Pets marcados como falecidos aparecerão aqui com todo o seu histórico preservado.'}
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : filteredPets.map(pet => (
                             <tr key={pet.id} onClick={() => handleSelectPet(pet)} style={{ cursor: 'pointer' }}>
                                 <td>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -625,6 +727,23 @@ function PetsContent() {
                                         Ficha nº: {selectedPet.customers.physical_file_number}
                                     </span>
                                 )}
+                                {selectedPet?.is_deceased && (
+                                    <span style={{ 
+                                        fontSize: '0.85rem', 
+                                        fontWeight: 600, 
+                                        opacity: 0.9, 
+                                        marginLeft: '0.75rem', 
+                                        padding: '0.2rem 0.5rem', 
+                                        borderRadius: '4px', 
+                                        background: 'rgba(239, 68, 68, 0.15)', 
+                                        color: '#ef4444',
+                                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                                        display: 'inline-block',
+                                        verticalAlign: 'middle'
+                                    }}>
+                                        Faleceu 🖤
+                                    </span>
+                                )}
                             </h2>
                             {selectedPet && (
                                 <button 
@@ -642,6 +761,23 @@ function PetsContent() {
                         </div>
 
                         <div className={styles.modalContent}>
+                            {selectedPet?.is_deceased && (
+                                <div style={{
+                                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    borderRadius: '8px',
+                                    padding: '0.75rem 1rem',
+                                    marginBottom: '1rem',
+                                    color: '#ef4444',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 500
+                                }}>
+                                    <span>🖤</span> Este pet faleceu. A ficha está em modo memorial para preservação de todo o histórico.
+                                </div>
+                            )}
 
                             {/* DADOS CADASTRAIS */}
                             <div className={styles.accordionItem}>
@@ -740,6 +876,11 @@ function PetsContent() {
                                                     <label><input type="checkbox" name="isNeutered" defaultChecked={selectedPet?.is_neutered} /> Castrado</label>
                                                     <label style={{ marginLeft: '1rem' }}><input type="checkbox" name="vaccination_up_to_date" defaultChecked={selectedPet?.vaccination_up_to_date} /> Vacinas em dia</label>
                                                     <label style={{ marginLeft: '1rem', color: 'var(--primary)' }}><input type="checkbox" name="is_adapted" defaultChecked={selectedPet?.is_adapted} /> Adaptado (Creche/Hotel)</label>
+                                                    {selectedPet && (
+                                                        <label style={{ marginLeft: '1rem', color: '#ef4444', fontWeight: 600 }}>
+                                                            <input type="checkbox" name="is_deceased" defaultChecked={selectedPet?.is_deceased} /> Falecido 🖤
+                                                        </label>
+                                                    )}
                                                 </div>
                                             </div>
                                             <div className={styles.formActions} style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between' }}>
