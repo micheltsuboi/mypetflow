@@ -29,6 +29,9 @@
   --color-secondary-hover: var(--color-sky-dark);
   --color-accent: var(--color-navy);
 
+  --primary: var(--color-primary);
+  --secondary: var(--color-secondary);
+
   /* Borders */
   --border: rgba(0, 228, 206, 0.3);
   --bg-input: rgba(13, 27, 42, 0.6);

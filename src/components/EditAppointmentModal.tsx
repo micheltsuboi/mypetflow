@@ -33,7 +33,7 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
     const supabase = createClient()
     const [loading, setLoading] = useState(false)
     const [services, setServices] = useState<Service[]>([])
-    const [selectedPet, setSelectedPet] = useState<{ id: string, name: string } | null>(null)
+    const [selectedPetId, setSelectedPetId] = useState<string>('')
 
     // Form State
     const [serviceId, setServiceId] = useState(appointment?.service_id || '')
@@ -87,12 +87,12 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
             formData.append('id', appointment.id)
             result = await updateAppointment({ message: '', success: false }, formData)
         } else {
-            if (!selectedPet) {
+            if (!selectedPetId) {
                 alert('Por favor, selecione um pet.')
                 setLoading(false)
                 return
             }
-            formData.append('petId', selectedPet.id)
+            formData.append('petId', selectedPetId)
             result = await createAppointment({ message: '', success: false }, formData)
         }
 
@@ -140,43 +140,43 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
             backdropFilter: 'blur(4px)'
         }} onClick={onClose}>
             <div style={{
-                background: '#1e293b',
+                background: 'var(--bg-secondary)',
                 padding: '2rem',
                 borderRadius: '16px',
                 width: '100%',
                 maxWidth: '500px',
-                border: '1px solid rgba(255,255,255,0.1)',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-xl)'
             }} onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                         {appointment ? 'Editar Agendamento' : 'Novo Agendamento'}
                     </h2>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                 </div>
 
                 {!appointment ? (
                     <div style={{ marginBottom: '1.5rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Selecionar Pet</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Selecionar Pet</label>
                         <PetSearchSelect 
-                            onSelect={setSelectedPet}
+                            onSelect={setSelectedPetId}
                             placeholder="Buscar pet..."
                         />
                     </div>
                 ) : (
-                    <div style={{ marginBottom: '1rem', color: '#cbd5e1', fontSize: '0.9rem' }}>
-                        Pet: <strong style={{ color: 'white' }}>{appointment.pets.name}</strong>
+                    <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                        Pet: <strong style={{ color: 'var(--text-primary)' }}>{appointment.pets.name}</strong>
                     </div>
                 )}
 
                 <form onSubmit={handleSave}>
                     <div style={{ display: 'grid', gap: '1rem' }}>
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Serviço</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Serviço</label>
                             <select
                                 value={serviceId}
                                 onChange={e => setServiceId(e.target.value)}
-                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                             >
                                 <option value="">Selecione um serviço</option>
                                 {services.map(s => (
@@ -195,22 +195,22 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                                 return (
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                         <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Check-in *</label>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Check-in *</label>
                                             <input
                                                 type="date"
                                                 value={checkInDate}
                                                 onChange={e => setCheckInDate(e.target.value)}
-                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                                 required
                                             />
                                         </div>
                                         <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Check-out *</label>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Check-out *</label>
                                             <input
                                                 type="date"
                                                 value={checkOutDate}
                                                 onChange={e => setCheckOutDate(e.target.value)}
-                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                                 required
                                             />
                                         </div>
@@ -221,20 +221,20 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                             return (
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Data</label>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Data</label>
                                         <input
                                             type="date"
                                             value={date}
                                             onChange={e => setDate(e.target.value)}
-                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                         />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Hora</label>
+                                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Hora</label>
                                         <select
                                             value={time}
                                             onChange={e => setTime(e.target.value)}
-                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                                         >
                                             {Array.from({ length: 24 }, (_, i) => i).map(h => (
                                                 <optgroup key={h} label={`${h.toString().padStart(2, '0')}:00`}>
@@ -251,16 +251,16 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                         })()}
 
                         <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontSize: '0.9rem' }}>Observações</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Observações</label>
                             <textarea
                                 value={notes}
                                 onChange={e => setNotes(e.target.value)}
                                 rows={3}
-                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: '#0f172a', border: '1px solid #334155', color: 'white' }}
+                                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                             />
                         </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', borderTop: '1px solid #334155', paddingTop: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
                             {appointment && (
                                 <button
                                     type="button"
@@ -287,9 +287,9 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                                 style={{
                                     padding: '0.75rem 1rem',
                                     borderRadius: '8px',
-                                    border: '1px solid #334155',
+                                    border: '1px solid var(--border)',
                                     background: 'transparent',
-                                    color: 'white',
+                                    color: 'var(--text-primary)',
                                     cursor: 'pointer',
                                     fontWeight: 600,
                                     marginLeft: !appointment ? 'auto' : '0'
