@@ -65,7 +65,7 @@
     border: none;
     border-radius: 8px 8px 0 0;
     background: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;

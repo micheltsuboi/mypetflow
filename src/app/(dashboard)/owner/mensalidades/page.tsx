@@ -13,10 +13,12 @@ import {
     getActiveSubscriptions,
     cancelSubscription,
     pauseSubscription,
-    updateSubscriptionContract
+    updateSubscriptionContract,
+    subscribePetToMensalidade
 } from '@/app/actions/subscription'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PaymentManager from '@/components/finance/PaymentManager'
+import PetSearchSelect from '@/components/ui/PetSearchSelect'
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const DAYS_FULL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -41,6 +43,14 @@ export default function MensalidadesPage() {
     const [editingContractId, setEditingContractId] = useState<string | null>(null)
     const [editContDays, setEditContDays] = useState<number[]>([])
     const [editContTime, setEditContTime] = useState('09:00')
+
+    // New subscription state
+    const [showSubscribeModal, setShowSubscribeModal] = useState(false)
+    const [subscribePetId, setSubscribePetId] = useState('')
+    const [subSelectedPlanId, setSubSelectedPlanId] = useState('')
+    const [subSelectedDays, setSubSelectedDays] = useState<number[]>([])
+    const [subSelectedTime, setSubSelectedTime] = useState('09:00')
+    const [isSubscribing, setIsSubscribing] = useState(false)
 
     const [createState, createAction, isCreating] = useActionState(createSubscriptionPlan, initialState)
     const [updateState, updateAction, isUpdating] = useActionState(updateSubscriptionPlan, initialState)
@@ -162,6 +172,15 @@ export default function MensalidadesPage() {
                     </div>
                     {tab === 'planos' && (
                         <button className={styles.actionButton} onClick={openCreate}>+ Novo Plano</button>
+                    )}
+                    {tab === 'contratos' && (
+                        <button className={styles.actionButton} onClick={() => {
+                            setSubscribePetId('')
+                            setSubSelectedPlanId('')
+                            setSubSelectedDays([])
+                            setSubSelectedTime('09:00')
+                            setShowSubscribeModal(true)
+                        }}>+ Novo Contrato</button>
                     )}
                 </div>
 
@@ -467,6 +486,91 @@ export default function MensalidadesPage() {
                                         </div>
                                     )
                                 })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* MODAL: Contratar Mensalidade */}
+                {showSubscribeModal && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: '1rem' }} onClick={() => setShowSubscribeModal(false)}>
+                        <div style={{ background: 'var(--bg-primary)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', padding: '2rem', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+                            <h3 style={{ margin: '0 0 1.5rem 0', fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)' }}>🔄 Contratar Mensalidade</h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Selecionar Pet *</label>
+                                    <PetSearchSelect 
+                                        onSelect={setSubscribePetId}
+                                        placeholder="Buscar pet..."
+                                    />
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Plano de Mensalidade *</label>
+                                    <select className={styles.input} value={subSelectedPlanId} onChange={e => {
+                                        setSubSelectedPlanId(e.target.value)
+                                        const plan = plans.find((p: any) => p.id === e.target.value)
+                                        if (plan?.subscription_days_of_week?.length) setSubSelectedDays(plan.subscription_days_of_week)
+                                        if (plan?.subscription_time) setSubSelectedTime(plan.subscription_time)
+                                    }}>
+                                        <option value="">Selecione um plano</option>
+                                        {plans.map((p: any) => (
+                                            <option key={p.id} value={p.id}>{p.name} — R$ {Number(p.total_price).toFixed(2).replace('.', ',')}/mês</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Dias da Semana *</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                                        {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((d, i) => (
+                                            <button key={i} type="button"
+                                                onClick={() => setSubSelectedDays(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i].sort())}
+                                                style={{ padding: '6px 2px', borderRadius: '8px', border: '1px solid var(--border)', background: subSelectedDays.includes(i) ? 'var(--primary)' : 'var(--bg-tertiary)', color: subSelectedDays.includes(i) ? 'white' : 'var(--text-secondary)', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                                            >{d}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className={styles.inputGroup}>
+                                    <label className={styles.label}>Horário *</label>
+                                    <input type="time" className={styles.input} value={subSelectedTime} onChange={e => setSubSelectedTime(e.target.value)} />
+                                </div>
+                                {subSelectedDays.length > 0 && (() => {
+                                    const now = new Date()
+                                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+                                    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+                                    const daysFull = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado']
+                                    const previewItems: string[] = []
+                                    for (const dow of subSelectedDays) {
+                                        let d = new Date(monthStart)
+                                        while (d.getDay() !== dow) d.setDate(d.getDate() + 1)
+                                        while (d <= monthEnd) {
+                                            previewItems.push(`${daysFull[dow]}, ${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${subSelectedTime}`)
+                                            d.setDate(d.getDate() + 7)
+                                        }
+                                    }
+                                    return (
+                                        <div style={{ background: 'var(--bg-tertiary)', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border)' }}>
+                                            <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.5rem' }}>📅 Preview: {previewItems.length} sessões no mês atual</div>
+                                            {previewItems.sort().map((s, i) => (
+                                                <div key={i} style={{ fontSize: '0.85rem', padding: '3px 0', borderBottom: '1px dashed rgba(255,255,255,0.05)', color: 'var(--text-primary)' }}>• {s}</div>
+                                            ))}
+                                        </div>
+                                    )
+                                })()}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+                                <button type="button" onClick={() => setShowSubscribeModal(false)} className={styles.cancelBtn}>Cancelar</button>
+                                <button type="button"
+                                    disabled={!subscribePetId || !subSelectedPlanId || subSelectedDays.length === 0 || isSubscribing}
+                                    onClick={async () => {
+                                        if (!subscribePetId || !subSelectedPlanId || subSelectedDays.length === 0) return alert('Selecione um pet, um plano e pelo menos um dia.')
+                                        setIsSubscribing(true)
+                                        const res = await subscribePetToMensalidade(subscribePetId, subSelectedPlanId, subSelectedDays, subSelectedTime)
+                                        setIsSubscribing(false)
+                                        if (res.success) { setShowSubscribeModal(false); fetchData(); alert(res.message) }
+                                        else alert(res.message)
+                                    }}
+                                    className={styles.submitBtn}
+                                    style={{ opacity: (!subscribePetId || !subSelectedPlanId || subSelectedDays.length === 0 || isSubscribing) ? 0.5 : 1 }}
+                                >{isSubscribing ? '⏳ Agendando...' : '✅ Confirmar Mensalidade'}</button>
                             </div>
                         </div>
                     </div>
