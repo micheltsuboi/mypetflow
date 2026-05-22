@@ -312,6 +312,12 @@ function PetsContent() {
                     customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
                 `).eq('customers.org_id', profile.org_id).order('name')
 
+            if (activeTab === 'active') {
+                query = query.or('is_deceased.is.null,is_deceased.eq.false')
+            } else {
+                query = query.eq('is_deceased', true)
+            }
+
             if (debouncedSearchTerm) {
                 // Busca tutores correspondentes para incluir na pesquisa
                 const { data: matchedCustomers } = await supabase
@@ -359,7 +365,12 @@ function PetsContent() {
                         fallbackQuery = fallbackQuery.limit(50)
                     }
                     const { data: fallbackData } = await fallbackQuery
-                    if (fallbackData) setPets(fallbackData as unknown as Pet[])
+                    
+                    if (fallbackData) {
+                        // Apply tab filter on client side if column is missing, though we can't really do it since the column is missing
+                        // In this case we just return the data. Active tab will show all, deceased will show none (handled by filteredPets)
+                        setPets(fallbackData as unknown as Pet[])
+                    }
                 } else if (petsData) {
                     setPets(petsData as unknown as Pet[])
                 }
@@ -388,7 +399,7 @@ function PetsContent() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, debouncedSearchTerm])
+    }, [supabase, debouncedSearchTerm, activeTab])
 
     useEffect(() => {
         fetchData()
