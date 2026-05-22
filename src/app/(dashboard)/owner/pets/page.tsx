@@ -334,7 +334,9 @@ function PetsContent() {
                     query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
                 }
             } else {
-                query = query.limit(50)
+                if (activeTab === 'active') {
+                    query = query.limit(50)
+                }
             }
 
             const petsPromise = query.then(async ({ data: petsData, error }) => {
@@ -362,7 +364,9 @@ function PetsContent() {
                             fallbackQuery = fallbackQuery.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
                         }
                     } else {
-                        fallbackQuery = fallbackQuery.limit(50)
+                        if (activeTab === 'active') {
+                            fallbackQuery = fallbackQuery.limit(50)
+                        }
                     }
                     const { data: fallbackData } = await fallbackQuery
                     
