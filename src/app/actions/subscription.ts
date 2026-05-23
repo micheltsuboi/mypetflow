@@ -257,8 +257,9 @@ export async function getPetSubscriptions(petId: string) {
 export async function subscribePetToMensalidade(
     petId: string,
     planId: string,
-    daysOfWeek: number[],
-    time: string
+    daysOfWeek: number[] | null,
+    time: string | null,
+    creditSchedules?: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -313,7 +314,7 @@ export async function subscribePetToMensalidade(
             notes: `Mensalidade: ${plan.name} — ${pet.name}`,
             is_subscription: true,
             preferred_days_of_week: daysOfWeek,
-            preferred_day_of_week: daysOfWeek[0] ?? null,
+            preferred_day_of_week: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek[0] : null,
             preferred_time: time,
             due_date: dueDate,
             next_renewal_date: nextRenewal,
@@ -324,8 +325,25 @@ export async function subscribePetToMensalidade(
 
     if (cpError || !cp) return { message: cpError?.message || 'Erro ao criar assinatura.', success: false }
 
-    // No package_credits for subscriptions to avoid duplication in "Pacotes" tab
-    // Logic: Subscriptions use dynamic session generation via RPC
+    // Cria os registros em package_credits para cada serviço da mensalidade
+    const credits = plan.package_items.map((item: any) => {
+        const schedule = creditSchedules?.find(s => s.service_id === item.service_id)
+        return {
+            customer_package_id: cp.id,
+            service_id: item.service_id,
+            total_quantity: item.quantity,
+            used_quantity: 0,
+            remaining_quantity: item.quantity,
+            preferred_days_of_week: schedule?.preferred_days_of_week ?? daysOfWeek ?? null,
+            preferred_time: schedule?.preferred_time ?? time ?? null
+        }
+    })
+
+    const { error: creditsError } = await supabase.from('package_credits').insert(credits)
+    if (creditsError) {
+        await supabase.from('customer_packages').delete().eq('id', cp.id)
+        return { message: creditsError.message, success: false }
+    }
 
     // Generate sessions for current month using the SQL function
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -359,7 +377,7 @@ export async function subscribePetToMensalidade(
     // Send WhatsApp confirmation with all session dates
     const customerPhone = (pet.customers as any)?.phone_1
     if (customerPhone && sessions && sessions.length > 0) {
-        const dayNames = daysOfWeek.map(d => DAYS_OF_WEEK_PT[d]).join(' e ')
+        const dayNames = daysOfWeek ? daysOfWeek.map(d => DAYS_OF_WEEK_PT[d]).join(' e ') : ''
         const sessionList = sessions.map((s: any) => {
             const d = new Date(s.scheduled_at)
             const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
@@ -597,6 +615,15 @@ export async function updateSubscriptionContract(
         .eq('id', id)
 
     if (updateError) return { message: updateError.message, success: false }
+
+    // 1.1. Update package_credits fallback preferences for this subscription
+    await supabase
+        .from('package_credits')
+        .update({
+            preferred_days_of_week: daysOfWeek,
+            preferred_time: time
+        })
+        .eq('customer_package_id', id)
 
     // 2. Clean up future sessions and appointments that are still "scheduled/pending"
     // We only remove from today onwards
