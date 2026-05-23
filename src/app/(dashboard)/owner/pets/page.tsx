@@ -1848,10 +1848,33 @@ function PetsContent() {
                                                                                 💳 Pagar
                                                                             </button>
                                                                             <button 
-                                                                                onClick={() => {
+                                                                                onClick={async () => {
                                                                                     setEditingSubId(sub.id)
-                                                                                    setEditSubDays(sub.preferred_days_of_week || [])
-                                                                                    setEditSubTime(sub.preferred_time?.substring(0,5) || '09:00')
+                                                                                    const { data: creditsData } = await supabase
+                                                                                        .from('package_credits')
+                                                                                        .select('service_id, preferred_days_of_week, preferred_time')
+                                                                                        .eq('customer_package_id', sub.id)
+                                                                                    
+                                                                                    const initialSchedules: Record<string, { days: number[], time: string }> = {}
+                                                                                    if (creditsData && creditsData.length > 0) {
+                                                                                        creditsData.forEach((item: any) => {
+                                                                                            initialSchedules[item.service_id] = {
+                                                                                                days: item.preferred_days_of_week || [],
+                                                                                                time: item.preferred_time?.substring(0,5) || '09:00'
+                                                                                            }
+                                                                                        })
+                                                                                    } else {
+                                                                                        const plan = sub.service_packages
+                                                                                        if (plan?.package_items) {
+                                                                                            plan.package_items.forEach((item: any) => {
+                                                                                                initialSchedules[item.service_id] = {
+                                                                                                    days: sub.preferred_days_of_week || [],
+                                                                                                    time: sub.preferred_time?.substring(0,5) || '09:00'
+                                                                                                }
+                                                                                            })
+                                                                                        }
+                                                                                    }
+                                                                                    setSubSchedules(initialSchedules)
                                                                                 }}
                                                                                 className={styles.actionBtn}
                                                                                 style={{ fontSize: '0.7rem', padding: '4px 8px' }}
@@ -2302,71 +2325,106 @@ function PetsContent() {
             {editingSubId && (() => {
                 const sub = petSubscriptions.find((s: any) => s.id === editingSubId)
                 if (!sub) return null
+                const plan = sub.service_packages
                 return (
                     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.5)' }} onClick={() => setEditingSubId(null)}>
-                        <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+                        <div style={{ background: 'var(--bg-primary)', padding: '2rem', borderRadius: '20px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Ajustar Mensalidade</h3>
+                                <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>⚙️ Ajustar Mensalidade — {plan?.name}</h3>
                                 <button onClick={() => setEditingSubId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
                             </div>
                             
-                            <div className={styles.formGroup}>
-                                <label>Dias da Semana</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginTop: '8px' }}>
-                                    {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
-                                        const isSelected = editSubDays.includes(idx)
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                <div style={{ background: 'var(--bg-tertiary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>🗓️ Agendamento Individual por Serviço</div>
+                                    {plan?.package_items?.map((item: any) => {
+                                        const svcSchedule = subSchedules[item.service_id] || { days: [], time: '09:00' }
+                                        const svcName = item.services?.name || 'Serviço'
+                                        
                                         return (
-                                            <button
-                                                key={idx}
-                                                type="button"
-                                                onClick={() => {
-                                                    const newDays = isSelected 
-                                                        ? editSubDays.filter((d: number) => d !== idx)
-                                                        : [...editSubDays, idx]
-                                                    setEditSubDays(newDays)
-                                                }}
-                                                style={{
-                                                    padding: '8px 4px',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid var(--border)',
-                                                    background: isSelected ? 'var(--primary)' : 'var(--bg-primary)',
-                                                    color: isSelected ? 'white' : 'var(--text-primary)',
-                                                    fontSize: '0.8rem',
-                                                    cursor: 'pointer',
-                                                    fontWeight: isSelected ? 600 : 400
-                                                }}
-                                            >
-                                                {day}
-                                            </button>
+                                            <div key={item.service_id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '10px', borderBottom: '1px dashed var(--border)' }}>
+                                                <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                                                    {svcName} ({item.quantity || 1}x no mês)
+                                                </div>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                                                     {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((day, idx) => {
+                                                         const isChecked = svcSchedule.days.includes(idx)
+                                                         return (
+                                                             <button
+                                                                 key={idx}
+                                                                 type="button"
+                                                                 onClick={() => {
+                                                                     const updatedDays = isChecked 
+                                                                         ? svcSchedule.days.filter(d => d !== idx)
+                                                                         : [...svcSchedule.days, idx].sort()
+                                                                     setSubSchedules(prev => ({
+                                                                         ...prev,
+                                                                         [item.service_id]: { ...svcSchedule, days: updatedDays }
+                                                                     }))
+                                                                 }}
+                                                                 style={{
+                                                                     padding: '4px 8px',
+                                                                     borderRadius: '20px',
+                                                                     border: '1.5px solid',
+                                                                     borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
+                                                                     background: isChecked ? 'var(--primary)' : 'transparent',
+                                                                     color: isChecked ? '#fff' : 'var(--text-secondary)',
+                                                                     fontWeight: isChecked ? 700 : 400,
+                                                                     fontSize: '0.7rem',
+                                                                     cursor: 'pointer',
+                                                                     transition: 'all 0.15s'
+                                                                 }}
+                                                             >
+                                                                 {day}
+                                                             </button>
+                                                         )
+                                                     })}
+                                                </div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+                                                     <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Horário Fixo:</label>
+                                                     <input
+                                                         type="time"
+                                                         className={styles.input}
+                                                         value={svcSchedule.time}
+                                                         onChange={e => {
+                                                             const val = e.target.value
+                                                             setSubSchedules(prev => ({
+                                                                 ...prev,
+                                                                 [item.service_id]: { ...svcSchedule, time: val }
+                                                             }))
+                                                         }}
+                                                         style={{ fontSize: '0.75rem', width: '100px', padding: '2px 4px', height: '28px' }}
+                                                     />
+                                                </div>
+                                            </div>
                                         )
                                     })}
                                 </div>
                             </div>
 
-                            <div className={styles.formGroup} style={{ marginTop: '16px' }}>
-                                <label>Horário</label>
-                                <input 
-                                    type="time" 
-                                    className={styles.input}
-                                    value={editSubTime}
-                                    onChange={(e) => setEditSubTime(e.target.value)}
-                                />
-                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+                                <button type="button" onClick={() => setEditingSubId(null)} style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Cancelar</button>
+                                <button
+                                    onClick={async () => {
+                                        // Constrói creditSchedules para enviar
+                                        const creditSchedules = Object.keys(subSchedules).map(serviceId => ({
+                                            service_id: serviceId,
+                                            preferred_days_of_week: subSchedules[serviceId].days.length > 0 ? subSchedules[serviceId].days : null,
+                                            preferred_time: subSchedules[serviceId].time || null
+                                        }))
 
-                            <button
-                                onClick={async () => {
-                                    const res = await updateSubscriptionContract(sub.id, editSubDays, editSubTime)
-                                    if (res.success) {
-                                        alert(res.message)
-                                        setEditingSubId(null)
-                                        getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
-                                    } else alert(res.message)
-                                }}
-                                className={styles.submitButton}
-                                style={{ width: '100%', marginTop: '24px' }}
-                            >
-                                Salvar Alterações
-                            </button>
+                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules)
+                                        if (res.success) {
+                                            alert(res.message)
+                                            setEditingSubId(null)
+                                            getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
+                                        } else alert(res.message)
+                                    }}
+                                    style={{ padding: '0.6rem 1.5rem', borderRadius: '10px', border: 'none', background: 'var(--gradient-primary)', color: 'white', cursor: 'pointer', fontWeight: 700, fontSize: '0.95rem' }}
+                                >
+                                    Salvar Alterações
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )

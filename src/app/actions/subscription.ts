@@ -594,8 +594,9 @@ export async function sendSubscriptionDueDateReminders(orgId?: string) {
 
 export async function updateSubscriptionContract(
     id: string,
-    daysOfWeek: number[],
-    time: string
+    daysOfWeek: number[] | null,
+    time: string | null,
+    creditSchedules?: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -609,21 +610,34 @@ export async function updateSubscriptionContract(
         .from('customer_packages')
         .update({
             preferred_days_of_week: daysOfWeek,
-            preferred_day_of_week: daysOfWeek[0] ?? null,
+            preferred_day_of_week: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek[0] : null,
             preferred_time: time
         })
         .eq('id', id)
 
     if (updateError) return { message: updateError.message, success: false }
 
-    // 1.1. Update package_credits fallback preferences for this subscription
-    await supabase
-        .from('package_credits')
-        .update({
-            preferred_days_of_week: daysOfWeek,
-            preferred_time: time
-        })
-        .eq('customer_package_id', id)
+    // 1.1. Update package_credits preferences
+    if (creditSchedules && creditSchedules.length > 0) {
+        for (const sched of creditSchedules) {
+            await supabase
+                .from('package_credits')
+                .update({
+                    preferred_days_of_week: sched.preferred_days_of_week,
+                    preferred_time: sched.preferred_time
+                })
+                .eq('customer_package_id', id)
+                .eq('service_id', sched.service_id)
+        }
+    } else {
+        await supabase
+            .from('package_credits')
+            .update({
+                preferred_days_of_week: daysOfWeek,
+                preferred_time: time
+            })
+            .eq('customer_package_id', id)
+    }
 
     // 2. Clean up future sessions and appointments that are still "scheduled/pending"
     // We only remove from today onwards
