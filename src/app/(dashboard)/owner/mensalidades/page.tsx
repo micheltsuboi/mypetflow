@@ -311,6 +311,75 @@ export default function MensalidadesPage() {
                                             />
                                         </div>
                                     )}
+
+                                    {editingContractId === sub.id && (
+                                        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.5)' }} onClick={() => setEditingContractId(null)}>
+                                            <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                                                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Ajustar Mensalidade (Agenda Global)</h3>
+                                                    <button onClick={() => setEditingContractId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>✕</button>
+                                                </div>
+                                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                                                    Esta alteração mudará os dias e horários para os serviços do pacote que não possuem configuração individual, afetando os próximos agendamentos.
+                                                </p>
+                                                
+                                                <div style={{ marginBottom: '16px' }}>
+                                                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Dias da Semana</label>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginTop: '8px' }}>
+                                                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => {
+                                                            const isSelected = editContDays.includes(idx)
+                                                            return (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => {
+                                                                        setEditContDays(prev => 
+                                                                            isSelected ? prev.filter(d => d !== idx) : [...prev, idx].sort()
+                                                                        )
+                                                                    }}
+                                                                    style={{
+                                                                        padding: '8px',
+                                                                        borderRadius: '8px',
+                                                                        border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                                                                        background: isSelected ? 'var(--primary)' : 'transparent',
+                                                                        color: isSelected ? 'white' : 'var(--text-primary)',
+                                                                        cursor: 'pointer'
+                                                                    }}
+                                                                >
+                                                                    {day}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <div style={{ marginBottom: '16px' }}>
+                                                    <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Horário</label>
+                                                    <input 
+                                                        type="time" 
+                                                        value={editContTime} 
+                                                        onChange={e => setEditContTime(e.target.value)} 
+                                                        className={styles.input}
+                                                        style={{ marginTop: '8px', width: '100%' }}
+                                                    />
+                                                </div>
+                                                <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                                                    <button className={styles.cancelBtn} onClick={() => setEditingContractId(null)}>Cancelar</button>
+                                                    <button 
+                                                        className={styles.submitBtn} 
+                                                        onClick={async () => {
+                                                            const res = await updateSubscriptionContract(sub.id, editContDays, editContTime)
+                                                            if (res.success) {
+                                                                fetchData()
+                                                                setEditingContractId(null)
+                                                                alert(res.message)
+                                                            } else alert(res.message)
+                                                        }}
+                                                    >
+                                                        Salvar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )
                         })}
