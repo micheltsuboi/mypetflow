@@ -594,14 +594,25 @@ export async function renewCustomerPackage(customerPackageId: string): Promise<A
 
     if (newPackage.error || !newPackage.data) return { message: 'Erro ao renovar pacote.', success: false }
 
+    // Buscar créditos do pacote anterior para herdar as configurações de agenda (dias e horários)
+    const { data: oldCredits } = await supabase
+        .from('package_credits')
+        .select('service_id, preferred_days_of_week, preferred_time')
+        .eq('customer_package_id', customerPackageId)
+
     // Créditos: quantidade original (sem carry-over para renovação automática)
-    const newCredits = sp.package_items.map((item: any) => ({
-        customer_package_id: newPackage.data.id,
-        service_id: item.service_id,
-        total_quantity: item.quantity,
-        used_quantity: 0,
-        remaining_quantity: item.quantity
-    }))
+    const newCredits = sp.package_items.map((item: any) => {
+        const oldC = oldCredits?.find((c: any) => c.service_id === item.service_id)
+        return {
+            customer_package_id: newPackage.data.id,
+            service_id: item.service_id,
+            total_quantity: item.quantity,
+            used_quantity: 0,
+            remaining_quantity: item.quantity,
+            preferred_days_of_week: oldC?.preferred_days_of_week ?? null,
+            preferred_time: oldC?.preferred_time ?? null
+        }
+    })
 
     await supabase.from('package_credits').insert(newCredits)
 
