@@ -106,6 +106,8 @@
 
 @media (prefers-color-scheme: light) {
   :root {
+    --primary: #D65A6B;
+    --gradient-primary: linear-gradient(135deg, #00A395 0%, #D65A6B 100%);
     --bg-primary: #F1F4F9; /* Shaded light background */
     --bg-secondary: #FFFFFF;
     --bg-tertiary: #E2E8F0;
