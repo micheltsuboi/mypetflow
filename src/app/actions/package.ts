@@ -196,6 +196,14 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         : (preferred_day_of_week_legacy !== null ? [preferred_day_of_week_legacy] : [])
 
     const preferred_time = formData.get('preferred_time') as string || null
+    
+    // Support per-service schedules
+    const creditSchedulesRaw = formData.get('credit_schedules') as string
+    let creditSchedules: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null = null
+    try {
+        if (creditSchedulesRaw) creditSchedules = JSON.parse(creditSchedulesRaw)
+    } catch(e) {}
+
 
     const { data: packageData, error: packageError } = await supabase
         .from('service_packages')
@@ -234,13 +242,18 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         return { message: cpError?.message || 'Erro ao criar pacote.', success: false }
     }
 
-    const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => ({
-        customer_package_id: customerPackage.id,
-        service_id: item.service_id,
-        total_quantity: item.quantity,
-        used_quantity: 0,
-        remaining_quantity: item.quantity
-    }))
+    const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => {
+        const schedule = creditSchedules?.find(s => s.service_id === item.service_id)
+        return {
+            customer_package_id: customerPackage.id,
+            service_id: item.service_id,
+            total_quantity: item.quantity,
+            used_quantity: 0,
+            remaining_quantity: item.quantity,
+            preferred_days_of_week: schedule?.preferred_days_of_week ?? (effective_days.length > 0 ? effective_days : null),
+            preferred_time: schedule?.preferred_time ?? preferred_time ?? null
+        }
+    })
 
     const { error: creditsError } = await supabase.from('package_credits').insert(credits)
 
@@ -402,7 +415,8 @@ export async function sellPackageToPet(
     totalPaid: number,
     paymentMethod: string,
     preferredDaysOfWeek?: number[] | null,
-    preferredTime?: string | null
+    preferredTime?: string | null,
+    creditSchedules?: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null
 ): Promise<ActionState> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -456,13 +470,18 @@ export async function sellPackageToPet(
         return { message: cpError?.message || 'Erro ao criar pacote.', success: false }
     }
 
-    const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => ({
-        customer_package_id: customerPackage.id,
-        service_id: item.service_id,
-        total_quantity: item.quantity,
-        used_quantity: 0,
-        remaining_quantity: item.quantity
-    }))
+    const credits = packageData.package_items.map((item: { service_id: string; quantity: number }) => {
+        const schedule = creditSchedules?.find(s => s.service_id === item.service_id)
+        return {
+            customer_package_id: customerPackage.id,
+            service_id: item.service_id,
+            total_quantity: item.quantity,
+            used_quantity: 0,
+            remaining_quantity: item.quantity,
+            preferred_days_of_week: schedule?.preferred_days_of_week ?? effectiveDays ?? null,
+            preferred_time: schedule?.preferred_time ?? preferredTime ?? null
+        }
+    })
 
     const { error: creditsError } = await supabase.from('package_credits').insert(credits)
 

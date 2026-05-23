@@ -1514,58 +1514,84 @@ function PetsContent() {
                                                     </select>
                                                     {selectedPackageId && (() => {
                                                         const selectedPkg = availablePackages.find((p: any) => p.id === selectedPackageId)
-                                                        if (selectedPkg?.validity_type === 'weekly') {
+                                                        if (selectedPkg) {
                                                             return (
                                                                 <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                                                        📆 <strong>Dias de Agendamento</strong> — Selecione os dias da semana para inserção automática na agenda. Deixe sem seleção para agendar manualmente.
+                                                                    <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                                        📆 <strong>Agendamento por Serviço</strong> — Selecione os dias e horários para os serviços que deseja deixar fixos. O que ficar em branco será gerado como crédito pendente para uso livre.
                                                                     </p>
-                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.75rem' }}>
-                                                                        {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((day, idx) => {
-                                                                            const selectedDays: number[] = (selectedPet as any)?._pkgDays ?? []
-                                                                            const isChecked = selectedDays.includes(idx)
-                                                                            return (
-                                                                                <button
-                                                                                    key={idx}
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        const current: number[] = (selectedPet as any)?._pkgDays ?? []
-                                                                                        const updated = isChecked
-                                                                                            ? current.filter(d => d !== idx)
-                                                                                            : [...current, idx].sort()
-                                                                                        setSelectedPet((prev: any) => prev ? { ...prev, _pkgDays: updated } : prev)
-                                                                                    }}
-                                                                                    style={{
-                                                                                        padding: '0.35rem 0.7rem',
-                                                                                        borderRadius: '20px',
-                                                                                        border: '1.5px solid',
-                                                                                        borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
-                                                                                        background: isChecked ? 'var(--primary)' : 'transparent',
-                                                                                        color: isChecked ? '#fff' : 'var(--text-secondary)',
-                                                                                        fontWeight: isChecked ? 700 : 400,
-                                                                                        fontSize: '0.8rem',
-                                                                                        cursor: 'pointer',
-                                                                                        transition: 'all 0.15s'
-                                                                                    }}
-                                                                                >
-                                                                                    {day}
-                                                                                </button>
-                                                                            )
-                                                                        })}
-                                                                    </div>
-                                                                    <div>
-                                                                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Horário</label>
-                                                                        <input
-                                                                            type="time"
-                                                                            className={styles.input}
-                                                                            value={(selectedPet as any)?._pkgTime ?? ''}
-                                                                            onChange={e => {
-                                                                                const val = e.target.value
-                                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgTime: val } : prev)
-                                                                            }}
-                                                                            style={{ fontSize: '0.85rem', width: '140px' }}
-                                                                        />
-                                                                    </div>
+                                                                    
+                                                                    {selectedPkg.package_items?.map((item: any) => {
+                                                                        const schedules = (selectedPet as any)?._pkgSchedules || {}
+                                                                        const svcSchedule = schedules[item.service_id] || { days: [], time: '' }
+                                                                        
+                                                                        return (
+                                                                            <div key={item.service_id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px dashed var(--border)' }}>
+                                                                                <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                                                                    {item.quantity}x {item.services?.name || 'Serviço'}
+                                                                                </div>
+                                                                                
+                                                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                                                                                    {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((day, idx) => {
+                                                                                        const isChecked = svcSchedule.days.includes(idx)
+                                                                                        return (
+                                                                                            <button
+                                                                                                key={idx}
+                                                                                                type="button"
+                                                                                                onClick={() => {
+                                                                                                    const currentDays: number[] = svcSchedule.days
+                                                                                                    const updatedDays = isChecked
+                                                                                                        ? currentDays.filter(d => d !== idx)
+                                                                                                        : [...currentDays, idx].sort()
+                                                                                                        
+                                                                                                    setSelectedPet((prev: any) => prev ? {
+                                                                                                        ...prev,
+                                                                                                        _pkgSchedules: {
+                                                                                                            ...schedules,
+                                                                                                            [item.service_id]: { ...svcSchedule, days: updatedDays }
+                                                                                                        }
+                                                                                                    } : prev)
+                                                                                                }}
+                                                                                                style={{
+                                                                                                    padding: '0.3rem 0.6rem',
+                                                                                                    borderRadius: '20px',
+                                                                                                    border: '1.5px solid',
+                                                                                                    borderColor: isChecked ? 'var(--primary)' : 'var(--border)',
+                                                                                                    background: isChecked ? 'var(--primary)' : 'transparent',
+                                                                                                    color: isChecked ? '#fff' : 'var(--text-secondary)',
+                                                                                                    fontWeight: isChecked ? 700 : 400,
+                                                                                                    fontSize: '0.75rem',
+                                                                                                    cursor: 'pointer',
+                                                                                                    transition: 'all 0.15s'
+                                                                                                }}
+                                                                                            >
+                                                                                                {day}
+                                                                                            </button>
+                                                                                        )
+                                                                                    })}
+                                                                                </div>
+                                                                                <div>
+                                                                                    <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Horário Fixo (opcional)</label>
+                                                                                    <input
+                                                                                        type="time"
+                                                                                        className={styles.input}
+                                                                                        value={svcSchedule.time}
+                                                                                        onChange={e => {
+                                                                                            const val = e.target.value
+                                                                                            setSelectedPet((prev: any) => prev ? {
+                                                                                                ...prev,
+                                                                                                _pkgSchedules: {
+                                                                                                    ...schedules,
+                                                                                                    [item.service_id]: { ...svcSchedule, time: val }
+                                                                                                }
+                                                                                            } : prev)
+                                                                                        }}
+                                                                                        style={{ fontSize: '0.8rem', width: '130px', padding: '0.3rem' }}
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                        )
+                                                                    })}
                                                                 </div>
                                                             )
                                                         }
@@ -1579,22 +1605,29 @@ function PetsContent() {
                                                             if (!selectedPet || !selectedPackageId) return
                                                             setIsSelling(true)
                                                             const pkg = availablePackages.find((p: any) => p.id === selectedPackageId)
-                                                            const selectedDays: number[] = (selectedPet as any)?._pkgDays ?? []
-                                                            const timeVal = (selectedPet as any)?._pkgTime
-                                                            const preferredTime = timeVal || null
+                                                            
+                                                            // Construct credit schedules per service
+                                                            const schedules = (selectedPet as any)?._pkgSchedules || {}
+                                                            const creditSchedules = Object.keys(schedules).map(serviceId => ({
+                                                                service_id: serviceId,
+                                                                preferred_days_of_week: schedules[serviceId].days.length > 0 ? schedules[serviceId].days : null,
+                                                                preferred_time: schedules[serviceId].time || null
+                                                            }))
+                                                            
                                                             const res = await sellPackageToPet(
                                                                 selectedPet.id, 
                                                                 selectedPackageId, 
                                                                 pkg.total_price, 
                                                                 'pix', 
-                                                                selectedDays.length > 0 ? selectedDays : null, 
-                                                                preferredTime
+                                                                null, // Global days unused now
+                                                                null, // Global time unused now
+                                                                creditSchedules.length > 0 ? creditSchedules : null
                                                             )
                                                             if (res.success) {
                                                                 alert(res.message)
                                                                 getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
                                                                 setSelectedPackageId('')
-                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgDays: [], _pkgTime: '' } : prev)
+                                                                setSelectedPet((prev: any) => prev ? { ...prev, _pkgSchedules: {} } : prev)
                                                             } else alert(res.message)
                                                             setIsSelling(false)
                                                         }}
