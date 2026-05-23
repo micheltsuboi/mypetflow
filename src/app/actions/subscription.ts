@@ -22,8 +22,28 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
     const billing_day = parseInt(formData.get('billing_day') as string) || 10
-    const rawServices = formData.getAll('service_ids')
-    const service_ids = rawServices.map(s => s as string).filter(Boolean)
+
+    const servicesJson = formData.get('services_json') as string
+    let itemsToInsert: { service_id: string; quantity: number }[] = []
+
+    if (servicesJson) {
+        try {
+            const parsed = JSON.parse(servicesJson) as { service_id: string; quantity: number }[]
+            itemsToInsert = parsed.map(item => ({
+                service_id: item.service_id,
+                quantity: item.quantity || 1
+            }))
+        } catch (e) {
+            console.error('Erro ao fazer parse de services_json:', e)
+        }
+    } else {
+        const rawServices = formData.getAll('service_ids')
+        const service_ids = rawServices.map(s => s as string).filter(Boolean)
+        itemsToInsert = service_ids.map(sid => ({
+            service_id: sid,
+            quantity: 1
+        }))
+    }
 
     const { data: package_data, error } = await supabase
         .from('service_packages')
@@ -44,11 +64,11 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
 
     if (error || !package_data) return { message: error?.message || 'Erro ao criar plano.', success: false }
 
-    if (service_ids.length > 0) {
-        const items = service_ids.map(sid => ({
+    if (itemsToInsert.length > 0) {
+        const items = itemsToInsert.map(item => ({
             package_id: package_data.id,
-            service_id: sid,
-            quantity: 1
+            service_id: item.service_id,
+            quantity: item.quantity
         }))
         const { error: itemsError } = await supabase.from('package_items').insert(items)
         if (itemsError) return { message: itemsError.message, success: false }
@@ -68,8 +88,28 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
     const description = formData.get('description') as string
     const total_price = parseFloat(formData.get('total_price') as string)
     const billing_day = parseInt(formData.get('billing_day') as string) || 10
-    const rawServices = formData.getAll('service_ids')
-    const service_ids = rawServices.map(s => s as string).filter(Boolean)
+
+    const servicesJson = formData.get('services_json') as string
+    let itemsToInsert: { service_id: string; quantity: number }[] = []
+
+    if (servicesJson) {
+        try {
+            const parsed = JSON.parse(servicesJson) as { service_id: string; quantity: number }[]
+            itemsToInsert = parsed.map(item => ({
+                service_id: item.service_id,
+                quantity: item.quantity || 1
+            }))
+        } catch (e) {
+            console.error('Erro ao fazer parse de services_json:', e)
+        }
+    } else {
+        const rawServices = formData.getAll('service_ids')
+        const service_ids = rawServices.map(s => s as string).filter(Boolean)
+        itemsToInsert = service_ids.map(sid => ({
+            service_id: sid,
+            quantity: 1
+        }))
+    }
 
     const { error } = await supabase
         .from('service_packages')
@@ -89,11 +129,11 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
     // Atualiza links de serviços
     await supabase.from('package_items').delete().eq('package_id', id)
     
-    if (service_ids.length > 0) {
-        const items = service_ids.map(sid => ({
+    if (itemsToInsert.length > 0) {
+        const items = itemsToInsert.map(item => ({
             package_id: id,
-            service_id: sid,
-            quantity: 1
+            service_id: item.service_id,
+            quantity: item.quantity
         }))
         const { error: itemsError } = await supabase.from('package_items').insert(items)
         if (itemsError) return { message: itemsError.message, success: false }

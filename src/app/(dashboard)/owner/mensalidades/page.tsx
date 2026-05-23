@@ -36,7 +36,7 @@ export default function MensalidadesPage() {
     const [showPlanModal, setShowPlanModal] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
     const [selectedPlan, setSelectedPlan] = useState<any>(null)
-    const [selectedServices, setSelectedServices] = useState<string[]>([])
+    const [selectedServices, setSelectedServices] = useState<any[]>([])
     const [showPaymentId, setShowPaymentId] = useState<string | null>(null)
     const [showSessionsId, setShowSessionsId] = useState<string | null>(null)
     const [subSessions, setSubSessions] = useState<any[]>([])
@@ -99,7 +99,7 @@ export default function MensalidadesPage() {
     const openEdit = (plan: any) => {
         setSelectedPlan(plan)
         setIsEditing(true)
-        setSelectedServices(plan.package_items?.map((i: any) => i.service_id) || [])
+        setSelectedServices(plan.package_items?.map((i: any) => ({ service_id: i.service_id, quantity: i.quantity || 1 })) || [])
         setShowPlanModal(true)
     }
 
@@ -117,14 +117,18 @@ export default function MensalidadesPage() {
 
     const handleAddService = () => {
         if (!selectedServiceId) return
-        if (!selectedServices.includes(selectedServiceId)) {
-            setSelectedServices(prev => [...prev, selectedServiceId])
+        if (!selectedServices.some((s: any) => s.service_id === selectedServiceId)) {
+            setSelectedServices(prev => [...prev, { service_id: selectedServiceId, quantity: 1 }])
             setSelectedServiceId('')
         }
     }
 
     const handleRemoveService = (serviceId: string) => {
-        setSelectedServices(prev => prev.filter(id => id !== serviceId))
+        setSelectedServices(prev => prev.filter((s: any) => s.service_id !== serviceId))
+    }
+
+    const handleUpdateServiceQuantity = (serviceId: string, quantity: number) => {
+        setSelectedServices(prev => prev.map((s: any) => s.service_id === serviceId ? { ...s, quantity: Math.max(1, quantity) } : s))
     }
 
     const formatCategory = (category: string) => {
@@ -234,7 +238,7 @@ export default function MensalidadesPage() {
                                     </div>
                                     {plan.package_items && plan.package_items.length > 0 && (
                                         <div className={styles.planMetaItem}>
-                                            ✂️ {plan.package_items.map((i: any) => i.services?.name).filter(Boolean).join(', ')}
+                                            ✂️ {plan.package_items.map((i: any) => `${i.services?.name || 'Serviço'} (${i.quantity || 1}x)`).join(', ')}
                                         </div>
                                     )}
                                 </div>
@@ -394,9 +398,7 @@ export default function MensalidadesPage() {
 
                             <form action={isEditing ? updateAction : createAction} id="planForm">
                                 {isEditing && <input type="hidden" name="id" value={selectedPlan?.id} />}
-                                {selectedServices.map(sid => (
-                                    <input key={sid} type="hidden" name="service_ids" value={sid} />
-                                ))}
+                                <input type="hidden" name="services_json" value={JSON.stringify(selectedServices)} />
 
                                 <div className={styles.formGrid}>
                                     <div className={`${styles.inputGroup} ${styles.fullWidth}`}>
@@ -451,16 +453,34 @@ export default function MensalidadesPage() {
 
                                         {/* Lista de selecionados */}
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                                            {selectedServices.map(sid => {
-                                                const s = services.find(srv => srv.id === sid)
+                                            {selectedServices.map(item => {
+                                                const s = services.find(srv => srv.id === item.service_id)
                                                 if (!s) return null
                                                 return (
-                                                    <div key={sid} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <div key={item.service_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                                                             <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{s.name}</span>
                                                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatCategory(s.category)}</span>
                                                         </div>
-                                                        <button type="button" onClick={() => handleRemoveService(sid)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem' }} title="Remover">
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '1rem' }}>
+                                                            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Qtd:</label>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={item.quantity}
+                                                                onChange={e => handleUpdateServiceQuantity(item.service_id, parseInt(e.target.value) || 1)}
+                                                                style={{
+                                                                    width: '60px',
+                                                                    padding: '4px 8px',
+                                                                    borderRadius: '6px',
+                                                                    border: '1px solid var(--border)',
+                                                                    background: 'var(--bg-primary)',
+                                                                    color: 'var(--text-primary)',
+                                                                    textAlign: 'center'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <button type="button" onClick={() => handleRemoveService(item.service_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem' }} title="Remover">
                                                             🗑️
                                                         </button>
                                                     </div>
@@ -485,7 +505,7 @@ export default function MensalidadesPage() {
                                                 >
                                                     <option value="">Escolha um serviço...</option>
                                                     {services.map(s => (
-                                                        <option key={s.id} value={s.id} disabled={selectedServices.includes(s.id)}>
+                                                        <option key={s.id} value={s.id} disabled={selectedServices.some((x: any) => x.service_id === s.id)}>
                                                             [{formatCategory(s.category)}] {s.name}
                                                         </option>
                                                     ))}
@@ -568,6 +588,7 @@ export default function MensalidadesPage() {
                                 <div className={styles.inputGroup}>
                                     <label className={styles.label}>Selecionar Pet *</label>
                                     <PetSearchSelect 
+                                        name="pet_id"
                                         onSelect={setSubscribePetId}
                                         placeholder="Buscar pet..."
                                     />
