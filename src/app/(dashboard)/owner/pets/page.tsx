@@ -203,6 +203,8 @@ function PetsContent() {
     const [editingSubId, setEditingSubId] = useState<string | null>(null)
     const [editSubDays, setEditSubDays] = useState<number[]>([])
     const [editSubTime, setEditSubTime] = useState<string>('09:00')
+    const [reschedulingSession, setReschedulingSession] = useState<any | null>(null)
+    const [rescheduleDateTime, setRescheduleDateTime] = useState<string>('')
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
@@ -2266,19 +2268,9 @@ function PetsContent() {
                                                 <button 
                                                     className={styles.actionBtn}
                                                     style={{ fontSize: '0.65rem', padding: '2px 6px' }}
-                                                    onClick={async () => {
-                                                        const dateStr = prompt('Digite a nova data e hora (Ex: 25/03/2026 14:00)', s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('pt-BR').slice(0, 16) : '')
-                                                        if (!dateStr) return
-                                                        
-                                                        const [d, m, y, h, min] = dateStr.match(/\d+/g) || []
-                                                        if (!d || !m || !y || !h || !min) return alert('Formato inválido. Use DD/MM/AAAA HH:MM')
-                                                        
-                                                        const isoDate = `${y}-${m}-${d}T${h}:${min}:00`
-                                                        const res = await reschedulePackageSession(s.id, isoDate, true, selectedPet!.id, sub.org_id, s.service_id)
-                                                        if (res.success) {
-                                                            alert(res.message)
-                                                            getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
-                                                        } else alert(res.message)
+                                                    onClick={() => {
+                                                        setReschedulingSession(s)
+                                                        setRescheduleDateTime(s.scheduled_at ? new Date(s.scheduled_at).toISOString().substring(0, 16) : '')
                                                     }}
                                                 >
                                                     Reagendar
@@ -2429,6 +2421,56 @@ function PetsContent() {
                     </div>
                 )
             })()}
+
+            {/* MODAL DO SISTEMA: REAGENDAR SESSÃO */}
+            {reschedulingSession && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} onClick={() => setReschedulingSession(null)}>
+                    <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>🗓️ Reagendar Sessão</h3>
+                        
+                        <div className={styles.formGroup} style={{ marginBottom: '20px' }}>
+                            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Nova Data e Horário</label>
+                            <input 
+                                type="datetime-local" 
+                                className={styles.input}
+                                value={rescheduleDateTime}
+                                onChange={e => setRescheduleDateTime(e.target.value)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button 
+                                type="button" 
+                                onClick={() => setReschedulingSession(null)}
+                                style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={async () => {
+                                    if (!rescheduleDateTime) return alert('Selecione uma data e horário válidos.')
+                                    const isoDate = rescheduleDateTime.length === 16 ? `${rescheduleDateTime}:00` : rescheduleDateTime
+                                    
+                                    const sub = petSubscriptions.find((sub: any) => sub.id === showSubSessionsId)
+                                    if (!sub) return alert('Assinatura não encontrada.')
+                                    
+                                    const res = await reschedulePackageSession(reschedulingSession.id, isoDate, true, selectedPet!.id, sub.org_id, reschedulingSession.service_id)
+                                    if (res.success) {
+                                        alert(res.message)
+                                        setReschedulingSession(null)
+                                        getPetSubscriptions(selectedPet!.id).then(setPetSubscriptions)
+                                    } else alert(res.message)
+                                }}
+                                style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: 'var(--gradient-primary)', color: 'white', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 700 }}
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

@@ -53,6 +53,8 @@ export default function MensalidadesPage() {
     const [subSelectedTime, setSubSelectedTime] = useState('09:00')
     const [subSchedules, setSubSchedules] = useState<Record<string, { days: number[], time: string }>>({})
     const [isSubscribing, setIsSubscribing] = useState(false)
+    const [reschedulingSession, setReschedulingSession] = useState<any | null>(null)
+    const [rescheduleDateTime, setRescheduleDateTime] = useState<string>('')
 
     const [createState, createAction, isCreating] = useActionState(createSubscriptionPlan, initialState)
     const [updateState, updateAction, isUpdating] = useActionState(updateSubscriptionPlan, initialState)
@@ -686,19 +688,9 @@ export default function MensalidadesPage() {
                                                     <button 
                                                         className={styles.btnAction}
                                                         style={{ fontSize: '0.65rem', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
-                                                        onClick={async () => {
-                                                            const dateStr = prompt('Digite a nova data e hora (Ex: 25/03/2026 14:00)', s.scheduled_at ? new Date(s.scheduled_at).toLocaleString('pt-BR').slice(0, 16) : '')
-                                                            if (!dateStr) return
-                                                            
-                                                            const [dVal, mVal, yVal, hVal, minVal] = dateStr.match(/\d+/g) || []
-                                                            if (!dVal || !mVal || !yVal || !hVal || !minVal) return alert('Formato inválido. Use DD/MM/AAAA HH:MM')
-                                                            
-                                                            const isoDate = `${yVal}-${mVal}-${dVal}T${hVal}:${minVal}:00`
-                                                            const res = await reschedulePackageSession(s.id, isoDate, true, sub.pet_id, sub.org_id, s.service_id)
-                                                            if (res.success) {
-                                                                alert(res.message)
-                                                                openSessions(showSessionsId)
-                                                            } else alert(res.message)
+                                                        onClick={() => {
+                                                            setReschedulingSession(s)
+                                                            setRescheduleDateTime(s.scheduled_at ? new Date(s.scheduled_at).toISOString().substring(0, 16) : '')
                                                         }}
                                                     >
                                                         Reagendar
@@ -822,6 +814,58 @@ export default function MensalidadesPage() {
                     </div>
                 )
             })()}
+
+            {/* MODAL DO SISTEMA: REAGENDAR SESSÃO */}
+            {reschedulingSession && (
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)' }} onClick={() => setReschedulingSession(null)}>
+                    <div style={{ background: 'var(--bg-primary)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border)', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }} onClick={e => e.stopPropagation()}>
+                        <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '16px', color: 'var(--text-primary)' }}>🗓️ Reagendar Sessão</h3>
+                        
+                        <div className={styles.inputGroup} style={{ marginBottom: '20px' }}>
+                            <label className={styles.label} style={{ marginBottom: '8px' }}>Nova Data e Horário</label>
+                            <input 
+                                type="datetime-local" 
+                                className={styles.input}
+                                value={rescheduleDateTime}
+                                onChange={e => setRescheduleDateTime(e.target.value)}
+                                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button 
+                                type="button" 
+                                onClick={() => setReschedulingSession(null)}
+                                className={styles.cancelBtn}
+                                style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 600 }}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={async () => {
+                                    if (!rescheduleDateTime) return alert('Selecione uma data e horário válidos.')
+                                    const isoDate = rescheduleDateTime.length === 16 ? `${rescheduleDateTime}:00` : rescheduleDateTime
+                                    
+                                    const sub = subscriptions.find((sub: any) => sub.id === showSessionsId)
+                                    if (!sub) return alert('Assinatura não encontrada.')
+                                    
+                                    const res = await reschedulePackageSession(reschedulingSession.id, isoDate, true, sub.pet_id || '', sub.org_id || '', reschedulingSession.service_id)
+                                    if (res.success) {
+                                        alert(res.message)
+                                        setReschedulingSession(null)
+                                        openSessions(showSessionsId || '')
+                                    } else alert(res.message)
+                                }}
+                                className={styles.submitBtn}
+                                style={{ padding: '8px 20px', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 700 }}
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             </div>
         </PlanGuard>
     )
