@@ -249,7 +249,7 @@ export default function HospedagemPage() {
 
                     if (nfs) {
                         const map: any = {}
-                        nfs.forEach(nf => {
+                        nfs.forEach((nf: any) => {
                             map[nf.origem_id] = {
                                 id: nf.id,
                                 status: nf.status,
@@ -279,7 +279,7 @@ export default function HospedagemPage() {
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'notas_fiscais' },
-                (payload) => {
+                (payload: any) => {
                     const nf = payload.new as any
                     if (nf && nf.origem_id) {
                         setNfMap(prev => ({
@@ -495,31 +495,35 @@ export default function HospedagemPage() {
 
             {showNFModal && nfAppointment && (
                 <EmitirNFModal
-                    isOpen={showNFModal}
+                    tipo="nfse"
+                    origemTipo="atendimento"
+                    refId={nfAppointment.id}
+                    total_amount={nfAppointment.final_price || nfAppointment.calculated_price || nfAppointment.services?.base_price || 0}
+                    tutor={nfAppointment.pets?.customers ? {
+                        nome: nfAppointment.pets.customers.name,
+                        cpf: nfAppointment.pets.customers.cpf_cnpj,
+                        email: nfAppointment.pets.customers.email || undefined,
+                        endereco: {
+                            logradouro: nfAppointment.pets.customers.address || '',
+                            bairro: nfAppointment.pets.customers.neighborhood || '',
+                            codigo_municipio: nfAppointment.pets.customers.city || ''
+                        }
+                    } : undefined}
+                    servico={{
+                        descricao: nfAppointment.services?.name || 'Serviço de Hospedagem',
+                        valor: nfAppointment.final_price || nfAppointment.calculated_price || nfAppointment.services?.base_price || 0,
+                        codigo: '0508'
+                    }}
+                    petName={nfAppointment.pets?.name}
+                    tutorPhone={nfAppointment.pets?.customers?.phone_1}
                     onClose={() => {
                         setShowNFModal(false)
                         setNfAppointment(null)
                     }}
-                    data={{
-                        id: nfAppointment.id,
-                        petName: nfAppointment.pets?.name,
-                        total_amount: nfAppointment.final_price || nfAppointment.calculated_price || nfAppointment.services?.base_price || 0,
-                        tutor: nfAppointment.pets?.customers ? {
-                            nome: nfAppointment.pets.customers.name,
-                            cpf: nfAppointment.pets.customers.cpf_cnpj,
-                            email: nfAppointment.pets.customers.email || undefined,
-                            endereco: {
-                                logradouro: nfAppointment.pets.customers.address || '',
-                                bairro: nfAppointment.pets.customers.neighborhood || '',
-                                codigo_municipio: nfAppointment.pets.customers.city || ''
-                            }
-                        } : undefined,
-                        servico: {
-                            descricao: nfAppointment.services?.name || 'Serviço de Hospedagem',
-                            valor: nfAppointment.final_price || nfAppointment.calculated_price || nfAppointment.services?.base_price || 0,
-                            codigo: '0508'
-                        },
-                        tutorPhone: nfAppointment.pets.customers.phone_1
+                    onSuccess={() => {
+                        setShowNFModal(false)
+                        setNfAppointment(null)
+                        fetchHospedagemData()
                     }}
                 />
             )}

@@ -33,11 +33,8 @@ import AppointmentCard from '@/components/ui/AppointmentCard'
 import ConfirmationModal from '@/components/ui/ConfirmationModal'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import { format } from 'date-fns'
-import DateInput from '@/components/ui/DateInput'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
-import AppointmentCard from '@/components/ui/AppointmentCard'
 import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
-import { Trash2 } from 'lucide-react'
 
 interface Customer {
     name: string
