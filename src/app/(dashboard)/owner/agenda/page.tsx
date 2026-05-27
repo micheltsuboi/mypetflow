@@ -18,13 +18,20 @@ import {
 import {
     createScheduleBlock,
     deleteScheduleBlock
-} from '@/app/actions/schedule'
-import { getVeterinarians, startConsultation } from '@/app/actions/veterinary'
-import ConsultationModal from '@/components/modules/ConsultationModal'
-// PaymentControls removed to avoid unused import error
+} from '@/app/actions/appointment-block'
+import DateInput from '@/components/ui/DateInput'
+import {
+    getVeterinarians,
+    startConsultation
+} from '@/app/actions/veterinary'
+import { Trash2 } from 'lucide-react'
 import PlanGuard from '@/components/modules/PlanGuard'
-import EmitirNFModal from '@/components/EmitirNFModal'
+import EditAppointmentModal from '@/components/EditAppointmentModal'
 import ServiceExecutionModal from '@/components/ServiceExecutionModal'
+import EmitirNFModal from '@/components/EmitirNFModal'
+import AppointmentCard from '@/components/ui/AppointmentCard'
+import ConfirmationModal from '@/components/ui/ConfirmationModal'
+import ConsultationModal from '@/components/modules/ConsultationModal'
 import { format } from 'date-fns'
 import DateInput from '@/components/ui/DateInput'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
@@ -129,6 +136,38 @@ function AgendaContent() {
     const [services, setServices] = useState<Service[]>([])
     const [categories, setCategories] = useState<ServiceCategory[]>([])
     const [vets, setVets] = useState<any[]>([])
+
+    // Custom Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean
+        title: string
+        message: string
+        confirmLabel?: string
+        cancelLabel?: string
+        confirmColor?: string
+        type?: 'danger' | 'warning' | 'success' | 'info'
+        onConfirm: () => void
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    })
+
+    const showConfirm = (options: {
+        title: string
+        message: string
+        confirmLabel?: string
+        cancelLabel?: string
+        confirmColor?: string
+        type?: 'danger' | 'warning' | 'success' | 'info'
+        onConfirm: () => void
+    }) => {
+        setConfirmModal({
+            isOpen: true,
+            ...options
+        })
+    }
 
     // UI State
     const [todayStr] = useState(() => {
@@ -589,43 +628,85 @@ function AgendaContent() {
         setShowDetailModal(true)
     }
 
-    const handleDelete = async (appt?: Appointment) => {
+    const handleDelete = (appt?: Appointment) => {
         const target = appt || selectedAppointment
         if (!target) return
+        const petName = target.pets?.name || 'este'
 
-        if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
-            const res = await deleteAppointment(target.id)
-            if (res.success) {
-                setShowDetailModal(false)
-                setIsEditing(false)
-                fetchData()
-            } else {
-                alert(res.message)
+        showConfirm({
+            title: 'Cancelar Agendamento',
+            message: `Tem certeza que deseja cancelar o agendamento de "${petName}"? Esta ação não pode ser desfeita.`,
+            confirmLabel: 'Cancelar Agendamento',
+            type: 'danger',
+            onConfirm: async () => {
+                const res = await deleteAppointment(target.id)
+                if (res.success) {
+                    setShowDetailModal(false)
+                    setIsEditing(false)
+                    fetchData()
+                } else {
+                    alert(res.message)
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
             }
-        }
+        })
     }
 
-    const handleSmartAction = async (appt: Appointment, action: 'checkin' | 'checkout' | 'start') => {
-        let res
-        if (action === 'checkin') res = await checkInAppointment(appt.id)
-        else if (action === 'checkout') res = await checkOutAppointment(appt.id)
-        else if (action === 'start') res = await updateAppointmentStatus(appt.id, 'in_progress')
+    const handleSmartAction = (appt: Appointment, action: 'checkin' | 'checkout' | 'start') => {
+        const petName = appt.pets?.name || 'Pet'
+        
+        let modalTitle = 'Confirmar Ação'
+        let modalMessage = 'Deseja prosseguir?'
+        let confirmBtnLabel = 'Confirmar'
+        let modalType: 'danger' | 'warning' | 'success' | 'info' = 'info'
 
-        if (res?.success) {
-            fetchData()
-            if (action === 'checkin' || action === 'start') {
-                // Abre o modal de execução após o check-in ou início
-                const updated = {
-                    ...appt,
-                    status: 'in_progress' as const,
-                    actual_check_in: appt.actual_check_in || new Date().toISOString()
-                }
-                setSelectedAppointment(updated)
-                setIsEditing(false)
-                setShowDetailModal(false) // Fecha o de detalhes se estiver aberto
-            }
+        if (action === 'checkin') {
+            modalTitle = 'Confirmar Entrada (Check-in)'
+            modalMessage = `Deseja registrar o check-in do pet "${petName}" e iniciar o atendimento?`
+            confirmBtnLabel = 'Registrar Check-in'
+            modalType = 'success'
+        } else if (action === 'checkout') {
+            modalTitle = 'Confirmar Saída (Check-out)'
+            modalMessage = `Deseja registrar o check-out do pet "${petName}" e finalizar o atendimento?`
+            confirmBtnLabel = 'Registrar Check-out'
+            modalType = 'warning'
+        } else if (action === 'start') {
+            modalTitle = 'Iniciar Atendimento'
+            modalMessage = `Deseja alterar o status do pet "${petName}" para "Em Andamento"?`
+            confirmBtnLabel = 'Iniciar'
+            modalType = 'info'
         }
-        else alert(res?.message || 'Erro ao atualizar status')
+
+        showConfirm({
+            title: modalTitle,
+            message: modalMessage,
+            confirmLabel: confirmBtnLabel,
+            type: modalType,
+            onConfirm: async () => {
+                let res
+                if (action === 'checkin') res = await checkInAppointment(appt.id)
+                else if (action === 'checkout') res = await checkOutAppointment(appt.id)
+                else if (action === 'start') res = await updateAppointmentStatus(appt.id, 'in_progress')
+
+                if (res?.success) {
+                    fetchData()
+                    if (action === 'checkin' || action === 'start') {
+                        // Abre o modal de execução após o check-in ou início
+                        const updated = {
+                            ...appt,
+                            status: 'in_progress' as const,
+                            actual_check_in: appt.actual_check_in || new Date().toISOString()
+                        }
+                        setSelectedAppointment(updated)
+                        setIsEditing(false)
+                        setShowDetailModal(false) // Fecha o de detalhes se estiver aberto
+                    }
+                } else {
+                    alert(res?.message || 'Erro ao atualizar status')
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+            }
+        })
     }
 
     const getStatusLabel = (status: string) => {
@@ -639,11 +720,21 @@ function AgendaContent() {
         }
     }
 
-    const handleBlockDelete = async (id: string) => {
-        if (confirm('Remover bloqueio?')) {
-            await deleteScheduleBlock(id)
-            fetchData()
-        }
+    const handleBlockDelete = (id: string) => {
+        const block = blocks.find(b => b.id === id)
+        const reason = block?.reason || 'este bloqueio'
+
+        showConfirm({
+            title: 'Remover Bloqueio de Agenda',
+            message: `Tem certeza que deseja remover o bloqueio "${reason}"?`,
+            confirmLabel: 'Remover Bloqueio',
+            type: 'danger',
+            onConfirm: async () => {
+                await deleteScheduleBlock(id)
+                fetchData()
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+            }
+        })
     }
 
     const handleCreateBlock = async (formData: FormData) => {
@@ -1329,11 +1420,7 @@ function AgendaContent() {
                                         <button 
                                             type="button" 
                                             className={styles.deleteBtn} 
-                                            onClick={() => {
-                                                if (confirm('Tem certeza que deseja cancelar este agendamento?')) {
-                                                    handleDelete(selectedAppointment)
-                                                }
-                                            }}
+                                            onClick={() => handleDelete(selectedAppointment)}
                                             style={{ marginRight: 'auto' }}
                                         >
                                             🗑️ Cancelar Agendamento
@@ -1564,6 +1651,18 @@ function AgendaContent() {
                         onSave={() => fetchData()}
                     />
                 )}
+
+                <ConfirmationModal
+                    isOpen={confirmModal.isOpen}
+                    title={confirmModal.title}
+                    message={confirmModal.message}
+                    confirmLabel={confirmModal.confirmLabel}
+                    cancelLabel={confirmModal.cancelLabel}
+                    confirmColor={confirmModal.confirmColor}
+                    type={confirmModal.type}
+                    onConfirm={confirmModal.onConfirm}
+                    onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                />
             </div>
         </PlanGuard>
     )

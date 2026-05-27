@@ -11,6 +11,7 @@ import EditAppointmentModal from '@/components/EditAppointmentModal'
 import PlanGuard from '@/components/modules/PlanGuard'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import AppointmentCard from '@/components/ui/AppointmentCard'
+import ConfirmationModal from '@/components/ui/ConfirmationModal'
 
 interface Appointment {
     id: string
@@ -64,6 +65,38 @@ export default function HospedagemPage() {
     const [nfMap, setNfMap] = useState<Record<string, { id: string, status: string, pdf_url?: string, ref?: string }>>({})
     const [paidMap, setPaidMap] = useState<Record<string, number>>({})
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
+
+    // Custom Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean
+        title: string
+        message: string
+        confirmLabel?: string
+        cancelLabel?: string
+        confirmColor?: string
+        type?: 'danger' | 'warning' | 'success' | 'info'
+        onConfirm: () => void
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {}
+    })
+
+    const showConfirm = (options: {
+        title: string
+        message: string
+        confirmLabel?: string
+        cancelLabel?: string
+        confirmColor?: string
+        type?: 'danger' | 'warning' | 'success' | 'info'
+        onConfirm: () => void
+    }) => {
+        setConfirmModal({
+            isOpen: true,
+            ...options
+        })
+    }
 
     const handleSendWhatsApp = async (referencia: string) => {
         if (!referencia) {
@@ -265,43 +298,77 @@ export default function HospedagemPage() {
         return () => { supabase.removeChannel(channel) }
     }, [supabase])
 
-    const handleCheckIn = async (appointmentId: string) => {
-        const result = await checkInAppointment(appointmentId)
-        if (result.success) {
-            fetchHospedagemData(true)
-            const currentObj = appointments.find(a => a.id === appointmentId)
-            if (currentObj) {
-                const updated = { 
-                    ...currentObj, 
-                    actual_check_in: new Date().toISOString(),
-                    status: 'in_progress' as const
+    const handleCheckIn = (appointmentId: string) => {
+        const currentObj = appointments.find(a => a.id === appointmentId)
+        const petName = currentObj?.pets?.name || 'Pet'
+        
+        showConfirm({
+            title: 'Confirmar Entrada (Check-in)',
+            message: `Deseja registrar o check-in do pet "${petName}" na Hospedagem e iniciar a estadia?`,
+            confirmLabel: 'Confirmar Check-in',
+            type: 'success',
+            onConfirm: async () => {
+                const result = await checkInAppointment(appointmentId)
+                if (result.success) {
+                    fetchHospedagemData(true)
+                    if (currentObj) {
+                        const updated = { 
+                            ...currentObj, 
+                            actual_check_in: new Date().toISOString(),
+                            status: 'in_progress' as const
+                        }
+                        setSelectedAppointment(updated)
+                    }
+                } else {
+                    alert(result.message)
                 }
-                setSelectedAppointment(updated)
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
             }
-        } else {
-            alert(result.message)
-        }
+        })
     }
 
-    const handleCheckOut = async (appointmentId: string) => {
-        const result = await checkOutAppointment(appointmentId)
-        if (result.success) {
-            alert(result.message)
-            fetchHospedagemData()
-        } else {
-            alert(result.message)
-        }
+    const handleCheckOut = (appointmentId: string) => {
+        const currentObj = appointments.find(a => a.id === appointmentId)
+        const petName = currentObj?.pets?.name || 'Pet'
+        
+        showConfirm({
+            title: 'Confirmar Saída (Check-out)',
+            message: `Deseja registrar o check-out do pet "${petName}" e encerrar a hospedagem?`,
+            confirmLabel: 'Confirmar Saída',
+            type: 'warning',
+            onConfirm: async () => {
+                const result = await checkOutAppointment(appointmentId)
+                if (result.success) {
+                    alert(result.message)
+                    fetchHospedagemData()
+                } else {
+                    alert(result.message)
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+            }
+        })
     }
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Tem certeza que deseja excluir este agendamento?')) return
-        const result = await deleteAppointment(id)
-        if (result.success) {
-            alert(result.message)
-            fetchHospedagemData()
-        } else {
-            alert(result.message)
-        }
+    const handleDelete = (id: string) => {
+        const currentObj = appointments.find(a => a.id === id)
+        const petName = currentObj?.pets?.name || 'este'
+        
+        showConfirm({
+            title: 'Excluir Agendamento',
+            message: `Tem certeza que deseja excluir o agendamento de "${petName}"? Esta ação não pode ser desfeita.`,
+            confirmLabel: 'Excluir',
+            type: 'danger',
+            onConfirm: async () => {
+                const result = await deleteAppointment(id)
+                if (result.success) {
+                    alert(result.message)
+                    fetchHospedagemData()
+                } else {
+                    alert(result.message)
+                }
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
+            }
+        })
     }
 
     const filteredAppointments = appointments.filter(appt => {
@@ -456,6 +523,18 @@ export default function HospedagemPage() {
                     }}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmLabel={confirmModal.confirmLabel}
+                cancelLabel={confirmModal.cancelLabel}
+                confirmColor={confirmModal.confirmColor}
+                type={confirmModal.type}
+                onConfirm={confirmModal.onConfirm}
+                onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
         </PlanGuard>
     )
 }
