@@ -18,7 +18,7 @@ import {
 import {
     createScheduleBlock,
     deleteScheduleBlock
-} from '@/app/actions/appointment-block'
+} from '@/app/actions/schedule'
 import DateInput from '@/components/ui/DateInput'
 import {
     getVeterinarians,
