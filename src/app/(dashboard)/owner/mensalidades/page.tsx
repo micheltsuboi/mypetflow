@@ -103,7 +103,11 @@ export default function MensalidadesPage() {
     const openEdit = (plan: any) => {
         setSelectedPlan(plan)
         setIsEditing(true)
-        setSelectedServices(plan.package_items?.map((i: any) => ({ service_id: i.service_id, quantity: i.quantity || 1 })) || [])
+        setSelectedServices(plan.package_items?.map((i: any) => ({
+            service_id: i.service_id,
+            quantity: i.quantity || 1,
+            recurrence_type: i.recurrence_type || 'fixed'
+        })) || [])
         setShowPlanModal(true)
     }
 
@@ -122,7 +126,7 @@ export default function MensalidadesPage() {
     const handleAddService = () => {
         if (!selectedServiceId) return
         if (!selectedServices.some((s: any) => s.service_id === selectedServiceId)) {
-            setSelectedServices(prev => [...prev, { service_id: selectedServiceId, quantity: 1 }])
+            setSelectedServices(prev => [...prev, { service_id: selectedServiceId, quantity: 1, recurrence_type: 'fixed' }])
             setSelectedServiceId('')
         }
     }
@@ -133,6 +137,10 @@ export default function MensalidadesPage() {
 
     const handleUpdateServiceQuantity = (serviceId: string, quantity: number) => {
         setSelectedServices(prev => prev.map((s: any) => s.service_id === serviceId ? { ...s, quantity: Math.max(1, quantity) } : s))
+    }
+
+    const handleUpdateServiceRecurrenceType = (serviceId: string, recurrenceType: 'fixed' | 'weekly') => {
+        setSelectedServices(prev => prev.map((s: any) => s.service_id === serviceId ? { ...s, recurrence_type: recurrenceType } : s))
     }
 
     const formatCategory = (category: string) => {
@@ -242,7 +250,10 @@ export default function MensalidadesPage() {
                                     </div>
                                     {plan.package_items && plan.package_items.length > 0 && (
                                         <div className={styles.planMetaItem}>
-                                            ✂️ {plan.package_items.map((i: any) => `${i.services?.name || 'Serviço'} (${i.quantity || 1}x)`).join(', ')}
+                                            ✂️ {plan.package_items.map((i: any) => {
+                                                const freq = i.recurrence_type === 'weekly' ? 'semanal' : 'fixo';
+                                                return `${i.services?.name || 'Serviço'} (${i.quantity || 1}x ${freq})`;
+                                            }).join(', ')}
                                         </div>
                                     )}
                                 </div>
@@ -420,23 +431,44 @@ export default function MensalidadesPage() {
                                                             <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{s.name}</span>
                                                             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{formatCategory(s.category)}</span>
                                                         </div>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginRight: '1rem' }}>
-                                                            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Qtd:</label>
-                                                            <input
-                                                                type="number"
-                                                                min="1"
-                                                                value={item.quantity}
-                                                                onChange={e => handleUpdateServiceQuantity(item.service_id, parseInt(e.target.value) || 1)}
-                                                                style={{
-                                                                    width: '60px',
-                                                                    padding: '4px 8px',
-                                                                    borderRadius: '6px',
-                                                                    border: '1px solid var(--border)',
-                                                                    background: 'var(--bg-primary)',
-                                                                    color: 'var(--text-primary)',
-                                                                    textAlign: 'center'
-                                                                }}
-                                                            />
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginRight: '1rem' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Frequência:</label>
+                                                                <select
+                                                                    value={item.recurrence_type || 'fixed'}
+                                                                    onChange={e => handleUpdateServiceRecurrenceType(item.service_id, e.target.value as 'fixed' | 'weekly')}
+                                                                    style={{
+                                                                        padding: '4px 8px',
+                                                                        borderRadius: '6px',
+                                                                        border: '1px solid var(--border)',
+                                                                        background: 'var(--bg-primary)',
+                                                                        color: 'var(--text-primary)',
+                                                                        fontSize: '0.8rem'
+                                                                    }}
+                                                                >
+                                                                    <option value="fixed">Fixo Mensal</option>
+                                                                    <option value="weekly">Semanal Recorrente</option>
+                                                                </select>
+                                                            </div>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                                <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Qtd:</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    value={item.quantity}
+                                                                    onChange={e => handleUpdateServiceQuantity(item.service_id, parseInt(e.target.value) || 1)}
+                                                                    style={{
+                                                                        width: '50px',
+                                                                        padding: '4px 8px',
+                                                                        borderRadius: '6px',
+                                                                        border: '1px solid var(--border)',
+                                                                        background: 'var(--bg-primary)',
+                                                                        color: 'var(--text-primary)',
+                                                                        textAlign: 'center',
+                                                                        fontSize: '0.8rem'
+                                                                    }}
+                                                                />
+                                                            </div>
                                                         </div>
                                                         <button type="button" onClick={() => handleRemoveService(item.service_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0.25rem' }} title="Remover">
                                                             🗑️
@@ -666,15 +698,32 @@ export default function MensalidadesPage() {
                                     <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>Nenhuma sessão gerada ainda.</p>
                                 )}
                                 {subSessions.map(s => {
-                                    const d = new Date(s.scheduled_at)
                                     const statusClass = s.status === 'done' ? styles.statusDone : s.status === 'missed' ? styles.statusMissed : styles.statusPending
                                     return (
                                         <div key={s.id} className={`${styles.sessionItem} ${statusClass}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-tertiary)', borderRadius: '8px', alignItems: 'center' }}>
                                             <div>
-                                                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                                                    {DAYS_FULL[d.getDay()]}, {d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                                                </div>
-                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • Sessão #{s.session_number}</div>
+                                                {s.scheduled_at ? (() => {
+                                                    const d = new Date(s.scheduled_at)
+                                                    return (
+                                                        <>
+                                                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>
+                                                                {DAYS_FULL[d.getDay()]}, {d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                            </div>
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                                {d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} • Sessão #{s.session_number}
+                                                            </div>
+                                                        </>
+                                                    )
+                                                })() : (
+                                                    <>
+                                                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                                            📅 Sessão pendente (A agendar)
+                                                        </div>
+                                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                            Sessão #{s.session_number}
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                                 <span style={{

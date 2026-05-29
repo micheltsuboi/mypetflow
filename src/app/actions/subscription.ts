@@ -28,10 +28,11 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
 
     if (servicesJson) {
         try {
-            const parsed = JSON.parse(servicesJson) as { service_id: string; quantity: number }[]
+            const parsed = JSON.parse(servicesJson) as { service_id: string; quantity: number; recurrence_type?: string }[]
             itemsToInsert = parsed.map(item => ({
                 service_id: item.service_id,
-                quantity: item.quantity || 1
+                quantity: item.quantity || 1,
+                recurrence_type: item.recurrence_type || 'fixed'
             }))
         } catch (e) {
             console.error('Erro ao fazer parse de services_json:', e)
@@ -41,7 +42,8 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
         const service_ids = rawServices.map(s => s as string).filter(Boolean)
         itemsToInsert = service_ids.map(sid => ({
             service_id: sid,
-            quantity: 1
+            quantity: 1,
+            recurrence_type: 'fixed'
         }))
     }
 
@@ -68,7 +70,8 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
         const items = itemsToInsert.map(item => ({
             package_id: package_data.id,
             service_id: item.service_id,
-            quantity: item.quantity
+            quantity: item.quantity,
+            recurrence_type: item.recurrence_type
         }))
         const { error: itemsError } = await supabase.from('package_items').insert(items)
         if (itemsError) return { message: itemsError.message, success: false }
@@ -94,10 +97,11 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
 
     if (servicesJson) {
         try {
-            const parsed = JSON.parse(servicesJson) as { service_id: string; quantity: number }[]
+            const parsed = JSON.parse(servicesJson) as { service_id: string; quantity: number; recurrence_type?: string }[]
             itemsToInsert = parsed.map(item => ({
                 service_id: item.service_id,
-                quantity: item.quantity || 1
+                quantity: item.quantity || 1,
+                recurrence_type: item.recurrence_type || 'fixed'
             }))
         } catch (e) {
             console.error('Erro ao fazer parse de services_json:', e)
@@ -107,7 +111,8 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
         const service_ids = rawServices.map(s => s as string).filter(Boolean)
         itemsToInsert = service_ids.map(sid => ({
             service_id: sid,
-            quantity: 1
+            quantity: 1,
+            recurrence_type: 'fixed'
         }))
     }
 
@@ -133,7 +138,8 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
         const items = itemsToInsert.map(item => ({
             package_id: id,
             service_id: item.service_id,
-            quantity: item.quantity
+            quantity: item.quantity,
+            recurrence_type: item.recurrence_type
         }))
         const { error: itemsError } = await supabase.from('package_items').insert(items)
         if (itemsError) return { message: itemsError.message, success: false }
@@ -194,7 +200,7 @@ export async function getSubscriptionPlans() {
 
     const { data, error } = await supabase
         .from('service_packages')
-        .select('*, package_items(id, service_id, quantity, services(id, name, category, base_price))')
+        .select('*, package_items(id, service_id, quantity, recurrence_type, services(id, name, category, base_price))')
         .eq('org_id', profile.org_id)
         .eq('is_subscription', true)
         .order('name')
@@ -271,7 +277,7 @@ export async function subscribePetToMensalidade(
     // Fetch pet + customer + plan data
     const [petRes, planRes] = await Promise.all([
         supabase.from('pets').select('id, name, customer_id, customers(name, phone_1)').eq('id', petId).single(),
-        supabase.from('service_packages').select('*, package_items(service_id, quantity)').eq('id', planId).single()
+        supabase.from('service_packages').select('*, package_items(service_id, quantity, recurrence_type)').eq('id', planId).single()
     ])
 
     if (petRes.error || !petRes.data) return { message: 'Pet não encontrado.', success: false }
@@ -335,7 +341,8 @@ export async function subscribePetToMensalidade(
             used_quantity: 0,
             remaining_quantity: item.quantity,
             preferred_days_of_week: schedule?.preferred_days_of_week ?? daysOfWeek ?? null,
-            preferred_time: schedule?.preferred_time ?? time ?? null
+            preferred_time: schedule?.preferred_time ?? time ?? null,
+            recurrence_type: item.recurrence_type || 'fixed'
         }
     })
 
