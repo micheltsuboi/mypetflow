@@ -583,7 +583,7 @@ export default function MensalidadesPage() {
                                                     return (
                                                         <div key={item.service_id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '10px', borderBottom: '1px dashed var(--border)' }}>
                                                             <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                                                                {svcName} ({item.quantity || 1}x no mês)
+                                                                {svcName} ({item.quantity || 1}x {item.recurrence_type === 'weekly' ? 'por semana' : 'no mês'})
                                                             </div>
                                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                                                  {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((day, idx) => {
@@ -778,7 +778,7 @@ export default function MensalidadesPage() {
                                         return (
                                             <div key={item.service_id} style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '10px', borderBottom: '1px dashed var(--border)' }}>
                                                 <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                                                    {svcName} ({item.quantity || 1}x no mês)
+                                                    {svcName} ({item.quantity || 1}x {item.recurrence_type === 'weekly' ? 'por semana' : 'no mês'})
                                                 </div>
                                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                                                      {['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map((day, idx) => {
