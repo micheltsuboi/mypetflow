@@ -316,6 +316,8 @@
 /* Direita: Carrinho */
 .cartSection {
     width: 380px;
+    max-width: 100%;
+    min-width: 320px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -323,6 +325,8 @@
     flex-direction: column;
     overflow: hidden;
     flex-shrink: 0;
+    height: 100%;
+    transition: width 0.2s ease;
 }
 
 .cartHeader {
@@ -418,10 +422,8 @@
 
 /* Itens do Carrinho */
 .cartItemsContainer {
-    flex: 1;
-    overflow-y: auto;
     padding: 0.8rem 1rem;
-    min-height: 220px;
+    min-height: 80px;
 }
 
 .emptyCart {
@@ -582,6 +584,146 @@
     background: var(--bg-tertiary);
     border-top: 1px solid var(--border);
     padding: 1rem;
+}
+
+/* Área de Scroll Única do Carrinho */
+.cartScrollableArea {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.cartScrollableArea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cartScrollableArea::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 4px;
+}
+
+/* Rodapé do Carrinho para Fixar Botão */
+.cartFooter {
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+/* Atalhos Rápidos de Desconto */
+.quickDiscountButtons {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.quickDiscountButtons button {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quickDiscountButtons button:hover {
+    background: var(--bg-hover);
+    color: var(--color-navy);
+    border-color: var(--color-navy);
+}
+
+.clearDiscountBtn {
+    background: rgba(239, 68, 68, 0.05) !important;
+    color: #ef4444 !important;
+    border-color: rgba(239, 68, 68, 0.2) !important;
+}
+
+.clearDiscountBtn:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+/* Grid de Formas de Pagamento */
+.paymentMethodsGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+
+.paymentMethodBtn {
+    padding: 0.6rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.paymentMethodBtn:hover {
+    background: var(--bg-hover);
+    border-color: var(--color-navy);
+}
+
+.activePayment {
+    background: var(--color-navy) !important;
+    color: white !important;
+    border-color: var(--color-navy) !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(27, 59, 90, 0.2);
+}
+
+/* Toggle de Status da Venda */
+.paymentStatusRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.statusToggleBtn {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.statusToggleBtn:hover {
+    background: var(--bg-hover);
+}
+
+.statusPaidActive {
+    background: rgba(16, 185, 129, 0.1) !important;
+    color: #10b981 !important;
+    border-color: #10b981 !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
+}
+
+.statusPendingActive {
+    background: rgba(245, 158, 11, 0.1) !important;
+    color: #f59e0b !important;
+    border-color: #f59e0b !important;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.1);
 }
 
 .discountRow {
@@ -816,6 +958,18 @@
 .discountText {
     color: #16a34a;
     font-weight: 600;
+}
+
+/* Ajustes para telas médias (notebooks de 13") para evitar que o catálogo de produtos fique muito espremido */
+@media (min-width: 1025px) and (max-width: 1280px) {
+    .cartSection {
+        width: 340px; /* Um pouco mais estreito, porém legível */
+        min-width: 320px;
+    }
+    .pdvContent {
+        gap: 1rem;
+        padding: 1rem;
+    }
 }
 
 @media (max-width: 1024px) {

@@ -582,208 +582,273 @@ export default function PetshopPage() {
                         <h2>Carrinho ({cart.reduce((a, b) => a + b.quantity, 0)} itens)</h2>
                     </div>
 
-                    {/* Vínculo de Cliente */}
-                    <div className={styles.customerLinkArea}>
-                        <label className={styles.cartLabel}>Tutor / Cliente</label>
-                        {!selectedTutor ? (
-                            <div style={{ position: 'relative' }}>
-                                <input
-                                    className={styles.cartInput}
-                                    placeholder="Venda avulsa. Ou busque o tutor..."
-                                    value={tutorQuery}
-                                    onChange={e => setTutorQuery(e.target.value)}
-                                />
-                                {tutorResults.length > 0 && (
-                                    <div className={styles.searchResultsDropdown}>
-                                        {tutorResults.map(tutor => (
-                                            <div
-                                                key={tutor.id}
-                                                className={styles.searchResultItem}
-                                                onClick={() => {
-                                                    setSelectedTutor(tutor)
-                                                    setTutorResults([])
-                                                    setTutorQuery('')
-                                                }}
-                                            >
-                                                <strong>{tutor.name} {tutor.pets.length > 0 && `(🐾 ${tutor.pets.map(p => p.name).join(', ')})`}</strong>
-                                                <small>{tutor.cpf ? `CPF: ${tutor.cpf}` : ''}</small>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className={styles.selectedCustomerCard}>
-                                <div>
-                                    <strong>{selectedTutor.name} {selectedTutor.pets.length > 0 && `(🐾 ${selectedTutor.pets.map(p => p.name).join(', ')})`}</strong>
-                                </div>
-                                <button className={styles.removeLinkedBtn} onClick={() => {
-                                    setSelectedTutor(null)
-                                    setSelectedPetId('')
-                                }}>
-                                    ✕ Remover
-                                </button>
-                            </div>
-                        )}
-
-                        {selectedTutor && selectedTutor.pets.length > 0 && (
-                            <div style={{ marginTop: '0.75rem' }}>
-                                <label className={styles.cartLabel}>Vincular ao Pet</label>
-                                <select
-                                    className={styles.cartSelect}
-                                    value={selectedPetId}
-                                    onChange={e => setSelectedPetId(e.target.value)}
-                                >
-                                    <option value="">Nenhum (Venda só pro tutor)</option>
-                                    {selectedTutor.pets.map(pet => (
-                                        <option key={pet.id} value={pet.id}>{pet.name} ({pet.species})</option>
-                                    ))}
-                                </select>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Itens do Carrinho */}
-                    <div className={styles.cartItemsContainer}>
-                        {cart.length === 0 ? (
-                            <div className={styles.emptyCart}>
-                                <ShoppingCart size={40} color="var(--border)" />
-                                <p>Sua cesta está vazia</p>
-                            </div>
-                        ) : (
-                            <div className={styles.cartItemList}>
-                                {cart.map((item) => (
-                                    <div key={item.product_id} className={styles.cartItem}>
-                                        <div className={styles.cartItemInfo}>
-                                            <strong>{item.name}</strong>
-                                            <div className={styles.cartItemDetails}>
-                                                <span>{formatCurrency(item.unit_price)} unid.</span>
-                                                <span className={styles.cartItemTotal}>{formatCurrency(item.total_price)}</span>
-                                            </div>
-                                        </div>
-                                        <div className={styles.cartItemActions}>
-                                            <div className={styles.quantityControls}>
-                                                <button onClick={() => updateCartQuantity(item.product_id, -1)}><Minus size={14} /></button>
-                                                <span>{item.quantity}</span>
-                                                <button onClick={() => updateCartQuantity(item.product_id, 1)} disabled={item.quantity >= item.stock_quantity}><Plus size={14} /></button>
-                                            </div>
-                                            <button className={styles.removeBtn} onClick={() => removeFromCart(item.product_id)}>
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Resumo e Pagamento */}
-                    <div className={styles.checkoutSection}>
-                        <div className={styles.discountRow}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <label>Desconto Global</label>
-                                <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px' }}>
-                                    <button 
-                                        onClick={() => setGlobalDiscountType('percent')}
-                                        style={{ 
-                                            padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
-                                            background: globalDiscountType === 'percent' ? 'var(--color-navy)' : 'transparent',
-                                            color: globalDiscountType === 'percent' ? 'white' : 'var(--text-secondary)',
-                                            fontWeight: globalDiscountType === 'percent' ? 700 : 400
-                                        }}>%</button>
-                                    <button 
-                                        onClick={() => setGlobalDiscountType('fixed')}
-                                        style={{ 
-                                            padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
-                                            background: globalDiscountType === 'fixed' ? 'var(--color-navy)' : 'transparent',
-                                            color: globalDiscountType === 'fixed' ? 'white' : 'var(--text-secondary)',
-                                            fontWeight: globalDiscountType === 'fixed' ? 700 : 400
-                                        }}>R$</button>
-                                </div>
-                            </div>
-                            <input
-                                type="number"
-                                min="0" 
-                                max={globalDiscountType === 'percent' ? 100 : undefined}
-                                className={styles.discountInput}
-                                value={globalDiscount}
-                                onChange={e => setGlobalDiscount(parseFloat(e.target.value) || 0)}
-                                style={{ width: '100%' }}
-                            />
-                        </div>
-
-                        {selectedTutor && cashbackBalance > 0 && (
-                            <div className={styles.cashbackCheckoutRow}>
-                                <div className={styles.cashbackInfo}>
-                                    <Coins size={16} color="var(--color-navy)" />
-                                    <span>Saldo: <strong>{formatCurrency(cashbackBalance)}</strong></span>
-                                </div>
-                                <div className={styles.cashbackAction}>
+                    <div className={styles.cartScrollableArea}>
+                        {/* Vínculo de Cliente */}
+                        <div className={styles.customerLinkArea}>
+                            <label className={styles.cartLabel}>Tutor / Cliente</label>
+                            {!selectedTutor ? (
+                                <div style={{ position: 'relative' }}>
                                     <input
-                                        type="checkbox"
-                                        id="useCashback"
-                                        checked={isUsingCashback}
-                                        onChange={(e) => {
-                                            setIsUsingCashback(e.target.checked)
-                                            setUseCashbackAmount(cashbackBalance)
-                                        }}
+                                        className={styles.cartInput}
+                                        placeholder="Venda avulsa. Ou busque o tutor..."
+                                        value={tutorQuery}
+                                        onChange={e => setTutorQuery(e.target.value)}
                                     />
-                                    <label htmlFor="useCashback">Usar Saldo</label>
+                                    {tutorResults.length > 0 && (
+                                        <div className={styles.searchResultsDropdown}>
+                                            {tutorResults.map(tutor => (
+                                                <div
+                                                    key={tutor.id}
+                                                    className={styles.searchResultItem}
+                                                    onClick={() => {
+                                                        setSelectedTutor(tutor)
+                                                        setTutorResults([])
+                                                        setTutorQuery('')
+                                                    }}
+                                                >
+                                                    <strong>{tutor.name} {tutor.pets.length > 0 && `(🐾 ${tutor.pets.map(p => p.name).join(', ')})`}</strong>
+                                                    <small>{tutor.cpf ? `CPF: ${tutor.cpf}` : ''}</small>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            </div>
-                        )}
-
-                        {isUsingCashback && (
-                            <div className={styles.discountRow} style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>
-                                <label>Valor a descontar</label>
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max={cashbackBalance}
-                                    step="0.01"
-                                    className={styles.discountInput}
-                                    style={{ width: '100px' }}
-                                    value={useCashbackAmount}
-                                    onChange={e => setUseCashbackAmount(Math.min(cashbackBalance, parseFloat(e.target.value) || 0))}
-                                />
-                            </div>
-                        )}
-
-                        <div className={styles.paymentMethodsRow}>
-                            <select className={styles.paymentSelect} value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-                                <option value="cash">Dinheiro</option>
-                                <option value="credit">Cartão de Crédito</option>
-                                <option value="debit">Cartão de Débito</option>
-                                <option value="pix">PIX</option>
-                            </select>
-
-                            <select
-                                className={`${styles.paymentSelect} ${paymentStatus === 'paid' ? styles.statusPaid : styles.statusPending}`}
-                                value={paymentStatus}
-                                onChange={e => setPaymentStatus(e.target.value as 'paid' | 'pending')}
-                            >
-                                <option value="paid">✅ Pago (Gerar Caixa)</option>
-                                <option value="pending">⏳ Pendente/Fiado</option>
-                            </select>
-                        </div>
-
-                        <div className={styles.totalsArea}>
-                            <div className={styles.totalRow}>
-                                <span>Subtotal</span>
-                                <span>{formatCurrency(cartTotals.subtotal)}</span>
-                            </div>
-                            {cartTotals.totalDiscount > 0 && (
-                                <div className={`${styles.totalRow} ${styles.discountText}`}>
-                                    <span>Descontos</span>
-                                    <span>- {formatCurrency(cartTotals.totalDiscount)}</span>
+                            ) : (
+                                <div className={styles.selectedCustomerCard}>
+                                    <div>
+                                        <strong>{selectedTutor.name} {selectedTutor.pets.length > 0 && `(🐾 ${selectedTutor.pets.map(p => p.name).join(', ')})`}</strong>
+                                    </div>
+                                    <button className={styles.removeLinkedBtn} onClick={() => {
+                                        setSelectedTutor(null)
+                                        setSelectedPetId('')
+                                    }}>
+                                        ✕ Remover
+                                    </button>
                                 </div>
                             )}
-                            <div className={styles.finalTotalRow}>
-                                <span>Total a Pagar</span>
-                                <span>{formatCurrency(cartTotals.finalTotal)}</span>
-                            </div>
+
+                            {selectedTutor && selectedTutor.pets.length > 0 && (
+                                <div style={{ marginTop: '0.75rem' }}>
+                                    <label className={styles.cartLabel}>Vincular ao Pet</label>
+                                    <select
+                                        className={styles.cartSelect}
+                                        value={selectedPetId}
+                                        onChange={e => setSelectedPetId(e.target.value)}
+                                    >
+                                        <option value="">Nenhum (Venda só pro tutor)</option>
+                                        {selectedTutor.pets.map(pet => (
+                                            <option key={pet.id} value={pet.id}>{pet.name} ({pet.species})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                         </div>
 
+                        {/* Itens do Carrinho */}
+                        <div className={styles.cartItemsContainer}>
+                            {cart.length === 0 ? (
+                                <div className={styles.emptyCart}>
+                                    <ShoppingCart size={40} color="var(--border)" />
+                                    <p>Sua cesta está vazia</p>
+                                </div>
+                            ) : (
+                                <div className={styles.cartItemList}>
+                                    {cart.map((item) => (
+                                        <div key={item.product_id} className={styles.cartItem}>
+                                            <div className={styles.cartItemInfo}>
+                                                <strong>{item.name}</strong>
+                                                <div className={styles.cartItemDetails}>
+                                                    <span>{formatCurrency(item.unit_price)} unid.</span>
+                                                    <span className={styles.cartItemTotal}>{formatCurrency(item.total_price)}</span>
+                                                </div>
+                                            </div>
+                                            <div className={styles.cartItemActions}>
+                                                <div className={styles.quantityControls}>
+                                                    <button onClick={() => updateCartQuantity(item.product_id, -1)}><Minus size={14} /></button>
+                                                    <span>{item.quantity}</span>
+                                                    <button onClick={() => updateCartQuantity(item.product_id, 1)} disabled={item.quantity >= item.stock_quantity}><Plus size={14} /></button>
+                                                </div>
+                                                <button className={styles.removeBtn} onClick={() => removeFromCart(item.product_id)}>
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Resumo e Pagamento */}
+                        <div className={styles.checkoutSection}>
+                            <div className={styles.discountRow}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                    <label>Desconto Global</label>
+                                    <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px' }}>
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setGlobalDiscountType('percent')
+                                                setGlobalDiscount(0)
+                                            }}
+                                            style={{ 
+                                                padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                                                background: globalDiscountType === 'percent' ? 'var(--color-navy)' : 'transparent',
+                                                color: globalDiscountType === 'percent' ? 'white' : 'var(--text-secondary)',
+                                                fontWeight: globalDiscountType === 'percent' ? 700 : 400
+                                            }}>%</button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setGlobalDiscountType('fixed')
+                                                setGlobalDiscount(0)
+                                            }}
+                                            style={{ 
+                                                padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                                                background: globalDiscountType === 'fixed' ? 'var(--color-navy)' : 'transparent',
+                                                color: globalDiscountType === 'fixed' ? 'white' : 'var(--text-secondary)',
+                                                fontWeight: globalDiscountType === 'fixed' ? 700 : 400
+                                            }}>R$</button>
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
+                                    <input
+                                        type="number"
+                                        min="0" 
+                                        max={globalDiscountType === 'percent' ? 100 : undefined}
+                                        className={styles.discountInput}
+                                        value={globalDiscount || ''}
+                                        onChange={e => setGlobalDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                                        style={{ flex: 1, textAlign: 'left' }}
+                                    />
+                                    <div className={styles.quickDiscountButtons}>
+                                        {globalDiscountType === 'percent' ? (
+                                            <>
+                                                <button type="button" onClick={() => setGlobalDiscount(5)}>5%</button>
+                                                <button type="button" onClick={() => setGlobalDiscount(10)}>10%</button>
+                                                <button type="button" onClick={() => setGlobalDiscount(15)}>15%</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <button type="button" onClick={() => setGlobalDiscount(5)}>5</button>
+                                                <button type="button" onClick={() => setGlobalDiscount(10)}>10</button>
+                                                <button type="button" onClick={() => setGlobalDiscount(20)}>20</button>
+                                            </>
+                                        )}
+                                        <button type="button" className={styles.clearDiscountBtn} onClick={() => setGlobalDiscount(0)}>Zerar</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedTutor && cashbackBalance > 0 && (
+                                <div className={styles.cashbackCheckoutRow}>
+                                    <div className={styles.cashbackInfo}>
+                                        <Coins size={16} color="var(--color-navy)" />
+                                        <span>Saldo: <strong>{formatCurrency(cashbackBalance)}</strong></span>
+                                    </div>
+                                    <div className={styles.cashbackAction}>
+                                        <input
+                                            type="checkbox"
+                                            id="useCashback"
+                                            checked={isUsingCashback}
+                                            onChange={(e) => {
+                                                setIsUsingCashback(e.target.checked)
+                                                setUseCashbackAmount(cashbackBalance)
+                                            }}
+                                        />
+                                        <label htmlFor="useCashback">Usar Saldo</label>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isUsingCashback && (
+                                <div className={styles.discountRow} style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>
+                                    <label>Valor a descontar</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max={cashbackBalance}
+                                        step="0.01"
+                                        className={styles.discountInput}
+                                        style={{ width: '100px' }}
+                                        value={useCashbackAmount}
+                                        onChange={e => setUseCashbackAmount(Math.min(cashbackBalance, parseFloat(e.target.value) || 0))}
+                                    />
+                                </div>
+                            )}
+
+                            <div className={styles.paymentMethodsRow}>
+                                <label className={styles.cartLabel}>Forma de Pagamento</label>
+                                <div className={styles.paymentMethodsGrid}>
+                                    <button
+                                        type="button"
+                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'cash' ? styles.activePayment : ''}`}
+                                        onClick={() => setPaymentMethod('cash')}
+                                    >
+                                        💵 Dinheiro
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'pix' ? styles.activePayment : ''}`}
+                                        onClick={() => setPaymentMethod('pix')}
+                                    >
+                                        ⚡ PIX
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'credit' ? styles.activePayment : ''}`}
+                                        onClick={() => setPaymentMethod('credit')}
+                                    >
+                                        💳 Crédito
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'debit' ? styles.activePayment : ''}`}
+                                        onClick={() => setPaymentMethod('debit')}
+                                    >
+                                        💳 Débito
+                                    </button>
+                                </div>
+
+                                <label className={styles.cartLabel} style={{ marginTop: '0.75rem' }}>Status da Venda</label>
+                                <div className={styles.paymentStatusRow}>
+                                    <button
+                                        type="button"
+                                        className={`${styles.statusToggleBtn} ${paymentStatus === 'paid' ? styles.statusPaidActive : ''}`}
+                                        onClick={() => setPaymentStatus('paid')}
+                                    >
+                                        ✅ Pago (Caixa)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`${styles.statusToggleBtn} ${paymentStatus === 'pending' ? styles.statusPendingActive : ''}`}
+                                        onClick={() => setPaymentStatus('pending')}
+                                    >
+                                        ⏳ Fiado / Pendente
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className={styles.totalsArea}>
+                                <div className={styles.totalRow}>
+                                    <span>Subtotal</span>
+                                    <span>{formatCurrency(cartTotals.subtotal)}</span>
+                                </div>
+                                {cartTotals.totalDiscount > 0 && (
+                                    <div className={`${styles.totalRow} ${styles.discountText}`}>
+                                        <span>Descontos</span>
+                                        <span>- {formatCurrency(cartTotals.totalDiscount)}</span>
+                                    </div>
+                                )}
+                                <div className={styles.finalTotalRow}>
+                                    <span>Total a Pagar</span>
+                                    <span>{formatCurrency(cartTotals.finalTotal)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Botão de finalizar fixo no rodapé do carrinho */}
+                    <div className={styles.cartFooter}>
                         <button
                             className={styles.checkoutBtn}
                             disabled={cart.length === 0 || isCheckingOut}
