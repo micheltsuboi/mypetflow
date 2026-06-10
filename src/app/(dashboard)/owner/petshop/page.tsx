@@ -576,7 +576,16 @@ export default function PetshopPage() {
                 </div>
 
                 {/* LADO DIREITO: Carrinho de Compras */}
-                <div className={styles.cartSection}>
+                <div className={`${styles.cartSection} ${mobileView !== 'cart' ? styles.mobileHidden : ''}`}>
+                    {/* Botão Voltar para Mobile */}
+                    <button 
+                        type="button"
+                        className={styles.backToCatalogBtn}
+                        onClick={() => setMobileView('catalog')}
+                    >
+                        ← Voltar para os Produtos
+                    </button>
+
                     <div className={styles.cartHeader}>
                         <ShoppingCart size={24} />
                         <h2>Carrinho ({cart.reduce((a, b) => a + b.quantity, 0)} itens)</h2>
@@ -615,20 +624,23 @@ export default function PetshopPage() {
                                 </div>
                             ) : (
                                 <div className={styles.selectedCustomerCard}>
-                                    <div>
-                                        <strong>{selectedTutor.name} {selectedTutor.pets.length > 0 && `(🐾 ${selectedTutor.pets.map(p => p.name).join(', ')})`}</strong>
+                                    <div className={styles.tutorInfoCompact}>
+                                        <strong>{selectedTutor.name}</strong>
+                                        {selectedTutor.pets.length > 0 && (
+                                            <span className={styles.petBadge}>🐾 {selectedTutor.pets.map(p => p.name).join(', ')}</span>
+                                        )}
                                     </div>
                                     <button className={styles.removeLinkedBtn} onClick={() => {
                                         setSelectedTutor(null)
                                         setSelectedPetId('')
                                     }}>
-                                        ✕ Remover
+                                        ✕
                                     </button>
                                 </div>
                             )}
 
                             {selectedTutor && selectedTutor.pets.length > 0 && (
-                                <div style={{ marginTop: '0.75rem' }}>
+                                <div style={{ marginTop: '0.35rem' }}>
                                     <label className={styles.cartLabel}>Vincular ao Pet</label>
                                     <select
                                         className={styles.cartSelect}
@@ -678,183 +690,38 @@ export default function PetshopPage() {
                             )}
                         </div>
 
-                        {/* Resumo e Pagamento */}
-                        <div className={styles.checkoutSection}>
-                            <div className={styles.discountRow}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                    <label>Desconto Global</label>
-                                    <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px' }}>
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                setGlobalDiscountType('percent')
-                                                setGlobalDiscount(0)
-                                            }}
-                                            style={{ 
-                                                padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
-                                                background: globalDiscountType === 'percent' ? 'var(--color-navy)' : 'transparent',
-                                                color: globalDiscountType === 'percent' ? 'white' : 'var(--text-secondary)',
-                                                fontWeight: globalDiscountType === 'percent' ? 700 : 400
-                                            }}>%</button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => {
-                                                setGlobalDiscountType('fixed')
-                                                setGlobalDiscount(0)
-                                            }}
-                                            style={{ 
-                                                padding: '4px 10px', fontSize: '0.8rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
-                                                background: globalDiscountType === 'fixed' ? 'var(--color-navy)' : 'transparent',
-                                                color: globalDiscountType === 'fixed' ? 'white' : 'var(--text-secondary)',
-                                                fontWeight: globalDiscountType === 'fixed' ? 700 : 400
-                                            }}>R$</button>
+                        {/* Resumo Simplificado */}
+                        {cart.length > 0 && (
+                            <div className={styles.checkoutSection}>
+                                <div className={styles.totalsArea} style={{ marginBottom: 0 }}>
+                                    <div className={styles.totalRow}>
+                                        <span>Subtotal</span>
+                                        <span>{formatCurrency(cartTotals.subtotal)}</span>
                                     </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
-                                    <input
-                                        type="number"
-                                        min="0" 
-                                        max={globalDiscountType === 'percent' ? 100 : undefined}
-                                        className={styles.discountInput}
-                                        value={globalDiscount || ''}
-                                        onChange={e => setGlobalDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                                        style={{ flex: 1, textAlign: 'left' }}
-                                    />
-                                    <div className={styles.quickDiscountButtons}>
-                                        {globalDiscountType === 'percent' ? (
-                                            <>
-                                                <button type="button" onClick={() => setGlobalDiscount(5)}>5%</button>
-                                                <button type="button" onClick={() => setGlobalDiscount(10)}>10%</button>
-                                                <button type="button" onClick={() => setGlobalDiscount(15)}>15%</button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <button type="button" onClick={() => setGlobalDiscount(5)}>5</button>
-                                                <button type="button" onClick={() => setGlobalDiscount(10)}>10</button>
-                                                <button type="button" onClick={() => setGlobalDiscount(20)}>20</button>
-                                            </>
-                                        )}
-                                        <button type="button" className={styles.clearDiscountBtn} onClick={() => setGlobalDiscount(0)}>Zerar</button>
+                                    {cartTotals.totalDiscount > 0 && (
+                                        <div className={`${styles.totalRow} ${styles.discountText}`}>
+                                            <span>Descontos</span>
+                                            <span>- {formatCurrency(cartTotals.totalDiscount)}</span>
+                                        </div>
+                                    )}
+                                    <div className={styles.finalTotalRow}>
+                                        <span>Total</span>
+                                        <span>{formatCurrency(cartTotals.finalTotal)}</span>
                                     </div>
                                 </div>
                             </div>
-
-                            {selectedTutor && cashbackBalance > 0 && (
-                                <div className={styles.cashbackCheckoutRow}>
-                                    <div className={styles.cashbackInfo}>
-                                        <Coins size={16} color="var(--color-navy)" />
-                                        <span>Saldo: <strong>{formatCurrency(cashbackBalance)}</strong></span>
-                                    </div>
-                                    <div className={styles.cashbackAction}>
-                                        <input
-                                            type="checkbox"
-                                            id="useCashback"
-                                            checked={isUsingCashback}
-                                            onChange={(e) => {
-                                                setIsUsingCashback(e.target.checked)
-                                                setUseCashbackAmount(cashbackBalance)
-                                            }}
-                                        />
-                                        <label htmlFor="useCashback">Usar Saldo</label>
-                                    </div>
-                                </div>
-                            )}
-
-                            {isUsingCashback && (
-                                <div className={styles.discountRow} style={{ marginTop: '-0.5rem', marginBottom: '1rem' }}>
-                                    <label>Valor a descontar</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max={cashbackBalance}
-                                        step="0.01"
-                                        className={styles.discountInput}
-                                        style={{ width: '100px' }}
-                                        value={useCashbackAmount}
-                                        onChange={e => setUseCashbackAmount(Math.min(cashbackBalance, parseFloat(e.target.value) || 0))}
-                                    />
-                                </div>
-                            )}
-
-                            <div className={styles.paymentMethodsRow}>
-                                <label className={styles.cartLabel}>Forma de Pagamento</label>
-                                <div className={styles.paymentMethodsGrid}>
-                                    <button
-                                        type="button"
-                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'cash' ? styles.activePayment : ''}`}
-                                        onClick={() => setPaymentMethod('cash')}
-                                    >
-                                        💵 Dinheiro
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'pix' ? styles.activePayment : ''}`}
-                                        onClick={() => setPaymentMethod('pix')}
-                                    >
-                                        ⚡ PIX
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'credit' ? styles.activePayment : ''}`}
-                                        onClick={() => setPaymentMethod('credit')}
-                                    >
-                                        💳 Crédito
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`${styles.paymentMethodBtn} ${paymentMethod === 'debit' ? styles.activePayment : ''}`}
-                                        onClick={() => setPaymentMethod('debit')}
-                                    >
-                                        💳 Débito
-                                    </button>
-                                </div>
-
-                                <label className={styles.cartLabel} style={{ marginTop: '0.75rem' }}>Status da Venda</label>
-                                <div className={styles.paymentStatusRow}>
-                                    <button
-                                        type="button"
-                                        className={`${styles.statusToggleBtn} ${paymentStatus === 'paid' ? styles.statusPaidActive : ''}`}
-                                        onClick={() => setPaymentStatus('paid')}
-                                    >
-                                        ✅ Pago (Caixa)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`${styles.statusToggleBtn} ${paymentStatus === 'pending' ? styles.statusPendingActive : ''}`}
-                                        onClick={() => setPaymentStatus('pending')}
-                                    >
-                                        ⏳ Fiado / Pendente
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className={styles.totalsArea}>
-                                <div className={styles.totalRow}>
-                                    <span>Subtotal</span>
-                                    <span>{formatCurrency(cartTotals.subtotal)}</span>
-                                </div>
-                                {cartTotals.totalDiscount > 0 && (
-                                    <div className={`${styles.totalRow} ${styles.discountText}`}>
-                                        <span>Descontos</span>
-                                        <span>- {formatCurrency(cartTotals.totalDiscount)}</span>
-                                    </div>
-                                )}
-                                <div className={styles.finalTotalRow}>
-                                    <span>Total a Pagar</span>
-                                    <span>{formatCurrency(cartTotals.finalTotal)}</span>
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Botão de finalizar fixo no rodapé do carrinho */}
                     <div className={styles.cartFooter}>
                         <button
+                            type="button"
                             className={styles.checkoutBtn}
-                            disabled={cart.length === 0 || isCheckingOut}
-                            onClick={handleCheckout}
+                            disabled={cart.length === 0}
+                            onClick={() => setShowCheckoutModal(true)}
                         >
-                            {isCheckingOut ? 'Finalizando...' : 'Finalizar Venda'}
+                            Finalizar Venda
                         </button>
                     </div>
                 </div>
@@ -862,6 +729,220 @@ export default function PetshopPage() {
                     </div>
                 )}
 
+
+                {showCheckoutModal && (
+                    <div className={styles.modalOverlay} onClick={() => setShowCheckoutModal(false)}>
+                        <div className={styles.modalContent} style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+                            <button className={styles.closeButton} onClick={() => setShowCheckoutModal(false)}>
+                                ✕
+                            </button>
+                            
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                                💳 Fechamento da Venda
+                            </h2>
+
+                            {/* Resumo da Venda */}
+                            <div className={styles.checkoutSummaryCard}>
+                                <div>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Itens a processar:</span>
+                                    <strong style={{ display: 'block', fontSize: '1.1rem' }}>{cart.reduce((a, b) => a + b.quantity, 0)} produtos</strong>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Subtotal:</span>
+                                    <strong style={{ display: 'block', fontSize: '1.1rem', color: 'var(--primary)' }}>{formatCurrency(cartTotals.subtotal)}</strong>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '1rem' }}>
+                                {/* Desconto Global */}
+                                <div className={styles.discountRow} style={{ flexDirection: 'column', alignItems: 'stretch', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <label className={styles.label} style={{ margin: 0 }}>Desconto Global</label>
+                                        <div style={{ display: 'flex', background: 'var(--bg-primary)', borderRadius: '6px', padding: '2px' }}>
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    setGlobalDiscountType('percent')
+                                                    setGlobalDiscount(0)
+                                                }}
+                                                style={{ 
+                                                    padding: '3px 8px', fontSize: '0.75rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                                                    background: globalDiscountType === 'percent' ? 'var(--color-navy)' : 'transparent',
+                                                    color: globalDiscountType === 'percent' ? 'white' : 'var(--text-secondary)',
+                                                    fontWeight: globalDiscountType === 'percent' ? 700 : 400
+                                                }}>%</button>
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    setGlobalDiscountType('fixed')
+                                                    setGlobalDiscount(0)
+                                                }}
+                                                style={{ 
+                                                    padding: '3px 8px', fontSize: '0.75rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
+                                                    background: globalDiscountType === 'fixed' ? 'var(--color-navy)' : 'transparent',
+                                                    color: globalDiscountType === 'fixed' ? 'white' : 'var(--text-secondary)',
+                                                    fontWeight: globalDiscountType === 'fixed' ? 700 : 400
+                                                }}>R$</button>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', width: '100%' }}>
+                                        <input
+                                            type="number"
+                                            min="0" 
+                                            max={globalDiscountType === 'percent' ? 100 : undefined}
+                                            className={styles.input}
+                                            value={globalDiscount || ''}
+                                            onChange={e => setGlobalDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
+                                            style={{ flex: 1, padding: '0.5rem' }}
+                                        />
+                                        <div className={styles.quickDiscountButtons}>
+                                            {globalDiscountType === 'percent' ? (
+                                                <>
+                                                    <button type="button" onClick={() => setGlobalDiscount(5)}>5%</button>
+                                                    <button type="button" onClick={() => setGlobalDiscount(10)}>10%</button>
+                                                    <button type="button" onClick={() => setGlobalDiscount(15)}>15%</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <button type="button" onClick={() => setGlobalDiscount(5)}>5</button>
+                                                    <button type="button" onClick={() => setGlobalDiscount(10)}>10</button>
+                                                    <button type="button" onClick={() => setGlobalDiscount(20)}>20</button>
+                                                </>
+                                            )}
+                                            <button type="button" className={styles.clearDiscountBtn} onClick={() => setGlobalDiscount(0)}>Zerar</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Cashback */}
+                                {selectedTutor && cashbackBalance > 0 && (
+                                    <div className={styles.cashbackCheckoutRow} style={{ margin: 0 }}>
+                                        <div className={styles.cashbackInfo}>
+                                            <Coins size={16} color="var(--color-navy)" />
+                                            <span>Saldo de Cashback: <strong>{formatCurrency(cashbackBalance)}</strong></span>
+                                        </div>
+                                        <div className={styles.cashbackAction}>
+                                            <input
+                                                type="checkbox"
+                                                id="modalUseCashback"
+                                                checked={isUsingCashback}
+                                                onChange={(e) => {
+                                                    setIsUsingCashback(e.target.checked)
+                                                    setUseCashbackAmount(cashbackBalance)
+                                                }}
+                                            />
+                                            <label htmlFor="modalUseCashback">Usar Saldo</label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {isUsingCashback && (
+                                    <div className={styles.formGroup} style={{ margin: 0 }}>
+                                        <label className={styles.label}>Valor do Cashback a descontar</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={cashbackBalance}
+                                            step="0.01"
+                                            className={styles.input}
+                                            style={{ width: '120px' }}
+                                            value={useCashbackAmount}
+                                            onChange={e => setUseCashbackAmount(Math.min(cashbackBalance, parseFloat(e.target.value) || 0))}
+                                        />
+                                    </div>
+                                )}
+
+                                {/* Forma de Pagamento e Status */}
+                                <div className={styles.formGroup} style={{ margin: 0 }}>
+                                    <label className={styles.label}>Forma de Pagamento</label>
+                                    <div className={styles.paymentMethodsGrid}>
+                                        <button
+                                            type="button"
+                                            className={`${styles.paymentMethodBtn} ${paymentMethod === 'cash' ? styles.activePayment : ''}`}
+                                            onClick={() => setPaymentMethod('cash')}
+                                        >
+                                            💵 Dinheiro
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`${styles.paymentMethodBtn} ${paymentMethod === 'pix' ? styles.activePayment : ''}`}
+                                            onClick={() => setPaymentMethod('pix')}
+                                        >
+                                            ⚡ PIX
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`${styles.paymentMethodBtn} ${paymentMethod === 'credit' ? styles.activePayment : ''}`}
+                                            onClick={() => setPaymentMethod('credit')}
+                                        >
+                                            💳 Crédito
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`${styles.paymentMethodBtn} ${paymentMethod === 'debit' ? styles.activePayment : ''}`}
+                                            onClick={() => setPaymentMethod('debit')}
+                                        >
+                                            💳 Débito
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className={styles.formGroup} style={{ margin: 0 }}>
+                                    <label className={styles.label}>Status do Pagamento</label>
+                                    <div className={styles.paymentStatusRow}>
+                                        <button
+                                            type="button"
+                                            className={`${styles.statusToggleBtn} ${paymentStatus === 'paid' ? styles.statusPaidActive : ''}`}
+                                            onClick={() => setPaymentStatus('paid')}
+                                            style={{ padding: '0.75rem' }}
+                                        >
+                                            ✅ Pago (Registrar Entrada)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`${styles.statusToggleBtn} ${paymentStatus === 'pending' ? styles.statusPendingActive : ''}`}
+                                            onClick={() => setPaymentStatus('pending')}
+                                            style={{ padding: '0.75rem' }}
+                                        >
+                                            ⏳ Fiado / Pendente
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Totais Finais */}
+                                <div className={styles.totalsArea} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', margin: '0.5rem 0 0 0' }}>
+                                    <div className={styles.totalRow}>
+                                        <span>Subtotal</span>
+                                        <span>{formatCurrency(cartTotals.subtotal)}</span>
+                                    </div>
+                                    {cartTotals.totalDiscount > 0 && (
+                                        <div className={`${styles.totalRow} ${styles.discountText}`}>
+                                            <span>Descontos Aplicados</span>
+                                            <span>- {formatCurrency(cartTotals.totalDiscount)}</span>
+                                        </div>
+                                    )}
+                                    <div className={styles.finalTotalRow} style={{ fontSize: '1.25rem', paddingTop: '0.75rem' }}>
+                                        <span>Total a Pagar</span>
+                                        <span style={{ color: 'var(--primary)' }}>{formatCurrency(cartTotals.finalTotal)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Ações do Modal */}
+                                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        className={styles.submitButton}
+                                        style={{ flex: 1, background: '#10B981', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)', margin: 0 }}
+                                        disabled={isCheckingOut}
+                                        onClick={handleCheckout}
+                                    >
+                                        {isCheckingOut ? 'Finalizando...' : 'Confirmar Venda'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {showFiscalModal && checkoutSaleData && (
                     <FiscalDocumentModal

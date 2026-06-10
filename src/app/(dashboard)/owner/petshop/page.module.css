@@ -346,26 +346,27 @@
 
 /* Busca e Vínculo Cliente */
 .customerLinkArea {
-    padding: 0.8rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-bottom: 1px solid var(--border);
     background: var(--card-bg);
+    flex-shrink: 0;
 }
 
 .cartLabel {
     display: block;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
 }
 
 .cartInput,
 .cartSelect {
     width: 100%;
-    padding: 0.4rem 0.5rem;
+    padding: 0.35rem 0.5rem;
     border: 1px solid var(--border);
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     background: var(--bg-primary);
     color: var(--text-primary);
 }
@@ -386,7 +387,7 @@
 }
 
 .searchResultItem {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -405,18 +406,43 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    padding: 0.35rem 0.5rem;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
     border-radius: 6px;
     color: var(--text-primary);
+    font-size: 0.75rem;
+}
+
+.tutorInfoCompact {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.tutorInfoCompact strong {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.petBadge {
+    display: inline-block;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    background: var(--bg-primary);
+    padding: 1px 5px;
+    border-radius: 10px;
+    width: fit-content;
+    margin-top: 1px;
 }
 
 .removeLinkedBtn {
     background: transparent;
     border: none;
     color: #ef4444;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     cursor: pointer;
 }
 
@@ -424,6 +450,7 @@
 .cartItemsContainer {
     padding: 0.8rem 1rem;
     min-height: 80px;
+    flex-shrink: 0;
 }
 
 .emptyCart {
@@ -584,6 +611,7 @@
     background: var(--bg-tertiary);
     border-top: 1px solid var(--border);
     padding: 1rem;
+    flex-shrink: 0;
 }
 
 /* Área de Scroll Única do Carrinho */
@@ -1017,5 +1045,96 @@
     .pdvPriceRow {
         width: 100%;
         justify-content: space-between;
+    }
+}
+
+/* Resumo Financeiro Compacto do Modal */
+.checkoutSummaryCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(27, 59, 90, 0.05);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+/* Botões do Mobile */
+.mobileCartToggleBtn {
+    display: none;
+}
+
+.backToCatalogBtn {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .mobileHidden {
+        display: none !important;
+    }
+
+    .mobileCartToggleBtn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        position: fixed;
+        bottom: 1rem;
+        left: 1rem;
+        right: 1rem;
+        background: #10B981;
+        color: white;
+        border: none;
+        padding: 0.85rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        cursor: pointer;
+        z-index: 99;
+        transition: all 0.2s;
+    }
+
+    .mobileCartToggleBtn:hover {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+
+    .backToCatalogBtn {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.25rem;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        width: 100%;
+        transition: color 0.2s;
+    }
+
+    .backToCatalogBtn:hover {
+        color: var(--color-navy);
+    }
+
+    .pdvContainer {
+        height: auto !important;
+        overflow: auto !important;
+    }
+
+    .pdvContent {
+        padding: 1rem !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .cartSection {
+        max-height: none !important;
+        height: calc(100vh - 120px) !important;
     }
 }
