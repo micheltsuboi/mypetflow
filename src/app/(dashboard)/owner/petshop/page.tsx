@@ -70,6 +70,10 @@ export default function PetshopPage() {
         codigo_ncm: '', cfop: '5102', icms_situacao_tributaria: '102'
     })
 
+    // Modais de Controle e Navegação Mobile
+    const [showCheckoutModal, setShowCheckoutModal] = useState(false)
+    const [mobileView, setMobileView] = useState<'catalog' | 'cart'>('catalog')
+
     // Carrinho de Compras (PDV)
     const [cart, setCart] = useState<CartItem[]>([])
     const [globalDiscount, setGlobalDiscount] = useState<number>(0)
@@ -320,6 +324,8 @@ export default function PetshopPage() {
             setTutorQuery('')
             setIsUsingCashback(false)
             setUseCashbackAmount(0)
+            setShowCheckoutModal(false)
+            setMobileView('catalog')
             fetchProducts() // Update local stock display
         } else {
                 setStatusModal({
@@ -481,7 +487,7 @@ export default function PetshopPage() {
                 ) : (
                     <div className={styles.pdvContent}>
                         {/* LADO ESQUERDO: Catálogo de Produtos */}
-                        <div className={styles.catalogSection}>
+                        <div className={`${styles.catalogSection} ${mobileView !== 'catalog' ? styles.mobileHidden : ''}`}>
                             <div className={styles.catalogHeader}>
                                 <div>
                                     <h1 className={styles.title}>🛒 Ponto de Venda</h1>
@@ -574,6 +580,18 @@ export default function PetshopPage() {
                         )}
                     </div>
                 </div>
+
+                {/* Botão flutuante Ver Carrinho para Mobile */}
+                {mobileView === 'catalog' && (
+                    <button 
+                        type="button"
+                        className={styles.mobileCartToggleBtn}
+                        onClick={() => setMobileView('cart')}
+                    >
+                        <ShoppingCart size={18} />
+                        Ver Carrinho ({cart.reduce((a, b) => a + b.quantity, 0)} itens)
+                    </button>
+                )}
 
                 {/* LADO DIREITO: Carrinho de Compras */}
                 <div className={`${styles.cartSection} ${mobileView !== 'cart' ? styles.mobileHidden : ''}`}>
