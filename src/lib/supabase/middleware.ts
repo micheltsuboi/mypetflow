@@ -19,6 +19,16 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.next({ request })
     }
 
+    // ⚡️ OTIMIZAÇÃO: Ignorar requisições de prefetch do Next.js
+    // Evita chamadas de rede externas ao Supabase ao passar o mouse ou renderizar links no painel
+    const isPrefetch =
+        request.headers.get('purpose') === 'prefetch' ||
+        request.headers.get('x-middleware-prefetch') === '1'
+
+    if (isPrefetch) {
+        return NextResponse.next({ request })
+    }
+
     const isLocal = hostname.includes('localhost') || hostname.includes('vercel.app')
     const cookieDomain = isLocal ? undefined : '.mypetflow.com.br'
 
