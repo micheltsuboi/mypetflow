@@ -89,6 +89,7 @@ export default function DashboardLayout({
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
         { name: 'Integrações', href: '/owner/integracoes', icon: '🔌' },
+        { name: 'Disparo em Massa', href: '/owner/disparo-massa', icon: '📢' },
         { name: 'Notas Fiscais', href: '/owner/nota-fiscal', icon: '🧾' },
     ]
 
@@ -281,6 +282,7 @@ export default function DashboardLayout({
                     if (name === 'Questionário') return planFeat.includes('assessment')
                     if (name === 'Ponto') return planFeat.includes('ponto')
                     if (name === 'Integrações') return true
+                    if (name === 'Disparo em Massa') return planFeat.includes('disparo_massa')
                     if (name === 'Notas Fiscais') return planFeat.includes('nota_fiscal')
                     if (name === 'Vacinas') return planFeat.includes('pets') || planFeat.includes('petshop') || planFeat.includes('clinica_vet')
                     return false;

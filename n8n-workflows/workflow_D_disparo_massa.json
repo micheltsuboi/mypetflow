@@ -1,0 +1,166 @@
+{
+  "name": "🐾 Pet Flow - Disparo em Massa",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "disparo-massa",
+        "responseMode": "onReceived",
+        "responseCode": 202,
+        "options": {}
+      },
+      "id": "webhook-disparo-massa",
+      "name": "Webhook - Disparo Massa",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "disparo-massa"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst recipients = body.recipients || [];\nconst wa_integration_type = body.wa_integration_type || 'system';\nconst wa_api_url = body.wa_api_url || '';\nconst wa_api_token = body.wa_api_token || '';\nconst wa_client_token = body.wa_client_token || '';\n\nreturn recipients.map(r => {\n  return {\n    json: {\n      phone: r.phone,\n      message: r.message,\n      wa_integration_type,\n      wa_api_url,\n      wa_api_token,\n      wa_client_token\n    }\n  };\n});"
+      },
+      "id": "separar-destinatarios",
+      "name": "Separar Destinatarios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "iterar-destinatarios",
+      "name": "Iterar Destinatarios",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "delay-10s",
+      "name": "Delay 10s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        950,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? ($json.wa_api_url.toLowerCase().includes('/token/') ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : $json.wa_api_url.replace(/\\/$/, '') + '/token/' + $json.wa_api_token + '/send-text') : 'https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Client-Token",
+              "value": "={{ $json.wa_integration_type === 'custom' && $json.wa_client_token ? $json.wa_client_token : 'F200243e457104ad79273e20e177311a2S' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "zapi-send-disparo",
+      "name": "Z-API: Enviar Disparo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - Disparo Massa": {
+      "main": [
+        [
+          {
+            "node": "Separar Destinatarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar Destinatarios": {
+      "main": [
+        [
+          {
+            "node": "Iterar Destinatarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iterar Destinatarios": {
+      "main": [
+        [
+          {
+            "node": "Delay 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay 10s": {
+      "main": [
+        [
+          {
+            "node": "Z-API: Enviar Disparo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Z-API: Enviar Disparo": {
+      "main": [
+        [
+          {
+            "node": "Iterar Destinatarios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

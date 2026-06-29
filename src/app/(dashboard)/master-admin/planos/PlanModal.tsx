@@ -19,6 +19,7 @@ export const MODULES_LIST = [
     { id: 'ponto', label: 'Ponto', icon: '⏰', description: 'Controle de jornada' },
     { id: 'nota_fiscal', label: 'Notas Fiscais', icon: '🧾', description: 'Emissão de NFe/NFSe' },
     { id: 'assessment', label: 'Questionário', icon: '📋', description: 'Avaliações e anamneses' },
+    { id: 'disparo_massa', label: 'Disparo em Massa', icon: '📢', description: 'Envio de mensagens em lote' },
 ]
 
 export default function PlanModal({
