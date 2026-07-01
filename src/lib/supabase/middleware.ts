@@ -4,6 +4,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Rotas públicas - não requerem autenticação nem cliente Supabase
 const PUBLIC_PATHS = ['/', '/cadastro', '/cadastro-empresa', '/auth', '/tutor', '/login', '/admin', '/api']
 
+// Regex para identificar bots de IA e raspagem inutéis que consomem CPU
+const BANNED_BOTS_REGEX = /gptbot|chatgpt-user|claudebot|anthropic-ai|applebot|bytespider|petalbot|yandexbot|baiduspider|semrushbot|dotbot|ahrefsbot|mj12bot|rogerbot|exabot|sogou spider|cohere-ai|screaming frog|netcrawler|google-extended/i;
+
 function isPublicRoute(pathname: string): boolean {
     return PUBLIC_PATHS.some(
         path => pathname === path || pathname.startsWith(path + '/')
@@ -12,6 +15,17 @@ function isPublicRoute(pathname: string): boolean {
 
 export async function updateSession(request: NextRequest) {
     const { pathname, hostname } = request.nextUrl
+
+    // 1. Bloquear Bots de IA/Crawlers inutéis (Edge)
+    const userAgent = request.headers.get('user-agent') || ''
+    if (BANNED_BOTS_REGEX.test(userAgent)) {
+        return new NextResponse('Access Denied (Bot Blocked)', { status: 403 })
+    }
+
+    // 2. Ignorar arquivos estáticos e assets residuais que batem no middleware
+    if (/\.(svg|png|jpg|jpeg|gif|ico|webp|css|js|woff2?|json)$/i.test(pathname)) {
+        return NextResponse.next({ request })
+    }
 
     // ✅ Verificar rota pública ANTES de instanciar o cliente Supabase
     // Evita criação desnecessária de cliente e chamada de rede em rotas públicas
@@ -27,6 +41,17 @@ export async function updateSession(request: NextRequest) {
 
     if (isPrefetch) {
         return NextResponse.next({ request })
+    }
+
+    // 3. Checagem rápida de Cookies de Autenticação do Supabase
+    // Se o usuário não tiver nenhum cookie do tipo sb-[project-id]-auth-token, ele não está logado.
+    // Redirecionamos para / imediatamente sem criar o cliente Supabase e sem fazer chamada de rede.
+    const allCookies = request.cookies.getAll()
+    const hasAuthCookie = allCookies.some(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
+    if (!hasAuthCookie) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/'
+        return NextResponse.redirect(url)
     }
 
     const isLocal = hostname.includes('localhost') || hostname.includes('vercel.app')
