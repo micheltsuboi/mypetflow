@@ -23,6 +23,11 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
     const [selectedNfToCancel, setSelectedNfToCancel] = useState<{ id: string, numero?: string } | null>(null)
     
+    // Export XML State
+    const [isExportingXml, setIsExportingXml] = useState(false)
+    const [exportProgress, setExportProgress] = useState(0)
+    const [totalToExport, setTotalToExport] = useState(0)
+    
     // Filters State
     const [searchTerm, setSearchTerm] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
@@ -134,6 +139,68 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         exportToCsv(`relatorio_fiscal_${startDate}_${endDate}`, headers, rows)
     }
 
+    const handleExportXmlZip = async () => {
+        const autorizadas = filteredNotas.filter(n => n.status === 'autorizado')
+        if (autorizadas.length === 0) {
+            alert('Não há notas autorizadas no período filtrado para exportar.')
+            return
+        }
+
+        setIsExportingXml(true)
+        setTotalToExport(autorizadas.length)
+        setExportProgress(0)
+
+        try {
+            const JSZip = (await import('jszip')).default
+            const zip = new JSZip()
+
+            // Download em lotes paralelos de 5 em 5 para respeitar o rate-limit da FocusNFe
+            const batchSize = 5
+            for (let i = 0; i < autorizadas.length; i += batchSize) {
+                const batch = autorizadas.slice(i, i + batchSize)
+                
+                await Promise.all(batch.map(async (nota) => {
+                    try {
+                        const url = `/api/nf/download?ref=${nota.referencia}&org_id=${nota.org_id}&type=xml`
+                        const response = await fetch(url)
+                        if (!response.ok) throw new Error(`Status ${response.status}`)
+                        
+                        const xmlText = await response.text()
+                        
+                        const fileNameBase = nota.numero_nf ? `NF_${nota.numero_nf}` : `NF_${nota.referencia}`
+                        const clientNameClean = (nota.tomador_nome || 'Consumidor_Final')
+                            .replace(/[^a-zA-Z0-9]/g, '_')
+                            .substring(0, 30)
+                        
+                        zip.file(`${fileNameBase}_${clientNameClean}.xml`, xmlText)
+                    } catch (err) {
+                        console.error(`Erro ao baixar XML da nota ${nota.referencia}:`, err)
+                        zip.file(`ERRO_NOTA_${nota.referencia}.txt`, `Falha ao obter XML: ${err instanceof Error ? err.message : String(err)}`)
+                    } finally {
+                        setExportProgress(prev => prev + 1)
+                    }
+                }))
+            }
+
+            const blob = await zip.generateAsync({ type: 'blob' })
+            
+            const downloadUrl = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = downloadUrl
+            a.download = `xmls_notas_fiscais_${startDate}_${endDate}.zip`
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            window.URL.revokeObjectURL(downloadUrl)
+            
+        } catch (error: any) {
+            console.error('Erro na geração do ZIP:', error)
+            alert('Falha ao gerar o arquivo ZIP: ' + error.message)
+        } finally {
+            setIsExportingXml(false)
+        }
+    }
+
     const handleSendWhatsApp = async (nota: NotaFiscal) => {
         try {
             const response = await fetch('/api/nf/send-whatsapp', {
@@ -229,6 +296,20 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                 <button className={styles.exportButton} onClick={handleAccountingExport}>
                     <Download size={18} />
                     <span>Exportar Contabilidade</span>
+                </button>
+
+                <button 
+                    className={styles.exportXmlButton} 
+                    onClick={handleExportXmlZip}
+                    disabled={isExportingXml}
+                >
+                    <Download size={18} />
+                    <span>
+                        {isExportingXml 
+                            ? `Exportando... (${exportProgress}/${totalToExport})` 
+                            : 'Exportar XMLs (ZIP)'
+                        }
+                    </span>
                 </button>
             </div>
 
