@@ -458,7 +458,9 @@ export default function DashboardLayout({
                     {children}
                 </div>
                 {/* Alertas Veterinários em Tempo Real */}
-                <VetAlertsNotification />
+                {user?.org_id && user.role !== 'tutor' && (
+                    <VetAlertsNotification orgId={user.org_id} />
+                )}
             </main>
 
             {showPetModal && (

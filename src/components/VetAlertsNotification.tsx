@@ -5,8 +5,13 @@ console.log('VET DASH: Arquivo VetAlertsNotification.tsx carregado!')
 
 import { useState, useEffect } from 'react'
 import { getPendingVetAlerts, updateVetAlertStatus } from '@/app/actions/veterinary'
+import { createClient } from '@/lib/supabase/client'
 
-export default function VetAlertsNotification() {
+interface Props {
+    orgId: string
+}
+
+export default function VetAlertsNotification({ orgId }: Props) {
     const [alerts, setAlerts] = useState<any[]>([])
 
     const [loading, setLoading] = useState(true)
@@ -26,12 +31,34 @@ export default function VetAlertsNotification() {
     }
 
     useEffect(() => {
+        if (!orgId) return
+
         fetchAlerts()
 
-        // Polling para checar novos alertas a cada 15s
-        const interval = setInterval(fetchAlerts, 15000)
-        return () => clearInterval(interval)
-    }, [])
+        const supabase = createClient()
+        
+        // Se inscreve para escutar em tempo real novos alertas inseridos ou atualizados da organização
+        const channel = supabase
+            .channel(`vet-alerts-${orgId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'vet_alerts',
+                    filter: `org_id=eq.${orgId}`
+                },
+                (payload) => {
+                    console.log('VET DASH: Atualização recebida via Realtime:', payload)
+                    fetchAlerts()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [orgId])
 
     const handleAcknowledge = async (id: string, status: 'read' | 'scheduled') => {
         const res = await updateVetAlertStatus(id, status)
