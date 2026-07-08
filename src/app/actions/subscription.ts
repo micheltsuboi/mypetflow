@@ -377,7 +377,7 @@ export async function subscribePetToMensalidade(
     // Fetch the generated sessions to build WhatsApp message
     const { data: sessions } = await supabase
         .from('package_sessions')
-        .select('scheduled_at, session_number')
+        .select('scheduled_at, session_number, services(name)')
         .eq('customer_package_id', cp.id)
         .order('scheduled_at', { ascending: true })
 
@@ -385,14 +385,17 @@ export async function subscribePetToMensalidade(
     const customerPhone = (pet.customers as any)?.phone_1
     if (customerPhone && sessions && sessions.length > 0) {
         const dayNames = daysOfWeek ? daysOfWeek.map(d => DAYS_OF_WEEK_PT[d]).join(' e ') : ''
-        const sessionList = sessions.map((s: any) => {
-            const d = new Date(s.scheduled_at)
-            const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
-            const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
-            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
-            const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-            return `• ${dayName}, ${dateStr} às ${timeStr}`
-        }).join('\n')
+        const sessionList = sessions
+            .filter((s: any) => s.scheduled_at !== null)
+            .map((s: any) => {
+                const d = new Date(s.scheduled_at)
+                const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+                const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
+                const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const serviceSuffix = s.services?.name ? ` (${s.services.name})` : ''
+                return `• ${dayName}, ${dateStr} às ${timeStr}${serviceSuffix}`
+            }).join('\n')
 
         const monthName = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleString('pt-BR', { month: 'long' })
 

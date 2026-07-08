@@ -298,15 +298,18 @@ export async function sellPackageToCustomer(prevState: ActionState, formData: Fo
         const { data: customer } = await supabase.from('customers').select('phone_1').eq('id', customer_id).single()
 
         if (customer?.phone_1) {
-            const sessionList = sessions.map((s: any) => {
-                const d = new Date(s.scheduled_at)
-                // Usar Intl.DateTimeFormat para garantir o nome do dia correto no fuso horário de SP
-                const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
-                const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
-                const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
-                const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-                return `• ${dayName}, ${dateStr} às ${timeStr}`
-            }).join('\n')
+            const sessionList = sessions
+                .filter((s: any) => s.scheduled_at !== null)
+                .map((s: any) => {
+                    const d = new Date(s.scheduled_at)
+                    // Usar Intl.DateTimeFormat para garantir o nome do dia correto no fuso horário de SP
+                    const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+                    const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
+                    const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+                    const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                    const serviceSuffix = s.services?.name ? ` (${s.services.name})` : ''
+                    return `• ${dayName}, ${dateStr} às ${timeStr}${serviceSuffix}`
+                }).join('\n')
 
             const message = 
                 `📦 *Pacote Ativado para ${pet?.name || 'seu pet'}!*\n\n` +
@@ -519,19 +522,26 @@ export async function sellPackageToPet(
     // Enviar confirmação por WhatsApp se houver sessões
     const { data: sessions } = await supabase
         .from('package_sessions')
-        .select('scheduled_at, session_number')
+        .select('scheduled_at, session_number, services(name)')
         .eq('customer_package_id', customerPackage.id)
         .order('scheduled_at', { ascending: true })
 
-    if (sessions && sessions.length > 0 && petData.customers?.phone_1) {
-        const sessionList = sessions.map((s: any) => {
-            const d = new Date(s.scheduled_at)
-            const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
-            const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
-            const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
-            const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
-            return `• ${dayName}, ${dateStr} às ${timeStr}`
-        }).join('\n')
+    const customerPhone = Array.isArray(petData.customers)
+        ? (petData.customers[0] as any)?.phone_1
+        : (petData.customers as any)?.phone_1
+
+    if (sessions && sessions.length > 0 && customerPhone) {
+        const sessionList = sessions
+            .filter((s: any) => s.scheduled_at !== null)
+            .map((s: any) => {
+                const d = new Date(s.scheduled_at)
+                const dayNameRaw = d.toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' })
+                const dayName = dayNameRaw.charAt(0).toUpperCase() + dayNameRaw.slice(1)
+                const dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                const serviceSuffix = s.services?.name ? ` (${s.services.name})` : ''
+                return `• ${dayName}, ${dateStr} às ${timeStr}${serviceSuffix}`
+            }).join('\n')
 
         const message = 
             `📦 *Pacote Ativado para ${petData.name}!*\n\n` +
@@ -542,7 +552,7 @@ export async function sellPackageToPet(
 
         await sendWhatsAppMessage(
             profile.org_id,
-            petData.customers.phone_1,
+            customerPhone,
             message,
             'package-confirmation'
         )
