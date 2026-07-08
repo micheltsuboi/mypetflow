@@ -687,13 +687,27 @@ function AgendaContent() {
                 if (res?.success) {
                     fetchData()
                     if (action === 'checkin' || action === 'start') {
-                        // Abre o modal de execução após o check-in ou início
-                        const updated = {
-                            ...appt,
-                            status: 'in_progress' as const,
-                            actual_check_in: appt.actual_check_in || new Date().toISOString()
+                        const isVetCategory = (appt.services as any)?.service_categories?.name === 'Clínica Veterinária'
+                        
+                        if (isVetCategory) {
+                            // Se for clínica, inicia a consulta e abre o modal de consulta
+                            const consultRes = await startConsultation(appt.id)
+                            if (consultRes.success) {
+                                setSelectedConsultation(consultRes.data)
+                                setShowConsultationModal(true)
+                            } else {
+                                alert(consultRes.message)
+                            }
+                            setSelectedAppointment(null) // Não abre o ServiceExecutionModal
+                        } else {
+                            // Abre o modal de execução após o check-in ou início
+                            const updated = {
+                                ...appt,
+                                status: 'in_progress' as const,
+                                actual_check_in: appt.actual_check_in || new Date().toISOString()
+                            }
+                            setSelectedAppointment(updated)
                         }
-                        setSelectedAppointment(updated)
                         setIsEditing(false)
                         setShowDetailModal(false) // Fecha o de detalhes se estiver aberto
                     }
@@ -1495,35 +1509,37 @@ function AgendaContent() {
                                     </div>
 
                                     {/* Preferences Section */}
-                                    <div className={styles.preferencesParams}>
-                                        <h3>Preferências do Pet</h3>
-                                        <div className={styles.prefToggle}>
-                                            <label>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedAppointment.pets?.perfume_allowed}
-                                                    onChange={async () => {
-                                                        const val = !selectedAppointment.pets?.perfume_allowed
-                                                        await updatePetPreferences(selectedAppointment.pets!.id, { perfume_allowed: val })
-                                                        fetchData()
-                                                    }}
-                                                /> Perfume
-                                            </label>
+                                    {(selectedAppointment.services as any)?.service_categories?.name !== 'Clínica Veterinária' && (
+                                        <div className={styles.preferencesParams}>
+                                            <h3>Preferências do Pet</h3>
+                                            <div className={styles.prefToggle}>
+                                                <label>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedAppointment.pets?.perfume_allowed}
+                                                        onChange={async () => {
+                                                            const val = !selectedAppointment.pets?.perfume_allowed
+                                                            await updatePetPreferences(selectedAppointment.pets!.id, { perfume_allowed: val })
+                                                            fetchData()
+                                                        }}
+                                                    /> Perfume
+                                                </label>
+                                            </div>
+                                            <div className={styles.prefToggle}>
+                                                <label>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedAppointment.pets?.accessories_allowed}
+                                                        onChange={async () => {
+                                                            const val = !selectedAppointment.pets?.accessories_allowed
+                                                            await updatePetPreferences(selectedAppointment.pets!.id, { accessories_allowed: val })
+                                                            fetchData()
+                                                        }}
+                                                    /> Acessórios/Laços
+                                                </label>
+                                            </div>
                                         </div>
-                                        <div className={styles.prefToggle}>
-                                            <label>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedAppointment.pets?.accessories_allowed}
-                                                    onChange={async () => {
-                                                        const val = !selectedAppointment.pets?.accessories_allowed
-                                                        await updatePetPreferences(selectedAppointment.pets!.id, { accessories_allowed: val })
-                                                        fetchData()
-                                                    }}
-                                                /> Acessórios/Laços
-                                            </label>
-                                        </div>
-                                    </div>
+                                    )}
 
                                     <div className={styles.detailActions}>
                                         {selectedAppointment.status === 'pending' && (
@@ -1640,7 +1656,7 @@ function AgendaContent() {
                     />
                 )}
 
-                {selectedAppointment && selectedAppointment.status === 'in_progress' && !isEditing && !showDetailModal && (
+                {selectedAppointment && selectedAppointment.status === 'in_progress' && !isEditing && !showDetailModal && (selectedAppointment.services as any)?.service_categories?.name !== 'Clínica Veterinária' && (
                     <ServiceExecutionModal
                         appointment={selectedAppointment as any}
                         onClose={() => setSelectedAppointment(null)}
