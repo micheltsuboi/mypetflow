@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "update-token": "node scripts/update_token_n8n.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
