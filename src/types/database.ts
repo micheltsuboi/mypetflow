@@ -555,7 +555,7 @@ export interface FiscalConfig {
 
 export type NotaFiscalStatus = 'processando' | 'autorizado' | 'cancelado' | 'erro'
 export type NotaFiscalTipo = 'nfse' | 'nfe' | 'nfce'
-export type NotaFiscalOrigem = 'atendimento' | 'banho_tosa' | 'creche' | 'pdv' | 'pacote'
+export type NotaFiscalOrigem = 'atendimento' | 'banho_tosa' | 'creche' | 'pdv' | 'pacote' | 'devolucao'
 
 export interface NotaFiscal {
     id: string

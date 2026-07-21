@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react'
 import { NotaFiscal } from '@/types/database'
 import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
-import { Search, FileText, FileCode, Send, XCircle, Download, Settings, RefreshCw, AlertTriangle, Trash2 } from 'lucide-react'
+import { Search, FileText, FileCode, Send, XCircle, Download, Settings, RefreshCw, AlertTriangle, Trash2, RotateCcw } from 'lucide-react'
 import DateInput from '@/components/ui/DateInput'
 import CancelamentoNFModal from '@/components/CancelamentoNFModal'
+import EmitirDevolucaoNFModal from '@/components/EmitirDevolucaoNFModal'
 import { exportToCsv } from '@/utils/export'
 
 import { deleteNotaFiscal } from '@/app/actions/petshop'
@@ -22,6 +23,10 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
     const [selectedError, setSelectedError] = useState<string | null>(null)
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
     const [selectedNfToCancel, setSelectedNfToCancel] = useState<{ id: string, numero?: string } | null>(null)
+    
+    // Devolucao Modal State
+    const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false)
+    const [selectedDevolucaoNota, setSelectedDevolucaoNota] = useState<NotaFiscal | null>(null)
     
     // Export XML State
     const [isExportingXml, setIsExportingXml] = useState(false)
@@ -311,6 +316,18 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                         }
                     </span>
                 </button>
+
+                <button 
+                    className={styles.exportButton}
+                    style={{ background: '#8b5cf6', borderColor: '#7c3aed' }}
+                    onClick={() => {
+                        setSelectedDevolucaoNota(null)
+                        setIsDevolucaoModalOpen(true)
+                    }}
+                >
+                    <RotateCcw size={18} />
+                    <span>Emitir NF de Devolução</span>
+                </button>
             </div>
 
             <div className={styles.tableWrapper}>
@@ -402,6 +419,18 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                                                 >
                                                     <XCircle size={16} />
                                                 </button>
+                                                <button 
+                                                    className={styles.actionBtn}
+                                                    style={{ color: '#a78bfa', borderColor: '#8b5cf6' }}
+                                                    onClick={() => {
+                                                        setSelectedDevolucaoNota(nota)
+                                                        setIsDevolucaoModalOpen(true)
+                                                    }}
+                                                    title="Emitir Devolução desta Nota"
+                                                >
+                                                    <RotateCcw size={16} />
+                                                    <span>Devolver</span>
+                                                </button>
                                             </>
                                         )}
                                         {(nota.status.toLowerCase().includes('processando') || nota.status.toLowerCase().includes('erro')) && (
@@ -469,6 +498,23 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                     onClose={() => setIsCancelModalOpen(false)}
                     onSuccess={() => {
                         setIsCancelModalOpen(false)
+                        fetchNotas()
+                    }}
+                />
+            )}
+            
+            {/* Devolucao Modal */}
+            {isDevolucaoModalOpen && (
+                <EmitirDevolucaoNFModal
+                    initialNota={selectedDevolucaoNota}
+                    notasAutorizadas={filteredNotas.filter(n => n.status === 'autorizado')}
+                    onClose={() => {
+                        setIsDevolucaoModalOpen(false)
+                        setSelectedDevolucaoNota(null)
+                    }}
+                    onSuccess={() => {
+                        setIsDevolucaoModalOpen(false)
+                        setSelectedDevolucaoNota(null)
                         fetchNotas()
                     }}
                 />
