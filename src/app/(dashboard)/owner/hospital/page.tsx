@@ -9,6 +9,7 @@ import InternmentRecordModal from '@/components/InternmentRecordModal'
 import HospitalHistoryModal from '@/components/HospitalHistoryModal'
 import DischargeModal from '@/components/DischargeModal'
 import MovePetBedModal from '@/components/MovePetBedModal'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function HospitalDashboard() {
     const [wards, setWards] = useState<any[]>([])
@@ -197,7 +198,10 @@ export default function HospitalDashboard() {
         <div className="container p-6 animate-fadeIn">
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-coral mb-2" style={{ fontFamily: 'var(--font-montserrat)' }}>Hospital e Leitos</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className="text-3xl font-bold text-coral mb-2" style={{ fontFamily: 'var(--font-montserrat)' }}>🏥 Hospital e Leitos</h1>
+                        <PageHelpModal topic="hospital" />
+                    </div>
                     <p className="text-muted" style={{ fontFamily: 'var(--font-montserrat)' }}>Acompanhe os pacientes internados, aplique medicamentos e monitore gravidades.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>

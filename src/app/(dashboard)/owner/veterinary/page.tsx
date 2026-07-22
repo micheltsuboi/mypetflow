@@ -6,6 +6,7 @@ import { Veterinarian } from '@/types/database'
 import {
     getVeterinarians, createVeterinarian, updateVeterinarian
 } from '@/app/actions/veterinary'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 function VeterinaryContent() {
     const [vets, setVets] = useState<Veterinarian[]>([])
@@ -71,7 +72,10 @@ function VeterinaryContent() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>👨‍⚕️ Profissionais Veterinários</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>👨‍⚕️ Profissionais Veterinários</h1>
+                        <PageHelpModal topic="veterinary" />
+                    </div>
                     <p className={styles.subtitle}>Gerencie a equipe de veterinários da sua clínica.</p>
                 </div>
                 <button className={styles.addButton} onClick={() => {

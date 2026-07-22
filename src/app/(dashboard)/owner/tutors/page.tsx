@@ -9,6 +9,7 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import { maskPhone, maskCPF, maskCNPJ, maskCEP } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
 import { X } from 'lucide-react'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -256,7 +257,10 @@ export default function TutorsPage() {
                 <div className={styles.header}>
                     <div>
                         <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                        <h1 className={styles.title}>👤 Gestão de Tutores</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>👤 Gestão de Tutores</h1>
+                            <PageHelpModal topic="tutors" />
+                        </div>
                         <p className={styles.subtitle}>Cadastre e gerencie os clientes do pet shop</p>
                     </div>
                     <button className={styles.addButton} onClick={handleNewTutor}>

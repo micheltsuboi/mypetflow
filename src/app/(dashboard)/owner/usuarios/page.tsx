@@ -6,6 +6,7 @@ import styles from './page.module.css'
 import { createClient } from '@/lib/supabase/client'
 import { createUser, updateUser } from '@/app/actions/user'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export interface WorkScheduleDay {
     day: number
@@ -193,7 +194,10 @@ export default function UsuariosPage() {
                 <div className={styles.header}>
                     <div>
                         <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                        <h1 className={styles.title}>👥 Gestão de Usuários</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>👥 Gestão de Usuários</h1>
+                            <PageHelpModal topic="usuarios" />
+                        </div>
                         <p className={styles.subtitle}>Gerencie os funcionários do seu pet shop</p>
                     </div>
                     <button className={styles.addButton} onClick={() => {

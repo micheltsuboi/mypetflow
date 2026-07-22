@@ -13,6 +13,7 @@ import PetSearchSelect from '@/components/ui/PetSearchSelect'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import AppointmentCard from '@/components/ui/AppointmentCard'
 import ConfirmationModal from '@/components/ui/ConfirmationModal'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface Appointment {
     id: string
@@ -386,7 +387,10 @@ export default function BanhoTosaPage() {
         <PlanGuard requiredModule="banho_tosa">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>🛁 Banho e Tosa - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>🛁 Banho e Tosa - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
+                        <PageHelpModal topic="banho-tosa" />
+                    </div>
                     <div className={styles.actionGroup}>
                         <div className={styles.buttonGroup}>
                             <button

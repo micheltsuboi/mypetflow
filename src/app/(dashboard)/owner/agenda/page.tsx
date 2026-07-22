@@ -34,6 +34,7 @@ import ConsultationModal from '@/components/modules/ConsultationModal'
 import { format } from 'date-fns'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
 import { searchTutorsForPDV, checkoutCart } from '@/app/actions/petshop'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface Customer {
     name: string
@@ -1061,7 +1062,10 @@ function AgendaContent() {
         <PlanGuard requiredModule="agenda">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Agenda</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>📅 Agenda</h1>
+                        <PageHelpModal topic="agenda" />
+                    </div>
                     <div className={styles.actionGroup}>
                         <select className={styles.select} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                             <option value="">Filtro...</option>

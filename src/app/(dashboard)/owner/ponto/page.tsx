@@ -10,6 +10,7 @@ import { exportToCsv } from '@/utils/export'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface Profile {
     id: string
@@ -289,7 +290,8 @@ export default function PontoHistoryPage() {
                 <div className={styles.header}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                        <h1 style={{ margin: 0 }}>Relatório de Ponto</h1>
+                        <h1 style={{ margin: 0 }}>⏰ Relatório de Ponto</h1>
+                        <PageHelpModal topic="ponto" />
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button

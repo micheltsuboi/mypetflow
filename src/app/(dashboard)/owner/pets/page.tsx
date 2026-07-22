@@ -52,6 +52,7 @@ import {
     getActiveSubscriptions
 } from '@/app/actions/subscription'
 import ConsultationModal from '@/components/modules/ConsultationModal'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
 import ImageUpload from '@/components/ImageUpload'
@@ -555,7 +556,10 @@ function PetsContent() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>🐾 Gestão de Pets</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>🐾 Gestão de Pets</h1>
+                        <PageHelpModal topic="pets" />
+                    </div>
                     <p className={styles.subtitle}>Gerencie os animais cadastrados no sistema</p>
                 </div>
                 <button className={styles.addButton} onClick={handleNewPet}>

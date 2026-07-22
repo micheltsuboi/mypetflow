@@ -13,6 +13,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import InputMasked from '@/components/ui/InputMasked'
 import { maskDate, parseDateToISO } from '@/utils/masks'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function VacinasPage() {
     const [vaccines, setVaccines] = useState<any[]>([])
@@ -98,7 +99,10 @@ export default function VacinasPage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Catálogo de Vacinas</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h1 className={styles.title}>💉 Catálogo de Vacinas</h1>
+                    <PageHelpModal topic="vacinas" />
+                </div>
                 <button 
                     className={styles.addButton}
                     onClick={() => {

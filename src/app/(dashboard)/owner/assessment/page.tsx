@@ -13,6 +13,7 @@ import styles from './page.module.css'
 import { Plus, Edit2, Power, PowerOff, ShieldAlert } from 'lucide-react'
 import PlanGuard from '@/components/modules/PlanGuard'
 import Link from 'next/link'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function AssessmentManagementPage() {
     const [questions, setQuestions] = useState<AssessmentQuestion[]>([])
@@ -197,7 +198,10 @@ export default function AssessmentManagementPage() {
         <PlanGuard requiredModule="assessment">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Gerenciar Questionário</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>📋 Gerenciar Questionário</h1>
+                        <PageHelpModal topic="assessment" />
+                    </div>
                     <button className={styles.addButton} onClick={() => handleOpenModal()}>
                         <Plus size={18} />
                         Nova Pergunta

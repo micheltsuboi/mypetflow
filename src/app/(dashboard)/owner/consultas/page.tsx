@@ -6,6 +6,7 @@ import styles from './page.module.css'
 import { getVetDashboardAppointments, startConsultation } from '@/app/actions/veterinary'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -99,7 +100,10 @@ export default function ConsultasPage() {
             <div className={styles.container}>
                 <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
-                        <h1 className={styles.title}>🩺 Consultas Veterinárias</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>🩺 Consultas Veterinárias</h1>
+                            <PageHelpModal topic="consultas" />
+                        </div>
                         <p className={styles.subtitle}>Gerencie os atendimentos clínicos e prontuários.</p>
                     </div>
                     <Link 

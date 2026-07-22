@@ -20,6 +20,7 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import PaymentManager from '@/components/finance/PaymentManager'
 import PetSearchSelect from '@/components/ui/PetSearchSelect'
 import { reschedulePackageSession } from '@/app/actions/package'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const DAYS_FULL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -181,7 +182,10 @@ export default function MensalidadesPage() {
                 <div className={styles.header}>
                     <div>
                         <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                        <h1 className={styles.title}>🔄 Mensalidades</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>🔄 Mensalidades</h1>
+                            <PageHelpModal topic="mensalidades" />
+                        </div>
                         <p className={styles.subtitle}>
                             Planos recorrentes mensais com agendamento automático. Vencimento todo dia 10.
                         </p>

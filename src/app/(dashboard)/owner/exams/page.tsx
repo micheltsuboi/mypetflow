@@ -6,6 +6,7 @@ import { VetExamType } from '@/types/database'
 import {
     getVetExamTypes, createVetExamType, deleteVetExamType
 } from '@/app/actions/veterinary'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 function ExamsContent() {
     const [examTypes, setExamTypes] = useState<VetExamType[]>([])
@@ -69,7 +70,10 @@ function ExamsContent() {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>🧪 Catálogo de Exames</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>🧪 Catálogo de Exames</h1>
+                        <PageHelpModal topic="exams" />
+                    </div>
                     <p className={styles.subtitle}>Gerencie os tipos de exames disponíveis na clínica.</p>
                 </div>
                 <button className={styles.addButton} onClick={() => {

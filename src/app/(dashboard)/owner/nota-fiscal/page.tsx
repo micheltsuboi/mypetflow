@@ -5,6 +5,7 @@ import styles from './page.module.css'
 import { NotaFiscal } from '@/types/database'
 import NotaFiscalList from './NotaFiscalList'
 import PlanGuard from '@/components/modules/PlanGuard'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default async function NotaFiscalPage() {
     const supabase = await createClient()
@@ -44,7 +45,10 @@ export default async function NotaFiscalPage() {
             <div className={styles.container}>
                 <div className={styles.header}>
                     <div>
-                        <h1 className={styles.title}>Notas Fiscais</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>🧾 Notas Fiscais</h1>
+                            <PageHelpModal topic="nota-fiscal" />
+                        </div>
                         <p className={styles.subtitle}>Gerencie suas notas emitidas pelo sistema</p>
                     </div>
                     <Link href="/owner/configuracoes/nota-fiscal" className={styles.settingsButton}>

@@ -17,6 +17,7 @@ import { NotaFiscalTipo, NotaFiscalOrigem } from '@/types/database'
 import { Search, Filter, Download, XCircle, FileText, List, Plus, Trash2, Send, FileCode, DollarSign, Wallet, CreditCard, Banknote, Calendar, Repeat, PlusCircle, Tag, ExternalLink, ChevronRight } from 'lucide-react'
 import CancelamentoNFModal from '@/components/CancelamentoNFModal'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 import {
     getExpenseCategories, createExpenseCategory, createExpense,
     getRecurringExpenses, getRecurringExceptions, cancelRecurringExpenseForMonth, deleteRecurringExpense
@@ -1150,7 +1151,10 @@ export default function FinanceiroPage() {
                 <div className={styles.header}>
                     <div>
                         <Link href="/owner" className={styles.backLink}>← Voltar</Link>
-                        <h1 className={styles.title}>💰 Controle Financeiro</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>💰 Controle Financeiro</h1>
+                            <PageHelpModal topic="financeiro" />
+                        </div>
                         <p className={styles.subtitle}>Visão geral das finanças do seu pet shop</p>
                     </div>
                     <div className={styles.filters}>

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getCashbackRules, createCashbackRule, deleteCashbackRule, getCashbackHistory } from '@/app/actions/cashback'
 import { Product } from '@/types/database'
 import { Trash2, ShieldCheck, Ticket, Users, PlusCircle, History, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle } from 'lucide-react'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function CashbackManagementPage() {
     const supabase = createClient()
@@ -144,7 +145,10 @@ export default function CashbackManagementPage() {
         <div className={styles.container}>
             <header className={styles.header}>
                 <div>
-                    <h1 className={styles.title}>💎 Programa de Fidelidade</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>💎 Programa de Fidelidade</h1>
+                        <PageHelpModal topic="cashback" />
+                    </div>
                     <p className={styles.subtitle}>Gerencie regras de cashback e veja o desempenho do programa</p>
                 </div>
             </header>

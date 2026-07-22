@@ -12,6 +12,7 @@ import PlanGuard from '@/components/modules/PlanGuard'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import AppointmentCard from '@/components/ui/AppointmentCard'
 import ConfirmationModal from '@/components/ui/ConfirmationModal'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface Appointment {
     id: string
@@ -393,7 +394,10 @@ export default function CrechePage() {
         <PlanGuard requiredModule="creche">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>🎾 Creche - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <h1 className={styles.title}>🎾 Creche - {viewMode === 'active' ? 'Pets do Dia' : 'Histórico'}</h1>
+                        <PageHelpModal topic="creche" />
+                    </div>
                     <div className={styles.actionGroup}>
                         <input
                             type="text"

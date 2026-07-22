@@ -16,6 +16,7 @@ import FiscalDocumentModal, { FiscalDocumentType } from '@/components/petshop/Fi
 import { ReceiptText, ShoppingBag, LayoutDashboard } from 'lucide-react'
 import InventoryManagement from '@/components/petshop/InventoryManagement'
 import StatusModal, { StatusModalType } from '@/components/ui/StatusModal'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 // Interfaces locais para o Carrinho
 interface CartItem {
@@ -490,7 +491,10 @@ export default function PetshopPage() {
                         <div className={`${styles.catalogSection} ${mobileView !== 'catalog' ? styles.mobileHidden : ''}`}>
                             <div className={styles.catalogHeader}>
                                 <div>
-                                    <h1 className={styles.title}>🛒 Ponto de Venda</h1>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                        <h1 className={styles.title}>🛒 Ponto de Venda</h1>
+                                        <PageHelpModal topic="petshop" />
+                                    </div>
                                     <p className={styles.subtitle}>Selecione os produtos para adicionar ao carrinho</p>
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.75rem' }}>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { getDisparoConfig, iniciarDisparoMassa } from '@/app/actions/disparo'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function DisparoMassaPage() {
     const [loading, setLoading] = useState(true)
@@ -105,7 +106,10 @@ export default function DisparoMassaPage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Disparo em Massa</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h1 className={styles.title}>📢 Disparo em Massa</h1>
+                    <PageHelpModal topic="disparo-massa" />
+                </div>
                 <p className={styles.subtitle}>
                     Envie comunicados, avisos importantes e promoções para toda a sua base de clientes cadastrados de forma prática.
                 </p>

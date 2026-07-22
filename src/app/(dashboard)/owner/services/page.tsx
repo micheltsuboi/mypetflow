@@ -16,6 +16,7 @@ import {
 } from '@/app/actions/service'
 import PlanGuard from '@/components/modules/PlanGuard'
 import { Trash2, Edit2, Check, X, ListChecks, Settings } from 'lucide-react'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface PricingRule {
     id: string
@@ -292,7 +293,10 @@ export default function ServicesPage() {
             <div className={styles.container}>
                 <div className={styles.header}>
                     <div>
-                        <h1 className={styles.title}>Serviços</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>Serviços</h1>
+                            <PageHelpModal topic="services" />
+                        </div>
                         <p className={styles.subtitle}>Gerencie os serviços oferecidos no petshop</p>
                     </div>
                     <button onClick={() => setShowModal(true)} className={styles.addBtn}>

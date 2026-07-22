@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { getWhatsAppConfig, saveWhatsAppConfig } from '@/app/actions/integrations'
 import ImageUpload from '@/components/ImageUpload'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function IntegracoesPage() {
     const [integrationType, setIntegrationType] = useState('system')
@@ -96,7 +97,10 @@ export default function IntegracoesPage() {
     return (
         <div className={styles.container}>
             <header className={styles.header}>
-                <h1 className={styles.title}>Integrações e APIs</h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h1 className={styles.title}>🔌 Integrações e APIs</h1>
+                    <PageHelpModal topic="integracoes" />
+                </div>
                 <p className={styles.subtitle}>Configure como o sistema envia mensagens (WhatsApp) para os seus clientes.</p>
             </header>
 

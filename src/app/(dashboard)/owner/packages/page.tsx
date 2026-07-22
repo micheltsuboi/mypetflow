@@ -18,6 +18,7 @@ import {
 } from '@/app/actions/package'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PaymentManager from '@/components/finance/PaymentManager'
+import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface Service {
     id: string
@@ -277,7 +278,10 @@ export default function PackagesPage() {
                 <div className={styles.header}>
                     <div>
                         <Link href="/owner" style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>← Voltar</Link>
-                        <h1 className={styles.title}>📦 Pacotes de Serviços</h1>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h1 className={styles.title}>📦 Pacotes de Serviços</h1>
+                            <PageHelpModal topic="packages" />
+                        </div>
                         <p style={{ color: '#666', fontSize: '0.9rem' }}>
                             Crie pacotes com renovação semanal ou mensal. Os serviços são agendados automaticamente quando configurados.
                         </p>
@@ -293,7 +297,6 @@ export default function PackagesPage() {
                         onClick={() => setTab('templates')}
                         style={{ 
                             padding: '0.5rem 1rem', 
-                            border: 'none', 
                             borderRadius: '8px 8px 0 0', 
                             background: tab === 'templates' ? 'var(--primary)' : 'transparent', 
                             color: tab === 'templates' ? 'var(--text-primary)' : 'var(--text-secondary)', 
@@ -309,7 +312,6 @@ export default function PackagesPage() {
                         onClick={() => setTab('contratos')}
                         style={{ 
                             padding: '0.5rem 1rem', 
-                            border: 'none', 
                             borderRadius: '8px 8px 0 0', 
                             background: tab === 'contratos' ? 'var(--primary)' : 'transparent', 
                             color: tab === 'contratos' ? 'var(--text-primary)' : 'var(--text-secondary)', 
