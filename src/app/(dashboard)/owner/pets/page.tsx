@@ -53,6 +53,7 @@ import {
 } from '@/app/actions/subscription'
 import ConsultationModal from '@/components/modules/ConsultationModal'
 import PageHelpModal from '@/components/ui/PageHelpModal'
+import Pagination from '@/components/ui/Pagination'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
 import InternmentRecordModal from '@/components/InternmentRecordModal'
 import ImageUpload from '@/components/ImageUpload'
@@ -146,6 +147,18 @@ function PetsContent() {
     const [searchTerm, setSearchTerm] = useState('')
     const [activeTab, setActiveTab] = useState<'active' | 'deceased'>('active')
     const debouncedSearchTerm = useDebounce(searchTerm, 500)
+
+    // Pagination & Sorting state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(20)
+    const [totalCount, setTotalCount] = useState(0)
+    const [sortBy, setSortBy] = useState<'file_asc' | 'file_desc' | 'name_asc' | 'name_desc'>('file_asc')
+
+    // Reset to page 1 on filter/tab changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [activeTab, debouncedSearchTerm, sortBy, pageSize])
+
     const [planFeatures, setPlanFeatures] = useState<string[]>([])
     const [vetAlertsForPet, setVetAlertsForPet] = useState<any[]>([])
 
@@ -248,43 +261,28 @@ function PetsContent() {
         if (isOpen && selectedPet) {
             if (key === 'assessment') {
                 getPetAssessment(selectedPet.id).then(setPetAssessment)
-            }
-            if (key === 'packages') {
-                getPetPackagesWithUsage(selectedPet.id).then(setPetPackages)
-            }
-            if (key === 'creche') {
-                getCrecheHistory(selectedPet.id).then((r: any) => setCrecheHistory(r.data || []))
-            }
-            if (key === 'hotel') {
-                getHotelHistory(selectedPet.id).then((r: any) => setHotelHistory(r.data || []))
-            }
-            if (key === 'petshop') {
-                getPetshopHistory(selectedPet.id).then((r: any) => setPetshopHistory(r.data || []))
-            }
-            if (key === 'medical') {
-                getVetConsultations(selectedPet.id).then(setVetConsultations)
-                getVetRecords(selectedPet.id).then(setVetRecords)
-            }
-            if (key === 'vetAlerts') {
-                getVetAlertsByPet(selectedPet.id).then(setVetAlertsForPet)
-            }
-            if (key === 'hospital' as any) {
-                getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
-            }
-            if (key === 'grooming' as any) {
-                getPetAppointmentsByCategory(selectedPet.id, 'Banho e Tosa').then(setGroomingHistory)
-            }
-            if (key === 'exams') {
-                getVetExams(selectedPet.id).then(setPetExams)
-                getVetExamTypes().then(setExamTypes)
-            }
-            if (key === 'subscriptions') {
-                getPetSubscriptions(selectedPet.id).then(setPetSubscriptions)
-                getSubscriptionPlans().then(setSubscriptionPlans)
-            }
-            if (key === 'vaccines') {
+            } else if (key === 'vaccines') {
                 getPetVaccinations(selectedPet.id).then(setPetVaccinations)
                 getVaccineCatalog().then(setVaccineCatalog)
+            } else if (key === 'subscriptions') {
+                getPetSubscriptions(selectedPet.id).then(setPetSubscriptions)
+                getSubscriptionPlans().then(setSubscriptionPlans)
+            } else if (key === 'creche') {
+                getCrecheHistory(selectedPet.id).then(setCrecheHistory)
+            } else if (key === 'hotel') {
+                getHotelHistory(selectedPet.id).then(setHotelHistory)
+            } else if (key === 'petshop') {
+                getPetshopHistory(selectedPet.id).then(setPetshopHistory)
+            } else if (key === 'grooming') {
+                getPetAppointmentsByCategory(selectedPet.id, 'banho_tosa').then(setGroomingHistory)
+            } else if (key === 'medical') {
+                getVetConsultations(selectedPet.id).then(setVetConsultations)
+                getVetRecords(selectedPet.id).then(setVetRecords)
+            } else if (key === 'hospital') {
+                getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
+            } else if (key === 'exams') {
+                getVetExams(selectedPet.id).then(setPetExams)
+                getVetExamTypes().then(setExamTypes)
             }
         }
     }
@@ -316,7 +314,7 @@ function PetsContent() {
                     existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
                     color, characteristics, is_deceased,
                     customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
-                `).eq('customers.org_id', profile.org_id).order('name')
+                `, { count: 'exact' }).eq('customers.org_id', profile.org_id)
 
             if (activeTab === 'active') {
                 query = query.or('is_deceased.is.null,is_deceased.eq.false')
@@ -339,13 +337,25 @@ function PetsContent() {
                 } else {
                     query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
                 }
-            } else {
-                if (activeTab === 'active') {
-                    query = query.limit(50)
-                }
             }
 
-            const petsPromise = query.then(async ({ data: petsData, error }) => {
+            // Ordenação
+            if (sortBy === 'file_asc') {
+                query = query.order('physical_file_number', { foreignTable: 'customers', ascending: true, nullsFirst: false })
+            } else if (sortBy === 'file_desc') {
+                query = query.order('physical_file_number', { foreignTable: 'customers', ascending: false, nullsFirst: false })
+            } else if (sortBy === 'name_desc') {
+                query = query.order('name', { ascending: false })
+            } else {
+                query = query.order('name', { ascending: true })
+            }
+
+            // Range para Paginação
+            const from = (currentPage - 1) * pageSize
+            const to = from + pageSize - 1
+            query = query.range(from, to)
+
+            const petsPromise = query.then(async ({ data: petsData, count, error }) => {
                 if (error && error.message.includes('is_deceased')) {
                     // Fallback to query without is_deceased column
                     let fallbackQuery = supabase.from('pets').select(`
@@ -353,7 +363,7 @@ function PetsContent() {
                             existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
                             color, characteristics,
                             customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
-                        `).eq('customers.org_id', profile.org_id).order('name')
+                        `, { count: 'exact' }).eq('customers.org_id', profile.org_id)
 
                     if (debouncedSearchTerm) {
                         const { data: matchedCustomers } = await supabase
@@ -369,20 +379,28 @@ function PetsContent() {
                         } else {
                             fallbackQuery = fallbackQuery.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
                         }
-                    } else {
-                        if (activeTab === 'active') {
-                            fallbackQuery = fallbackQuery.limit(50)
-                        }
                     }
-                    const { data: fallbackData } = await fallbackQuery
+
+                    if (sortBy === 'file_asc') {
+                        fallbackQuery = fallbackQuery.order('physical_file_number', { foreignTable: 'customers', ascending: true, nullsFirst: false })
+                    } else if (sortBy === 'file_desc') {
+                        fallbackQuery = fallbackQuery.order('physical_file_number', { foreignTable: 'customers', ascending: false, nullsFirst: false })
+                    } else if (sortBy === 'name_desc') {
+                        fallbackQuery = fallbackQuery.order('name', { ascending: false })
+                    } else {
+                        fallbackQuery = fallbackQuery.order('name', { ascending: true })
+                    }
+
+                    fallbackQuery = fallbackQuery.range(from, to)
+                    const { data: fallbackData, count: fallbackCount } = await fallbackQuery
                     
                     if (fallbackData) {
-                        // Apply tab filter on client side if column is missing, though we can't really do it since the column is missing
-                        // In this case we just return the data. Active tab will show all, deceased will show none (handled by filteredPets)
                         setPets(fallbackData as unknown as Pet[])
+                        setTotalCount(fallbackCount || 0)
                     }
                 } else if (petsData) {
                     setPets(petsData as unknown as Pet[])
+                    setTotalCount(count || 0)
                 }
             })
 
@@ -409,7 +427,7 @@ function PetsContent() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, debouncedSearchTerm, activeTab])
+    }, [supabase, debouncedSearchTerm, activeTab, currentPage, pageSize, sortBy])
 
     useEffect(() => {
         fetchData()
@@ -567,16 +585,39 @@ function PetsContent() {
                 </button>
             </div>
 
-            <div className={styles.actionGroup} style={{ marginBottom: '1rem', width: '100%' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <input
                     type="text"
-                    placeholder="🔍 Buscar pet por nome ou raça..."
+                    placeholder="🔍 Buscar pet por nome, raça ou tutor/ficha..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className={styles.input}
-                    style={{ width: '100%' }}
+                    style={{ flex: '1 1 300px', maxWidth: '100%' }}
                 />
+
+                <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className={styles.input}
+                    style={{ width: 'auto', minWidth: '220px' }}
+                    title="Filtrar / Ordenar por"
+                >
+                    <option value="file_asc">🔢 Ficha nº (Crescente)</option>
+                    <option value="file_desc">🔢 Ficha nº (Decrescente)</option>
+                    <option value="name_asc">🔤 Nome do Pet (A - Z)</option>
+                    <option value="name_desc">🔤 Nome do Pet (Z - A)</option>
+                </select>
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(totalCount / pageSize)}
+                totalCount={totalCount}
+                pageSize={pageSize}
+                onPageChange={(p) => setCurrentPage(p)}
+                onPageSizeChange={(s) => setPageSize(s)}
+                itemLabel="pets"
+            />
 
             {/* Abas de Pets Ativos / Falecidos */}
             <div style={{
@@ -724,6 +765,16 @@ function PetsContent() {
                     </tbody>
                 </table>
             </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(totalCount / pageSize)}
+                totalCount={totalCount}
+                pageSize={pageSize}
+                onPageChange={(p) => setCurrentPage(p)}
+                onPageSizeChange={(s) => setPageSize(s)}
+                itemLabel="pets"
+            />
 
             {showModal && (
                 <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>

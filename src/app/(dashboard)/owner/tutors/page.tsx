@@ -10,6 +10,7 @@ import { maskPhone, maskCPF, maskCNPJ, maskCEP } from '@/utils/masks'
 import DateInput from '@/components/ui/DateInput'
 import { X } from 'lucide-react'
 import PageHelpModal from '@/components/ui/PageHelpModal'
+import Pagination from '@/components/ui/Pagination'
 
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -52,6 +53,17 @@ export default function TutorsPage() {
     const [cep, setCep] = useState('')
     const [cpfCnpj, setCpfCnpj] = useState('')
     const [hasCashbackModule, setHasCashbackModule] = useState(false)
+
+    // Pagination & Sorting state
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(20)
+    const [totalCount, setTotalCount] = useState(0)
+    const [sortBy, setSortBy] = useState<'file_asc' | 'file_desc' | 'name_asc' | 'name_desc'>('file_asc')
+
+    // Reset to page 1 on filter changes
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [debouncedSearchTerm, sortBy, pageSize])
 
     // Form fields state for persistence
     const [name, setName] = useState('')
@@ -105,33 +117,49 @@ export default function TutorsPage() {
 
             let query = supabase
                 .from('customers')
-                .select('*, pets(name)')
+                .select('*, pets(name)', { count: 'exact' })
                 .eq('org_id', profile.org_id)
-                .order('name')
 
             if (debouncedSearchTerm) {
                 query = query.or(`name.ilike.%${debouncedSearchTerm}%,email.ilike.%${debouncedSearchTerm}%,phone_1.ilike.%${debouncedSearchTerm}%,physical_file_number.ilike.%${debouncedSearchTerm}%`)
-            } else {
-                query = query.limit(50)
             }
 
-            const { data, error } = await query
+            // Ordenação
+            if (sortBy === 'file_asc') {
+                query = query.order('physical_file_number', { ascending: true, nullsFirst: false })
+            } else if (sortBy === 'file_desc') {
+                query = query.order('physical_file_number', { ascending: false, nullsFirst: false })
+            } else if (sortBy === 'name_desc') {
+                query = query.order('name', { ascending: false })
+            } else {
+                query = query.order('name', { ascending: true })
+            }
+
+            // Paginação no Supabase
+            const from = (currentPage - 1) * pageSize
+            const to = from + pageSize - 1
+            query = query.range(from, to)
+
+            const { data, count, error } = await query
 
             if (error) throw error
             if (data) {
                 setTutors(data)
+                setTotalCount(count || 0)
                 // Fetch cashbacks for these tutors
                 const tutorIds = data.map((t: Customer) => t.id)
-                const { data: cbData, error: cbError } = await supabase
-                    .from('cashbacks')
-                    .select('tutor_id, balance')
-                    .in('tutor_id', tutorIds)
-                if (!cbError && cbData) {
-                    const map: Record<string, number> = {}
-                    cbData.forEach((c: any) => {
-                        map[c.tutor_id] = Number(c.balance)
-                    })
-                    setCashbacks(map)
+                if (tutorIds.length > 0) {
+                    const { data: cbData, error: cbError } = await supabase
+                        .from('cashbacks')
+                        .select('tutor_id, balance')
+                        .in('tutor_id', tutorIds)
+                    if (!cbError && cbData) {
+                        const map: Record<string, number> = {}
+                        cbData.forEach((c: any) => {
+                            map[c.tutor_id] = Number(c.balance)
+                        })
+                        setCashbacks(map)
+                    }
                 }
             }
         } catch (error) {
@@ -139,7 +167,7 @@ export default function TutorsPage() {
         } finally {
             if (isInitial) setLoading(false)
         }
-    }, [supabase, debouncedSearchTerm])
+    }, [supabase, debouncedSearchTerm, currentPage, pageSize, sortBy])
 
     useEffect(() => {
         fetchTutors(tutors.length === 0)
@@ -268,16 +296,39 @@ export default function TutorsPage() {
                     </button>
                 </div>
 
-                <div style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     <input
                         type="text"
-                        placeholder="🔍 Buscar tutor por nome, email ou telefone..."
+                        placeholder="🔍 Buscar tutor por nome, email, telefone ou nº da ficha..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className={styles.input}
-                        style={{ maxWidth: '400px' }}
+                        style={{ flex: '1 1 300px', maxWidth: '100%' }}
                     />
+
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className={styles.input}
+                        style={{ width: 'auto', minWidth: '220px' }}
+                        title="Filtrar / Ordenar por"
+                    >
+                        <option value="file_asc">🔢 Ficha nº (Crescente)</option>
+                        <option value="file_desc">🔢 Ficha nº (Decrescente)</option>
+                        <option value="name_asc">🔤 Nome do Tutor (A - Z)</option>
+                        <option value="name_desc">🔤 Nome do Tutor (Z - A)</option>
+                    </select>
                 </div>
+
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(totalCount / pageSize)}
+                    totalCount={totalCount}
+                    pageSize={pageSize}
+                    onPageChange={(p) => setCurrentPage(p)}
+                    onPageSizeChange={(s) => setPageSize(s)}
+                    itemLabel="tutores"
+                />
 
                 <div className={styles.tableContainer}>
                     <table className={styles.table}>
@@ -397,6 +448,16 @@ export default function TutorsPage() {
                         <p style={{ textAlign: 'center', padding: '3rem', color: '#666' }}>Nenhum tutor cadastrado.</p>
                     )}
                 </div>
+
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(totalCount / pageSize)}
+                    totalCount={totalCount}
+                    pageSize={pageSize}
+                    onPageChange={(p) => setCurrentPage(p)}
+                    onPageSizeChange={(s) => setPageSize(s)}
+                    itemLabel="tutores"
+                />
 
                 {showModal && (
                     <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
