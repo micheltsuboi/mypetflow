@@ -190,7 +190,6 @@ export default function HospitalHistoryModal({ onClose }: HospitalHistoryModalPr
             {showRecordModal && activeAdmission && (
                 <InternmentRecordModal
                     admission={activeAdmission}
-                    activeMedications={admissionMeds}
                     onClose={() => setShowRecordModal(false)}
                     onSuccess={() => {
                         // Opcional: Atualizar algo se necessário, mas histórico geralmente é leitura profunda

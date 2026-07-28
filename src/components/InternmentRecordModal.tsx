@@ -80,6 +80,8 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
         } else {
             alert(res.message)
         }
+    }
+
     const handleAddExpense = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!expenseTitle.trim()) return
