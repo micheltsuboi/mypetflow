@@ -65,6 +65,14 @@ export default function DashboardLayout({
                 { name: 'Configuração de Setores', href: '/owner/hospital/config', icon: '⚙️' },
             ]
         },
+        {
+            name: 'Laboratório',
+            icon: '🔬',
+            children: [
+                { name: 'Requisições & Laudos', href: '/owner/laboratorio', icon: '📋' },
+                { name: 'Parâmetros & Referências', href: '/owner/laboratorio/parametros', icon: '⚙️' },
+            ]
+        },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
     ]
 
@@ -99,6 +107,14 @@ export default function DashboardLayout({
                 { name: 'Mapa de Leitos', href: '/owner/hospital', icon: '🛌' },
                 { name: 'Catálogo de Medicações', href: '/owner/hospital/medicacoes', icon: '💊' },
                 { name: 'Configuração de Setores', href: '/owner/hospital/config', icon: '⚙️' },
+            ]
+        },
+        {
+            name: 'Laboratório',
+            icon: '🔬',
+            children: [
+                { name: 'Requisições & Laudos', href: '/owner/laboratorio', icon: '📋' },
+                { name: 'Parâmetros & Referências', href: '/owner/laboratorio/parametros', icon: '⚙️' },
             ]
         },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
@@ -298,6 +314,9 @@ export default function DashboardLayout({
                         name === 'Mapa de Leitos' ||
                         name === 'Catálogo de Medicações' ||
                         name === 'Configuração de Setores') return planFeat.includes('hospital')
+                    if (name === 'Laboratório' ||
+                        name === 'Requisições & Laudos' ||
+                        name === 'Parâmetros & Referências') return planFeat.includes('clinica_vet') || planFeat.includes('hospital')
                     if (name === 'Questionário') return planFeat.includes('assessment')
                     if (name === 'Ponto') return planFeat.includes('ponto')
                     if (name === 'Integrações') return true

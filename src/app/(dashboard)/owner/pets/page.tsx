@@ -42,6 +42,8 @@ import {
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
+import { getLabRequests } from '@/app/actions/lab-actions'
+import LabResultModal from '@/components/LabResultModal'
 import { 
     getPetSubscriptions, 
     subscribePetToMensalidade, 
@@ -220,6 +222,10 @@ function PetsContent() {
     const [reschedulingSession, setReschedulingSession] = useState<any | null>(null)
     const [rescheduleDateTime, setRescheduleDateTime] = useState<string>('')
 
+    // Laboratório State
+    const [petLabRequests, setPetLabRequests] = useState<any[]>([])
+    const [selectedLabRequestId, setSelectedLabRequestId] = useState<string | null>(null)
+
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
     // Accordion State
@@ -283,6 +289,7 @@ function PetsContent() {
             } else if (key === 'exams') {
                 getVetExams(selectedPet.id).then(setPetExams)
                 getVetExamTypes().then(setExamTypes)
+                getLabRequests({ pet_id: selectedPet.id }).then(setPetLabRequests)
             }
         }
     }
@@ -2525,6 +2532,16 @@ function PetsContent() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal de Laudo Laboratorial */}
+            {selectedLabRequestId && (
+                <LabResultModal
+                    requestId={selectedLabRequestId}
+                    readOnly={true}
+                    onClose={() => setSelectedLabRequestId(null)}
+                    onSuccess={() => {}}
+                />
             )}
         </div>
     )
