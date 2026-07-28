@@ -376,85 +376,99 @@ export default function EmitirDevolucaoNFModal({
                             </button>
                         </div>
 
-                        {/* Cabeçalho da Tabela de Itens */}
-                        <div style={{
-                            display: 'grid', gridTemplateColumns: '2fr 0.8fr 1fr 0.9fr auto', gap: '0.5rem',
-                            padding: '0 0.5rem 0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)'
-                        }}>
-                            <span>Descrição do Produto</span>
-                            <span>Qtd</span>
-                            <span>Val. Unit (R$)</span>
-                            <span>CFOP Item</span>
-                            <span></span>
-                        </div>
-
                         {items.map((item, idx) => (
                             <div key={idx} style={{
-                                background: 'var(--bg-tertiary)', padding: '0.6rem 0.75rem', borderRadius: '6px',
-                                border: '1px solid var(--card-border)', marginBottom: '0.5rem',
-                                display: 'grid', gridTemplateColumns: '2fr 0.8fr 1fr 0.9fr auto', gap: '0.5rem', alignItems: 'center'
+                                background: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: '8px',
+                                border: '1px solid var(--card-border)', marginBottom: '0.75rem'
                             }}>
-                                <input
-                                    type="text"
-                                    placeholder="Descrição do produto"
-                                    value={item.descricao}
-                                    onChange={(e) => handleItemChange(idx, 'descricao', e.target.value)}
-                                    style={{
-                                        padding: '0.4rem', borderRadius: '4px',
-                                        border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)', fontSize: '0.8rem'
-                                    }}
-                                />
-                                <input
-                                    type="number"
-                                    min="1"
-                                    placeholder="Qtd"
-                                    value={item.quantidade}
-                                    onChange={(e) => handleItemChange(idx, 'quantidade', Number(e.target.value))}
-                                    style={{
-                                        padding: '0.4rem', borderRadius: '4px',
-                                        border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)', fontSize: '0.8rem'
-                                    }}
-                                />
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    placeholder="Val. Unit (R$)"
-                                    value={item.valor_unitario}
-                                    onChange={(e) => handleItemChange(idx, 'valor_unitario', Number(e.target.value))}
-                                    style={{
-                                        padding: '0.4rem', borderRadius: '4px',
-                                        border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)', fontSize: '0.8rem'
-                                    }}
-                                />
-                                <input
-                                    type="text"
-                                    maxLength={4}
-                                    placeholder="CFOP"
-                                    value={item.cfop}
-                                    onChange={(e) => handleItemChange(idx, 'cfop', e.target.value.replace(/\D/g, ''))}
-                                    style={{
-                                        padding: '0.4rem', borderRadius: '4px',
-                                        border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)', fontSize: '0.8rem', fontFamily: 'monospace', fontWeight: 700
-                                    }}
-                                    title="CFOP específico deste item"
-                                />
-                                {items.length > 1 ? (
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemoveItem(idx)}
-                                        style={{
-                                            background: '#ef4444', color: 'white', border: 'none',
-                                            borderRadius: '4px', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem'
-                                        }}
-                                        title="Remover produto"
-                                    >
-                                        🗑️
-                                    </button>
-                                ) : <div style={{ width: '28px' }} />}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-sky-dark, #00e4ce)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        📦 Item #{idx + 1}
+                                    </span>
+                                    {items.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveItem(idx)}
+                                            style={{
+                                                background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)',
+                                                borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600
+                                            }}
+                                            title="Remover produto"
+                                        >
+                                            🗑️ Remover
+                                        </button>
+                                    )}
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 0.8fr 1fr 1fr', gap: '0.5rem', alignItems: 'flex-start' }}>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>
+                                            Nome / Descrição
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Ração Premium 15kg"
+                                            value={item.descricao}
+                                            onChange={(e) => handleItemChange(idx, 'descricao', e.target.value)}
+                                            style={{
+                                                width: '100%', padding: '0.45rem', borderRadius: '5px',
+                                                border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
+                                                color: 'var(--text-primary)', fontSize: '0.825rem'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>
+                                            Quantidade
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            placeholder="Qtd"
+                                            value={item.quantidade}
+                                            onChange={(e) => handleItemChange(idx, 'quantidade', Number(e.target.value))}
+                                            style={{
+                                                width: '100%', padding: '0.45rem', borderRadius: '5px',
+                                                border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
+                                                color: 'var(--text-primary)', fontSize: '0.825rem'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.2rem' }}>
+                                            Val. Unit (R$)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="0.00"
+                                            value={item.valor_unitario}
+                                            onChange={(e) => handleItemChange(idx, 'valor_unitario', Number(e.target.value))}
+                                            style={{
+                                                width: '100%', padding: '0.45rem', borderRadius: '5px',
+                                                border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
+                                                color: 'var(--text-primary)', fontSize: '0.825rem'
+                                            }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.725rem', fontWeight: 700, color: 'var(--color-coral, #F08C98)', marginBottom: '0.2rem' }}>
+                                            CFOP do Item
+                                        </label>
+                                        <input
+                                            type="text"
+                                            maxLength={4}
+                                            placeholder="Ex: 1202"
+                                            value={item.cfop}
+                                            onChange={(e) => handleItemChange(idx, 'cfop', e.target.value.replace(/\D/g, ''))}
+                                            style={{
+                                                width: '100%', padding: '0.45rem', borderRadius: '5px',
+                                                border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
+                                                color: 'var(--text-primary)', fontSize: '0.825rem', fontFamily: 'monospace', fontWeight: 700
+                                            }}
+                                            title="CFOP específico deste item"
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
