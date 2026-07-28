@@ -13,6 +13,7 @@ export const MODULES_LIST = [
     { id: 'petshop', label: 'Petshop', icon: '🛍️', description: 'Ponto de venda (PDV)' },
     { id: 'clinica_vet', label: 'Clínica Vet', icon: '🩺', description: 'Consultas e exames' },
     { id: 'hospital', label: 'Hospital Vet', icon: '🏥', description: 'Internamento e leitos' },
+    { id: 'laboratorio', label: 'Laboratório', icon: '🔬', description: 'Exames laboratoriais e laudos' },
     { id: 'cashback', label: 'Fidelidade/Cashback', icon: '💎', description: 'Programa de recompensas' },
     { id: 'financeiro', label: 'Financeiro', icon: '💰', description: 'Caixa e relatórios' },
     { id: 'usuarios', label: 'Usuários', icon: '👥', description: 'Gestão de equipe' },

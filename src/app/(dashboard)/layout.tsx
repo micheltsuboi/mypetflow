@@ -316,7 +316,7 @@ export default function DashboardLayout({
                         name === 'Configuração de Setores') return planFeat.includes('hospital')
                     if (name === 'Laboratório' ||
                         name === 'Requisições & Laudos' ||
-                        name === 'Parâmetros & Referências') return planFeat.includes('clinica_vet') || planFeat.includes('hospital')
+                        name === 'Parâmetros & Referências') return planFeat.includes('laboratorio') || planFeat.includes('clinica_vet') || planFeat.includes('hospital')
                     if (name === 'Questionário') return planFeat.includes('assessment')
                     if (name === 'Ponto') return planFeat.includes('ponto')
                     if (name === 'Integrações') return true
