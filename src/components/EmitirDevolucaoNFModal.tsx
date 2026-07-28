@@ -290,16 +290,21 @@ export default function EmitirDevolucaoNFModal({
 
                         <div>
                             <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
-                                CFOP Padrão
+                                CFOP Padrão (Sugestão Inicial)
                             </label>
                             <input
                                 type="text"
+                                maxLength={4}
                                 value={cfop}
-                                onChange={(e) => setCfop(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '')
+                                    setCfop(val)
+                                }}
+                                placeholder="Ex: 1202"
                                 style={{
                                     width: '100%', padding: '0.6rem', borderRadius: '6px',
                                     border: '1px solid var(--card-border)', background: 'var(--bg-tertiary)',
-                                    color: 'var(--text-primary)', fontSize: '0.9rem'
+                                    color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'monospace', fontWeight: 600
                                 }}
                             />
                         </div>
@@ -364,18 +369,30 @@ export default function EmitirDevolucaoNFModal({
                                 onClick={handleAddItem}
                                 style={{
                                     background: 'var(--primary)', color: 'white', border: 'none',
-                                    padding: '3px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem'
+                                    padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600
                                 }}
                             >
                                 + Adicionar Item
                             </button>
                         </div>
 
+                        {/* Cabeçalho da Tabela de Itens */}
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '2fr 0.8fr 1fr 0.9fr auto', gap: '0.5rem',
+                            padding: '0 0.5rem 0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)'
+                        }}>
+                            <span>Descrição do Produto</span>
+                            <span>Qtd</span>
+                            <span>Val. Unit (R$)</span>
+                            <span>CFOP Item</span>
+                            <span></span>
+                        </div>
+
                         {items.map((item, idx) => (
                             <div key={idx} style={{
-                                background: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: '6px',
+                                background: 'var(--bg-tertiary)', padding: '0.6rem 0.75rem', borderRadius: '6px',
                                 border: '1px solid var(--card-border)', marginBottom: '0.5rem',
-                                display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '0.5rem', alignItems: 'center'
+                                display: 'grid', gridTemplateColumns: '2fr 0.8fr 1fr 0.9fr auto', gap: '0.5rem', alignItems: 'center'
                             }}>
                                 <input
                                     type="text"
@@ -412,18 +429,32 @@ export default function EmitirDevolucaoNFModal({
                                         color: 'var(--text-primary)', fontSize: '0.8rem'
                                     }}
                                 />
-                                {items.length > 1 && (
+                                <input
+                                    type="text"
+                                    maxLength={4}
+                                    placeholder="CFOP"
+                                    value={item.cfop}
+                                    onChange={(e) => handleItemChange(idx, 'cfop', e.target.value.replace(/\D/g, ''))}
+                                    style={{
+                                        padding: '0.4rem', borderRadius: '4px',
+                                        border: '1px solid var(--card-border)', background: 'var(--bg-secondary)',
+                                        color: 'var(--text-primary)', fontSize: '0.8rem', fontFamily: 'monospace', fontWeight: 700
+                                    }}
+                                    title="CFOP específico deste item"
+                                />
+                                {items.length > 1 ? (
                                     <button
                                         type="button"
                                         onClick={() => handleRemoveItem(idx)}
                                         style={{
                                             background: '#ef4444', color: 'white', border: 'none',
-                                            borderRadius: '4px', padding: '0.4rem', cursor: 'pointer', fontSize: '0.8rem'
+                                            borderRadius: '4px', padding: '0.4rem 0.6rem', cursor: 'pointer', fontSize: '0.8rem'
                                         }}
+                                        title="Remover produto"
                                     >
                                         🗑️
                                     </button>
-                                )}
+                                ) : <div style={{ width: '28px' }} />}
                             </div>
                         ))}
                     </div>
