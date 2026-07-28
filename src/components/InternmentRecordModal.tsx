@@ -2,26 +2,31 @@
 
 import { useState, useEffect } from 'react'
 import { prescreverMedicacao, applyMedicationDose, getMedicationLogs, getHospitalObservations, addHospitalObservation, updateAdmissionSeverity, getAdmissionMedications } from '@/app/actions/hospital'
+import { getHospitalMedicationCatalog, HospitalMedicationItem } from '@/app/actions/hospital-medications'
 
 export default function InternmentRecordModal({ admission, onClose, onSuccess }: { admission: any, onClose: () => void, onSuccess: () => void }) {
     const [activeTab, setActiveTab] = useState<'medications' | 'observations'>('medications')
     const [loading, setLoading] = useState(false)
     const [medicationLogs, setMedicationLogs] = useState<any[]>([])
     const [activeMedications, setActiveMedications] = useState<any[]>([])
+    const [catalogMeds, setCatalogMeds] = useState<HospitalMedicationItem[]>([])
     const [observations, setObservations] = useState<any[]>([])
     const [applyNotes, setApplyNotes] = useState<Record<string, string>>({})
+    const [applyMls, setApplyMls] = useState<Record<string, string>>({})
     const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
     const [currentSeverity, setCurrentSeverity] = useState(admission.severity)
 
     const loadRecords = async () => {
-        const [logs, obs, activeMeds] = await Promise.all([
+        const [logs, obs, activeMeds, catalog] = await Promise.all([
             getMedicationLogs(admission.id),
             getHospitalObservations(admission.id),
-            getAdmissionMedications(admission.id)
+            getAdmissionMedications(admission.id),
+            getHospitalMedicationCatalog()
         ])
         setMedicationLogs(logs)
         setObservations(obs)
         setActiveMedications(activeMeds)
+        setCatalogMeds(catalog)
     }
 
     useEffect(() => {
@@ -38,7 +43,6 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
         const res = await prescreverMedicacao(formData)
         if (res.success) {
             e.currentTarget.reset()
-            // Pequeno delay para garantir que o insert foi processado antes do fetch
             setTimeout(async () => {
                 await loadRecords()
                 onSuccess()
@@ -54,11 +58,12 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
     const handleApplyDose = async (medId: string) => {
         setLoading(true)
         const note = applyNotes[medId] || ''
-        const res = await applyMedicationDose(medId, admission.id, note)
+        const ml = parseFloat(applyMls[medId] || '0')
+        const res = await applyMedicationDose(medId, admission.id, note, ml)
         setLoading(false)
         if (res.success) {
             setApplyNotes(prev => ({ ...prev, [medId]: '' }))
-            // Pequeno delay para garantir que a inserção no banco foi processada antes do fetch
+            setApplyMls(prev => ({ ...prev, [medId]: '' }))
             setTimeout(() => {
                 loadRecords()
                 onSuccess()
@@ -184,16 +189,31 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
                                                         {m.notes && <p className="text-muted" style={{ fontSize: '0.75rem', fontStyle: 'italic', margin: 0, backgroundColor: 'rgba(27, 59, 90, 0.3)', padding: '8px', borderRadius: '4px' }}>"{m.notes}"</p>}
                                                     </div>
 
-                                                    <div style={{ marginTop: '1rem' }}>
-                                                        <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Observação da Dose</label>
-                                                        <input
-                                                            type="text"
-                                                            className="input"
-                                                            style={{ fontSize: '0.75rem', padding: '8px', fontFamily: 'var(--font-montserrat)' }}
-                                                            placeholder="Como o pet reagiu? Alguma nota?"
-                                                            value={applyNotes[m.id] || ''}
-                                                            onChange={(e) => setApplyNotes(prev => ({ ...prev, [m.id]: e.target.value }))}
-                                                        />
+                                                    <div style={{ marginTop: '1rem', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.5rem' }}>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-sky-dark, #00e4ce)', marginBottom: '4px' }}>ML Gastos</label>
+                                                            <input
+                                                                type="number"
+                                                                step="0.1"
+                                                                min="0"
+                                                                className="input"
+                                                                style={{ fontSize: '0.75rem', padding: '8px', fontFamily: 'var(--font-montserrat)', fontWeight: 700 }}
+                                                                placeholder="Ex: 2.5 ml"
+                                                                value={applyMls[m.id] || ''}
+                                                                onChange={(e) => setApplyMls(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>Observação da Dose</label>
+                                                            <input
+                                                                type="text"
+                                                                className="input"
+                                                                style={{ fontSize: '0.75rem', padding: '8px', fontFamily: 'var(--font-montserrat)' }}
+                                                                placeholder="Como o pet reagiu?"
+                                                                value={applyNotes[m.id] || ''}
+                                                                onChange={(e) => setApplyNotes(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                                            />
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center justify-between" style={{ padding: '1rem 1.25rem', backgroundColor: 'rgba(22, 38, 56, 0.5)', borderTop: '1px solid rgba(0, 228, 206, 0.1)' }}>
@@ -209,7 +229,7 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
                                                         className="btn btn-secondary"
                                                         style={{ padding: '6px 14px', fontSize: '0.75rem' }}
                                                     >
-                                                        💉 Aplicar
+                                                        💉 Aplicar Dose
                                                     </button>
                                                 </div>
                                             </div>
@@ -250,8 +270,23 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
                                         <form onSubmit={handlePrescribe} className="flex flex-col gap-4">
                                             <div className="flex gap-4" style={{ flexWrap: 'wrap' }}>
                                                 <div style={{ flex: 2, minWidth: '200px' }}>
-                                                    <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Medicamento</label>
-                                                    <input type="text" name="name" required className="input" placeholder="Ex: Dipirona gotas" style={{ fontFamily: 'var(--font-montserrat)' }} />
+                                                    <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Medicamento (Catálogo ou Digitar)</label>
+                                                    <input
+                                                        type="text"
+                                                        name="name"
+                                                        list="hospital-catalog-meds"
+                                                        required
+                                                        className="input"
+                                                        placeholder="Selecione ou digite (Ex: Dipirona, Baytril)..."
+                                                        style={{ fontFamily: 'var(--font-montserrat)' }}
+                                                    />
+                                                    <datalist id="hospital-catalog-meds">
+                                                        {catalogMeds.map(item => (
+                                                            <option key={item.id} value={item.name}>
+                                                                {item.name} ({item.volume_ml} ml)
+                                                            </option>
+                                                        ))}
+                                                    </datalist>
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: '150px' }}>
                                                     <label className="label text-sm" style={{ fontFamily: 'var(--font-montserrat)' }}>Dose e Via</label>

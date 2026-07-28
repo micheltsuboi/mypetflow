@@ -400,12 +400,17 @@ export async function prescreverMedicacao(formData: FormData) {
     }
 }
 
-export async function applyMedicationDose(medicationId: string, admissionId: string, notes?: string) {
+export async function applyMedicationDose(medicationId: string, admissionId: string, notes?: string, mlApplied?: number) {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, message: 'Não autorizado.' }
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+
+        let noteText = notes || null
+        if (mlApplied && mlApplied > 0) {
+            noteText = `Dose: ${mlApplied} ml. ${notes || ''}`.trim()
+        }
 
         // log dose
         await supabase.from('hospital_medication_logs').insert({
@@ -413,7 +418,7 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
             medication_id: medicationId,
             admission_id: admissionId,
             applied_by: user.id,
-            notes: notes || null
+            notes: noteText
         })
 
         // calculate next dose

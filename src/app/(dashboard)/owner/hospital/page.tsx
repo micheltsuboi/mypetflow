@@ -204,11 +204,14 @@ export default function HospitalDashboard() {
                     </div>
                     <p className="text-muted" style={{ fontFamily: 'var(--font-montserrat)' }}>Acompanhe os pacientes internados, aplique medicamentos e monitore gravidades.</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                     <button onClick={() => setShowHistoryModal(true)} className="btn btn-primary" style={{ fontFamily: 'var(--font-montserrat)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span>📂</span> Histórico Completo
                     </button>
-                    <Link href="/owner/hospital/config" className="btn btn-secondary" style={{ fontFamily: 'var(--font-montserrat)' }}>
+                    <Link href="/owner/hospital/medicacoes" className="btn btn-secondary" style={{ fontFamily: 'var(--font-montserrat)', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+                        💊 Catálogo de Medicações
+                    </Link>
+                    <Link href="/owner/hospital/config" className="btn btn-secondary" style={{ fontFamily: 'var(--font-montserrat)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         ⚙️ Configurar Estrutura
                     </Link>
                 </div>

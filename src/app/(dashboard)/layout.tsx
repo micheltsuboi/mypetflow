@@ -56,7 +56,15 @@ export default function DashboardLayout({
                 { name: 'Catálogo de Exames', href: '/owner/exams', icon: '🧪' },
             ]
         },
-        { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
+        {
+            name: 'Hospital',
+            icon: '🏥',
+            children: [
+                { name: 'Mapa de Leitos', href: '/owner/hospital', icon: '🛌' },
+                { name: 'Catálogo de Medicações', href: '/owner/hospital/medicacoes', icon: '💊' },
+                { name: 'Configuração de Setores', href: '/owner/hospital/config', icon: '⚙️' },
+            ]
+        },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
     ]
 
@@ -84,7 +92,15 @@ export default function DashboardLayout({
                 { name: 'Catálogo de Exames', href: '/owner/exams', icon: '🧪' },
             ]
         },
-        { name: 'Hospital', href: '/owner/hospital', icon: '🏥' },
+        {
+            name: 'Hospital',
+            icon: '🏥',
+            children: [
+                { name: 'Mapa de Leitos', href: '/owner/hospital', icon: '🛌' },
+                { name: 'Catálogo de Medicações', href: '/owner/hospital/medicacoes', icon: '💊' },
+                { name: 'Configuração de Setores', href: '/owner/hospital/config', icon: '⚙️' },
+            ]
+        },
         { name: 'Questionário', href: '/owner/assessment', icon: '📋' },
         { name: 'Usuários', href: '/owner/usuarios', icon: '👥' },
         { name: 'Ponto', href: '/owner/ponto', icon: '⏰' },
@@ -278,7 +294,10 @@ export default function DashboardLayout({
                         name === 'Veterinários' ||
                         name === 'Consultas' ||
                         name === 'Catálogo de Exames') return planFeat.includes('clinica_vet')
-                    if (name === 'Hospital') return planFeat.includes('hospital')
+                    if (name === 'Hospital' ||
+                        name === 'Mapa de Leitos' ||
+                        name === 'Catálogo de Medicações' ||
+                        name === 'Configuração de Setores') return planFeat.includes('hospital')
                     if (name === 'Questionário') return planFeat.includes('assessment')
                     if (name === 'Ponto') return planFeat.includes('ponto')
                     if (name === 'Integrações') return true
