@@ -507,3 +507,53 @@ export async function getLabReportData(requestId: string) {
         return null
     }
 }
+
+export async function searchPetsForSelect(queryTerm: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        if (!profile?.org_id) return []
+
+        const term = (queryTerm || '').trim()
+
+        let query = supabase
+            .from('pets')
+            .select(`
+                id,
+                name,
+                species,
+                breed,
+                customer_id,
+                is_deceased,
+                customers(id, name, phone_1, physical_file_number)
+            `)
+            .eq('org_id', profile.org_id)
+            .eq('is_deceased', false)
+            .limit(15)
+
+        if (term) {
+            query = query.or(`name.ilike.%${term}%,customers.name.ilike.%${term}%`)
+        }
+
+        const { data, error } = await query
+        if (error) {
+            console.error('Erro na busca otimizada de pets:', error)
+            return []
+        }
+
+        return (data || []).map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            species: p.species,
+            breed: p.breed,
+            customer_name: p.customers?.name || 'Sem tutor',
+            file_number: p.customers?.physical_file_number || null
+        }))
+    } catch (err) {
+        console.error('Erro em searchPetsForSelect:', err)
+        return []
+    }
+}

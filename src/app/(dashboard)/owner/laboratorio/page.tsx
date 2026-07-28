@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { getLabRequests, createLabRequest, getLabExamsCatalog, LabExam } from '@/app/actions/lab-actions'
+import { getLabRequests, createLabRequest, getLabExamsCatalog, searchPetsForSelect, LabExam } from '@/app/actions/lab-actions'
 import LabResultModal from '@/components/LabResultModal'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 
@@ -19,11 +19,17 @@ export default function LaboratorioDashboardPage() {
     const [readOnlyReport, setReadOnlyReport] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
-    // Form Nova Requisição
-    const [petsList, setPetsList] = useState<any[]>([])
+    // Form Nova Requisição com Busca Otimizada de Pets
+    const [selectedPet, setSelectedPet] = useState<any | null>(null)
     const [selectedPetId, setSelectedPetId] = useState('')
     const [selectedExamId, setSelectedExamId] = useState('')
     const [notes, setNotes] = useState('')
+
+    // Auto-complete Pet Search State
+    const [petSearchTerm, setPetSearchTerm] = useState('')
+    const [searchResults, setSearchResults] = useState<any[]>([])
+    const [searchingPets, setSearchingPets] = useState(false)
+    const [showDropdown, setShowDropdown] = useState(false)
 
     const loadData = async () => {
         setLoading(true)
@@ -38,18 +44,25 @@ export default function LaboratorioDashboardPage() {
 
     useEffect(() => {
         loadData()
-
-        // Buscar lista rápida de pets para o formulário de requisição
-        fetch('/api/pets-list')
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) setPetsList(data)
-            })
-            .catch(() => {})
     }, [])
+
+    // Debounced Pet Search Effect (Otimizado Vercel CPU - 300ms)
+    useEffect(() => {
+        if (!showNewRequestModal) return
+        const timer = setTimeout(async () => {
+            setSearchingPets(true)
+            const res = await searchPetsForSelect(petSearchTerm)
+            setSearchResults(res)
+            setSearchingPets(false)
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [petSearchTerm, showNewRequestModal])
 
     const handleCreateRequest = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!selectedPetId) {
+            return alert('Selecione um paciente (pet) para solicitar o exame.')
+        }
         setSubmitting(true)
         const formData = new FormData()
         formData.append('pet_id', selectedPetId)
@@ -61,7 +74,9 @@ export default function LaboratorioDashboardPage() {
 
         if (res.success) {
             setShowNewRequestModal(false)
+            setSelectedPet(null)
             setSelectedPetId('')
+            setPetSearchTerm('')
             setSelectedExamId('')
             setNotes('')
             await loadData()
@@ -290,22 +305,85 @@ export default function LaboratorioDashboardPage() {
                         <form onSubmit={handleCreateRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem', color: 'var(--text-primary)' }}>
-                                    Selecione o Paciente (Pet) *
+                                    Buscar Paciente (Pet) *
                                 </label>
-                                <select
-                                    required
-                                    className="input"
-                                    value={selectedPetId}
-                                    onChange={(e) => setSelectedPetId(e.target.value)}
-                                    style={{ width: '100%', padding: '0.6rem' }}
-                                >
-                                    <option value="">Selecione o Pet...</option>
-                                    {petsList.map((p: any) => (
-                                        <option key={p.id} value={p.id}>
-                                            🐾 {p.name} {p.physical_file_number ? `(Ficha #${p.physical_file_number})` : ''} - Tutor: {p.customer_name || 'N/I'}
-                                        </option>
-                                    ))}
-                                </select>
+                                {selectedPet ? (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        background: 'rgba(0, 228, 206, 0.1)', border: '1px solid var(--color-sky-dark, #00e4ce)',
+                                        padding: '0.6rem 0.85rem', borderRadius: '8px'
+                                    }}>
+                                        <div>
+                                            <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>🐾 {selectedPet.name}</strong>
+                                            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                {selectedPet.species === 'cat' ? 'Gato' : 'Cão'} {selectedPet.breed ? `(${selectedPet.breed})` : ''} • Tutor: {selectedPet.customer_name} {selectedPet.file_number ? `(Ficha #${selectedPet.file_number})` : ''}
+                                            </span>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSelectedPet(null); setSelectedPetId(''); setPetSearchTerm(''); }}
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
+                                        >
+                                            ✕ Alterar
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            type="text"
+                                            placeholder="🔍 Digite para buscar por nome do pet, tutor ou nº da ficha..."
+                                            className="input"
+                                            value={petSearchTerm}
+                                            onChange={(e) => {
+                                                setPetSearchTerm(e.target.value)
+                                                setShowDropdown(true)
+                                            }}
+                                            onFocus={() => setShowDropdown(true)}
+                                            style={{ width: '100%', padding: '0.6rem' }}
+                                        />
+
+                                        {showDropdown && (
+                                            <div style={{
+                                                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                                                background: 'var(--bg-tertiary)', border: '1px solid var(--card-border)',
+                                                borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto',
+                                                boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                                            }}>
+                                                {searchingPets ? (
+                                                    <div style={{ padding: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                                        ⏳ Buscando pets...
+                                                    </div>
+                                                ) : searchResults.length === 0 ? (
+                                                    <div style={{ padding: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                                        Nenhum pet encontrado.
+                                                    </div>
+                                                ) : (
+                                                    searchResults.map((p) => (
+                                                        <div
+                                                            key={p.id}
+                                                            onClick={() => {
+                                                                setSelectedPet(p)
+                                                                setSelectedPetId(p.id)
+                                                                setShowDropdown(false)
+                                                            }}
+                                                            style={{
+                                                                padding: '0.66rem 0.85rem', cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                                transition: 'background 0.2s'
+                                                            }}
+                                                        >
+                                                            <strong style={{ fontSize: '0.85rem', display: 'block', color: 'var(--text-primary)' }}>
+                                                                🐾 {p.name} {p.file_number ? `(Ficha #${p.file_number})` : ''}
+                                                            </strong>
+                                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                                                {p.species === 'cat' ? 'Gato' : 'Cão'} {p.breed ? `(${p.breed})` : ''} • Tutor: {p.customer_name}
+                                                            </span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div>
