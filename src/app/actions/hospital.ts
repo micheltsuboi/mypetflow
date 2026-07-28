@@ -365,18 +365,37 @@ export async function prescreverMedicacao(formData: FormData) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, message: 'Não autorizado.' }
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
-        if (!profile?.org_id) return { success: false, message: 'Org needed.' }
+        if (!profile?.org_id) return { success: false, message: 'Organização não encontrada.' }
 
         const admissionId = formData.get('admissionId') as string
-        const petId = formData.get('petId') as string
-        const name = formData.get('name') as string
-        const dosage = formData.get('dosage') as string
+        let petId = formData.get('petId') as string
+        const name = (formData.get('name') as string || '').trim()
+        const dosage = (formData.get('dosage') as string || '').trim()
         const freq = formData.get('frequencyHours')
         const frequencyHours = freq ? parseInt(freq as string) : null
-        const notes = formData.get('notes') as string
+        const notes = (formData.get('notes') as string || '').trim()
+
+        if (!admissionId || !name || !dosage) {
+            return { success: false, message: 'Nome da medicação, dose e via são obrigatórios.' }
+        }
+
+        if (!petId || petId === 'undefined' || petId === 'null') {
+            const { data: adm } = await supabase
+                .from('hospital_admissions')
+                .select('pet_id')
+                .eq('id', admissionId)
+                .single()
+            if (adm?.pet_id) petId = adm.pet_id
+        }
+
+        if (!petId) {
+            return { success: false, message: 'Pet não localizado no internamento.' }
+        }
 
         const initialDoseAt = new Date()
-        initialDoseAt.setHours(initialDoseAt.getHours() + (frequencyHours || 0))
+        if (frequencyHours && frequencyHours > 0) {
+            initialDoseAt.setHours(initialDoseAt.getHours() + frequencyHours)
+        }
 
         const { error } = await supabase.from('hospital_medications').insert({
             org_id: profile.org_id,
@@ -386,17 +405,21 @@ export async function prescreverMedicacao(formData: FormData) {
             dosage,
             frequency_hours: frequencyHours,
             next_dose_at: frequencyHours ? initialDoseAt.toISOString() : null,
-            notes,
+            notes: notes || null,
             is_active: true,
             created_by: user.id
         })
 
-        if (error) throw error
+        if (error) {
+            console.error('Erro Supabase ao prescrever medicação:', error)
+            return { success: false, message: error.message || 'Erro ao salvar prescrição no banco.' }
+        }
+
         revalidatePath('/owner/hospital')
         return { success: true, message: 'Prescrito com sucesso.' }
-    } catch (e) {
-        console.error(e)
-        return { success: false, message: 'Erro.' }
+    } catch (e: any) {
+        console.error('Erro em prescreverMedicacao:', e)
+        return { success: false, message: e.message || 'Erro inesperado ao prescrever.' }
     }
 }
 
@@ -406,20 +429,36 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { success: false, message: 'Não autorizado.' }
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+        if (!profile?.org_id) return { success: false, message: 'Organização não encontrada.' }
 
         let noteText = notes || null
         if (mlApplied && mlApplied > 0) {
             noteText = `Dose: ${mlApplied} ml. ${notes || ''}`.trim()
         }
 
-        // log dose
-        await supabase.from('hospital_medication_logs').insert({
-            org_id: profile!.org_id,
+        const insertPayload: any = {
+            org_id: profile.org_id,
             medication_id: medicationId,
             admission_id: admissionId,
             applied_by: user.id,
             notes: noteText
-        })
+        }
+
+        if (mlApplied && mlApplied > 0) {
+            insertPayload.ml_applied = mlApplied
+        }
+
+        const { error: logError } = await supabase.from('hospital_medication_logs').insert(insertPayload)
+
+        if (logError) {
+            console.warn('Tentativa com ml_applied falhou, tentando fallback sem a coluna:', logError.message)
+            delete insertPayload.ml_applied
+            const { error: retryError } = await supabase.from('hospital_medication_logs').insert(insertPayload)
+            if (retryError) {
+                console.error('Erro ao registrar log de dose:', retryError)
+                return { success: false, message: retryError.message || 'Erro ao registrar dose.' }
+            }
+        }
 
         // calculate next dose
         const { data: med } = await supabase.from('hospital_medications').select('frequency_hours').eq('id', medicationId).single()
@@ -428,14 +467,15 @@ export async function applyMedicationDose(medicationId: string, admissionId: str
             next.setHours(next.getHours() + med.frequency_hours)
             await supabase.from('hospital_medications').update({ next_dose_at: next.toISOString() }).eq('id', medicationId)
         } else {
-            // single dose, maybe inactive it
+            // single dose, deactivate
             await supabase.from('hospital_medications').update({ is_active: false }).eq('id', medicationId)
         }
 
-        // revalidatePath removidos para performance, o frontend já atualiza via loadData(true)
+        revalidatePath('/owner/hospital')
         return { success: true, message: 'Dose aplicada com sucesso!' }
-    } catch (e) {
-        return { success: false, message: 'Erro.' }
+    } catch (e: any) {
+        console.error('Erro em applyMedicationDose:', e)
+        return { success: false, message: e.message || 'Erro inesperado ao aplicar dose.' }
     }
 }
 
