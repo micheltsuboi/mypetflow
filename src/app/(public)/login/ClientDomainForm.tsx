@@ -35,7 +35,7 @@ export default function ClientDomainForm() {
     return (
         <form onSubmit={handleSubmit}>
             <div className={styles.inputGroup} style={{ marginBottom: '1.5rem' }}>
-                <label className={styles.label} style={{ color: 'white' }}>Endereço do seu Pet Shop</label>
+                <label className={styles.label}>Endereço do seu Pet Shop</label>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <input
                         type="text"
@@ -47,15 +47,16 @@ export default function ClientDomainForm() {
                         style={{ borderRight: 'none', borderTopRightRadius: 0, borderBottomRightRadius: 0, width: '60%' }}
                     />
                     <div style={{
-                        background: 'rgba(255,255,255,0.1)',
-                        color: 'rgba(255,255,255,0.7)',
+                        background: 'var(--bg-tertiary, rgba(0, 0, 0, 0.05))',
+                        color: 'var(--text-secondary, #334155)',
                         padding: '0.75rem 1rem',
-                        border: '1px solid rgba(255,255,255,0.2)',
+                        border: '1px solid var(--input-border, var(--border))',
                         borderLeft: 'none',
-                        borderTopRightRadius: '8px',
-                        borderBottomRightRadius: '8px',
+                        borderTopRightRadius: '0.75rem',
+                        borderBottomRightRadius: '0.75rem',
                         width: '40%',
                         fontSize: '0.9rem',
+                        fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -65,7 +66,7 @@ export default function ClientDomainForm() {
                 </div>
             </div>
 
-            <button type="submit" className={styles.button} disabled={loading} style={{ background: 'var(--color-coral)', border: 'none', width: '100%', padding: '1rem', borderRadius: '8px', color: '#0E1624', fontWeight: 'bold' }}>
+            <button type="submit" className={styles.button} disabled={loading} style={{ width: '100%' }}>
                 {loading ? 'Redirecionando...' : 'Acessar Sistema'}
             </button>
         </form>

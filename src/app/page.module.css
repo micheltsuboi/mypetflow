@@ -55,11 +55,12 @@
 }
 
 .card {
-    background: var(--bg-card);
+    background: var(--card-bg-glass, var(--bg-card));
     backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
+    border: 1px solid var(--card-border, var(--border));
     border-radius: 1.5rem;
     padding: 2.5rem;
+    box-shadow: var(--shadow-xl, 0 20px 40px -15px rgba(0, 0, 0, 0.12));
     animation: fadeIn 0.4s ease-out;
 }
 
@@ -87,6 +88,32 @@
 .logoImage {
     width: 240px;
     height: auto;
+    object-fit: contain;
+    margin: 0 auto;
+    display: block;
+    transition: filter 0.3s ease;
+}
+
+/* Em modo escuro, inverte o logo para branco */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) .logoImage {
+        filter: brightness(0) invert(1);
+    }
+}
+
+/* Em modo claro, mantemos as cores originais da marca */
+@media (prefers-color-scheme: light) {
+    .logoImage {
+        filter: none !important;
+    }
+}
+
+[data-theme='light'] .logoImage {
+    filter: none !important;
+}
+
+[data-theme='dark'] .logoImage {
+    filter: brightness(0) invert(1);
 }
 
 .title {
@@ -100,8 +127,10 @@
 
 .subtitle {
     text-align: center;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     margin-bottom: 2rem;
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
 /* Form */
@@ -118,8 +147,8 @@
 
 .label {
     font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-weight: 600;
+    color: var(--text-primary);
     margin-bottom: 0.5rem;
 }
 
@@ -127,8 +156,8 @@
     padding: 0.875rem 1rem;
     font-size: 1rem;
     color: var(--text-primary);
-    background: rgba(27, 45, 66, 0.8);
-    border: 1px solid var(--border);
+    background: var(--bg-input);
+    border: 1px solid var(--input-border, var(--border));
     border-radius: 0.75rem;
     outline: none;
     transition: all 0.2s ease;
@@ -136,12 +165,13 @@
 
 .input:focus {
     border-color: var(--color-coral);
-    box-shadow: 0 0 0 3px rgba(232, 130, 106, 0.2);
-    background: var(--bg-tertiary);
+    box-shadow: 0 0 0 3px rgba(240, 140, 152, 0.25);
+    background: var(--bg-secondary);
 }
 
 .input::placeholder {
     color: var(--text-muted);
+    opacity: 0.85;
 }
 
 .button {
@@ -264,9 +294,10 @@
 .backLink {
     display: block;
     text-align: center;
-    margin-top: 1.5rem;
-    color: var(--text-muted);
+    margin-top: 1rem;
+    color: var(--text-secondary);
     font-size: 0.875rem;
+    font-weight: 500;
     text-decoration: none;
     transition: color 0.2s ease;
 }

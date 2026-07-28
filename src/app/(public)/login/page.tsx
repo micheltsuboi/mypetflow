@@ -14,8 +14,8 @@ export default function TenantLookupPage() {
             <div className={styles.container}>
                 <div className={styles.card}>
                     <div className={styles.header}>
-                        <Image src="/LOGO-02.png" alt="MyPet Flow" width={180} height={50} priority style={{ filter: 'brightness(0) invert(1)', margin: '0 auto', display: 'block' }} />
-                        <p className={styles.subtitle} style={{ color: 'rgba(255,255,255,0.7)', marginTop: '1rem', textAlign: 'center' }}>
+                        <Image src="/LOGO-02.png" alt="MyPet Flow" width={180} height={50} priority className={styles.logoImage} />
+                        <p className={styles.subtitle} style={{ marginTop: '1rem', textAlign: 'center' }}>
                             Encontre o endereço do seu Pet Shop
                         </p>
                     </div>
@@ -27,7 +27,7 @@ export default function TenantLookupPage() {
                     </div>
 
                     <div className={styles.footer} style={{ textAlign: 'center', marginTop: '2rem' }}>
-                        <Link href="/" style={{ color: 'var(--color-sky)', textDecoration: 'none', fontSize: '0.9rem' }}>
+                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-navy-light, var(--color-sky-dark, #008b7d))', fontWeight: 600 }}>
                             &larr; Voltar para o Início
                         </Link>
                     </div>

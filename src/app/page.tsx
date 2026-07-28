@@ -117,7 +117,7 @@ export default async function LoginPage() {
 
             <div className={styles.container}>
                 <div className={styles.card}>
-                    {/* Logo (forçando o oficial) */}
+                    {/* Logo Oficial */}
                     <div className={styles.logo}>
                         <Image
                             src="/LOGO-02.png"
@@ -126,7 +126,6 @@ export default async function LoginPage() {
                             height={100}
                             className={styles.logoImage}
                             priority
-                            style={{ filter: 'brightness(0) invert(1)', width: '240px', objectFit: 'contain' }}
                         />
                     </div>
 
@@ -142,12 +141,12 @@ export default async function LoginPage() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
                         <Link href="/cadastro" className={styles.backLink}>
-                            Não tem uma conta de tutor? <strong>Cadastre-se aqui</strong>
+                            Não tem uma conta de tutor? <strong style={{ color: 'var(--primary)' }}>Cadastre-se aqui</strong>
                         </Link>
 
-                        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', width: '80%', margin: '0.5rem 0' }}></div>
+                        <div style={{ borderTop: '1px solid var(--border)', width: '80%', margin: '0.5rem 0' }}></div>
 
-                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-sky)' }}>
+                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-navy-light, var(--color-sky-dark, #008b7d))', fontWeight: 600 }}>
                             &larr; Voltar para a Página Principal
                         </Link>
                     </div>

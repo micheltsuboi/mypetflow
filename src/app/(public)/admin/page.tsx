@@ -43,7 +43,6 @@ export default async function AdminLoginPage() {
                             height={100}
                             className={styles.logoImage}
                             priority
-                            style={{ filter: 'brightness(0) invert(1)', width: '240px', objectFit: 'contain' }}
                         />
                     </div>
 
@@ -58,7 +57,7 @@ export default async function AdminLoginPage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-sky)' }}>
+                        <Link href="/" className={styles.backLink} style={{ color: 'var(--color-navy-light, var(--color-sky-dark, #008b7d))', fontWeight: 600 }}>
                             &larr; Voltar para a Página Principal
                         </Link>
                     </div>
