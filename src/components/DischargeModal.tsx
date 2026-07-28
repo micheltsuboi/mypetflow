@@ -1,7 +1,6 @@
-'use client'
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { dischargePetWithCheckout } from '@/app/actions/hospital'
+import { getAdmissionFinancialSummary } from '@/app/actions/hospital-expenses'
 
 interface DischargeModalProps {
     admission: any
@@ -11,12 +10,19 @@ interface DischargeModalProps {
 
 export default function DischargeModal({ admission, onClose, onSuccess }: DischargeModalProps) {
     const [loading, setLoading] = useState(false)
+    const [finSummary, setFinSummary] = useState<any>(null)
     const [discountValue, setDiscountValue] = useState(0)
     const [discountType, setDiscountType] = useState<'percent' | 'value'>('percent')
     const [paymentMethod, setPaymentMethod] = useState('pix')
 
     const admittedDate = new Date(admission.admitted_at)
     const dischargeDate = new Date()
+
+    useEffect(() => {
+        getAdmissionFinancialSummary(admission.id).then(res => {
+            setFinSummary(res)
+        })
+    }, [admission.id])
 
     // Calcula o número de diárias (mínimo de 1)
     const diffMs = dischargeDate.getTime() - admittedDate.getTime()
@@ -25,7 +31,12 @@ export default function DischargeModal({ admission, onClose, onSuccess }: Discha
 
     const serviceName = admission.services?.name || 'Internamento Padrão'
     const servicePrice = admission.services?.base_price || 0
-    const totalSemDesconto = numDiarias * servicePrice
+    const diariasTotal = numDiarias * servicePrice
+
+    const medTotal = finSummary?.medTotal || 0
+    const expensesTotal = finSummary?.expensesTotal || 0
+
+    const totalSemDesconto = diariasTotal + medTotal + expensesTotal
 
     const getDiscountAmount = () => {
         if (discountType === 'percent') {
@@ -87,19 +98,24 @@ export default function DischargeModal({ admission, onClose, onSuccess }: Discha
                     <div style={{ marginBottom: '20px' }}>
                         <h3 style={{ fontSize: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '8px', marginBottom: '16px', fontFamily: 'var(--font-montserrat)' }}>Resumo Financeiro</h3>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                            <span>Serviço Base de Diária:</span>
-                            <span>{serviceName} (R$ {servicePrice.toFixed(2)})</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                            <span>🛌 Diárias ({numDiarias}x {serviceName}):</span>
+                            <strong>R$ {diariasTotal.toFixed(2)}</strong>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9rem' }}>
-                            <span>Quantidade Apurada:</span>
-                            <span>{numDiarias} diária(s)</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
+                            <span>💊 Medicações Aplicadas ({finSummary?.medLogsSummary?.length || 0} doses):</span>
+                            <strong>R$ {medTotal.toFixed(2)}</strong>
                         </div>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '1rem', fontWeight: 600 }}>
-                            <span>Subtotal:</span>
-                            <span>R$ {totalSemDesconto.toFixed(2)}</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.85rem' }}>
+                            <span>🛒 Itens Diversos ({finSummary?.expensesList?.length || 0} itens avulsos):</span>
+                            <strong>R$ {expensesTotal.toFixed(2)}</strong>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', padding: '10px', background: 'var(--bg-tertiary)', borderRadius: '6px', fontSize: '0.95rem', fontWeight: 700 }}>
+                            <span>Subtotal Sem Desconto:</span>
+                            <span style={{ color: 'var(--color-sky-dark, #00e4ce)' }}>R$ {totalSemDesconto.toFixed(2)}</span>
                         </div>
 
                         {/* Descontos */}

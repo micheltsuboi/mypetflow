@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { prescreverMedicacao, applyMedicationDose, getMedicationLogs, getHospitalObservations, addHospitalObservation, updateAdmissionSeverity, getAdmissionMedications } from '@/app/actions/hospital'
 import { getHospitalMedicationCatalog, HospitalMedicationItem } from '@/app/actions/hospital-medications'
+import { getAdmissionFinancialSummary, addAdmissionExpense, deleteAdmissionExpense } from '@/app/actions/hospital-expenses'
 
 export default function InternmentRecordModal({ admission, onClose, onSuccess }: { admission: any, onClose: () => void, onSuccess: () => void }) {
     const [activeTab, setActiveTab] = useState<'medications' | 'observations'>('medications')
@@ -11,22 +12,30 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
     const [activeMedications, setActiveMedications] = useState<any[]>([])
     const [catalogMeds, setCatalogMeds] = useState<HospitalMedicationItem[]>([])
     const [observations, setObservations] = useState<any[]>([])
+    const [financialSummary, setFinancialSummary] = useState<any>(null)
     const [applyNotes, setApplyNotes] = useState<Record<string, string>>({})
     const [applyMls, setApplyMls] = useState<Record<string, string>>({})
     const [showPrescriptionForm, setShowPrescriptionForm] = useState(false)
     const [currentSeverity, setCurrentSeverity] = useState(admission.severity)
 
+    // Form Itens Diversos
+    const [expenseTitle, setExpenseTitle] = useState('')
+    const [expenseAmount, setExpenseAmount] = useState('')
+    const [addingExpense, setAddingExpense] = useState(false)
+
     const loadRecords = async () => {
-        const [logs, obs, activeMeds, catalog] = await Promise.all([
+        const [logs, obs, activeMeds, catalog, finSummary] = await Promise.all([
             getMedicationLogs(admission.id),
             getHospitalObservations(admission.id),
             getAdmissionMedications(admission.id),
-            getHospitalMedicationCatalog()
+            getHospitalMedicationCatalog(),
+            getAdmissionFinancialSummary(admission.id)
         ])
         setMedicationLogs(logs)
         setObservations(obs)
         setActiveMedications(activeMeds)
         setCatalogMeds(catalog)
+        setFinancialSummary(finSummary)
     }
 
     useEffect(() => {
@@ -70,6 +79,31 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
             }, 400)
         } else {
             alert(res.message)
+        }
+    const handleAddExpense = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!expenseTitle.trim()) return
+        const amountNum = parseFloat(expenseAmount) || 0
+        setAddingExpense(true)
+
+        const res = await addAdmissionExpense(admission.id, expenseTitle, amountNum)
+        setAddingExpense(false)
+        if (res.success) {
+            setExpenseTitle('')
+            setExpenseAmount('')
+            await loadRecords()
+        } else {
+            alert(res.message || 'Erro ao adicionar item')
+        }
+    }
+
+    const handleDeleteExpense = async (expenseId: string) => {
+        if (!confirm('Deseja remover este item do extrato?')) return
+        const res = await deleteAdmissionExpense(expenseId)
+        if (res.success) {
+            await loadRecords()
+        } else {
+            alert(res.message || 'Erro ao excluir item')
         }
     }
 
@@ -308,6 +342,105 @@ export default function InternmentRecordModal({ admission, onClose, onSuccess }:
                                             </div>
                                         </form>
                                     </>
+                                )}
+                            </section>
+
+                            <section style={{ backgroundColor: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid rgba(0, 228, 206, 0.3)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    <div>
+                                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-sky-dark, #00e4ce)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-montserrat)' }}>
+                                            💰 Extrato Financeiro & Subtotal Parcial
+                                        </h3>
+                                        <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0.2rem 0 0 0' }}>
+                                            Resumo em tempo real de Diárias, Medicações e Itens Diversos.
+                                        </p>
+                                    </div>
+                                    {financialSummary && (
+                                        <div style={{ textAlign: 'right' }}>
+                                            <span style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>Subtotal Parcial</span>
+                                            <span style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10B981', fontFamily: 'var(--font-montserrat)' }}>
+                                                R$ {(financialSummary.grandTotal || 0).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {financialSummary && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem' }}>
+                                        {/* Linha 1: Diárias */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+                                            <span>🛌 <strong>Diárias de Internamento:</strong> {financialSummary.numDiarias}x ({financialSummary.serviceName} a R$ {financialSummary.dailyRate.toFixed(2)})</span>
+                                            <strong style={{ color: 'var(--text-primary)' }}>R$ {financialSummary.diariasTotal.toFixed(2)}</strong>
+                                        </div>
+
+                                        {/* Linha 2: Medicações Aplicadas */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+                                            <span>💊 <strong>Medicações Aplicadas:</strong> {financialSummary.medLogsSummary?.length || 0} dose(s) registrada(s)</span>
+                                            <strong style={{ color: 'var(--text-primary)' }}>R$ {financialSummary.medTotal.toFixed(2)}</strong>
+                                        </div>
+
+                                        {/* Linha 3: Itens Diversos */}
+                                        <div style={{ padding: '0.75rem 1rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span>🛒 <strong>Itens Diversos / Outros Custos (sem cadastro):</strong></span>
+                                                <strong style={{ color: 'var(--text-primary)' }}>R$ {financialSummary.expensesTotal.toFixed(2)}</strong>
+                                            </div>
+
+                                            {/* Lista de itens diversos lançados */}
+                                            {financialSummary.expensesList && financialSummary.expensesList.length > 0 && (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                                                    {financialSummary.expensesList.map((item: any) => (
+                                                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)', padding: '0.4rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem' }}>
+                                                            <span>• {item.title}</span>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                <strong>R$ {item.amount.toFixed(2)}</strong>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteExpense(item.id)}
+                                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
+                                                                    title="Remover item do extrato"
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Form para Adicionar Item Diversos */}
+                                            <form onSubmit={handleAddExpense} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Ex: Soro Fisiológico 500ml, Atadura..."
+                                                    className="input"
+                                                    value={expenseTitle}
+                                                    onChange={(e) => setExpenseTitle(e.target.value)}
+                                                    style={{ flex: 2, minWidth: '180px', padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                                                    required
+                                                />
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    placeholder="Valor R$ (ex: 10,00)"
+                                                    className="input"
+                                                    value={expenseAmount}
+                                                    onChange={(e) => setExpenseAmount(e.target.value)}
+                                                    style={{ flex: 1, minWidth: '110px', padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
+                                                    required
+                                                />
+                                                <button
+                                                    type="submit"
+                                                    disabled={addingExpense}
+                                                    className="btn btn-secondary"
+                                                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', fontWeight: 700 }}
+                                                >
+                                                    {addingExpense ? '...' : '＋ Adicionar'}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
                                 )}
                             </section>
 
