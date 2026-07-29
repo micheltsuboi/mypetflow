@@ -358,28 +358,29 @@ function PetsContent() {
                 query = query.eq('is_deceased', true)
             }
 
-            if (debouncedSearchTerm) {
+            const cleanSearch = (debouncedSearchTerm || '').replace(/['"(),]/g, ' ').trim()
+            if (cleanSearch) {
                 // Busca tutores correspondentes para incluir na pesquisa
                 const { data: matchedCustomers } = await supabase
                     .from('customers')
                     .select('id')
                     .eq('org_id', profile.org_id)
-                    .or(`name.ilike.%${debouncedSearchTerm}%,physical_file_number.ilike.%${debouncedSearchTerm}%`)
+                    .or(`name.ilike.%${cleanSearch}%,physical_file_number.ilike.%${cleanSearch}%`)
                 
                 const customerIds = (matchedCustomers || []).map(c => c.id)
                 
                 if (customerIds.length > 0) {
-                    query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%,customer_id.in.(${customerIds.join(',')})`)
+                    query = query.or(`name.ilike.%${cleanSearch}%,breed.ilike.%${cleanSearch}%,customer_id.in.(${customerIds.join(',')})`)
                 } else {
-                    query = query.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
+                    query = query.or(`name.ilike.%${cleanSearch}%,breed.ilike.%${cleanSearch}%`)
                 }
             }
 
-            // Ordenação
+            // Ordenação (Usando referencedTable para joins no Supabase JS v2)
             if (sortBy === 'file_asc') {
-                query = query.order('physical_file_number', { foreignTable: 'customers', ascending: true, nullsFirst: false })
+                query = query.order('physical_file_number', { referencedTable: 'customers', ascending: true, nullsFirst: false })
             } else if (sortBy === 'file_desc') {
-                query = query.order('physical_file_number', { foreignTable: 'customers', ascending: false, nullsFirst: false })
+                query = query.order('physical_file_number', { referencedTable: 'customers', ascending: false, nullsFirst: false })
             } else if (sortBy === 'name_desc') {
                 query = query.order('name', { ascending: false })
             } else {
@@ -392,8 +393,9 @@ function PetsContent() {
             query = query.range(from, to)
 
             const petsPromise = query.then(async ({ data: petsData, count, error }) => {
-                if (error && error.message.includes('is_deceased')) {
-                    // Fallback to query without is_deceased column
+                if (error) {
+                    console.error('Erro na busca principal de pets, tentando fallback:', error.message)
+                    // Fallback to query without is_deceased column or complex joins
                     let fallbackQuery = supabase.from('pets').select(`
                             id, name, species, breed, gender, size, weight_kg, birth_date, is_neutered,
                             existing_conditions, vaccination_up_to_date, customer_id, photo_url, is_adapted,
@@ -401,41 +403,17 @@ function PetsContent() {
                             customers!inner ( id, name, org_id, phone_1, cpf_cnpj, address, neighborhood, city, cep, physical_file_number )
                         `, { count: 'exact' }).eq('customers.org_id', profile.org_id)
 
-                    if (debouncedSearchTerm) {
-                        const { data: matchedCustomers } = await supabase
-                            .from('customers')
-                            .select('id')
-                            .eq('org_id', profile.org_id)
-                            .or(`name.ilike.%${debouncedSearchTerm}%,physical_file_number.ilike.%${debouncedSearchTerm}%`)
-                        
-                        const customerIds = (matchedCustomers || []).map(c => c.id)
-                        
-                        if (customerIds.length > 0) {
-                            fallbackQuery = fallbackQuery.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%,customer_id.in.(${customerIds.join(',')})`)
-                        } else {
-                            fallbackQuery = fallbackQuery.or(`name.ilike.%${debouncedSearchTerm}%,breed.ilike.%${debouncedSearchTerm}%`)
-                        }
+                    if (cleanSearch) {
+                        fallbackQuery = fallbackQuery.or(`name.ilike.%${cleanSearch}%,breed.ilike.%${cleanSearch}%`)
                     }
 
-                    if (sortBy === 'file_asc') {
-                        fallbackQuery = fallbackQuery.order('physical_file_number', { foreignTable: 'customers', ascending: true, nullsFirst: false })
-                    } else if (sortBy === 'file_desc') {
-                        fallbackQuery = fallbackQuery.order('physical_file_number', { foreignTable: 'customers', ascending: false, nullsFirst: false })
-                    } else if (sortBy === 'name_desc') {
-                        fallbackQuery = fallbackQuery.order('name', { ascending: false })
-                    } else {
-                        fallbackQuery = fallbackQuery.order('name', { ascending: true })
-                    }
-
-                    fallbackQuery = fallbackQuery.range(from, to)
+                    fallbackQuery = fallbackQuery.order('name', { ascending: true }).range(from, to)
                     const { data: fallbackData, count: fallbackCount } = await fallbackQuery
                     
-                    if (fallbackData) {
-                        setPets(fallbackData as unknown as Pet[])
-                        setTotalCount(fallbackCount || 0)
-                    }
+                    setPets((fallbackData as unknown as Pet[]) || [])
+                    setTotalCount(fallbackCount || 0)
                 } else if (petsData) {
-                    setPets(petsData as unknown as Pet[])
+                    setPets((petsData as unknown as Pet[]) || [])
                     setTotalCount(count || 0)
                 }
             })
