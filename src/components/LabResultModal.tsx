@@ -81,7 +81,7 @@ export default function LabResultModal({ requestId, readOnly = false, onClose, o
     const { org, pet, tutor, vet, exam, parametersWithResults, request } = reportData
 
     return (
-        <div style={{
+        <div className="lab-modal-overlay" style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
             zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -93,17 +93,40 @@ export default function LabResultModal({ requestId, readOnly = false, onClose, o
                     body * {
                         visibility: hidden;
                     }
+                    html, body {
+                        height: auto !important;
+                        overflow: visible !important;
+                    }
+                    .lab-modal-overlay {
+                        position: absolute !important;
+                        align-items: flex-start !important;
+                        padding: 0 !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        overflow: visible !important;
+                        background: transparent !important;
+                    }
+                    .lab-modal-card {
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        max-height: none !important;
+                        overflow: visible !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        padding: 0 !important;
+                    }
                     #printable-lab-report, #printable-lab-report * {
                         visibility: visible;
                     }
                     #printable-lab-report {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
+                        position: relative !important;
+                        width: 100% !important;
                         background: #fff !important;
                         color: #000 !important;
                         padding: 20px !important;
+                        margin: 0 !important;
                     }
                     .no-print {
                         display: none !important;
@@ -111,28 +134,26 @@ export default function LabResultModal({ requestId, readOnly = false, onClose, o
                 }
             `}</style>
 
-            <div className="card glass relative" style={{
+            <div className="card glass relative lab-modal-card" style={{
                 width: '100%', maxWidth: '850px', maxHeight: '92vh', overflowY: 'auto',
                 border: '1px solid var(--card-border)', color: 'var(--text-primary)', padding: '2rem'
             }}>
                 {/* Botões de Ação Superiores */}
                 <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem' }}>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        {!readOnly && (
-                            <button
-                                onClick={() => setIsPrintMode(false)}
-                                className={`btn ${!isPrintMode ? 'btn-primary' : 'btn-secondary'}`}
-                                style={{ fontSize: '0.85rem' }}
-                            >
-                                ✏️ Editar Resultados
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setIsPrintMode(false)}
+                            className={`btn ${!isPrintMode ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: '0.85rem' }}
+                        >
+                            ✏️ Editar Resultados
+                        </button>
                         <button
                             onClick={() => setIsPrintMode(true)}
                             className={`btn ${isPrintMode ? 'btn-primary' : 'btn-secondary'}`}
                             style={{ fontSize: '0.85rem' }}
                         >
-                            📄 Visualizar / Imprimir Laudo
+                            📄 Visualizar Laudo
                         </button>
                     </div>
 
@@ -149,7 +170,7 @@ export default function LabResultModal({ requestId, readOnly = false, onClose, o
                 </div>
 
                 {/* MODAL MODO EDICÃO / DIGITAÇÃO DE RESULTADOS */}
-                {!isPrintMode && !readOnly ? (
+                {!isPrintMode ? (
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <div style={{ borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
                             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: 0, color: 'var(--color-sky-dark, #00e4ce)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
