@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 export interface LabReferenceRange {
@@ -488,9 +489,11 @@ export async function getLabRequests(filters?: { pet_id?: string; status?: strin
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
         if (!profile?.org_id) return []
 
-        let query = supabase
+        const supabaseAdmin = createAdminClient()
+
+        let query = supabaseAdmin
             .from('lab_requests')
-            .select('*, pets(name, species, breed, birth_date, gender, physical_file_number), customers(name, phone_1), lab_exams(name, category), veterinarians(name, crmv)')
+            .select('*, pets(name, species, breed, birth_date, gender, physical_file_number), customers:tutor_id(name, phone_1), lab_exams(name, category), veterinarians(name, crmv)')
             .eq('org_id', profile.org_id)
             .order('requested_at', { ascending: false })
 
@@ -503,11 +506,18 @@ export async function getLabRequests(filters?: { pet_id?: string; status?: strin
 
         const { data, error } = await query
         if (error) {
-            if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
-                return []
-            }
-            console.error('Erro ao buscar requisições de laboratório:', error)
-            return []
+            console.error('Erro ao buscar requisições com joins, tentando fallback:', error)
+            let fallbackQuery = supabaseAdmin
+                .from('lab_requests')
+                .select('*, pets(name, species), lab_exams(name, category)')
+                .eq('org_id', profile.org_id)
+                .order('requested_at', { ascending: false })
+
+            if (filters?.pet_id) fallbackQuery = fallbackQuery.eq('pet_id', filters.pet_id)
+            if (filters?.status) fallbackQuery = fallbackQuery.eq('status', filters.status)
+
+            const { data: fallbackData } = await fallbackQuery
+            return fallbackData || []
         }
 
         return data || []
@@ -535,14 +545,16 @@ export async function createLabRequest(formData: FormData) {
             return { success: false, message: 'Pet e Exame são obrigatórios.' }
         }
 
+        const supabaseAdmin = createAdminClient()
+
         // Buscar tutor do pet
-        const { data: pet } = await supabase
+        const { data: pet } = await supabaseAdmin
             .from('pets')
             .select('customer_id')
             .eq('id', pet_id)
             .single()
 
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('lab_requests')
             .insert([{
                 org_id: profile.org_id,
@@ -575,8 +587,10 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
         const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
         if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
 
+        const supabaseAdmin = createAdminClient()
+
         // Fetch request, pet species/birth_date and parameter ranges
-        const { data: request } = await supabase
+        const { data: request } = await supabaseAdmin
             .from('lab_requests')
             .select('*, pets(species, birth_date), lab_exams(*, lab_parameters(*, lab_reference_ranges(*)))')
             .eq('id', requestId)
@@ -635,14 +649,14 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
         }
 
         // Delete old results for this request if re-laudando
-        await supabase.from('lab_results').delete().eq('request_id', requestId)
+        await supabaseAdmin.from('lab_results').delete().eq('request_id', requestId)
 
         if (resultsToInsert.length > 0) {
-            await supabase.from('lab_results').insert(resultsToInsert)
+            await supabaseAdmin.from('lab_results').insert(resultsToInsert)
         }
 
         // Update request status to completed
-        await supabase
+        await supabaseAdmin
             .from('lab_requests')
             .update({
                 status: 'completed',
@@ -663,15 +677,15 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
 
 export async function getLabReportData(requestId: string) {
     try {
-        const supabase = await createClient()
+        const supabaseAdmin = createAdminClient()
 
-        const { data: request } = await supabase
+        const { data: request } = await supabaseAdmin
             .from('lab_requests')
             .select(`
                 *,
                 organizations(name, logo_url, wa_api_url),
                 pets(id, name, species, breed, gender, birth_date, physical_file_number),
-                customers(name, phone_1, document),
+                customers:tutor_id(name, phone_1, document),
                 veterinarians(name, crmv),
                 lab_exams(id, name, category, description, lab_parameters(*, lab_reference_ranges(*))),
                 lab_results(*)
