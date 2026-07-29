@@ -685,7 +685,7 @@ export async function getLabReportData(requestId: string) {
                 *,
                 organizations(name, logo_url, wa_api_url),
                 pets(id, name, species, breed, gender, birth_date, physical_file_number),
-                customers:tutor_id(name, phone_1, document),
+                customers:tutor_id(name, phone_1, cpf_cnpj),
                 veterinarians(name, crmv),
                 lab_exams(id, name, category, description, lab_parameters(*, lab_reference_ranges(*))),
                 lab_results(*)
@@ -756,7 +756,7 @@ export async function getLabReportData(requestId: string) {
                 ...request.pets,
                 ageText
             },
-            tutor: request.customers,
+            tutor: request.customers ? { ...request.customers, document: request.customers.cpf_cnpj } : null,
             vet: request.veterinarians,
             exam: request.lab_exams,
             parametersWithResults
