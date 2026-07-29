@@ -42,7 +42,7 @@ import {
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
-import { getLabRequests } from '@/app/actions/lab-actions'
+import { getLabRequests, createLabRequest, getLabExamsCatalog } from '@/app/actions/lab-actions'
 import LabResultModal from '@/components/LabResultModal'
 import { 
     getPetSubscriptions, 
@@ -222,9 +222,37 @@ function PetsContent() {
     const [reschedulingSession, setReschedulingSession] = useState<any | null>(null)
     const [rescheduleDateTime, setRescheduleDateTime] = useState<string>('')
 
-    // Laboratório State
+    // Laboratório & Exames Unificados State
     const [petLabRequests, setPetLabRequests] = useState<any[]>([])
+    const [catalogLabExams, setCatalogLabExams] = useState<any[]>([])
     const [selectedLabRequestId, setSelectedLabRequestId] = useState<string | null>(null)
+    const [selectedLabReadOnly, setSelectedLabReadOnly] = useState<boolean>(true)
+    const [solicitExamType, setSolicitExamType] = useState<'lab' | 'external'>('lab')
+    const [solicitExamLabId, setSolicitExamLabId] = useState<string>('')
+    const [solicitExamNotes, setSolicitExamNotes] = useState<string>('')
+    const [solicitingExam, setSolicitingExam] = useState<boolean>(false)
+
+    const combinedPetExams = useMemo(() => {
+        const labItems = (petLabRequests || []).map(r => ({
+            id: r.id,
+            source: 'lab',
+            name: r.lab_exams?.name || 'Exame Laboratorial',
+            category: r.lab_exams?.category || 'Laboratório',
+            date: r.requested_at,
+            status: r.status,
+            raw: r
+        }))
+        const extItems = (petExams || []).map(e => ({
+            id: e.id,
+            source: 'external',
+            name: e.exam_type_name || 'Exame Externo / Imagem',
+            category: 'Imagem / Externo',
+            date: e.exam_date,
+            status: e.file_url ? 'completed' : 'pending',
+            raw: e
+        }))
+        return [...labItems, ...extItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    }, [petLabRequests, petExams])
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
 
@@ -290,6 +318,7 @@ function PetsContent() {
                 getVetExams(selectedPet.id).then(setPetExams)
                 getVetExamTypes().then(setExamTypes)
                 getLabRequests({ pet_id: selectedPet.id }).then(setPetLabRequests)
+                getLabExamsCatalog().then(setCatalogLabExams)
             }
         }
     }
@@ -1318,139 +1347,279 @@ function PetsContent() {
                                 </div>
                             )}
 
-                            {/* EXAMES */}
+                            {/* EXAMES UNIFICADOS */}
                             {planFeatures.includes('clinica_vet') && (
                                 <div className={styles.accordionItem}>
                                     <button type="button" onClick={() => toggleAccordion('exams')} className={styles.accordionHeader}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                             <span style={{ fontSize: '18px' }}>🧪</span>
-                                            <span>Exames Laboratoriais</span>
+                                            <span>Exames (Laboratório & Imagem)</span>
                                         </div>
                                         <span>{accordions.exams ? '−' : '+'}</span>
                                     </button>
                                     {accordions.exams && (
                                         <div className={styles.accordionContent}>
+                                            {/* FORMULARIO DE SOLICITAÇÃO UNIFICADO */}
                                             {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
                                                 <div style={{ marginBottom: '1.5rem', padding: '1.25rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                        🧪 Solicitar / Cadastrar Novo Exame
+                                                    <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)' }}>
+                                                        🧪 Solicitar Novo Exame do Pet
                                                     </h4>
-                                                    <form action={async (formData) => {
-                                                        const examTypeId = formData.get('exam_type_id') as string
-                                                        const selectedType = examTypes.find(t => t.id === examTypeId)
-                                                        if (!selectedType) return alert('Selecione um tipo de exame.')
-                                                        
-                                                        formData.append('exam_type_name', selectedType.name)
-                                                        formData.append('price', selectedType.base_price.toString())
-                                                        
-                                                        const res = await createVetExam(formData)
-                                                        if (res.success) {
-                                                            alert('Exame solicitado com sucesso!')
-                                                            getVetExams(selectedPet!.id).then(setPetExams)
-                                                        } else alert(res.message)
-                                                    }} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                                        <input type="hidden" name="pet_id" value={selectedPet!.id} />
-                                                        <div className={styles.formGroup}>
-                                                            <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Tipo de Exame *</label>
-                                                            <select name="exam_type_id" className={styles.select} required>
-                                                                <option value="">Selecione um exame do catálogo...</option>
-                                                                {examTypes.map(t => (
-                                                                    <option key={t.id} value={t.id}>{t.name} (R$ {t.base_price.toFixed(2)})</option>
-                                                                ))}
-                                                            </select>
-                                                        </div>
-                                                        <div className={styles.formGroup}>
-                                                            <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Data da Solicitação</label>
-                                                            <input type="date" name="exam_date" className={styles.input} defaultValue={new Date().toLocaleDateString('en-CA')} />
-                                                        </div>
-                                                        <button type="submit" className={styles.addButton} style={{ width: '100%', marginTop: '0.5rem' }}>
-                                                            ✓ Solicitar Exame
+
+                                                    {/* Chaveador de Tipo de Exame */}
+                                                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSolicitExamType('lab')}
+                                                            style={{
+                                                                flex: 1, padding: '0.55rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 700,
+                                                                border: solicitExamType === 'lab' ? '2px solid var(--color-sky-dark, #00e4ce)' : '1px solid var(--border)',
+                                                                background: solicitExamType === 'lab' ? 'rgba(0, 228, 206, 0.15)' : 'var(--bg-secondary)',
+                                                                color: solicitExamType === 'lab' ? 'var(--color-sky-dark, #00e4ce)' : 'var(--text-secondary)'
+                                                            }}
+                                                        >
+                                                            🔬 Laboratório Interno (Laudo no Sistema)
                                                         </button>
-                                                    </form>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSolicitExamType('external')}
+                                                            style={{
+                                                                flex: 1, padding: '0.55rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.825rem', fontWeight: 700,
+                                                                border: solicitExamType === 'external' ? '2px solid var(--color-coral)' : '1px solid var(--border)',
+                                                                background: solicitExamType === 'external' ? 'rgba(240, 140, 152, 0.15)' : 'var(--bg-secondary)',
+                                                                color: solicitExamType === 'external' ? 'var(--color-coral)' : 'var(--text-secondary)'
+                                                            }}
+                                                        >
+                                                            📷 Exame Externo / Imagem (Upload de PDF)
+                                                        </button>
+                                                    </div>
+
+                                                    {solicitExamType === 'lab' ? (
+                                                        /* FORMULARIO DE LABORATORIO INTERNO */
+                                                        <form onSubmit={async (e) => {
+                                                            e.preventDefault()
+                                                            if (!solicitExamLabId) return alert('Selecione um exame do catálogo de laboratório.')
+                                                            setSolicitingExam(true)
+                                                            const formData = new FormData()
+                                                            formData.append('pet_id', selectedPet!.id)
+                                                            formData.append('exam_id', solicitExamLabId)
+                                                            formData.append('notes', solicitExamNotes)
+
+                                                            const res = await createLabRequest(formData)
+                                                            setSolicitingExam(false)
+
+                                                            if (res.success) {
+                                                                alert('Exame laboratorial solicitado com sucesso!')
+                                                                setSolicitExamLabId('')
+                                                                setSolicitExamNotes('')
+                                                                getLabRequests({ pet_id: selectedPet!.id }).then(setPetLabRequests)
+                                                            } else {
+                                                                alert(res.message || 'Erro ao solicitar exame')
+                                                            }
+                                                        }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                            <div className={styles.formGroup}>
+                                                                <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Exame do Catálogo de Laboratório *</label>
+                                                                <select
+                                                                    className={styles.select}
+                                                                    required
+                                                                    value={solicitExamLabId}
+                                                                    onChange={(e) => setSolicitExamLabId(e.target.value)}
+                                                                >
+                                                                    <option value="">Selecione o Exame (Hemograma, Bioquímico...)</option>
+                                                                    {catalogLabExams.map(item => (
+                                                                        <option key={item.id} value={item.id}>
+                                                                            🧪 {item.name} ({item.category}) - R$ {Number(item.base_price || 0).toFixed(2)}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div className={styles.formGroup}>
+                                                                <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Instruções da Amostra / Observações (Opcional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    className={styles.input}
+                                                                    placeholder="Ex: Jejum de 8h, Amostra em EDTA..."
+                                                                    value={solicitExamNotes}
+                                                                    onChange={(e) => setSolicitExamNotes(e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <button type="submit" disabled={solicitingExam} className={styles.addButton} style={{ width: '100%', marginTop: '0.3rem', fontWeight: 700 }}>
+                                                                {solicitingExam ? 'Solicitando...' : '✓ Solicitar Exame no Laboratório'}
+                                                            </button>
+                                                        </form>
+                                                    ) : (
+                                                        /* FORMULARIO DE EXAME EXTERNO / IMAGEM */
+                                                        <form action={async (formData) => {
+                                                            const examTypeId = formData.get('exam_type_id') as string
+                                                            const selectedType = examTypes.find(t => t.id === examTypeId)
+                                                            if (!selectedType) return alert('Selecione um tipo de exame.')
+                                                            
+                                                            formData.append('exam_type_name', selectedType.name)
+                                                            formData.append('price', selectedType.base_price.toString())
+                                                            
+                                                            const res = await createVetExam(formData)
+                                                            if (res.success) {
+                                                                alert('Exame de imagem/externo cadastrado com sucesso!')
+                                                                getVetExams(selectedPet!.id).then(setPetExams)
+                                                            } else alert(res.message)
+                                                        }} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                                                            <input type="hidden" name="pet_id" value={selectedPet!.id} />
+                                                            <div className={styles.formGroup}>
+                                                                <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Tipo de Exame Externo / Imagem *</label>
+                                                                <select name="exam_type_id" className={styles.select} required>
+                                                                    <option value="">Selecione do catálogo (Ultrassom, RX, Tomografia...)</option>
+                                                                    {examTypes.map(t => (
+                                                                        <option key={t.id} value={t.id}>{t.name} (R$ {t.base_price.toFixed(2)})</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                            <div className={styles.formGroup}>
+                                                                <label style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '4px', display: 'block' }}>Data da Solicitação</label>
+                                                                <input type="date" name="exam_date" className={styles.input} defaultValue={new Date().toLocaleDateString('en-CA')} />
+                                                            </div>
+                                                            <button type="submit" className={styles.addButton} style={{ width: '100%', marginTop: '0.3rem', fontWeight: 700 }}>
+                                                                ✓ Cadastrar Exame Externo / Imagem
+                                                            </button>
+                                                        </form>
+                                                    )}
                                                 </div>
                                             )}
 
+                                            {/* LINHA DO TEMPO UNIFICADA DE EXAMES */}
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                {petExams.length === 0 ? <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1rem' }}>Nenhum exame solicitado ou realizado.</p> : petExams.map(exam => (
-                                                    <div key={exam.id} style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                                                            <div>
-                                                                <strong style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>{exam.exam_type_name}</strong>
-                                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                                                    Solicitado em: {new Date(exam.exam_date).toLocaleDateString()}
-                                                                </div>
-                                                            </div>
-                                                            <ExamPaymentControls 
-                                                                examId={exam.id}
-                                                                price={exam.price}
-                                                                discountPercent={exam.discount_percent}
-                                                                discountType={exam.discount_type}
-                                                                discountFixed={exam.discount_fixed}
-                                                                paymentStatus={exam.payment_status}
-                                                                paymentMethod={exam.payment_method}
-                                                                onUpdate={() => getVetExams(selectedPet!.id).then(setPetExams)}
-                                                            />
-                                                        </div>
+                                                {combinedPetExams.length === 0 ? (
+                                                    <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem', border: '1px dashed var(--border)', borderRadius: '12px', fontSize: '0.85rem' }}>
+                                                        Nenhum exame solicitado ou realizado para este pet.
+                                                    </p>
+                                                ) : (
+                                                    combinedPetExams.map((item: any) => {
+                                                        if (item.source === 'lab') {
+                                                            const req = item.raw
+                                                            return (
+                                                                <div key={`lab-${req.id}`} style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)', borderLeft: '4px solid var(--color-sky-dark, #00e4ce)' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                                                                        <div>
+                                                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'rgba(0, 228, 206, 0.15)', color: 'var(--color-sky-dark, #00e4ce)', textTransform: 'uppercase', marginBottom: '4px', display: 'inline-block' }}>
+                                                                                🔬 Laboratório Interno
+                                                                            </span>
+                                                                            <strong style={{ fontSize: '1rem', color: 'var(--text-primary)', display: 'block' }}>🧪 {req.lab_exams?.name}</strong>
+                                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                                Solicitado em: {new Date(req.requested_at).toLocaleDateString('pt-BR')} • Setor: {req.lab_exams?.category || 'Geral'}
+                                                                            </div>
+                                                                        </div>
 
-                                                        {/* RESULTADO / UPLOAD */}
-                                                        <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
-                                                            {exam.file_url ? (
-                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                    <a 
-                                                                        href={exam.file_url} 
-                                                                        target="_blank" 
-                                                                        rel="noopener noreferrer" 
-                                                                        className={styles.actionBtn}
-                                                                        style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
-                                                                    >
-                                                                        📄 Ver Resultado (PDF/Imagem)
-                                                                    </a>
-                                                                    {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
-                                                                        <button 
-                                                                            className={styles.deleteBtn} 
-                                                                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                                                                            onClick={async () => {
-                                                                                if (confirm('Deseja remover o arquivo do resultado?')) {
-                                                                                    const supabase = createClient()
-                                                                                    await supabase.from('vet_exams').update({ file_url: null }).eq('id', exam.id)
-                                                                                    getVetExams(selectedPet!.id).then(setPetExams)
-                                                                                 }
+                                                                        <div>
+                                                                            {req.status === 'completed' ? (
+                                                                                <span className="badge badge-confirmed" style={{ fontSize: '0.75rem' }}>✅ Laudado</span>
+                                                                            ) : (
+                                                                                <span className="badge badge-pending" style={{ fontSize: '0.75rem', background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>⏳ Aguardando Laudo</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            className={styles.actionBtn}
+                                                                            style={{ fontSize: '0.8rem', padding: '6px 14px', fontWeight: 700 }}
+                                                                            onClick={() => {
+                                                                                setSelectedLabRequestId(req.id)
+                                                                                setSelectedLabReadOnly(req.status === 'completed')
                                                                             }}
-                                                                        >Excluir</button>
+                                                                        >
+                                                                            {req.status === 'completed' ? '📄 Ver / Imprimir Laudo (PDF)' : '✏️ Preencher Resultados do Laudo'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        } else {
+                                                            const exam = item.raw
+                                                            return (
+                                                                <div key={`ext-${exam.id}`} style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: '12px', border: '1px solid var(--border)', borderLeft: '4px solid var(--color-coral)' }}>
+                                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                                                                        <div>
+                                                                            <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: 'rgba(240, 140, 152, 0.15)', color: 'var(--color-coral)', textTransform: 'uppercase', marginBottom: '4px', display: 'inline-block' }}>
+                                                                                📷 Imagem / Externo
+                                                                            </span>
+                                                                            <strong style={{ fontSize: '1rem', color: 'var(--text-primary)', display: 'block' }}>{exam.exam_type_name}</strong>
+                                                                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                                                                Solicitado em: {new Date(exam.exam_date).toLocaleDateString('pt-BR')}
+                                                                            </div>
+                                                                        </div>
+                                                                        <ExamPaymentControls 
+                                                                            examId={exam.id}
+                                                                            price={exam.price}
+                                                                            discountPercent={exam.discount_percent}
+                                                                            discountType={exam.discount_type}
+                                                                            discountFixed={exam.discount_fixed}
+                                                                            paymentStatus={exam.payment_status}
+                                                                            paymentMethod={exam.payment_method}
+                                                                            onUpdate={() => getVetExams(selectedPet!.id).then(setPetExams)}
+                                                                        />
+                                                                    </div>
+
+                                                                    {/* RESULTADO / UPLOAD */}
+                                                                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+                                                                        {exam.file_url ? (
+                                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                                <a 
+                                                                                    href={exam.file_url} 
+                                                                                    target="_blank" 
+                                                                                    rel="noopener noreferrer" 
+                                                                                    className={styles.actionBtn}
+                                                                                    style={{ fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                                                                                >
+                                                                                    📄 Ver Resultado (PDF/Imagem)
+                                                                                </a>
+                                                                                {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
+                                                                                    <button 
+                                                                                        className={styles.deleteBtn} 
+                                                                                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                                                                                        onClick={async () => {
+                                                                                            if (confirm('Deseja remover o arquivo do resultado?')) {
+                                                                                                const supabase = createClient()
+                                                                                                await supabase.from('vet_exams').update({ file_url: null }).eq('id', exam.id)
+                                                                                                getVetExams(selectedPet!.id).then(setPetExams)
+                                                                                            }
+                                                                                        }}
+                                                                                    >Excluir</button>
+                                                                                )}
+                                                                            </div>
+                                                                        ) : (
+                                                                            (userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
+                                                                                <FileUpload 
+                                                                                    bucket="vet-exams" 
+                                                                                    label="Upload de Resultado (PDF ou Imagem)"
+                                                                                    onUpload={async (url) => {
+                                                                                        const supabase = createClient()
+                                                                                        await supabase.from('vet_exams').update({ file_url: url }).eq('id', exam.id)
+                                                                                        getVetExams(selectedPet!.id).then(setPetExams)
+                                                                                    }}
+                                                                                    onRemove={() => {}}
+                                                                                />
+                                                                            )
+                                                                        )}
+                                                                    </div>
+
+                                                                    {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
+                                                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                                                                            <button 
+                                                                                className={styles.deleteBtn} 
+                                                                                style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-muted)' }}
+                                                                                onClick={async () => {
+                                                                                    if (confirm('Excluir solicitação de exame?')) {
+                                                                                        await deleteVetExam(exam.id)
+                                                                                        getVetExams(selectedPet!.id).then(setPetExams)
+                                                                                    }
+                                                                                }}
+                                                                            >Remover Solicitação</button>
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                            ) : (
-                                                                (userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
-                                                                    <FileUpload 
-                                                                        bucket="vet-exams" 
-                                                                        label="Upload de Resultado (PDF ou Imagem)"
-                                                                        onUpload={async (url) => {
-                                                                            const supabase = createClient()
-                                                                            await supabase.from('vet_exams').update({ file_url: url }).eq('id', exam.id)
-                                                                            getVetExams(selectedPet!.id).then(setPetExams)
-                                                                        }}
-                                                                        onRemove={() => {}}
-                                                                    />
-                                                                )
-                                                            )}
-                                                        </div>
-
-                                                        {(userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff' || userRole === 'owner' || currentVet) && (
-                                                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                                                                <button 
-                                                                    className={styles.deleteBtn} 
-                                                                    style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-muted)' }}
-                                                                    onClick={async () => {
-                                                                        if (confirm('Excluir solicitação de exame?')) {
-                                                                            await deleteVetExam(exam.id)
-                                                                            getVetExams(selectedPet!.id).then(setPetExams)
-                                                                        }
-                                                                    }}
-                                                                >Remover Solicitação</button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
+                                                            )
+                                                        }
+                                                    })
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -2538,9 +2707,13 @@ function PetsContent() {
             {selectedLabRequestId && (
                 <LabResultModal
                     requestId={selectedLabRequestId}
-                    readOnly={true}
+                    readOnly={selectedLabReadOnly}
                     onClose={() => setSelectedLabRequestId(null)}
-                    onSuccess={() => {}}
+                    onSuccess={() => {
+                        if (selectedPet) {
+                            getLabRequests({ pet_id: selectedPet.id }).then(setPetLabRequests)
+                        }
+                    }}
                 />
             )}
         </div>
