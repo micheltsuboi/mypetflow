@@ -115,7 +115,7 @@ export default function LaboratorioDashboardPage() {
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                         <h1 className="text-3xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            🔬 Módulo de Laboratório & Laudos
+                            🔬 Laboratório & Laudos
                         </h1>
                         <PageHelpModal topic="laboratorio" />
                     </div>

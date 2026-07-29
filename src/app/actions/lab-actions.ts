@@ -589,14 +589,24 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
 
         const supabaseAdmin = createAdminClient()
 
-        // Fetch request, pet species/birth_date and parameter ranges
+        // Fetch request, pet species/birth_date
         const { data: request } = await supabaseAdmin
             .from('lab_requests')
-            .select('*, pets(species, birth_date), lab_exams(*, lab_parameters(*, lab_reference_ranges(*)))')
+            .select('*, pets(species, birth_date), lab_exams(id, name)')
             .eq('id', requestId)
-            .single()
+            .maybeSingle()
 
         if (!request) return { success: false, message: 'Requisição não encontrada.' }
+
+        // Fetch parameters for this exam directly
+        let paramsList: any[] = []
+        if (request.exam_id) {
+            const { data: pData } = await supabaseAdmin
+                .from('lab_parameters')
+                .select('*, lab_reference_ranges(*)')
+                .eq('exam_id', request.exam_id)
+            paramsList = pData || []
+        }
 
         // Calculate pet species and age category
         const species = (request.pets?.species || '').toLowerCase().includes('cat') || (request.pets?.species || '').toLowerCase().includes('gato') ? 'cat' : 'dog'
@@ -610,8 +620,6 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
 
         // Process results
         const resultsToInsert: any[] = []
-
-        const paramsList = request.lab_exams?.lab_parameters || []
 
         for (const p of paramsList) {
             const valStr = resultsMap[p.id]
@@ -652,11 +660,12 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
         await supabaseAdmin.from('lab_results').delete().eq('request_id', requestId)
 
         if (resultsToInsert.length > 0) {
-            await supabaseAdmin.from('lab_results').insert(resultsToInsert)
+            const { error: insErr } = await supabaseAdmin.from('lab_results').insert(resultsToInsert)
+            if (insErr) throw insErr
         }
 
         // Update request status to completed
-        await supabaseAdmin
+        const { error: updErr } = await supabaseAdmin
             .from('lab_requests')
             .update({
                 status: 'completed',
@@ -665,6 +674,8 @@ export async function saveLabResults(requestId: string, resultsMap: Record<strin
                 updated_at: new Date().toISOString()
             })
             .eq('id', requestId)
+
+        if (updErr) throw updErr
 
         revalidatePath('/owner/laboratorio')
         revalidatePath('/owner/pets')

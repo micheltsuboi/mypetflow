@@ -34,8 +34,9 @@ export default function LabResultModal({ requestId, readOnly = false, onClose, o
     }
 
     useEffect(() => {
+        setIsPrintMode(readOnly)
         loadData()
-    }, [requestId])
+    }, [requestId, readOnly])
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
