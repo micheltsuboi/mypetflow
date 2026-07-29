@@ -164,34 +164,41 @@ export default function LabResultModal({ requestId, readOnly = false, onClose, o
                                 Parâmetros Medidos e Faixa de Referência para {pet?.ageText}:
                             </span>
 
-                            {parametersWithResults.map((p: any) => (
-                                <div key={p.id} style={{
-                                    display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: '1rem', alignItems: 'center',
-                                    background: 'var(--bg-tertiary)', padding: '0.75rem 1rem', borderRadius: '8px',
-                                    border: '1px solid var(--card-border)'
-                                }}>
-                                    <div>
-                                        <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block' }}>{p.name}</strong>
-                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Unidade: {p.unit || 'S/U'}</span>
-                                    </div>
-
-                                    <div>
-                                        <input
-                                            type="text"
-                                            placeholder="Resultado..."
-                                            className="input"
-                                            value={resultsMap[p.id] || ''}
-                                            onChange={(e) => setResultsMap({ ...resultsMap, [p.id]: e.target.value })}
-                                            style={{ width: '100%', padding: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}
-                                        />
-                                    </div>
-
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                        <span style={{ display: 'block', color: 'var(--text-muted)' }}>Ref. ({pet?.ageText}):</span>
-                                        <strong>{p.referenceText}</strong>
-                                    </div>
+                            {parametersWithResults.length === 0 ? (
+                                <div style={{ padding: '1rem', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '8px', color: '#f59e0b', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                                    ⚠️ <strong>Este exame ainda não possui analitos/parâmetros cadastrados no catálogo.</strong><br />
+                                    Você pode preencher o <strong>Parecer Técnico / Conclusão</strong> abaixo para salvar o laudo agora, ou cadastrar os analitos em <em>Laboratório &gt; Cadastro de Exames &amp; Parâmetros</em>.
                                 </div>
-                            ))}
+                            ) : (
+                                parametersWithResults.map((p: any) => (
+                                    <div key={p.id} style={{
+                                        display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: '1rem', alignItems: 'center',
+                                        background: 'var(--bg-tertiary)', padding: '0.75rem 1rem', borderRadius: '8px',
+                                        border: '1px solid var(--card-border)'
+                                    }}>
+                                        <div>
+                                            <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', display: 'block' }}>{p.name}</strong>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Unidade: {p.unit || 'S/U'}</span>
+                                        </div>
+
+                                        <div>
+                                            <input
+                                                type="text"
+                                                placeholder="Resultado..."
+                                                className="input"
+                                                value={resultsMap[p.id] || ''}
+                                                onChange={(e) => setResultsMap({ ...resultsMap, [p.id]: e.target.value })}
+                                                style={{ width: '100%', padding: '0.5rem', fontWeight: 700, fontSize: '0.9rem' }}
+                                            />
+                                        </div>
+
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                            <span style={{ display: 'block', color: 'var(--text-muted)' }}>Ref. ({pet?.ageText}):</span>
+                                            <strong>{p.referenceText}</strong>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
 
                         <div>

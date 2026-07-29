@@ -679,7 +679,8 @@ export async function getLabReportData(requestId: string) {
     try {
         const supabaseAdmin = createAdminClient()
 
-        const { data: request } = await supabaseAdmin
+        // 1. Busca requisição com entidades conectadas
+        const { data: request, error: reqErr } = await supabaseAdmin
             .from('lab_requests')
             .select(`
                 *,
@@ -687,15 +688,32 @@ export async function getLabReportData(requestId: string) {
                 pets(id, name, species, breed, gender, birth_date, physical_file_number),
                 customers:tutor_id(name, phone_1, cpf_cnpj),
                 veterinarians(name, crmv),
-                lab_exams(id, name, category, description, lab_parameters(*, lab_reference_ranges(*))),
+                lab_exams(id, name, category, description),
                 lab_results(*)
             `)
             .eq('id', requestId)
-            .single()
+            .maybeSingle()
 
+        if (reqErr) {
+            console.error('Erro na query principal de getLabReportData:', reqErr)
+        }
         if (!request) return null
 
-        // Map results to parameters
+        // 2. Busca parâmetros e faixas de referência do exame
+        const examId = request.exam_id
+        let parametersList: any[] = []
+        if (examId) {
+            const { data: paramsData, error: pErr } = await supabaseAdmin
+                .from('lab_parameters')
+                .select('*, lab_reference_ranges(*)')
+                .eq('exam_id', examId)
+                .order('order', { ascending: true })
+
+            if (pErr) console.error('Erro ao buscar parâmetros em getLabReportData:', pErr)
+            parametersList = paramsData || []
+        }
+
+        // Mapeia resultados já salvos para os parâmetros
         const resultsMap = new Map<string, any>()
         if (request.lab_results) {
             request.lab_results.forEach((r: any) => {
@@ -703,7 +721,7 @@ export async function getLabReportData(requestId: string) {
             })
         }
 
-        // Determine pet age & species for reference ranges
+        // Determina a espécie e faixa etária do pet para os valores de referência
         const species = (request.pets?.species || '').toLowerCase().includes('cat') || (request.pets?.species || '').toLowerCase().includes('gato') ? 'cat' : 'dog'
         let ageCategory = 'adult'
         let ageText = 'N/I'
@@ -724,7 +742,7 @@ export async function getLabReportData(requestId: string) {
             }
         }
 
-        const parametersWithResults = (request.lab_exams?.lab_parameters || []).map((p: any) => {
+        const parametersWithResults = parametersList.map((p: any) => {
             const res = resultsMap.get(p.id)
             const ranges = p.lab_reference_ranges || []
             const ref = ranges.find((r: any) =>
