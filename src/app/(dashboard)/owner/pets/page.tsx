@@ -232,6 +232,36 @@ function PetsContent() {
     const [solicitExamNotes, setSolicitExamNotes] = useState<string>('')
     const [solicitingExam, setSolicitingExam] = useState<boolean>(false)
 
+    const safeFormatDate = (dateVal?: any, formatString?: string) => {
+        if (!dateVal) return '-'
+        try {
+            const rawStr = String(dateVal).trim()
+            if (!rawStr || rawStr === 'null' || rawStr === 'undefined') return '-'
+            const cleanStr = rawStr.includes('T') ? rawStr : `${rawStr}T12:00:00`
+            const d = new Date(cleanStr)
+            if (isNaN(d.getTime())) return '-'
+            if (formatString) {
+                return format(d, formatString)
+            }
+            return d.toLocaleDateString('pt-BR')
+        } catch {
+            return '-'
+        }
+    }
+
+    const safeFormatDateTime = (dateVal?: any) => {
+        if (!dateVal) return '-'
+        try {
+            const rawStr = String(dateVal).trim()
+            if (!rawStr || rawStr === 'null' || rawStr === 'undefined') return '-'
+            const d = new Date(rawStr)
+            if (isNaN(d.getTime())) return '-'
+            return `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+        } catch {
+            return '-'
+        }
+    }
+
     const combinedPetExams = useMemo(() => {
         const labItems = (petLabRequests || []).map(r => ({
             id: r.id,
@@ -251,7 +281,11 @@ function PetsContent() {
             status: e.file_url ? 'completed' : 'pending',
             raw: e
         }))
-        return [...labItems, ...extItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        return [...labItems, ...extItems].sort((a, b) => {
+            const timeA = a.date ? new Date(a.date).getTime() : 0
+            const timeB = b.date ? new Date(b.date).getTime() : 0
+            return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA)
+        })
     }, [petLabRequests, petExams])
 
     const isReadOnly = !currentVet && (userRole === 'owner' || userRole === 'admin' || userRole === 'superadmin' || userRole === 'staff')
@@ -275,17 +309,25 @@ function PetsContent() {
 
     const calculateAge = (birthDate?: string) => {
         if (!birthDate) return 'N/A'
-        const birth = new Date(birthDate + 'T12:00:00')
-        const now = new Date()
-        let years = now.getFullYear() - birth.getFullYear()
-        let months = now.getMonth() - birth.getMonth()
-        if (months < 0) {
-            years--
-            months += 12
+        try {
+            const str = String(birthDate).trim()
+            const cleanStr = str.includes('T') ? str : `${str}T12:00:00`
+            const birth = new Date(cleanStr)
+            if (isNaN(birth.getTime())) return 'N/A'
+            const now = new Date()
+            let years = now.getFullYear() - birth.getFullYear()
+            let months = now.getMonth() - birth.getMonth()
+            if (months < 0) {
+                years--
+                months += 12
+            }
+            if (years < 0) return '0 meses'
+            if (years === 0) return `${months} meses`
+            if (years === 1) return months > 0 ? `1 ano e ${months} m` : `1 ano`
+            return `${years} anos`
+        } catch {
+            return 'N/A'
         }
-        if (years === 0) return `${months} meses`
-        if (years === 1) return months > 0 ? `1 ano e ${months} m` : `1 ano`
-        return `${years} anos`
     }
 
     const toggleAccordion = async (key: keyof typeof accordions) => {
@@ -1209,10 +1251,10 @@ function PetsContent() {
                                                         <div>
                                                             <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{v.name}</div>
                                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                                                                Lote: {v.batch_number || 'N/A'} • {v.application_date ? `Aplicada em: ${format(new Date(v.application_date + 'T12:00:00'), 'dd/MM/yyyy')}` : 'Registro manual'}
+                                                                Lote: {v.batch_number || 'N/A'} • {v.application_date ? `Aplicada em: ${safeFormatDate(v.application_date)}` : 'Registro manual'}
                                                             </div>
-                                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: new Date(v.expiry_date) < new Date() ? 'var(--status-canceled)' : 'var(--status-done)' }}>
-                                                                Vencimento: {format(new Date(v.expiry_date + 'T12:00:00'), 'dd/MM/yyyy')}
+                                                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: (v.expiry_date && !isNaN(new Date(v.expiry_date).getTime()) && new Date(v.expiry_date) < new Date()) ? 'var(--status-canceled)' : 'var(--status-done)' }}>
+                                                                Vencimento: {safeFormatDate(v.expiry_date)}
                                                             </div>
                                                         </div>
                                                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1301,7 +1343,7 @@ function PetsContent() {
                                                     <div key={c.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <div>
-                                                                <strong>{new Date(c.consultation_date).toLocaleDateString()} - {c.veterinarians?.name || 'VET'}</strong>
+                                                                <strong>{safeFormatDate(c.consultation_date)} - {c.veterinarians?.name || 'VET'}</strong>
                                                                 <span style={{ 
                                                                     fontSize: '0.7rem', 
                                                                     padding: '2px 6px', 
@@ -1482,7 +1524,7 @@ function PetsContent() {
                                                                             </span>
                                                                             <strong style={{ fontSize: '1rem', color: 'var(--text-primary)', display: 'block' }}>🧪 {req.lab_exams?.name}</strong>
                                                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                                                                Solicitado em: {new Date(req.requested_at).toLocaleDateString('pt-BR')} • Setor: {req.lab_exams?.category || 'Geral'}
+                                                                                Solicitado em: {safeFormatDate(req.requested_at)} • Setor: {req.lab_exams?.category || 'Geral'}
                                                                             </div>
                                                                         </div>
 
@@ -1521,7 +1563,7 @@ function PetsContent() {
                                                                             </span>
                                                                             <strong style={{ fontSize: '1rem', color: 'var(--text-primary)', display: 'block' }}>{exam.exam_type_name}</strong>
                                                                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                                                                Solicitado em: {new Date(exam.exam_date).toLocaleDateString('pt-BR')}
+                                                                                Solicitado em: {safeFormatDate(exam.exam_date)}
                                                                             </div>
                                                                         </div>
                                                                         <ExamPaymentControls 
@@ -1622,13 +1664,13 @@ function PetsContent() {
                                                     <div key={adm.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <div>
-                                                                <strong>Entrada: {new Date(adm.admitted_at).toLocaleDateString()}</strong>
+                                                                <strong>Entrada: {safeFormatDate(adm.admitted_at)}</strong>
                                                                 <br />
                                                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Leito: {adm.hospital_beds?.name} - {adm.hospital_beds?.hospital_wards?.name}</span>
                                                             </div>
                                                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                                 <span style={{ fontSize: '10px', fontWeight: 800, padding: '3px 8px', borderRadius: '12px', background: adm.status === 'active' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.2)', color: adm.status === 'active' ? '#10B981' : '#94a3b8' }}>
-                                                                    {adm.status === 'active' ? 'INTERNADO' : 'ALTA ' + (adm.discharged_at ? new Date(adm.discharged_at).toLocaleDateString() : '')}
+                                                                    {adm.status === 'active' ? 'INTERNADO' : 'ALTA ' + (adm.discharged_at ? safeFormatDate(adm.discharged_at) : '')}
                                                                 </span>
                                                                 <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={async () => {
                                                                     const meds = await getAllAdmissionMedications(adm.id);
@@ -2033,14 +2075,13 @@ function PetsContent() {
                                                                             {!sub.is_active && <span style={{ fontSize: '0.7rem', background: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>INATIVO</span>}
                                                                             {sub.paused && <span style={{ fontSize: '0.7rem', background: '#fef3c7', color: '#d97706', padding: '2px 6px', borderRadius: '4px', fontWeight: 600 }}>PAUSADO</span>}
                                                                         </div>
-                                                                        
-                                                                        <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                             <Calendar size={14} /> {days && `${days}`}{sub.preferred_time && ` às ${sub.preferred_time.substring(0,5)}`}
                                                                         </div>
                                                                         
                                                                         <div style={{ fontSize: '0.82rem', color: '#f59e0b', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                                                             <CreditCard size={14} /> R$ {Number(sub.total_price || (sub as any).service_packages?.total_price || 0).toFixed(2).replace('.', ',')} 
-                                                                            <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>• Próximo vencimento: {sub.due_date ? format(new Date(sub.due_date + 'T12:00:00'), 'dd/MM') : 'N/A'}</span>
+                                                                            <span style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem' }}>• Próximo vencimento: {safeFormatDate(sub.due_date)}</span>
                                                                         </div>
 
                                                                         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
@@ -2138,7 +2179,7 @@ function PetsContent() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                                 {crecheHistory.length === 0 ? <p>Nenhuma visita técnica registrada.</p> : crecheHistory.map((h: any) => (
                                                     <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: '4px' }}>
-                                                        <span>{new Date(h.scheduled_at).toLocaleDateString()}</span>
+                                                        <span>{safeFormatDate(h.scheduled_at)}</span>
                                                         <span style={{ fontWeight: 600 }}>{h.status}</span>
                                                     </div>
                                                 ))}
@@ -2163,7 +2204,7 @@ function PetsContent() {
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                                 {hotelHistory.length === 0 ? <p>Nenhuma hospedagem registrada.</p> : hotelHistory.map((h: any) => (
                                                     <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--bg-tertiary)', borderRadius: '4px' }}>
-                                                        <span>{new Date(h.scheduled_at).toLocaleDateString()}</span>
+                                                        <span>{safeFormatDate(h.scheduled_at)}</span>
                                                         <span style={{ fontWeight: 600 }}>{h.status}</span>
                                                     </div>
                                                 ))}
@@ -2195,7 +2236,7 @@ function PetsContent() {
                                                     </div>
                                                     <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>{alert.observation}</div>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                                                        <div>{new Date(alert.created_at).toLocaleDateString()} as {new Date(alert.created_at).toLocaleTimeString()}</div>
+                                                        <div>{safeFormatDateTime(alert.created_at)}</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -2225,7 +2266,7 @@ function PetsContent() {
                                                             <div style={{ fontWeight: 600 }}>R$ {sale.total_amount.toFixed(2)}</div>
                                                         </div>
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                                                            <div>{new Date(sale.created_at).toLocaleDateString()} • {sale.payment_status === 'paid' ? 'Pago' : 'Pendente'}</div>
+                                                            <div>{safeFormatDate(sale.created_at)} • {sale.payment_status === 'paid' ? 'Pago' : 'Pendente'}</div>
                                                             {sale.payment_status === 'pending' && (
                                                                 <button className={styles.actionBtn} onClick={async () => {
                                                                     const method = prompt('Qual a forma de pagamento? (pix, cash, credit, debit)', 'pix')
@@ -2466,8 +2507,8 @@ function PetsContent() {
                                 {sessions.length === 0 ? <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>Nenhuma sessão gerada.</p> : sessions.map((s: any) => (
                                     <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-tertiary)', borderRadius: '8px', alignItems: 'center' }}>
                                         <div>
-                                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{format(new Date(s.scheduled_at), 'dd/MM/yyyy')}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{format(new Date(s.scheduled_at), 'HH:mm')}</div>
+                                            <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{safeFormatDate(s.scheduled_at)}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{safeFormatDateTime(s.scheduled_at).split(' ')[1] || ''}</div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                             <div style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '12px', background: s.status === 'completed' ? '#dcfce7' : '#fef3c7', color: s.status === 'completed' ? '#166534' : '#92400e' }}>
