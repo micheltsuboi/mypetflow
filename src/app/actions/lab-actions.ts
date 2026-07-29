@@ -493,7 +493,7 @@ export async function getLabRequests(filters?: { pet_id?: string; status?: strin
 
         let query = supabaseAdmin
             .from('lab_requests')
-            .select('*, pets(name, species, breed, birth_date, gender, physical_file_number), customers:tutor_id(name, phone_1), lab_exams(name, category), veterinarians(name, crmv)')
+            .select('*, pets(name, species, breed, birth_date, gender, physical_file_number), customers(name, phone_1), lab_exams(name, category), veterinarians(name, crmv)')
             .eq('org_id', profile.org_id)
             .order('requested_at', { ascending: false })
 
@@ -697,7 +697,7 @@ export async function getLabReportData(requestId: string) {
                 *,
                 organizations(name, logo_url, wa_api_url),
                 pets(id, name, species, breed, gender, birth_date, physical_file_number),
-                customers:tutor_id(name, phone_1, cpf_cnpj),
+                customers(name, phone_1, cpf_cnpj),
                 veterinarians(name, crmv),
                 lab_exams(id, name, category, description),
                 lab_results(*)
