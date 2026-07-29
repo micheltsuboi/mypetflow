@@ -2,13 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { getLabRequests, createLabRequest, getLabExamsCatalog, searchPetsForSelect, LabExam } from '@/app/actions/lab-actions'
+import { getLabRequests, createLabRequest, getLabExamsListMinimal, searchPetsForSelect } from '@/app/actions/lab-actions'
 import LabResultModal from '@/components/LabResultModal'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function LaboratorioDashboardPage() {
     const [requests, setRequests] = useState<any[]>([])
-    const [examsCatalog, setExamsCatalog] = useState<LabExam[]>([])
+    const [examsCatalog, setExamsCatalog] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [statusFilter, setStatusFilter] = useState('all')
     const [searchTerm, setSearchTerm] = useState('')
@@ -35,7 +35,7 @@ export default function LaboratorioDashboardPage() {
         setLoading(true)
         const [reqs, catalog] = await Promise.all([
             getLabRequests(),
-            getLabExamsCatalog()
+            getLabExamsListMinimal()
         ])
         setRequests(reqs)
         setExamsCatalog(catalog)

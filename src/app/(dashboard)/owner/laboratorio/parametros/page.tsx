@@ -1,92 +1,146 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
-    getLabExamsCatalog,
-    saveLabExam,
+    getLabExamsListMinimal,
+    getLabExamDetails,
+    saveCompleteLabExam,
     deleteLabExam,
-    saveLabParameter,
-    deleteLabParameter,
+    LabExamMinimal,
     LabExam
 } from '@/app/actions/lab-actions'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 
+interface ParameterDraft {
+    id?: string
+    name: string
+    unit: string
+    ranges: Array<{
+        species: string
+        age_category: string
+        min_value: string
+        max_value: string
+        text_reference: string
+    }>
+}
+
 export default function LabParametersPage() {
-    const [exams, setExams] = useState<LabExam[]>([])
+    const [exams, setExams] = useState<LabExamMinimal[]>([])
     const [loading, setLoading] = useState(true)
-    const [selectedExam, setSelectedExam] = useState<LabExam | null>(null)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [categoryFilter, setCategoryFilter] = useState('ALL')
 
-    // Modais
+    // Modal de Edição Unificada
     const [showExamModal, setShowExamModal] = useState(false)
-    const [showParamModal, setShowParamModal] = useState(false)
+    const [loadingExamDetails, setLoadingExamDetails] = useState(false)
     const [submitting, setSubmitting] = useState(false)
-    const [editingExam, setEditingExam] = useState<LabExam | null>(null)
 
-    // Form Exame
+    // Form Exame + Lista de Parâmetros
+    const [editingExamId, setEditingExamId] = useState<string | null>(null)
     const [examName, setExamName] = useState('')
     const [examCategory, setExamCategory] = useState('Hematologia')
     const [examBasePrice, setExamBasePrice] = useState('0.00')
     const [examDesc, setExamDesc] = useState('')
+    const [parametersList, setParametersList] = useState<ParameterDraft[]>([])
 
-    // Form Parâmetro + Faixas de Referência por Idade/Espécie
-    const [paramName, setParamName] = useState('')
-    const [paramUnit, setParamUnit] = useState('')
-    const [rangesList, setRangesList] = useState<any[]>([
-        { species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' }
-    ])
-
-    const loadCatalog = async () => {
+    const loadMinimalList = async () => {
         setLoading(true)
-        const data = await getLabExamsCatalog()
+        const data = await getLabExamsListMinimal()
         setExams(data)
-        if (data.length > 0 && !selectedExam) {
-            setSelectedExam(data[0])
-        } else if (selectedExam) {
-            const updated = data.find(e => e.id === selectedExam.id)
-            setSelectedExam(updated || data[0] || null)
-        }
         setLoading(false)
     }
 
     useEffect(() => {
-        loadCatalog()
+        loadMinimalList()
     }, [])
 
-    const handleOpenExamModal = (item?: LabExam) => {
-        if (item) {
-            setEditingExam(item)
-            setExamName(item.name)
-            setExamCategory(item.category)
-            setExamBasePrice(item.base_price.toString())
-            setExamDesc(item.description || '')
+    const handleOpenExamModal = async (examId?: string) => {
+        if (examId) {
+            setEditingExamId(examId)
+            setShowExamModal(true)
+            setLoadingExamDetails(true)
+            const details = await getLabExamDetails(examId)
+            setLoadingExamDetails(false)
+
+            if (details) {
+                setExamName(details.name)
+                setExamCategory(details.category || 'Hematologia')
+                setExamBasePrice(details.base_price ? details.base_price.toString() : '0.00')
+                setExamDesc(details.description || '')
+
+                const formattedParams: ParameterDraft[] = (details.parameters || []).map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    unit: p.unit || '',
+                    ranges: (p.ranges || []).length > 0 ? p.ranges.map(r => ({
+                        species: r.species || 'dog',
+                        age_category: r.age_category || 'adult',
+                        min_value: r.min_value !== null && r.min_value !== undefined ? r.min_value.toString() : '',
+                        max_value: r.max_value !== null && r.max_value !== undefined ? r.max_value.toString() : '',
+                        text_reference: r.text_reference || ''
+                    })) : [
+                        { species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' }
+                    ]
+                }))
+                setParametersList(formattedParams)
+            }
         } else {
-            setEditingExam(null)
+            setEditingExamId(null)
             setExamName('')
             setExamCategory('Hematologia')
             setExamBasePrice('0.00')
             setExamDesc('')
+            setParametersList([
+                {
+                    name: '',
+                    unit: '',
+                    ranges: [
+                        { species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' },
+                        { species: 'cat', age_category: 'adult', min_value: '', max_value: '', text_reference: '' }
+                    ]
+                }
+            ])
+            setShowExamModal(true)
         }
-        setShowExamModal(true)
     }
 
-    const handleSaveExam = async (e: React.FormEvent) => {
+    const handleSaveCompleteExam = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!examName.trim()) return alert('Informe o nome do exame.')
+        
         setSubmitting(true)
-        const formData = new FormData()
-        if (editingExam) formData.append('id', editingExam.id)
-        formData.append('name', examName)
-        formData.append('category', examCategory)
-        formData.append('base_price', examBasePrice)
-        formData.append('description', examDesc)
 
-        const res = await saveLabExam(formData)
+        const payload = {
+            id: editingExamId || undefined,
+            name: examName.trim(),
+            category: examCategory,
+            base_price: parseFloat(examBasePrice) || 0,
+            description: examDesc,
+            parameters: parametersList
+                .filter(p => p.name.trim() !== '')
+                .map(p => ({
+                    id: p.id,
+                    name: p.name.trim(),
+                    unit: p.unit.trim(),
+                    ranges: p.ranges.map(r => ({
+                        species: r.species,
+                        age_category: r.age_category,
+                        min_value: r.min_value !== '' ? parseFloat(r.min_value) : null,
+                        max_value: r.max_value !== '' ? parseFloat(r.max_value) : null,
+                        text_reference: r.text_reference || null
+                    }))
+                }))
+        }
+
+        const res = await saveCompleteLabExam(payload)
         setSubmitting(false)
+
         if (res.success) {
             setShowExamModal(false)
-            await loadCatalog()
+            await loadMinimalList()
         } else {
-            alert(res.message || 'Erro ao salvar exame')
+            alert(res.message || 'Erro ao salvar exame completo.')
         }
     }
 
@@ -94,65 +148,60 @@ export default function LabParametersPage() {
         if (!confirm(`Deseja desativar o exame "${name}" do catálogo?`)) return
         const res = await deleteLabExam(id)
         if (res.success) {
-            await loadCatalog()
+            await loadMinimalList()
         } else {
             alert(res.message)
         }
     }
 
-    const handleOpenParamModal = () => {
-        setParamName('')
-        setParamUnit('')
-        setRangesList([
-            { species: 'dog', age_category: 'puppy', min_value: '', max_value: '', text_reference: '' },
-            { species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' },
-            { species: 'dog', age_category: 'senior', min_value: '', max_value: '', text_reference: '' },
-            { species: 'cat', age_category: 'adult', min_value: '', max_value: '', text_reference: '' }
-        ])
-        setShowParamModal(true)
-    }
-
-    const handleSaveParameter = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!selectedExam) return
-        setSubmitting(true)
-
-        const res = await saveLabParameter(selectedExam.id, paramName, paramUnit, rangesList)
-        setSubmitting(false)
-        if (res.success) {
-            setShowParamModal(false)
-            await loadCatalog()
-        } else {
-            alert(res.message || 'Erro ao salvar parâmetro')
-        }
-    }
-
-    const handleDeleteParam = async (paramId: string) => {
-        if (!confirm('Deseja excluir este parâmetro do exame?')) return
-        const res = await deleteLabParameter(paramId)
-        if (res.success) {
-            await loadCatalog()
-        } else {
-            alert(res.message)
-        }
-    }
-
-    const addRangeRow = () => {
-        setRangesList([
-            ...rangesList,
-            { species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' }
+    // Handlers da lista de parâmetros no modal
+    const addParameterToForm = () => {
+        setParametersList([
+            ...parametersList,
+            {
+                name: '',
+                unit: '',
+                ranges: [
+                    { species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' },
+                    { species: 'cat', age_category: 'adult', min_value: '', max_value: '', text_reference: '' }
+                ]
+            }
         ])
     }
 
-    const removeRangeRow = (idx: number) => {
-        setRangesList(rangesList.filter((_, i) => i !== idx))
+    const removeParameterFromForm = (pIdx: number) => {
+        setParametersList(parametersList.filter((_, idx) => idx !== pIdx))
     }
 
-    const updateRangeRow = (idx: number, field: string, value: any) => {
-        const copy = [...rangesList]
-        copy[idx] = { ...copy[idx], [field]: value }
-        setRangesList(copy)
+    const updateParameterField = (pIdx: number, field: keyof ParameterDraft, value: any) => {
+        const copy = [...parametersList]
+        copy[pIdx] = { ...copy[pIdx], [field]: value }
+        setParametersList(copy)
     }
+
+    const addRangeToParameter = (pIdx: number) => {
+        const copy = [...parametersList]
+        copy[pIdx].ranges.push({ species: 'dog', age_category: 'adult', min_value: '', max_value: '', text_reference: '' })
+        setParametersList(copy)
+    }
+
+    const removeRangeFromParameter = (pIdx: number, rIdx: number) => {
+        const copy = [...parametersList]
+        copy[pIdx].ranges = copy[pIdx].ranges.filter((_, idx) => idx !== rIdx)
+        setParametersList(copy)
+    }
+
+    const updateRangeField = (pIdx: number, rIdx: number, field: string, value: any) => {
+        const copy = [...parametersList]
+        copy[pIdx].ranges[rIdx] = { ...copy[pIdx].ranges[rIdx], [field]: value }
+        setParametersList(copy)
+    }
+
+    const filteredExams = exams.filter(e => {
+        const matchesTerm = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.category.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesCat = categoryFilter === 'ALL' || e.category === categoryFilter
+        return matchesTerm && matchesCat
+    })
 
     return (
         <div className="container p-6 animate-fadeIn" style={{ fontFamily: 'var(--font-montserrat)' }}>
@@ -164,12 +213,12 @@ export default function LabParametersPage() {
                             &larr;
                         </Link>
                         <h1 className="text-3xl font-bold text-coral" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            ⚙️ Configuração de Exames & Referências por Idade
+                            ⚙️ Catálogo de Exames & Parâmetros de Referência
                         </h1>
                         <PageHelpModal topic="laboratorio-parametros" />
                     </div>
                     <p className="text-muted" style={{ marginTop: '0.25rem', fontSize: '0.9rem' }}>
-                        Cadastre analitos e configure tabelas de valores de referência baseadas na espécie e faixa etária do pet.
+                        Cadastre exames e analitos com faixas de referência por idade e espécie em um único local otimizado.
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -177,265 +226,268 @@ export default function LabParametersPage() {
                         📋 Requisições & Laudos
                     </Link>
                     <button onClick={() => handleOpenExamModal()} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
-                        <span>＋</span> Novo Exame
+                        <span>＋</span> Novo Exame Completo
                     </button>
                 </div>
             </div>
 
+            {/* Filtro e Busca */}
+            <div className="card glass p-4 mb-6" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ flex: 2, minWidth: '220px' }}>
+                    <input
+                        type="text"
+                        className="input"
+                        placeholder="🔍 Buscar exame por nome ou categoria..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        style={{ width: '100%', padding: '0.6rem 1rem' }}
+                    />
+                </div>
+                <div style={{ flex: 1, minWidth: '160px' }}>
+                    <select
+                        className="input"
+                        value={categoryFilter}
+                        onChange={e => setCategoryFilter(e.target.value)}
+                        style={{ width: '100%', padding: '0.6rem 1rem' }}
+                    >
+                        <option value="ALL">Todas as Categorias</option>
+                        <option value="Hematologia">Hematologia</option>
+                        <option value="Bioquímica">Bioquímica</option>
+                        <option value="Urianálise">Urianálise</option>
+                        <option value="Parasitologia">Parasitologia</option>
+                        <option value="Geral">Geral</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Tabela Limpa de Exames */}
             {loading ? (
                 <div className="card glass p-12 text-center">
-                    <p style={{ color: 'var(--text-muted)' }}>Carregando catálogo de exames e parâmetros...</p>
+                    <p style={{ color: 'var(--text-muted)' }}>Carregando catálogo de exames...</p>
                 </div>
-            ) : exams.length === 0 ? (
+            ) : filteredExams.length === 0 ? (
                 <div className="card glass p-12 text-center" style={{ border: '2px dashed var(--card-border)' }}>
                     <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🧪</div>
                     <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                        Nenhum exame cadastrado no laboratório
+                        Nenhum exame encontrado
                     </h3>
                     <button onClick={() => handleOpenExamModal()} className="btn btn-primary" style={{ marginTop: '1rem' }}>
-                        ＋ Cadastrar Primeiro Exame
+                        ＋ Cadastrar Novo Exame Completo
                     </button>
                 </div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
-                    {/* Coluna Esquerda: Lista de Exames */}
-                    <div className="card glass p-4" style={{ height: 'fit-content' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.5rem' }}>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                                Exames Cadastrados ({exams.length})
-                            </h3>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {exams.map(e => (
-                                <div
-                                    key={e.id}
-                                    onClick={() => setSelectedExam(e)}
-                                    style={{
-                                        padding: '0.75rem', borderRadius: '8px', cursor: 'pointer',
-                                        border: selectedExam?.id === e.id ? '2px solid var(--color-coral)' : '1px solid var(--card-border)',
-                                        background: selectedExam?.id === e.id ? 'rgba(240, 140, 152, 0.15)' : 'var(--bg-tertiary)',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>🧪 {e.name}</strong>
-                                        <div style={{ display: 'flex', gap: '0.3rem' }}>
+                <div className="card glass p-0" style={{ overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                        <thead>
+                            <tr style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--card-border)', color: 'var(--text-secondary)' }}>
+                                <th style={{ padding: '1rem' }}>Exame</th>
+                                <th style={{ padding: '1rem' }}>Setor / Categoria</th>
+                                <th style={{ padding: '1rem' }}>Preço Base</th>
+                                <th style={{ padding: '1rem' }}>Analitos / Parâmetros</th>
+                                <th style={{ padding: '1rem', textAlign: 'right' }}>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredExams.map((e) => (
+                                <tr key={e.id} style={{ borderBottom: '1px solid var(--card-border)' }}>
+                                    <td style={{ padding: '1rem' }}>
+                                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <span>🧪</span> {e.name}
+                                        </div>
+                                        {e.description && (
+                                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                                {e.description}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: 'rgba(0, 228, 206, 0.12)', color: 'var(--color-sky-dark, #00e4ce)', textTransform: 'uppercase' }}>
+                                            {e.category}
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                        R$ {e.base_price.toFixed(2)}
+                                    </td>
+                                    <td style={{ padding: '1rem' }}>
+                                        <span className="badge badge-neutral" style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+                                            {e.parameter_count || 0} parâmetro(s)
+                                        </span>
+                                    </td>
+                                    <td style={{ padding: '1rem', textAlign: 'right' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                                             <button
-                                                onClick={(evt) => { evt.stopPropagation(); handleOpenExamModal(e) }}
-                                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem' }}
-                                                title="Editar exame"
+                                                onClick={() => handleOpenExamModal(e.id)}
+                                                className="btn btn-secondary"
+                                                style={{ fontSize: '0.8rem', padding: '6px 12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}
                                             >
-                                                ✏️
+                                                ✏️ Editar Exame & Parâmetros
                                             </button>
                                             <button
-                                                onClick={(evt) => { evt.stopPropagation(); handleDeleteExam(e.id, e.name) }}
-                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem' }}
+                                                onClick={() => handleDeleteExam(e.id, e.name)}
+                                                style={{ background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem' }}
                                                 title="Desativar exame"
                                             >
                                                 🗑️
                                             </button>
                                         </div>
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>
-                                        <span>Setor: {e.category}</span>
-                                        <span>{(e.parameters || []).length} analito(s)</span>
-                                    </div>
-                                </div>
+                                    </td>
+                                </tr>
                             ))}
-                        </div>
-                    </div>
-
-                    {/* Coluna Direita: Parâmetros & Valores de Referência do Exame Selecionado */}
-                    {selectedExam && (
-                        <div className="card glass p-6">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
-                                <div>
-                                    <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--color-sky-dark, #00e4ce)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                        🧪 Parâmetros de: {selectedExam.name}
-                                    </h2>
-                                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.2rem 0 0 0' }}>
-                                        Setor: {selectedExam.category} | Valor Base: R$ {selectedExam.base_price.toFixed(2)}
-                                    </p>
-                                </div>
-                                <button onClick={handleOpenParamModal} className="btn btn-primary" style={{ fontSize: '0.85rem', fontWeight: 700 }}>
-                                    ＋ Adicionar Parâmetro / Analito
-                                </button>
-                            </div>
-
-                            {/* Lista de Parâmetros do Exame */}
-                            {(selectedExam.parameters || []).length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed var(--card-border)', borderRadius: '8px' }}>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                                        Nenhum parâmetro cadastrado para este exame. Adicione analitos (ex: Eritrócitos, Hemoglobina, Ureia) e configure as tabelas de referência por idade.
-                                    </p>
-                                    <button onClick={handleOpenParamModal} className="btn btn-primary mt-2">
-                                        ＋ Criar Primeiro Parâmetro
-                                    </button>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {selectedExam.parameters?.map((p) => (
-                                        <div key={p.id} style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                                <div>
-                                                    <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{p.name}</strong>
-                                                    {p.unit && <span style={{ fontSize: '0.8rem', color: 'var(--color-sky)', marginLeft: '0.5rem' }}>({p.unit})</span>}
-                                                </div>
-                                                <button
-                                                    onClick={() => handleDeleteParam(p.id)}
-                                                    style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '5px', padding: '3px 8px', color: '#ef4444', fontSize: '0.75rem', cursor: 'pointer' }}
-                                                >
-                                                    🗑️ Excluir Parâmetro
-                                                </button>
-                                            </div>
-
-                                            {/* Tabela de Referências por Idade / Espécie do Parâmetro */}
-                                            <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.8rem' }}>
-                                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>
-                                                    Valores de Referência por Espécie / Idade:
-                                                </span>
-                                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
-                                                    {p.ranges.map((r, rIdx) => (
-                                                        <div key={rIdx} style={{ background: 'var(--bg-tertiary)', padding: '0.4rem 0.6rem', borderRadius: '5px', border: '1px solid var(--card-border)' }}>
-                                                            <span style={{ display: 'block', fontWeight: 700, color: 'var(--color-coral)' }}>
-                                                                {r.species === 'cat' ? '🐱 Gato' : r.species === 'dog' ? '🐶 Cão' : '🐾 Geral'} - {
-                                                                    r.age_category === 'puppy' ? 'Filhote (< 1 ano)' :
-                                                                    r.age_category === 'senior' ? 'Sênior (> 7 anos)' : 'Adulto (1 a 7 anos)'
-                                                                }
-                                                            </span>
-                                                            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                                                                {r.text_reference ? r.text_reference : (
-                                                                    r.min_value !== null && r.max_value !== null ? `${r.min_value} - ${r.max_value}` :
-                                                                    r.min_value !== null ? `>= ${r.min_value}` :
-                                                                    r.max_value !== null ? `<= ${r.max_value}` : 'S/R'
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                        </tbody>
+                    </table>
                 </div>
             )}
 
-            {/* Modal de Cadastro / Edição do Exame */}
+            {/* Modal Unificado: Cadastro / Edição do Exame e seus Parâmetros */}
             {showExamModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-                    <div style={{ background: 'var(--bg-secondary)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '500px', border: '1px solid var(--card-border)', color: 'var(--text-primary)' }}>
-                        <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 1rem 0', color: 'var(--color-coral)' }}>
-                            🧪 {editingExam ? 'Editar Exame' : 'Novo Exame no Catálogo'}
-                        </h2>
-                        <form onSubmit={handleSaveExam} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem' }}>Nome do Exame *</label>
-                                <input type="text" required placeholder="Ex: Hemograma Completo, Bioquímico Renal" className="input" value={examName} onChange={e => setExamName(e.target.value)} style={{ width: '100%', padding: '0.5rem' }} />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem' }}>Setor / Categoria</label>
-                                    <select className="input" value={examCategory} onChange={e => setExamCategory(e.target.value)} style={{ width: '100%', padding: '0.5rem' }}>
-                                        <option value="Hematologia">Hematologia</option>
-                                        <option value="Bioquímica">Bioquímica</option>
-                                        <option value="Urianálise">Urianálise</option>
-                                        <option value="Parasitologia">Parasitologia</option>
-                                        <option value="Imagem">Imagem / Ultrassom</option>
-                                        <option value="Geral">Geral</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem' }}>Preço Base (R$)</label>
-                                    <input type="number" step="0.01" min="0" className="input" value={examBasePrice} onChange={e => setExamBasePrice(e.target.value)} style={{ width: '100%', padding: '0.5rem' }} />
-                                </div>
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem' }}>Descrição / Recomendações</label>
-                                <textarea className="input" rows={2} placeholder="Ex: Jejum recomendado de 8 horas..." value={examDesc} onChange={e => setExamDesc(e.target.value)} style={{ width: '100%', padding: '0.5rem', resize: 'none' }} />
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                <button type="button" onClick={() => setShowExamModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancelar</button>
-                                <button type="submit" disabled={submitting} className="btn btn-primary" style={{ flex: 2, fontWeight: 700 }}>
-                                    {submitting ? 'Salvando...' : '💾 Salvar Exame'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Modal de Adição de Parâmetro e Faixas de Referência por Idade */}
-            {showParamModal && selectedExam && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
-                    <div style={{ background: 'var(--bg-secondary)', borderRadius: '12px', padding: '1.5rem', width: '100%', maxWidth: '750px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--card-border)', color: 'var(--text-primary)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--color-sky-dark, #00e4ce)' }}>
-                                🔬 Novo Parâmetro / Analito: {selectedExam.name}
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+                    <div style={{ background: 'var(--bg-secondary)', borderRadius: '16px', padding: '1.75rem', width: '100%', maxWidth: '850px', maxHeight: '90vh', overflowY: 'auto', border: '1px solid var(--card-border)', color: 'var(--text-primary)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '0.75rem' }}>
+                            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: 0, color: 'var(--color-coral)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                🧪 {editingExamId ? 'Editar Exame e Parâmetros' : 'Novo Exame Completo'}
                             </h2>
-                            <button onClick={() => setShowParamModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+                            <button onClick={() => setShowExamModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
                         </div>
 
-                        <form onSubmit={handleSaveParameter} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem' }}>Nome do Analito / Parâmetro *</label>
-                                    <input type="text" required placeholder="Ex: Eritrócitos, Hemoglobina, Ureia" className="input" value={paramName} onChange={e => setParamName(e.target.value)} style={{ width: '100%', padding: '0.5rem' }} />
-                                </div>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.3rem' }}>Unidade de Medida</label>
-                                    <input type="text" placeholder="Ex: 10^6/µL, g/dL, mg/dL" className="input" value={paramUnit} onChange={e => setParamUnit(e.target.value)} style={{ width: '100%', padding: '0.5rem' }} />
-                                </div>
+                        {loadingExamDetails ? (
+                            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                Carregando detalhes e analitos do exame...
                             </div>
+                        ) : (
+                            <form onSubmit={handleSaveCompleteExam} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                {/* SEÇÃO 1: DADOS DO EXAME */}
+                                <div style={{ background: 'var(--bg-tertiary)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--card-border)' }}>
+                                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: '0 0 1rem 0', color: 'var(--color-sky-dark, #00e4ce)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                        📋 1. Informações Básicas do Exame
+                                    </h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem', marginBottom: '0.85rem' }}>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.3rem' }}>Nome do Exame *</label>
+                                            <input type="text" required placeholder="Ex: Hemograma Completo" className="input" value={examName} onChange={e => setExamName(e.target.value)} style={{ width: '100%', padding: '0.55rem' }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.3rem' }}>Setor / Categoria</label>
+                                            <select className="input" value={examCategory} onChange={e => setExamCategory(e.target.value)} style={{ width: '100%', padding: '0.55rem' }}>
+                                                <option value="Hematologia">Hematologia</option>
+                                                <option value="Bioquímica">Bioquímica</option>
+                                                <option value="Urianálise">Urianálise</option>
+                                                <option value="Parasitologia">Parasitologia</option>
+                                                <option value="Imagem">Imagem / Ultrassom</option>
+                                                <option value="Geral">Geral</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.3rem' }}>Preço Base (R$)</label>
+                                            <input type="number" step="0.01" min="0" className="input" value={examBasePrice} onChange={e => setExamBasePrice(e.target.value)} style={{ width: '100%', padding: '0.55rem' }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.3rem' }}>Descrição / Orientações</label>
+                                        <input type="text" className="input" placeholder="Ex: Jejum recomendado de 8 horas, coleta em EDTA..." value={examDesc} onChange={e => setExamDesc(e.target.value)} style={{ width: '100%', padding: '0.55rem' }} />
+                                    </div>
+                                </div>
 
-                            {/* Faixas de Referência por Idade / Espécie */}
-                            <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--card-border)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                    <strong style={{ fontSize: '0.85rem', color: 'var(--color-coral)', textTransform: 'uppercase' }}>
-                                        📊 Faixas de Referência por Espécie e Idade
-                                    </strong>
-                                    <button type="button" onClick={addRangeRow} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
-                                        ＋ Nova Regra por Idade
+                                {/* SEÇÃO 2: PARÂMETROS / ANALITOS DO EXAME */}
+                                <div style={{ background: 'var(--bg-tertiary)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--card-border)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                        <h3 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, color: 'var(--color-sky-dark, #00e4ce)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                            📊 2. Parâmetros / Analitos & Faixas de Referência por Idade
+                                        </h3>
+                                        <button type="button" onClick={addParameterToForm} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '5px 12px', fontWeight: 700 }}>
+                                            ＋ Adicionar Analito / Parâmetro
+                                        </button>
+                                    </div>
+
+                                    {parametersList.length === 0 ? (
+                                        <p style={{ textCenter: 'center', color: 'var(--text-muted)', padding: '1rem', border: '1px dashed var(--card-border)', borderRadius: '8px', fontSize: '0.85rem' }}>
+                                            Nenhum analito adicionado. Clique no botão acima para incluir os parâmetros deste exame.
+                                        </p>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                            {parametersList.map((p, pIdx) => (
+                                                <div key={pIdx} style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--card-border)' }}>
+                                                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 40px', gap: '0.75rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.2rem', color: 'var(--text-secondary)' }}>Nome do Analito / Parâmetro *</label>
+                                                            <input
+                                                                type="text"
+                                                                required
+                                                                placeholder="Ex: Eritrócitos, Hemoglobina, Ureia..."
+                                                                className="input"
+                                                                value={p.name}
+                                                                onChange={e => updateParameterField(pIdx, 'name', e.target.value)}
+                                                                style={{ width: '100%', padding: '0.45rem' }}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700, marginBottom: '0.2rem', color: 'var(--text-secondary)' }}>Unidade (Ex: g/dL, %)</label>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Ex: x10^6/µL"
+                                                                className="input"
+                                                                value={p.unit}
+                                                                onChange={e => updateParameterField(pIdx, 'unit', e.target.value)}
+                                                                style={{ width: '100%', padding: '0.45rem' }}
+                                                            />
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'flex-end', height: '100%' }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeParameterFromForm(pIdx)}
+                                                                style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', borderRadius: '6px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                                title="Remover parâmetro"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Tabelinha de Faixas de Referência por Idade/Espécie */}
+                                                    <div style={{ background: 'var(--bg-tertiary)', padding: '0.75rem', borderRadius: '8px' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-coral)', textTransform: 'uppercase' }}>
+                                                                Regras de Referência (Mín / Máx por Idade):
+                                                            </span>
+                                                            <button type="button" onClick={() => addRangeToParameter(pIdx)} style={{ background: 'none', border: 'none', color: 'var(--color-sky-dark, #00e4ce)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
+                                                                ＋ Adicionar Faixa
+                                                            </button>
+                                                        </div>
+
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                            {p.ranges.map((r, rIdx) => (
+                                                                <div key={rIdx} style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr 1fr 24px', gap: '0.4rem', alignItems: 'center' }}>
+                                                                    <select className="input" value={r.species} onChange={e => updateRangeField(pIdx, rIdx, 'species', e.target.value)} style={{ padding: '0.3rem', fontSize: '0.78rem' }}>
+                                                                        <option value="dog">🐶 Cão</option>
+                                                                        <option value="cat">🐱 Gato</option>
+                                                                        <option value="all">🐾 Todas Espécies</option>
+                                                                    </select>
+                                                                    <select className="input" value={r.age_category} onChange={e => updateRangeField(pIdx, rIdx, 'age_category', e.target.value)} style={{ padding: '0.3rem', fontSize: '0.78rem' }}>
+                                                                        <option value="puppy">Filhote (&lt; 1 ano)</option>
+                                                                        <option value="adult">Adulto (1 a 7 anos)</option>
+                                                                        <option value="senior">Sênior (&gt; 7 anos)</option>
+                                                                        <option value="all">Todas as Idades</option>
+                                                                    </select>
+                                                                    <input type="number" step="0.0001" placeholder="Mínimo" className="input" value={r.min_value} onChange={e => updateRangeField(pIdx, rIdx, 'min_value', e.target.value)} style={{ padding: '0.3rem', fontSize: '0.78rem' }} />
+                                                                    <input type="number" step="0.0001" placeholder="Máximo" className="input" value={r.max_value} onChange={e => updateRangeField(pIdx, rIdx, 'max_value', e.target.value)} style={{ padding: '0.3rem', fontSize: '0.78rem' }} />
+                                                                    <button type="button" onClick={() => removeRangeFromParameter(pIdx, rIdx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem' }}>×</button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                                    <button type="button" onClick={() => setShowExamModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancelar</button>
+                                    <button type="submit" disabled={submitting} className="btn btn-primary" style={{ flex: 2, padding: '0.8rem', fontWeight: 800, fontSize: '0.95rem' }}>
+                                        {submitting ? 'Salvando...' : '💾 Salvar Exame e Parâmetros'}
                                     </button>
                                 </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                                    {rangesList.map((r, idx) => (
-                                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 1fr 20px', gap: '0.5rem', alignItems: 'center', background: 'var(--bg-secondary)', padding: '0.5rem', borderRadius: '6px' }}>
-                                            <select className="input" value={r.species} onChange={e => updateRangeRow(idx, 'species', e.target.value)} style={{ padding: '0.35rem', fontSize: '0.8rem' }}>
-                                                <option value="dog">🐶 Cão (Canino)</option>
-                                                <option value="cat">🐱 Gato (Felino)</option>
-                                                <option value="all">🐾 Todas Espécies</option>
-                                            </select>
-
-                                            <select className="input" value={r.age_category} onChange={e => updateRangeRow(idx, 'age_category', e.target.value)} style={{ padding: '0.35rem', fontSize: '0.8rem' }}>
-                                                <option value="puppy">Filhote (&lt; 1 ano)</option>
-                                                <option value="adult">Adulto (1 a 7 anos)</option>
-                                                <option value="senior">Sênior (&gt; 7 anos)</option>
-                                                <option value="all">Todas as Idades</option>
-                                            </select>
-
-                                            <input type="number" step="0.0001" placeholder="Mínimo" className="input" value={r.min_value} onChange={e => updateRangeRow(idx, 'min_value', e.target.value)} style={{ padding: '0.35rem', fontSize: '0.8rem' }} />
-                                            <input type="number" step="0.0001" placeholder="Máximo" className="input" value={r.max_value} onChange={e => updateRangeRow(idx, 'max_value', e.target.value)} style={{ padding: '0.35rem', fontSize: '0.8rem' }} />
-
-                                            {rangesList.length > 1 && (
-                                                <button type="button" onClick={() => removeRangeRow(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>×</button>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                                <button type="button" onClick={() => setShowParamModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancelar</button>
-                                <button type="submit" disabled={submitting} className="btn btn-primary" style={{ flex: 2, fontWeight: 700 }}>
-                                    {submitting ? 'Salvando...' : '💾 Salvar Parâmetro'}
-                                </button>
-                            </div>
-                        </form>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}

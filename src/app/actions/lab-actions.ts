@@ -81,6 +81,251 @@ export async function getLabExamsCatalog(): Promise<LabExam[]> {
     }
 }
 
+export interface LabExamMinimal {
+    id: string
+    org_id: string
+    name: string
+    category: string
+    base_price: number
+    description?: string | null
+    is_active: boolean
+    parameter_count?: number
+}
+
+export async function getLabExamsListMinimal(): Promise<LabExamMinimal[]> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return []
+
+        const { data: exams, error } = await supabase
+            .from('lab_exams')
+            .select('id, org_id, name, category, base_price, description, is_active, lab_parameters(id)')
+            .eq('org_id', profile.org_id)
+            .eq('is_active', true)
+            .order('name')
+
+        if (error) {
+            console.error('Erro ao buscar lista minimal de exames:', error)
+            return []
+        }
+
+        return (exams || []).map((e: any) => ({
+            id: e.id,
+            org_id: e.org_id,
+            name: e.name,
+            category: e.category,
+            base_price: Number(e.base_price) || 0,
+            description: e.description || null,
+            is_active: e.is_active,
+            parameter_count: (e.lab_parameters || []).length
+        }))
+    } catch (err) {
+        console.error('Erro em getLabExamsListMinimal:', err)
+        return []
+    }
+}
+
+export async function getLabExamDetails(examId: string): Promise<LabExam | null> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return null
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return null
+
+        const { data: exam, error } = await supabase
+            .from('lab_exams')
+            .select('*, lab_parameters(*, lab_reference_ranges(*))')
+            .eq('id', examId)
+            .eq('org_id', profile.org_id)
+            .single()
+
+        if (error || !exam) return null
+
+        return {
+            ...exam,
+            base_price: Number(exam.base_price) || 0,
+            parameters: (exam.lab_parameters || []).map((p: any) => ({
+                ...p,
+                order: Number(p.order) || 0,
+                ranges: (p.lab_reference_ranges || []).map((r: any) => ({
+                    ...r,
+                    min_value: r.min_value !== null ? Number(r.min_value) : null,
+                    max_value: r.max_value !== null ? Number(r.max_value) : null
+                }))
+            })).sort((a: any, b: any) => a.order - b.order)
+        }
+    } catch (err) {
+        console.error('Erro em getLabExamDetails:', err)
+        return null
+    }
+}
+
+export async function saveCompleteLabExam(payload: {
+    id?: string
+    name: string
+    category: string
+    base_price: number
+    description?: string
+    parameters: Array<{
+        id?: string
+        name: string
+        unit?: string
+        order?: number
+        ranges: Array<{
+            species: string
+            age_category: string
+            min_value?: number | null
+            max_value?: number | null
+            text_reference?: string | null
+        }>
+    }>
+}) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return { success: false, message: 'Organização não encontrada' }
+
+        const name = (payload.name || '').trim()
+        const category = (payload.category || 'Geral').trim()
+        const base_price = Math.max(0, Number(payload.base_price) || 0)
+        const description = (payload.description || '').trim() || null
+
+        if (!name) return { success: false, message: 'Nome do exame é obrigatório.' }
+
+        let examId = payload.id
+
+        if (examId) {
+            const { error: updErr } = await supabase
+                .from('lab_exams')
+                .update({
+                    name,
+                    category,
+                    base_price,
+                    description,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', examId)
+                .eq('org_id', profile.org_id)
+
+            if (updErr) throw updErr
+        } else {
+            const { data: newExam, error: insErr } = await supabase
+                .from('lab_exams')
+                .insert({
+                    org_id: profile.org_id,
+                    name,
+                    category,
+                    base_price,
+                    description,
+                    is_active: true
+                })
+                .select('id')
+                .single()
+
+            if (insErr) throw insErr
+            examId = newExam.id
+        }
+
+        // Handle Parameters update/upsert
+        if (payload.parameters && Array.isArray(payload.parameters)) {
+            // Get existing parameter IDs to delete any removed parameters
+            const { data: existingParams } = await supabase
+                .from('lab_parameters')
+                .select('id')
+                .eq('exam_id', examId)
+
+            const keepParamIds = new Set(payload.parameters.map(p => p.id).filter(Boolean))
+            const deleteParamIds = (existingParams || []).map(p => p.id).filter(id => !keepParamIds.has(id))
+
+            if (deleteParamIds.length > 0) {
+                await supabase.from('lab_parameters').delete().in('id', deleteParamIds)
+            }
+
+            // Loop parameters
+            for (let idx = 0; idx < payload.parameters.length; idx++) {
+                const param = payload.parameters[idx]
+                const pName = (param.name || '').trim()
+                if (!pName) continue
+
+                let paramId = param.id
+
+                if (paramId) {
+                    await supabase
+                        .from('lab_parameters')
+                        .update({
+                            name: pName,
+                            unit: param.unit || null,
+                            order: idx
+                        })
+                        .eq('id', paramId)
+                } else {
+                    const { data: newP, error: pErr } = await supabase
+                        .from('lab_parameters')
+                        .insert({
+                            org_id: profile.org_id,
+                            exam_id: examId,
+                            name: pName,
+                            unit: param.unit || null,
+                            order: idx
+                        })
+                        .select('id')
+                        .single()
+
+                    if (pErr) throw pErr
+                    paramId = newP.id
+                }
+
+                // Delete old ranges for this parameter and re-insert fresh ranges
+                await supabase.from('lab_reference_ranges').delete().eq('parameter_id', paramId)
+
+                if (param.ranges && param.ranges.length > 0) {
+                    const rangesToInsert = param.ranges.map(r => ({
+                        parameter_id: paramId,
+                        species: r.species || 'all',
+                        age_category: r.age_category || 'all',
+                        min_value: r.min_value !== undefined && r.min_value !== null && (r.min_value as any) !== '' ? Number(r.min_value) : null,
+                        max_value: r.max_value !== undefined && r.max_value !== null && (r.max_value as any) !== '' ? Number(r.max_value) : null,
+                        text_reference: r.text_reference || null
+                    }))
+
+                    await supabase.from('lab_reference_ranges').insert(rangesToInsert)
+                }
+            }
+        }
+
+        revalidatePath('/owner/laboratorio')
+        revalidatePath('/owner/laboratorio/parametros')
+        return { success: true, examId }
+    } catch (err: any) {
+        console.error('Erro em saveCompleteLabExam:', err)
+        return { success: false, message: err.message || 'Erro ao salvar exame completo.' }
+    }
+}
+
 export async function saveLabExam(formData: FormData) {
     try {
         const supabase = await createClient()

@@ -42,7 +42,7 @@ import {
     getVaccines as getVaccineCatalog,
     getVaccineBatches
 } from '@/app/actions/vaccine'
-import { getLabRequests, createLabRequest, getLabExamsCatalog } from '@/app/actions/lab-actions'
+import { getLabRequests, createLabRequest, getLabExamsListMinimal } from '@/app/actions/lab-actions'
 import LabResultModal from '@/components/LabResultModal'
 import { 
     getPetSubscriptions, 
@@ -318,7 +318,7 @@ function PetsContent() {
                 getVetExams(selectedPet.id).then(setPetExams)
                 getVetExamTypes().then(setExamTypes)
                 getLabRequests({ pet_id: selectedPet.id }).then(setPetLabRequests)
-                getLabExamsCatalog().then(setCatalogLabExams)
+                getLabExamsListMinimal().then(setCatalogLabExams)
             }
         }
     }
