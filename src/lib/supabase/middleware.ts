@@ -47,7 +47,7 @@ export async function updateSession(request: NextRequest) {
     // Se o usuário não tiver nenhum cookie do tipo sb-[project-id]-auth-token, ele não está logado.
     // Redirecionamos para / imediatamente sem criar o cliente Supabase e sem fazer chamada de rede.
     const allCookies = request.cookies.getAll()
-    const hasAuthCookie = allCookies.some(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
+    const hasAuthCookie = allCookies.some(c => c.name.startsWith('sb-') && c.name.includes('-auth-token'))
     if (!hasAuthCookie) {
         const url = request.nextUrl.clone()
         url.pathname = '/'

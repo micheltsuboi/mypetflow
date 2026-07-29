@@ -62,6 +62,7 @@ import ImageUpload from '@/components/ImageUpload'
 import FileUpload from '@/components/ui/FileUpload'
 import ExamPaymentControls from '@/components/ExamPaymentControls'
 import PlanGuard from '@/components/modules/PlanGuard'
+import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import DateInput from '@/components/ui/DateInput'
 import FinanceiroPaymentModal from '@/components/FinanceiroPaymentModal'
 import InputMasked from '@/components/ui/InputMasked'
@@ -788,7 +789,7 @@ function PetsContent() {
                                         {pet.customers?.name} <span style={{ opacity: 0.7, fontSize: '0.85rem' }}>({pet.name})</span>
                                         {pet.customers?.phone_1 && (
                                             <a
-                                                href={`https://wa.me/55${pet.customers.phone_1.replace(/\D/g, '')}`}
+                                                href={`https://wa.me/55${String(pet.customers.phone_1).replace(/\D/g, '')}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 onClick={(e) => e.stopPropagation()}
@@ -2741,10 +2742,12 @@ function PetsContent() {
 
 export default function PetsPage() {
     return (
-        <PlanGuard requiredModule="pets">
-            <Suspense fallback={<div>Carregando...</div>}>
-                <PetsContent />
-            </Suspense>
-        </PlanGuard>
+        <ErrorBoundary fallbackTitle="Erro na Ficha do Pet">
+            <PlanGuard requiredModule="pets">
+                <Suspense fallback={<div>Carregando...</div>}>
+                    <PetsContent />
+                </Suspense>
+            </PlanGuard>
+        </ErrorBoundary>
     )
 }
