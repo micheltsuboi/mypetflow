@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense, useTransition, Fragment } from 'react'
+import { useState, useEffect, useCallback, useMemo, Suspense, useTransition, Fragment } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
