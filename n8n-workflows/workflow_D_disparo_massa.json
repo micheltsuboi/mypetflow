@@ -48,11 +48,11 @@
     },
     {
       "parameters": {
-        "amount": 10,
+        "amount": 40,
         "unit": "seconds"
       },
-      "id": "delay-10s",
-      "name": "Delay 10s",
+      "id": "delay-40s",
+      "name": "Delay 40s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
@@ -129,14 +129,14 @@
       "main": [
         [
           {
-            "node": "Delay 10s",
+            "node": "Delay 40s",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Delay 10s": {
+    "Delay 40s": {
       "main": [
         [
           {

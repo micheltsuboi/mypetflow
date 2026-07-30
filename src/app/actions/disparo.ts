@@ -51,9 +51,8 @@ export async function getDisparoConfig() {
     const features = (org.saas_plans as any)?.features || []
     const hasDisparoPlanFeature = features.includes('disparo_massa')
 
-    // 3. Verificar se o WhatsApp está minimamente configurado
-    // Se for system, usamos o padrão. Se for custom, precisa da URL configurada.
-    const isWhatsAppConfigured = org.wa_integration_type === 'system' || (org.wa_integration_type === 'custom' && !!org.wa_api_url)
+    // 3. Verificar se o WhatsApp está configurado (apenas tipo 'custom' é permitido para disparo em massa)
+    const isWhatsAppConfigured = org.wa_integration_type === 'custom' && !!org.wa_api_url
 
     // 4. Contar a quantidade de clientes que possuem telefone cadastrado
     const { count, error: countError } = await adminSupabase
@@ -125,9 +124,13 @@ export async function iniciarDisparoMassa(messageTemplate: string): Promise<Disp
       return { success: false, message: 'O seu plano atual não possui o módulo de Disparo em Massa ativado.' }
     }
 
-    const isWhatsAppConfigured = org.wa_integration_type === 'system' || (org.wa_integration_type === 'custom' && !!org.wa_api_url)
+    if (org.wa_integration_type !== 'custom') {
+      return { success: false, message: 'O recurso de disparo de mensagens em massa está disponível apenas para clientes que utilizam integração de WhatsApp Personalizado (Z-API).' }
+    }
+
+    const isWhatsAppConfigured = org.wa_integration_type === 'custom' && !!org.wa_api_url
     if (!isWhatsAppConfigured) {
-      return { success: false, message: 'Seu WhatsApp não está configurado. Por favor, configure nas Integrações antes de enviar.' }
+      return { success: false, message: 'Seu WhatsApp Personalizado não está configurado. Por favor, configure a Z-API nas Integrações antes de enviar.' }
     }
 
     // 2. Buscar todos os clientes com telefone cadastrado

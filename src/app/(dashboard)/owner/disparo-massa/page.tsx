@@ -15,6 +15,7 @@ export default function DisparoMassaPage() {
     const [contactsCount, setContactsCount] = useState(0)
     const [message, setMessage] = useState('')
     const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null)
+    const [integrationType, setIntegrationType] = useState('system')
     const router = useRouter()
 
     useEffect(() => {
@@ -25,6 +26,7 @@ export default function DisparoMassaPage() {
                     setHasPlanFeature(res.hasDisparoPlanFeature || false)
                     setIsWhatsAppConfigured(res.isWhatsAppConfigured || false)
                     setContactsCount(res.activeContactsCount || 0)
+                    setIntegrationType(res.integrationType || 'system')
                 } else {
                     console.error('Erro ao buscar configurações:', res.error)
                 }
@@ -119,29 +121,56 @@ export default function DisparoMassaPage() {
                 <div className={styles.card}>
                     <form onSubmit={handleSend} className={styles.form}>
                         {/* Estado das configurações de WhatsApp */}
-                        {!isWhatsAppConfigured ? (
+                        {integrationType === 'system' ? (
+                            <div className={`${styles.alert} ${styles.alertWarning}`}>
+                                <div className={styles.alertHeader}>
+                                    <span className={styles.alertIcon}>🚫</span>
+                                    <h3 className={styles.alertTitle}>Disparo Não Permitido no WhatsApp Padrão</h3>
+                                </div>
+                                <p className={styles.alertText}>
+                                    O disparo de mensagens em massa está desativado para o WhatsApp padrão do sistema. Para utilizar este recurso, você precisa configurar o seu <strong>WhatsApp Personalizado (Z-API)</strong> nas integrações.
+                                </p>
+                                <Link href="/owner/integracoes" className={`btn ${styles.alertBtn}`}>
+                                    Configurar WhatsApp Personalizado
+                                </Link>
+                            </div>
+                        ) : !isWhatsAppConfigured ? (
                             <div className={`${styles.alert} ${styles.alertWarning}`}>
                                 <div className={styles.alertHeader}>
                                     <span className={styles.alertIcon}>⚠️</span>
-                                    <h3 className={styles.alertTitle}>Integração de WhatsApp Ausente</h3>
+                                    <h3 className={styles.alertTitle}>WhatsApp Personalizado Não Configurado</h3>
                                 </div>
                                 <p className={styles.alertText}>
-                                    Você não configurou uma instância ativa de WhatsApp. É necessário configurar a Z-API nas integrações para que os disparos em massa funcionem.
+                                    Você selecionou o WhatsApp Personalizado, mas a API não está totalmente configurada. É necessário configurar a Z-API nas integrações para que os disparos em massa funcionem.
                                 </p>
                                 <Link href="/owner/integracoes" className={`btn ${styles.alertBtn}`}>
                                     Configurar WhatsApp / Z-API
                                 </Link>
                             </div>
                         ) : (
-                            <div className={styles.infoBanner}>
-                                <span className={styles.infoIcon}>👥</span>
-                                <div className={styles.infoContent}>
-                                    <span className={styles.infoTitle}>Clientes Elegíveis</span>
-                                    <span className={styles.infoDescription}>
-                                        Seu disparo será encaminhado para **{contactsCount}** clientes que possuem telefone celular cadastrado no sistema.
-                                    </span>
+                            <>
+                                <div className={styles.infoBanner}>
+                                    <span className={styles.infoIcon}>👥</span>
+                                    <div className={styles.infoContent}>
+                                        <span className={styles.infoTitle}>Clientes Elegíveis</span>
+                                        <span className={styles.infoDescription}>
+                                            Seu disparo será encaminhado para **{contactsCount}** clientes que possuem telefone celular cadastrado no sistema.
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
+                                
+                                <div className={`${styles.alert} ${styles.alertWarning}`} style={{ marginTop: '1rem' }}>
+                                    <div className={styles.alertHeader}>
+                                        <span className={styles.alertIcon}>⚠️</span>
+                                        <h3 className={styles.alertTitle} style={{ color: '#d97706' }}>Atenção sobre Bloqueios no WhatsApp</h3>
+                                    </div>
+                                    <p className={styles.alertText} style={{ fontSize: '0.85rem' }}>
+                                        O WhatsApp possui políticas rígidas contra disparos em massa. Mesmo com o nosso intervalo seguro de 40 segundos entre as mensagens, <strong>ainda existe risco de bloqueio da sua conta</strong> se os clientes denunciarem as mensagens como spam. 
+                                        <br /><br />
+                                        Para comunicados gerais ou promoções recorrentes, <strong>sugerimos e recomendamos fortemente utilizar a Lista de Transmissão nativa do próprio WhatsApp</strong>, o que elimina completamente o risco de banimento da sua linha.
+                                    </p>
+                                </div>
+                            </>
                         )}
 
                         <div className={styles.formGroup}>
@@ -156,7 +185,7 @@ export default function DisparoMassaPage() {
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 placeholder="Olá {nome}! Passando para avisar que nesta sexta-feira teremos uma promoção especial de banho e tosa para todos os pets cadastrados... 🐾"
-                                disabled={!isWhatsAppConfigured || sending}
+                                disabled={integrationType === 'system' || !isWhatsAppConfigured || sending}
                                 required
                                 rows={8}
                             />
@@ -178,7 +207,7 @@ export default function DisparoMassaPage() {
                             <button
                                 type="submit"
                                 className={`btn btn-primary ${styles.submitBtn}`}
-                                disabled={!isWhatsAppConfigured || sending || !message.trim() || contactsCount === 0}
+                                disabled={integrationType === 'system' || !isWhatsAppConfigured || sending || !message.trim() || contactsCount === 0}
                             >
                                 {sending ? (
                                     <>
@@ -199,19 +228,25 @@ export default function DisparoMassaPage() {
                         <li>
                             <span className={styles.helperIcon}>⏳</span>
                             <div className={styles.helperContent}>
-                                <strong>Fila Anti-Banimento:</strong> As mensagens são enviadas em segundo plano com um intervalo (delay) de 10 segundos entre cada uma. Isso impede bloqueios por parte do WhatsApp.
+                                <strong>Fila Anti-Banimento:</strong> As mensagens são enviadas em segundo plano com um intervalo (delay) seguro de 40 segundos entre cada uma para minimizar o risco de bloqueios.
+                            </div>
+                        </li>
+                        <li>
+                            <span className={styles.helperIcon}>📢</span>
+                            <div className={styles.helperContent}>
+                                <strong>Lista de Transmissão:</strong> Recomendamos o uso de Listas de Transmissão nativas do próprio WhatsApp. Elas são totalmente imunes a bloqueios e indicadas para comunicados frequentes.
                             </div>
                         </li>
                         <li>
                             <span className={styles.helperIcon}>🚪</span>
                             <div className={styles.helperContent}>
-                                <strong>Opção de Saída:</strong> Recomendamos sempre encerrar a mensagem oferecendo a opção do cliente pedir para sair da lista. Ex: <em>"Se não quiser receber mais mensagens, responda com SAIR"</em>.
+                                <strong>Opção de Saída:</strong> Sempre encerre a mensagem com uma opção para o cliente sair da lista. Ex: <em>"Responda SAIR para não receber mais mensagens"</em>.
                             </div>
                         </li>
                         <li>
                             <span className={styles.helperIcon}>🔍</span>
                             <div className={styles.helperContent}>
-                                <strong>Visualização:</strong> Lembre-se de revisar o texto antes de clicar em disparar. Uma vez iniciado, o processo roda de forma automática e não poderá ser cancelado.
+                                <strong>Revisão de Conteúdo:</strong> Revise o texto com cuidado. Após o início, o envio é automático e não poderá ser cancelado na fila do servidor.
                             </div>
                         </li>
                     </ul>
