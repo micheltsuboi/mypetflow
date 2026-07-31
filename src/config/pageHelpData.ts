@@ -396,5 +396,43 @@ export const pageHelpData: Record<string, PageHelpSection> = {
         tips: [
             '💡 Dica: Alterne entre a exibição em Lista, Grade Diária ou Visão Semanal para planejar a capacidade da equipe.'
         ]
+    },
+    laboratorio: {
+        title: '🔬 Laboratório & Laudos',
+        categoryBadge: 'Laboratório',
+        description: 'Nesta tela você gerencia os pedidos de exames laboratoriais solicitados para os pets, acompanha o status de cada análise, realiza o preenchimento técnico dos resultados e gera laudos em PDF.',
+        steps: [
+            '1. Clique em "+ Solicitar Exame" para cadastrar uma nova requisição de exame no sistema, escolhendo o pet, o veterinário solicitante e o exame do catálogo.',
+            '2. Acompanhe a lista de exames. Aqueles que estão pendentes terão o status "Aguardando Resultado".',
+            '3. Para preencher os resultados de um exame, clique em "Laudar" na linha do exame correspondente.',
+            '4. Insira os valores obtidos para cada parâmetro (o sistema exibirá os limites de referência automaticamente).',
+            '5. Finalize o laudo e clique em "Ver PDF" para gerar o documento oficial de impressão ou envio para o tutor.'
+        ],
+        rules: [
+            'O preenchimento de parâmetros detalhados exige que o exame esteja configurado no catálogo de exames com seus respectivos analitos.',
+            'Uma vez que o laudo é emitido e finalizado, os dados de resultado são integrados ao prontuário histórico do pet.'
+        ],
+        tips: [
+            '💡 Dica: Se o exame desejado não aparecer na lista de solicitação, vá em "Cadastro de Exames & Referências" no botão superior para cadastrá-lo e definir seus valores de referência.'
+        ]
+    },
+    'laboratorio-parametros': {
+        title: '⚙️ Catálogo de Exames & Parâmetros de Referência',
+        categoryBadge: 'Configurações de Laboratório',
+        description: 'Aqui você monta o catálogo de exames que sua clínica ou parceiros realizam e configura as faixas de valores de referência (com base em espécie, sexo e idade em meses) para a geração automatizada de laudos precisos.',
+        steps: [
+            '1. Clique em "+ Novo Exame Completo" para cadastrar um exame (Ex: Hemograma, Urina Tipo I).',
+            '2. Insira o nome do exame, o preço de venda e a categoria.',
+            '3. Adicione os analitos/parâmetros que compõem o exame (Ex: Eritrócitos, Leucócitos, Ureia), definindo o nome e a unidade de medida (Ex: g/dL, mil/mm³).',
+            '4. Para cada parâmetro, adicione as faixas de referência, configurando a idade mínima/máxima (em meses), espécie (Cão/Gato), sexo (Macho/Fêmea) e o valor de referência mínimo e máximo.',
+            '5. Salve o exame para que ele fique disponível para solicitações e laudos na tela de Laboratório.'
+        ],
+        rules: [
+            'As faixas de referência são críticas para que o sistema identifique automaticamente no laudo se o resultado do pet está "Alto", "Baixo" ou "Normal".',
+            'Certifique-se de preencher a idade em meses. Exemplo: 1 ano = 12 meses, 6 anos = 72 meses.'
+        ],
+        tips: [
+            '💡 Dica: Você pode cadastrar múltiplos intervalos de referência para o mesmo parâmetro para atender diferentes fases da vida do pet (ex: filhotes vs. adultos).'
+        ]
     }
 }
