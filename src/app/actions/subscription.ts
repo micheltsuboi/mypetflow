@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
@@ -503,7 +504,7 @@ export async function renewAllSubscriptionsForMonth() {
 }
 
 export async function renewSubscriptionsForOrg(orgId: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
@@ -531,6 +532,7 @@ export async function renewSubscriptionsForOrg(orgId: string) {
             .gte('period_start', monthStart)
 
         if ((count ?? 0) === 0) {
+            // 1. Gera as sessões e compromissos via RPC
             await supabase.rpc('generate_subscription_sessions_for_month', {
                 p_customer_package_id: sub.id,
                 p_month_start: monthStart
@@ -539,6 +541,28 @@ export async function renewSubscriptionsForOrg(orgId: string) {
                 p_customer_package_id: sub.id,
                 p_org_id: orgId
             })
+
+            // 2. Sobrescreve o due_date com a data de vencimento calculada corretamente baseada no billing_day do plano
+            try {
+                const { data: spData } = await supabase
+                    .from('customer_packages')
+                    .select('package_id, service_packages(billing_day)')
+                    .eq('id', sub.id)
+                    .single()
+
+                const billingDay = (spData?.service_packages as any)?.billing_day || 10
+                const [year, month] = monthStart.split('-').map(Number)
+                const correctDueDateObj = new Date(year, month - 1, billingDay)
+                const correctDueDateStr = correctDueDateObj.toISOString().split('T')[0]
+
+                await supabase
+                    .from('customer_packages')
+                    .update({ due_date: correctDueDateStr })
+                    .eq('id', sub.id)
+            } catch (err) {
+                console.error(`[renewSubscriptionsForOrg] Erro ao corrigir due_date para sub ${sub.id}:`, err)
+            }
+
             renewed++
         }
     }
@@ -551,8 +575,35 @@ export async function renewSubscriptionsForOrg(orgId: string) {
 // =====================================================
 
 export async function sendSubscriptionDueDateReminders(orgId?: string) {
-    const supabase = await createClient()
+    const supabase = createAdminClient()
 
+    // 1. Auto-renovação de assinaturas com next_renewal_date atrasado
+    try {
+        const todayStr = new Date().toISOString().split('T')[0]
+        let queryRenew = supabase
+            .from('customer_packages')
+            .select('org_id')
+            .eq('is_subscription', true)
+            .eq('is_active', true)
+            .eq('paused', false)
+            .lte('next_renewal_date', todayStr)
+
+        if (orgId) queryRenew = queryRenew.eq('org_id', orgId)
+
+        const { data: expiredSubs } = await queryRenew
+
+        if (expiredSubs && expiredSubs.length > 0) {
+            const uniqueOrgs = [...new Set(expiredSubs.map(s => s.org_id))]
+            console.log(`[sendSubscriptionDueDateReminders] Renovando ${expiredSubs.length} mensalidades atrasadas para ${uniqueOrgs.length} organizações.`)
+            for (const id of uniqueOrgs) {
+                await renewSubscriptionsForOrg(id)
+            }
+        }
+    } catch (renewErr) {
+        console.error('[sendSubscriptionDueDateReminders] Erro na auto-renovação de mensalidades:', renewErr)
+    }
+
+    // 2. Busca de lembretes normais
     let query = supabase
         .from('customer_packages')
         .select(`
