@@ -7,7 +7,8 @@ import {
     upsertVaccine, 
     deleteVaccine, 
     getVaccineBatches, 
-    upsertVaccineBatch 
+    upsertVaccineBatch,
+    getAllPetVaccinations
 } from '@/app/actions/vaccine'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -16,6 +17,9 @@ import { maskDate, parseDateToISO } from '@/utils/masks'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 
 export default function VacinasPage() {
+    const [activeTab, setActiveTab] = useState<'catalog' | 'expiry'>('catalog')
+    
+    // Estados do Catálogo
     const [vaccines, setVaccines] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [showVaccineModal, setShowVaccineModal] = useState(false)
@@ -25,9 +29,21 @@ export default function VacinasPage() {
     const [batchesMap, setBatchesMap] = useState<Record<string, any[]>>({})
     const [expirationDate, setExpirationDate] = useState('')
 
+    // Estados dos Vencimentos
+    const [allPetVaccines, setAllPetVaccines] = useState<any[]>([])
+    const [expiryLoading, setExpiryLoading] = useState(false)
+    const [filterStatus, setFilterStatus] = useState<string>('all')
+    const [filterStartDate, setFilterStartDate] = useState<string>('')
+    const [filterEndDate, setFilterEndDate] = useState<string>('')
+    const [filterSearch, setFilterSearch] = useState<string>('')
+
     useEffect(() => {
-        loadData()
-    }, [])
+        if (activeTab === 'catalog') {
+            loadData()
+        } else {
+            loadExpiryData()
+        }
+    }, [activeTab, filterStatus, filterStartDate, filterEndDate, filterSearch])
 
     async function loadData() {
         setLoading(true)
@@ -42,6 +58,18 @@ export default function VacinasPage() {
         }
         setBatchesMap(newBatchesMap)
         setLoading(false)
+    }
+
+    async function loadExpiryData() {
+        setExpiryLoading(true)
+        const data = await getAllPetVaccinations({
+            startDate: filterStartDate || undefined,
+            endDate: filterEndDate || undefined,
+            status: filterStatus,
+            search: filterSearch || undefined
+        })
+        setAllPetVaccines(data)
+        setExpiryLoading(false)
     }
 
     const handleSaveVaccine = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -94,106 +122,327 @@ export default function VacinasPage() {
         }
     }
 
-    if (loading) return <div className={styles.container}>Carregando...</div>
-
     return (
         <div className={styles.container}>
             <header className={styles.header}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <h1 className={styles.title}>💉 Catálogo de Vacinas</h1>
+                    <h1 className={styles.title}>💉 Módulo de Vacinas</h1>
                     <PageHelpModal topic="vacinas" />
                 </div>
-                <button 
-                    className={styles.addButton}
-                    onClick={() => {
-                        setEditingVaccine(null)
-                        setShowVaccineModal(true)
-                    }}
-                >
-                    <span>➕</span> Nova Vacina
-                </button>
+                {activeTab === 'catalog' && (
+                    <button 
+                        className={styles.addButton}
+                        onClick={() => {
+                            setEditingVaccine(null)
+                            setShowVaccineModal(true)
+                        }}
+                    >
+                        <span>➕</span> Nova Vacina
+                    </button>
+                )}
             </header>
 
-            {vaccines.length === 0 ? (
-                <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>💉</div>
-                    <p className={styles.emptyText}>Nenhuma vacina cadastrada ainda.</p>
-                </div>
-            ) : (
-                <div className={styles.grid}>
-                    {vaccines.map((v) => (
-                        <div key={v.id} className={styles.vaccineCard}>
-                            <div className={styles.cardHeader}>
-                                <div>
-                                    <h3 className={styles.vaccineName}>{v.name}</h3>
-                                    <span className={styles.manufacturer}>{v.manufacturer}</span>
-                                </div>
-                                <div className={styles.actions}>
-                                    <button 
-                                        className={`${styles.iconButton} ${styles.editBtn}`}
-                                        onClick={() => {
-                                            setEditingVaccine(v)
-                                            setShowVaccineModal(true)
-                                        }}
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button 
-                                        className={`${styles.iconButton} ${styles.deleteBtn}`}
-                                        onClick={() => handleDelete(v.id)}
-                                    >
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <p className={styles.manufacturer} style={{ margin: '0.5rem 0' }}>
-                                {v.target_animals?.join(', ')}
-                            </p>
+            {/* Abas de Navegação */}
+            <div className={styles.tabsContainer}>
+                <button 
+                    className={`${styles.tabButton} ${activeTab === 'catalog' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('catalog')}
+                >
+                    📦 Catálogo & Estoque
+                </button>
+                <button 
+                    className={`${styles.tabButton} ${activeTab === 'expiry' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('expiry')}
+                >
+                    ⏳ Vencimentos dos Pets
+                </button>
+            </div>
 
-                            <div className={styles.batchList}>
-                                <div className={styles.batchHeader}>
-                                    <span className={styles.batchTitle}>Lotes em Estoque</span>
-                                    <button 
-                                        className={styles.addBatchBtn}
-                                        onClick={() => {
-                                            setSelectedVaccineId(v.id)
-                                            setShowBatchModal(true)
-                                        }}
-                                    >
-                                        + Entrada
-                                    </button>
+            {/* ABA 1: CATÁLOGO DE VACINAS */}
+            {activeTab === 'catalog' && (
+                loading ? (
+                    <div className={styles.emptyState}>
+                        <p className={styles.emptyText}>Carregando catálogo...</p>
+                    </div>
+                ) : vaccines.length === 0 ? (
+                    <div className={styles.emptyState}>
+                        <div className={styles.emptyIcon}>💉</div>
+                        <p className={styles.emptyText}>Nenhuma vacina cadastrada ainda.</p>
+                    </div>
+                ) : (
+                    <div className={styles.grid}>
+                        {vaccines.map((v) => (
+                            <div key={v.id} className={styles.vaccineCard}>
+                                <div className={styles.cardHeader}>
+                                    <div>
+                                        <h3 className={styles.vaccineName}>{v.name}</h3>
+                                        <span className={styles.manufacturer}>{v.manufacturer}</span>
+                                    </div>
+                                    <div className={styles.actions}>
+                                        <button 
+                                            className={`${styles.iconButton} ${styles.editBtn}`}
+                                            onClick={() => {
+                                                setEditingVaccine(v)
+                                                setShowVaccineModal(true)
+                                            }}
+                                        >
+                                            ✏️
+                                        </button>
+                                        <button 
+                                            className={`${styles.iconButton} ${styles.deleteBtn}`}
+                                            onClick={() => handleDelete(v.id)}
+                                        >
+                                            🗑️
+                                        </button>
+                                    </div>
                                 </div>
                                 
-                                {batchesMap[v.id]?.filter(b => b.quantity > 0).length === 0 ? (
-                                    <p className={styles.emptyText} style={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
-                                        Sem estoque disponível
-                                    </p>
-                                ) : (
-                                    batchesMap[v.id]?.filter(b => b.quantity > 0).map(b => (
-                                        <div key={b.id} className={styles.batchItem}>
-                                            <div className={styles.batchInfo}>
-                                                <span className={styles.batchNumber}>Lote: {b.batch_number}</span>
-                                                <span className={styles.batchExpiry}>
-                                                    Vence: {format(new Date(b.expiration_date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
-                                                </span>
-                                            </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <div className={styles.batchQty}>Qtd: {b.quantity}</div>
-                                                <div className={styles.priceTag}>
-                                                    R$ {b.selling_price?.toFixed(2)}
+                                <p className={styles.manufacturer} style={{ margin: '0.5rem 0' }}>
+                                    {v.target_animals?.join(', ')}
+                                </p>
+
+                                <div className={styles.batchList}>
+                                    <div className={styles.batchHeader}>
+                                        <span className={styles.batchTitle}>Lotes em Estoque</span>
+                                        <button 
+                                            className={styles.addBatchBtn}
+                                            onClick={() => {
+                                                setSelectedVaccineId(v.id)
+                                                setShowBatchModal(true)
+                                            }}
+                                        >
+                                            + Entrada
+                                        </button>
+                                    </div>
+                                    
+                                    {batchesMap[v.id]?.filter(b => b.quantity > 0).length === 0 ? (
+                                        <p className={styles.emptyText} style={{ fontSize: '0.75rem', fontStyle: 'italic' }}>
+                                            Sem estoque disponível
+                                        </p>
+                                    ) : (
+                                        batchesMap[v.id]?.filter(b => b.quantity > 0).map(b => (
+                                            <div key={b.id} className={styles.batchItem}>
+                                                <div className={styles.batchInfo}>
+                                                    <span className={styles.batchNumber}>Lote: {b.batch_number}</span>
+                                                    <span className={styles.batchExpiry}>
+                                                        Vence: {format(new Date(b.expiration_date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}
+                                                    </span>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div className={styles.batchQty}>Qtd: {b.quantity}</div>
+                                                    <div className={styles.priceTag}>
+                                                        R$ {b.selling_price?.toFixed(2)}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
-                                )}
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
+            )}
+
+            {/* ABA 2: VENCIMENTOS DOS PETS */}
+            {activeTab === 'expiry' && (
+                <div>
+                    {/* Barra de Filtros */}
+                    <div className={styles.filtersBar}>
+                        <div className={styles.filtersRow}>
+                            <div className={styles.filterGroup}>
+                                <span className={styles.filterLabel}>Busca Rápida</span>
+                                <input
+                                    type="text"
+                                    placeholder="Nome do pet ou tutor..."
+                                    className={styles.filterInput}
+                                    value={filterSearch}
+                                    onChange={(e) => setFilterSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className={styles.filterGroup}>
+                                <span className={styles.filterLabel}>Vencimento Início</span>
+                                <input
+                                    type="date"
+                                    className={styles.filterInput}
+                                    value={filterStartDate}
+                                    onChange={(e) => {
+                                        setFilterStartDate(e.target.value)
+                                        setFilterStatus('custom')
+                                    }}
+                                />
+                            </div>
+                            <div className={styles.filterGroup}>
+                                <span className={styles.filterLabel}>Vencimento Fim</span>
+                                <input
+                                    type="date"
+                                    className={styles.filterInput}
+                                    value={filterEndDate}
+                                    onChange={(e) => {
+                                        setFilterEndDate(e.target.value)
+                                        setFilterStatus('custom')
+                                    }}
+                                />
                             </div>
                         </div>
-                    ))}
+
+                        {/* Atalhos Rápidos */}
+                        <div className={styles.shortcutsRow}>
+                            <span className={styles.filterLabel} style={{ marginRight: '0.5rem' }}>Período:</span>
+                            <button
+                                className={`${styles.shortcutBtn} ${filterStatus === 'all' ? styles.shortcutActive : ''}`}
+                                onClick={() => {
+                                    setFilterStatus('all')
+                                    setFilterStartDate('')
+                                    setFilterEndDate('')
+                                }}
+                            >
+                                Todas
+                            </button>
+                            <button
+                                className={`${styles.shortcutBtn} ${filterStatus === 'expired' ? styles.shortcutActive : ''}`}
+                                onClick={() => {
+                                    setFilterStatus('expired')
+                                    setFilterStartDate('')
+                                    setFilterEndDate('')
+                                }}
+                            >
+                                Vencidas 🔴
+                            </button>
+                            <button
+                                className={`${styles.shortcutBtn} ${filterStatus === 'upcoming_7' ? styles.shortcutActive : ''}`}
+                                onClick={() => {
+                                    setFilterStatus('upcoming_7')
+                                    setFilterStartDate('')
+                                    setFilterEndDate('')
+                                }}
+                            >
+                                Próx. 7 Dias 🟡
+                            </button>
+                            <button
+                                className={`${styles.shortcutBtn} ${filterStatus === 'upcoming_30' ? styles.shortcutActive : ''}`}
+                                onClick={() => {
+                                    setFilterStatus('upcoming_30')
+                                    setFilterStartDate('')
+                                    setFilterEndDate('')
+                                }}
+                            >
+                                Próx. 30 Dias 🟢
+                            </button>
+                            <button
+                                className={`${styles.shortcutBtn} ${filterStatus === 'this_month' ? styles.shortcutActive : ''}`}
+                                onClick={() => {
+                                    setFilterStatus('this_month')
+                                    setFilterStartDate('')
+                                    setFilterEndDate('')
+                                }}
+                            >
+                                Este Mês
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Listagem */}
+                    {expiryLoading ? (
+                        <div className={styles.emptyState}>
+                            <p className={styles.emptyText}>Carregando vencimentos...</p>
+                        </div>
+                    ) : allPetVaccines.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <div className={styles.emptyIcon}>⏳</div>
+                            <p className={styles.emptyText}>Nenhum vencimento de vacina encontrado para os filtros selecionados.</p>
+                        </div>
+                    ) : (
+                        <div className={styles.tableContainer}>
+                            <div className={styles.tableResponsive}>
+                                <table className={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th>Pet</th>
+                                            <th>Tutor</th>
+                                            <th>Vacina / Lote</th>
+                                            <th>Aplicação</th>
+                                            <th>Vencimento</th>
+                                            <th>Status</th>
+                                            <th style={{ textAlign: 'center' }}>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {allPetVaccines.map((pv) => {
+                                            const today = new Date().toISOString().split('T')[0]
+                                            const isExpired = pv.expiry_date < today
+                                            
+                                            const next7 = new Date()
+                                            next7.setDate(next7.getDate() + 7)
+                                            const next7Str = next7.toISOString().split('T')[0]
+                                            const isWarning = !isExpired && pv.expiry_date <= next7Str
+
+                                            let statusBadge = (
+                                                <span className={`${styles.badge} ${styles.badgeSuccess}`}>No prazo</span>
+                                            )
+                                            if (isExpired) {
+                                                statusBadge = (
+                                                    <span className={`${styles.badge} ${styles.badgeDanger}`}>Vencido</span>
+                                                )
+                                            } else if (isWarning) {
+                                                statusBadge = (
+                                                    <span className={`${styles.badge} ${styles.badgeWarning}`}>Vence em breve</span>
+                                                )
+                                            }
+
+                                            const appDateFormatted = pv.application_date ? format(new Date(pv.application_date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-'
+                                            const expDateFormatted = pv.expiry_date ? format(new Date(pv.expiry_date + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-'
+
+                                            // WhatsApp Link
+                                            const tutorPhone = pv.pets?.customers?.phone_1 || ''
+                                            const tutorPhoneClean = tutorPhone.replace(/\D/g, '')
+                                            const tutorPhoneFinal = tutorPhoneClean.startsWith('55') ? tutorPhoneClean : '55' + tutorPhoneClean
+                                            const messageText = `Olá, *${pv.pets?.customers?.name || 'cliente'}*! 🐾\n\nPassando para lembrar que a vacina *${pv.name}* do(a) *${pv.pets?.name}* vence em *${expDateFormatted}*.\n\nManter a imunização em dia é essencial para a proteção dele(a). Vamos agendar um horário para o reforço? 😊💉`
+                                            const encodedMsg = encodeURIComponent(messageText)
+                                            const waLink = `https://wa.me/${tutorPhoneFinal}?text=${encodedMsg}`
+
+                                            return (
+                                                <tr key={pv.id}>
+                                                    <td style={{ fontWeight: 600, color: 'var(--color-sky)' }}>{pv.pets?.name}</td>
+                                                    <td>
+                                                        <div className={styles.tutorInfo}>
+                                                            <span className={styles.tutorName}>{pv.pets?.customers?.name || '-'}</span>
+                                                            <span className={styles.tutorPhone}>{tutorPhone || '-'}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <div style={{ fontWeight: 500 }}>{pv.name}</div>
+                                                        {pv.batch_number && (
+                                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Lote: {pv.batch_number}</div>
+                                                        )}
+                                                    </td>
+                                                    <td>{appDateFormatted}</td>
+                                                    <td style={{ fontWeight: 600 }}>{expDateFormatted}</td>
+                                                    <td>{statusBadge}</td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        {tutorPhone && (
+                                                            <a 
+                                                                href={waLink} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer" 
+                                                                className={styles.whatsappBtn}
+                                                            >
+                                                                💬 Lembrar
+                                                            </a>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* Vaccine Modal */}
+            {/* Modais do Catálogo */}
             {showVaccineModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>
@@ -258,7 +507,6 @@ export default function VacinasPage() {
                 </div>
             )}
 
-            {/* Batch Modal */}
             {showBatchModal && (
                 <div className={styles.modalOverlay}>
                     <div className={styles.modalContent}>

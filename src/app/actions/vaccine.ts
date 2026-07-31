@@ -374,3 +374,98 @@ export async function updatePetVaccination(data: any) {
         return { success: false, message: error.message }
     }
 }
+
+export async function getAllPetVaccinations(filters?: { startDate?: string; endDate?: string; status?: string; search?: string }) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return []
+
+        let query = supabase
+            .from('pet_vaccines')
+            .select(`
+                id,
+                name,
+                batch_number,
+                application_date,
+                expiry_date,
+                notes,
+                price,
+                payment_status,
+                pets!inner (
+                    id,
+                    name,
+                    customers!inner (
+                        id,
+                        name,
+                        phone_1
+                    )
+                )
+            `)
+            .eq('org_id', profile.org_id)
+
+        const todayStr = new Date().toISOString().split('T')[0]
+
+        // Aplicar filtros de data personalizada
+        if (filters?.startDate) {
+            query = query.gte('expiry_date', filters.startDate)
+        }
+        if (filters?.endDate) {
+            query = query.lte('expiry_date', filters.endDate)
+        }
+
+        // Filtros de status rápidos
+        if (filters?.status === 'expired') {
+            query = query.lt('expiry_date', todayStr)
+        } else if (filters?.status === 'upcoming_7') {
+            const next7Days = new Date()
+            next7Days.setDate(next7Days.getDate() + 7)
+            const next7DaysStr = next7Days.toISOString().split('T')[0]
+            query = query.gte('expiry_date', todayStr).lte('expiry_date', next7DaysStr)
+        } else if (filters?.status === 'upcoming_30') {
+            const next30Days = new Date()
+            next30Days.setDate(next30Days.getDate() + 30)
+            const next30DaysStr = next30Days.toISOString().split('T')[0]
+            query = query.gte('expiry_date', todayStr).lte('expiry_date', next30DaysStr)
+        } else if (filters?.status === 'this_month') {
+            const now = new Date()
+            const y = now.getFullYear()
+            const m = now.getMonth()
+            const monthStart = new Date(y, m, 1).toISOString().split('T')[0]
+            const monthEnd = new Date(y, m + 1, 0).toISOString().split('T')[0]
+            query = query.gte('expiry_date', monthStart).lte('expiry_date', monthEnd)
+        }
+
+        // Ordenação por expiry_date crescente (cronológica)
+        query = query.order('expiry_date', { ascending: true })
+
+        const { data, error } = await query
+        if (error) throw error
+
+        let result = data || []
+
+        // Filtro de pesquisa textual
+        if (filters?.search) {
+            const term = filters.search.toLowerCase()
+            result = result.filter((item: any) => {
+                const petName = item.pets?.name?.toLowerCase() || ''
+                const tutorName = item.pets?.customers?.name?.toLowerCase() || ''
+                return petName.includes(term) || tutorName.includes(term)
+            })
+        }
+
+        return result
+    } catch (error) {
+        console.error('Error fetching all pet vaccinations:', error)
+        return []
+    }
+}
+
