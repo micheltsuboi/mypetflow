@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import Notifications from '@/components/Notifications'
 import PetRegistrationModal from '@/components/modules/PetRegistrationModal'
 import VetAlertsNotification from '@/components/VetAlertsNotification'
+import AIAssistantWidget from '@/components/ui/AIAssistantWidget'
 
 export default function DashboardLayout({
     children,
@@ -498,6 +499,10 @@ export default function DashboardLayout({
                 {/* Alertas Veterinários em Tempo Real */}
                 {user?.org_id && user.role !== 'tutor' && (
                     <VetAlertsNotification orgId={user.org_id} />
+                )}
+                {/* Assistente de IA / Guia do Usuário */}
+                {user && user.role !== 'tutor' && (
+                    <AIAssistantWidget user={user} pathname={pathname} />
                 )}
             </main>
 
