@@ -7,15 +7,37 @@ import { useState, useEffect } from 'react'
 import { getPendingVetAlerts, updateVetAlertStatus } from '@/app/actions/veterinary'
 import { createClient } from '@/lib/supabase/client'
 
+interface PetAlert {
+    id: string
+    observation: string
+    pets?: {
+        name?: string
+        species?: string
+        customers?: {
+            name?: string
+        }
+    }
+}
+
 interface Props {
     orgId: string
 }
 
 export default function VetAlertsNotification({ orgId }: Props) {
-    const [alerts, setAlerts] = useState<any[]>([])
+    const [alerts, setAlerts] = useState<PetAlert[]>([])
 
     const [loading, setLoading] = useState(true)
     const [isOpen, setIsOpen] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 768)
+        }
+        handleResize()
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [])
 
     const fetchAlerts = async () => {
         try {
@@ -76,8 +98,8 @@ export default function VetAlertsNotification({ orgId }: Props) {
     return (
         <div style={{
             position: 'fixed',
-            bottom: '24px',
-            right: '24px',
+            bottom: isMobile ? '30px' : '24px',
+            right: isMobile ? '90px' : '96px',
             zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
@@ -92,13 +114,16 @@ export default function VetAlertsNotification({ orgId }: Props) {
                     color: 'white',
                     border: 'none',
                     borderRadius: '50px',
-                    padding: '12px 24px',
+                    padding: isMobile ? '12px' : '12px 24px',
+                    width: isMobile ? '48px' : 'auto',
+                    height: isMobile ? '48px' : 'auto',
                     fontSize: '1rem',
                     fontWeight: 'bold',
                     cursor: 'pointer',
                     boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)',
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '12px',
                     transition: 'transform 0.2s',
                     transform: isOpen ? 'translateY(10px)' : 'translateY(0)'
@@ -109,40 +134,42 @@ export default function VetAlertsNotification({ orgId }: Props) {
                     <span style={{
                         position: 'absolute',
                         top: '-8px',
-                        right: '-12px',
+                        right: isMobile ? '-8px' : '-12px',
                         background: 'white',
                         color: '#ef4444',
                         borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
+                        width: isMobile ? '20px' : '24px',
+                        height: isMobile ? '20px' : '24px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.85rem',
+                        fontSize: isMobile ? '0.75rem' : '0.85rem',
                         fontWeight: '900',
                         boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                     }}>
                         {alerts.length}
                     </span>
                 </div>
-                Alertas Médicos Pendentes
+                {!isMobile && "Alertas Médicos Pendentes"}
             </button>
 
             {/* Dropdown / Popover Content */}
             {isOpen && (
                 <div style={{
-                    position: 'absolute',
-                    bottom: '70px',
-                    right: '0',
+                    position: isMobile ? 'fixed' : 'absolute',
+                    bottom: isMobile ? '16px' : '70px',
+                    right: isMobile ? '16px' : '0',
+                    left: isMobile ? '16px' : 'auto',
                     background: 'var(--bg-secondary)',
                     border: '1px solid var(--card-border)',
                     borderRadius: '16px',
-                    width: '380px',
-                    maxHeight: '400px',
+                    width: isMobile ? 'auto' : '380px',
+                    maxHeight: isMobile ? '80vh' : '400px',
                     overflowY: 'auto',
                     boxShadow: 'var(--shadow-xl)',
                     display: 'flex',
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    zIndex: 10000
                 }}>
                     <div style={{
                         padding: '16px',
@@ -191,7 +218,7 @@ export default function VetAlertsNotification({ orgId }: Props) {
                                     borderTop: '1px solid var(--divider)',
                                     borderBottom: '1px solid var(--divider)'
                                 }}>
-                                    "{alert.observation}"
+                                    &ldquo;{alert.observation}&rdquo;
                                 </p>
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
