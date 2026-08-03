@@ -60,6 +60,7 @@ async function getVaccinesExpiring(supabase: any, days: number = 7) {
                 expiry_date,
                 pets (
                     name,
+                    is_deceased,
                     customers (
                         name,
                         phone_1
@@ -73,17 +74,25 @@ async function getVaccinesExpiring(supabase: any, days: number = 7) {
 
         if (error) throw error
 
-        if (!data || data.length === 0) {
-            return { message: `Nenhuma vacina está programada para vencer nos próximos ${days} dias.` }
+        const filteredData = (data || []).filter((item: any) => {
+            const pet = Array.isArray(item.pets) ? item.pets[0] : item.pets
+            return pet && !pet.is_deceased
+        })
+
+        if (filteredData.length === 0) {
+            return { message: `Nenhuma vacina de pets ativos está programada para vencer nos próximos ${days} dias.` }
         }
 
-        return data.map((item: any) => ({
-            vacina: item.name,
-            vencimento: item.expiry_date,
-            pet: item.pets?.name || 'Não informado',
-            tutor: item.pets?.customers?.name || 'Não informado',
-            whatsapp: item.pets?.customers?.phone_1 || 'Não informado'
-        }))
+        return filteredData.map((item: any) => {
+            const pet = Array.isArray(item.pets) ? item.pets[0] : item.pets
+            return {
+                vacina: item.name,
+                vencimento: item.expiry_date,
+                pet: pet?.name || 'Não informado',
+                tutor: pet?.customers?.name || 'Não informado',
+                whatsapp: pet?.customers?.phone_1 || 'Não informado'
+            }
+        })
     } catch (err: any) {
         console.error('Erro ao buscar vacinas:', err)
         return { error: `Falha ao buscar vacinas a vencer nos próximos ${days} dias.` }

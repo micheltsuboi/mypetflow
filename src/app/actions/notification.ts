@@ -35,7 +35,7 @@ export async function syncNotifications() {
                 id, 
                 name, 
                 expiry_date, 
-                pets ( id, name, customer_id, customers ( org_id ) )
+                pets ( id, name, customer_id, is_deceased, customers ( org_id ) )
             `)
             .lte('expiry_date', sevenDaysLaterStr)
         // .gte('expiry_date', todayStr) // Keep allowing expired ones to be notified if not yet notified
@@ -51,7 +51,7 @@ export async function syncNotifications() {
                 // Safely extract pet and customer data
                 // @ts-ignore
                 const petData = Array.isArray(vac.pets) ? vac.pets[0] : vac.pets
-                if (!petData) continue
+                if (!petData || petData.is_deceased) continue
 
                 // @ts-ignore
                 const customerData = Array.isArray(petData.customers) ? petData.customers[0] : petData.customers
