@@ -44,9 +44,14 @@ function normalizeText(text: string): string {
 // FUNÇÕES DE BANCO DE DADOS (SUPABASE QUERIES)
 // ==========================================
 
-async function getVaccinesExpiringToday(supabase: any) {
+async function getVaccinesExpiring(supabase: any, days: number = 7) {
     try {
-        const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local
+        const today = new Date()
+        const todayStr = today.toLocaleDateString('en-CA') // YYYY-MM-DD local
+        
+        const futureDate = new Date()
+        futureDate.setDate(today.getDate() + days)
+        const futureStr = futureDate.toLocaleDateString('en-CA')
 
         const { data, error } = await supabase
             .from('pet_vaccines')
@@ -61,12 +66,15 @@ async function getVaccinesExpiringToday(supabase: any) {
                     )
                 )
             `)
-            .eq('expiry_date', todayStr)
+            .gte('expiry_date', todayStr)
+            .lte('expiry_date', futureStr)
+
+        console.log(`getVaccinesExpiring raw data for ${days} days:`, JSON.stringify(data, null, 2), 'error:', error)
 
         if (error) throw error
 
         if (!data || data.length === 0) {
-            return { message: 'Nenhuma vacina está programada para vencer na data de hoje.' }
+            return { message: `Nenhuma vacina está programada para vencer nos próximos ${days} dias.` }
         }
 
         return data.map((item: any) => ({
@@ -78,7 +86,7 @@ async function getVaccinesExpiringToday(supabase: any) {
         }))
     } catch (err: any) {
         console.error('Erro ao buscar vacinas:', err)
-        return { error: 'Falha ao buscar vacinas vencendo hoje no banco de dados.' }
+        return { error: `Falha ao buscar vacinas a vencer nos próximos ${days} dias.` }
     }
 }
 
@@ -156,6 +164,8 @@ async function getPetDetails(supabase: any, petName: string) {
             `)
             .ilike('name', `%${petName}%`)
             .limit(5)
+
+        console.log(`getPetDetails raw data for "${petName}":`, JSON.stringify(data, null, 2), 'error:', error)
 
         if (error) throw error
 
@@ -280,6 +290,10 @@ export async function POST(req: Request) {
         // Criar o client do Supabase que lê automaticamente a sessão do cookie do usuário
         const supabase = await createClient()
 
+        // Depurar autenticação do usuário na rota
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        console.log('AI Assistant Route Handler - User logged in:', user ? { id: user.id, email: user.email } : 'NONE', 'Auth error:', authError)
+
         const apiKey = process.env.GEMINI_API_KEY
 
         if (apiKey) {
@@ -302,18 +316,19 @@ export async function POST(req: Request) {
             const systemPrompt = `Você é o "Guia MyPet Flow", um assistente virtual e secretária administrativa integrado no sistema de gestão de petshops e clínicas veterinárias MyPet Flow.
 Sua missão é ajudar os usuários a operarem o sistema e buscar dados em tempo real quando solicitado.
 
-Regras de comportamento:
+Regras de comportamento e segurança de dados:
 1. Seja sempre extremamente simpático, prestativo e profissional. Responda em Português do Brasil.
 2. Para perguntas conceituais de como usar o sistema (ex: "como crio um serviço"), use a base de conhecimento de ajuda no fim desta instrução.
-3. Se o usuário pedir para buscar dados em tempo real ou citar termos como "vacinas de hoje", "agendamentos de hoje" ou buscar informações de um pet específico (ex: "detalhes do pet Rex", "ficha do pet Mel", "buscar o pet Pipoca"), você deve OBRIGATORIAMENTE chamar a ferramenta correspondente disponível nas Tools. Não tente inventar os dados do pet ou dizer que não sabe se houver ferramenta adequada!
-4. Se o usuário demonstrar a intenção de cadastrar um NOVO TUTOR (ex: "quero cadastrar o tutor João Silva, CPF 122.333.444-55" ou "cadastrar novo tutor chamado Maria"), você deve:
+3. Se o usuário pedir para buscar dados em tempo real (como vacinas vencendo hoje/esta semana, agendamentos de hoje ou buscar informações de um pet específico), você deve OBRIGATORIAMENTE chamar a ferramenta correspondente nas Tools.
+4. REGRA CRÍTICA ANTI-ALUCINAÇÃO: Você NUNCA deve inventar dados de vacinas, pets, tutores ou agendamentos. Se as ferramentas retornarem que não há dados, que está vazia ou que nenhuma vacina foi encontrada, responda exatamente que não há registros correspondentes para a data ou termo pesquisado. Nunca invente nomes como "V10", "Theodor" ou invente que encontrou dados se a ferramenta retornou vazio!
+5. Se o usuário demonstrar a intenção de cadastrar um NOVO TUTOR (ex: "quero cadastrar o tutor João Silva, CPF 122.333.444-55" ou "cadastrar novo tutor chamado Maria"), você deve:
    - Extrair o nome do tutor e o CPF dele (caso informado).
    - Gerar uma resposta amigável e incluir OBRIGATORIAMENTE um link em formato markdown no seguinte formato exato de URL para abrir a tela de cadastro pré-preenchida no frontend: 
      [Clique aqui para cadastrar [Nome do Tutor]](/owner/tutors?new=true&name=[Nome_com_UrlEncode]&cpf=[CPF_ou_Vazio])
      Exemplo: [Clique aqui para abrir o cadastro de João Silva](/owner/tutors?new=true&name=João%20Silva&cpf=122.333.444-55)
    - Explique para o usuário que, ao clicar no link, o sistema abrirá a tela de cadastro com esses dados já preenchidos.
-5. Sempre que instruir o usuário a ir para uma tela normal, inclua links markdown [Nome da Tela](/caminho) (ex: [Cadastro de Serviços](/owner/services), [Agenda](/owner/agenda), [Financeiro](/owner/financeiro)).
-6. A página atual que o usuário visualiza no dashboard é: "${pathname || 'não informada'}".
+6. Sempre que instruir o usuário a ir para uma tela normal, inclua links markdown [Nome da Tela](/caminho) (ex: [Cadastro de Serviços](/owner/services), [Agenda](/owner/agenda), [Financeiro](/owner/financeiro)).
+7. A página atual que o usuário visualiza no dashboard é: "${pathname || 'não informada'}".
 
 ${helpContextText}`
 
@@ -331,8 +346,17 @@ ${helpContextText}`
                 {
                     functionDeclarations: [
                         {
-                            name: 'get_vaccines_expiring_today',
-                            description: 'Retorna a lista de vacinas de pets que expiram/vencem no dia de hoje na organização do usuário.'
+                            name: 'get_vaccines_expiring',
+                            description: 'Retorna a lista de vacinas de pets que expiram/vencem no período dos próximos X dias na organização do usuário.',
+                            parameters: {
+                                type: 'OBJECT',
+                                properties: {
+                                    days: {
+                                        type: 'INTEGER',
+                                        description: 'Número de dias para frente a partir de hoje a serem buscados (ex: 1 para hoje, 7 para uma semana, 30 para um mês). Padrão é 7 se não informado.'
+                                    }
+                                }
+                            }
                         },
                         {
                             name: 'get_today_appointments',
@@ -346,7 +370,7 @@ ${helpContextText}`
                                 properties: {
                                     petName: {
                                         type: 'STRING',
-                                        description: 'Nome do pet a ser pesquisado (ex: Rex, Pipoca)'
+                                        description: 'Nome do pet a ser pesquisado (ex: Rex, Pipoca, Theo)'
                                     }
                                 },
                                 required: ['petName']
@@ -388,8 +412,9 @@ ${helpContextText}`
                     let functionResult: any
 
                     // Executar a consulta local apropriada baseada na chamada da IA
-                    if (functionName === 'get_vaccines_expiring_today') {
-                        functionResult = await getVaccinesExpiringToday(supabase)
+                    if (functionName === 'get_vaccines_expiring') {
+                        const daysParam = typeof args.days === 'number' ? args.days : 7
+                        functionResult = await getVaccinesExpiring(supabase, daysParam)
                     } else if (functionName === 'get_today_appointments') {
                         functionResult = await getTodayAppointments(supabase)
                     } else if (functionName === 'get_pet_details') {
@@ -425,7 +450,8 @@ ${helpContextText}`
                         }
                     ]
 
-                    geminiRes = await fetch(
+                    // Segunda chamada para o Gemini (com o resultado da ferramenta)
+                    const finalRes = await fetch(
                         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
                         {
                             method: 'POST',
@@ -439,20 +465,17 @@ ${helpContextText}`
                         }
                     )
 
-                    if (!geminiRes.ok) {
-                        throw new Error(`Falha na segunda chamada do Gemini: ${await geminiRes.text()}`)
-                    }
+                    const finalData = await finalRes.json()
+                    const finalResponse = finalData.candidates?.[0]?.content?.parts?.[0]?.text
 
-                    data = await geminiRes.json()
-                    responsePart = data.candidates?.[0]?.content?.parts?.[0]
+                    return NextResponse.json({ content: finalResponse || 'Erro ao processar resposta final.' })
                 }
 
-                const replyText = responsePart?.text || 'Desculpe, não consegui obter uma resposta de dados agora.'
-                return NextResponse.json({ content: replyText })
+                // Resposta padrão sem function calling
+                return NextResponse.json({ content: responsePart?.text || 'Olá! Como posso ajudar hoje?' })
 
-            } catch (err) {
-                console.error('Erro no fluxo do Gemini com Function Calling, ativando Fallback local:', err)
-                // Cai no fallback local abaixo
+            } catch (aiError) {
+                console.error('Erro na chamada ao Gemini:', aiError)
             }
         }
 
@@ -460,9 +483,30 @@ ${helpContextText}`
         // MODO FALLBACK LOCAL (BUSCA HEURÍSTICA E QUERIES FIXAS)
         // ==========================================
         
-        // 1. Detecção de Intenção: Vacinas Vencendo Hoje
-        if (normalizedQuery.includes('vacina') && (normalizedQuery.includes('hoje') || normalizedQuery.includes('vencendo'))) {
-            const dataResult = await getVaccinesExpiringToday(supabase)
+        // 1. Detecção de Intenção: Vacinas Vencendo
+        if (normalizedQuery.includes('vacina') && (normalizedQuery.includes('hoje') || normalizedQuery.includes('vencendo') || normalizedQuery.includes('semana') || normalizedQuery.includes('mes') || normalizedQuery.includes('mês') || normalizedQuery.includes('dia'))) {
+            let days = 7
+            let periodText = 'nos próximos 7 dias'
+            
+            if (normalizedQuery.includes('hoje')) {
+                days = 0
+                periodText = 'hoje'
+            } else if (normalizedQuery.includes('semana') || normalizedQuery.includes('7 dia')) {
+                days = 7
+                periodText = 'nos próximos 7 dias'
+            } else if (normalizedQuery.includes('mes') || normalizedQuery.includes('mês') || normalizedQuery.includes('30 dia')) {
+                days = 30
+                periodText = 'nos próximos 30 dias'
+            } else {
+                // Tenta extrair qualquer número antes de "dia"
+                const daysMatch = normalizedQuery.match(/(\d+)\s*dia/)
+                if (daysMatch) {
+                    days = parseInt(daysMatch[1])
+                    periodText = `nos próximos ${days} dias`
+                }
+            }
+
+            const dataResult = await getVaccinesExpiring(supabase, days)
             if ('error' in dataResult) {
                 return NextResponse.json({ content: `⚠️ ${dataResult.error}` })
             }
@@ -470,9 +514,9 @@ ${helpContextText}`
                 return NextResponse.json({ content: `🐾 ${dataResult.message}` })
             }
 
-            let msg = `### 💉 Vacinas Vencendo Hoje\n\nIdentifiquei as seguintes aplicações com expiração na data de hoje:\n\n`
+            let msg = `### 💉 Vacinas Vencendo (${periodText.toUpperCase()})\n\nIdentifiquei as seguintes aplicações com expiração nesse período:\n\n`
             dataResult.forEach((item: any) => {
-                msg += `- **Pet:** ${item.pet} | **Vacina:** ${item.vacina}\n`
+                msg += `- **Pet:** ${item.pet} | **Vacina:** ${item.vacina} | **Vencimento:** ${new Date(item.vencimento).toLocaleDateString('pt-BR')}\n`
                 msg += `  - **Tutor:** ${item.tutor} (WhatsApp: [${item.whatsapp}](https://wa.me/55${item.whatsapp.replace(/\D/g, '')}))\n`
             })
             return NextResponse.json({ content: msg })
@@ -496,7 +540,6 @@ ${helpContextText}`
             return NextResponse.json({ content: msg })
         }
 
-        // 3. Detecção de Intenção: Função de Secretária (Cadastro de Tutor)
         if (normalizedQuery.includes('cadastrar') || normalizedQuery.includes('cadastro') || normalizedQuery.includes('novo tutor') || normalizedQuery.includes('criar tutor') || normalizedQuery.includes('inserir tutor')) {
             // Regex para buscar CPF na string
             const cpfRegex = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/
