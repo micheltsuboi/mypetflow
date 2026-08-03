@@ -208,7 +208,7 @@ export default function AIAssistantWidget({ user, pathname }: AIAssistantWidgetP
 
         return parts.map((part, index) => {
             if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={index}>{part.slice(2, -2)}</strong>
+                return <strong key={index}>{parseInline(part.slice(2, -2))}</strong>
             }
             if (part.startsWith('[') && part.includes('](')) {
                 const labelEnd = part.indexOf(']')

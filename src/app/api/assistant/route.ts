@@ -304,8 +304,8 @@ Sua missão é ajudar os usuários a operarem o sistema e buscar dados em tempo 
 
 Regras de comportamento:
 1. Seja sempre extremamente simpático, prestativo e profissional. Responda em Português do Brasil.
-2. Para perguntas sobre como usar o sistema (ex: "como crio um serviço"), use a base de conhecimento de tópicos de ajuda fornecida no fim desta instrução.
-3. Se o usuário pedir para buscar dados em tempo real (como vacinas a vencer hoje, agendamentos de hoje ou buscar detalhes de um pet), utilize as ferramentas (functions) apropriadas disponíveis.
+2. Para perguntas conceituais de como usar o sistema (ex: "como crio um serviço"), use a base de conhecimento de ajuda no fim desta instrução.
+3. Se o usuário pedir para buscar dados em tempo real ou citar termos como "vacinas de hoje", "agendamentos de hoje" ou buscar informações de um pet específico (ex: "detalhes do pet Rex", "ficha do pet Mel", "buscar o pet Pipoca"), você deve OBRIGATORIAMENTE chamar a ferramenta correspondente disponível nas Tools. Não tente inventar os dados do pet ou dizer que não sabe se houver ferramenta adequada!
 4. Se o usuário demonstrar a intenção de cadastrar um NOVO TUTOR (ex: "quero cadastrar o tutor João Silva, CPF 122.333.444-55" ou "cadastrar novo tutor chamado Maria"), você deve:
    - Extrair o nome do tutor e o CPF dele (caso informado).
    - Gerar uma resposta amigável e incluir OBRIGATORIAMENTE um link em formato markdown no seguinte formato exato de URL para abrir a tela de cadastro pré-preenchida no frontend: 
@@ -367,7 +367,7 @@ ${helpContextText}`
                             contents: geminiMessages,
                             systemInstruction: { parts: [{ text: systemPrompt }] },
                             tools: tools,
-                            generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+                            generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
                         })
                     }
                 )
@@ -434,7 +434,7 @@ ${helpContextText}`
                                 contents: nextMessages,
                                 systemInstruction: { parts: [{ text: systemPrompt }] },
                                 tools: tools,
-                                generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+                                generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
                             })
                         }
                     )
@@ -497,7 +497,7 @@ ${helpContextText}`
         }
 
         // 3. Detecção de Intenção: Função de Secretária (Cadastro de Tutor)
-        if (normalizedQuery.includes('cadastrar') || normalizedQuery.includes('cadastro') || normalizedQuery.includes('novo tutor') || normalizedQuery.includes('criar tutor')) {
+        if (normalizedQuery.includes('cadastrar') || normalizedQuery.includes('cadastro') || normalizedQuery.includes('novo tutor') || normalizedQuery.includes('criar tutor') || normalizedQuery.includes('inserir tutor')) {
             // Regex para buscar CPF na string
             const cpfRegex = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/
             const cpfMatch = userQuery.match(cpfRegex)
@@ -512,6 +512,7 @@ ${helpContextText}`
                 .replace(/novo tutor chamado/i, '')
                 .replace(/novo tutor/i, '')
                 .replace(/criar tutor/i, '')
+                .replace(/inserir tutor/i, '')
                 .replace(cpfRegex, '')
                 .replace(/cpf/i, '')
                 .replace(/com o/i, '')
@@ -530,23 +531,63 @@ ${helpContextText}`
                 const queryCpf = encodeURIComponent(cpf)
                 
                 return NextResponse.json({
-                    content: `Entendi! Você quer cadastrar um novo tutor chamado **${tutorName}**${cpf ? ` com o CPF **${cpf}**` : ''}.\n\nGerando link de preenchimento automático:\n\n🔗 **[Clique aqui para abrir o cadastro de ${tutorName}](/owner/tutors?new=true&name=${queryName}&cpf=${queryCpf})**\n\nAo clicar, a tela de tutores se abrirá e o modal de cadastro será preenchido automaticamente com esses dados.`
+                    content: `Entendi! Você quer cadastrar um novo tutor chamado **${tutorName}**${cpf ? ` com o CPF **${cpf}**` : ''}.\n\nGerando link de preenchimento automático:\n\n🔗 [Clique aqui para abrir o cadastro de ${tutorName}](/owner/tutors?new=true&name=${queryName}&cpf=${queryCpf})\n\nAo clicar, a tela de tutores se abrirá e o modal de cadastro será preenchido automaticamente com esses dados.`
                 })
             }
         }
 
-        // 4. Detecção de Intenção: Buscar Ficha de Pet
-        if (normalizedQuery.includes('buscar pet') || normalizedQuery.includes('ficha do pet') || normalizedQuery.includes('detalhes do pet') || (normalizedQuery.includes('pet') && normalizedQuery.includes('buscar'))) {
-            // Extrai o nome do pet
+        // 4. Detecção de Intenção Flexível: Buscar Ficha de Pet (com tolerância a erros comuns, ex: 'detlahes')
+        const isPetSearchIntention = 
+            (normalizedQuery.includes('pet') || normalizedQuery.includes('cao') || normalizedQuery.includes('cão') || normalizedQuery.includes('gato') || normalizedQuery.includes('cachorro') || normalizedQuery.includes('animal')) &&
+            (
+                normalizedQuery.includes('detalhe') || 
+                normalizedQuery.includes('detlahe') || 
+                normalizedQuery.includes('ficha') || 
+                normalizedQuery.includes('busca') || 
+                normalizedQuery.includes('procura') || 
+                normalizedQuery.includes('info') || 
+                normalizedQuery.includes('dado') || 
+                normalizedQuery.includes('ver') || 
+                normalizedQuery.includes('mostr') || 
+                normalizedQuery.includes('exibir')
+            );
+
+        if (isPetSearchIntention) {
+            // Extrai o nome do pet limpando termos de ação e erros de digitação comuns
             let petSearchName = userQuery
-                .replace(/buscar pet/i, '')
+                .replace(/quero ver/i, '')
+                .replace(/ver ficha/i, '')
                 .replace(/ficha do pet/i, '')
-                .replace(/detalhes do pet/i, '')
-                .replace(/buscar/i, '')
-                .replace(/info do pet/i, '')
                 .replace(/ficha de/i, '')
+                .replace(/ficha/i, '')
+                .replace(/detalhes do pet/i, '')
+                .replace(/detlahes do pet/i, '')
+                .replace(/detalhes de/i, '')
+                .replace(/detlahes de/i, '')
+                .replace(/detalhes/i, '')
+                .replace(/detlahes/i, '')
+                .replace(/buscar pet/i, '')
+                .replace(/buscar/i, '')
+                .replace(/procurar pet/i, '')
+                .replace(/procurar/i, '')
+                .replace(/info do pet/i, '')
+                .replace(/info de/i, '')
+                .replace(/informacoes do pet/i, '')
+                .replace(/informações do pet/i, '')
+                .replace(/informações de/i, '')
+                .replace(/informações/i, '')
+                .replace(/informacao/i, '')
+                .replace(/dados do pet/i, '')
+                .replace(/dados de/i, '')
+                .replace(/dados/i, '')
                 .replace(/sobre o/i, '')
+                .replace(/sobre a/i, '')
+                .replace(/pet/i, '')
+                .replace(/cão/i, '')
+                .replace(/cao/i, '')
+                .replace(/gato/i, '')
                 .replace(/[.,:;]/g, '')
+                .replace(/\s+/g, ' ')
                 .trim()
 
             if (petSearchName.length >= 2) {
@@ -604,7 +645,7 @@ ${helpContextText}`
         // Cumprimento simples
         if (normalizedQuery.match(/\b(ola|oi|bom dia|boa tarde|boa noite|tudo bem|ei|hey)\b/)) {
             return NextResponse.json({
-                content: `Olá! Sou o **Guia MyPet Flow**, seu assistente e secretária administrativa. 🐾\n\nComo posso te ajudar hoje? Você pode me fazer perguntas de uso ou consultas como:\n\n- 💉 *"Quear ver as vacinas vencendo hoje"* ou *"vacinas de hoje"*\n- 📅 *"Quais são os agendamentos de hoje?"*\n- 👤 *"Quero cadastrar o tutor João Silva, CPF 123.456.789-10"*\n- 🐾 *"Buscar pet Pipoca"*\n\nAlém de tirar dúvidas sobre qualquer tela do sistema! O que você precisa agora?`
+                content: `Olá! Sou o **Guia MyPet Flow**, seu assistente e secretária administrativa. 🐾\n\nComo posso te ajudar hoje? Você pode me fazer perguntas de uso ou consultas como:\n\n- 💉 *"Quer ver as vacinas vencendo hoje"* ou *"vacinas de hoje"*\n- 📅 *"Quais são os agendamentos de hoje?"*\n- 👤 *"Quero cadastrar o tutor João Silva, CPF 123.456.789-10"*\n- 🐾 *"Buscar pet Pipoca"*\n\nAlém de tirar dúvidas sobre qualquer tela do sistema! O que você precisa agora?`
             })
         }
 
