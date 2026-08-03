@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { pageHelpData, PageHelpSection } from '@/config/pageHelpData'
 
-// Mapeamento de termos para tópicos da base de conhecimento
+// Mapeamento de termos para tópicos da base de conhecimento estática
 const topicSynonyms: Record<string, string[]> = {
     services: ['servico', 'serviço', 'servicos', 'serviços', 'cadastro de servico', 'cadastro de serviço', 'criar servico', 'criar serviço', 'checklist', 'matriz de preco', 'matriz de preço', 'porte', 'peso'],
     packages: ['pacote', 'pacotes', 'contrato', 'contratos', 'credito', 'crédito', 'validade', 'sessoes', 'sessões', 'contratar pacote'],
@@ -39,7 +40,168 @@ function normalizeText(text: string): string {
         .trim()
 }
 
-// Gera a resposta em formato markdown a partir dos dados do tópico
+// ==========================================
+// FUNÇÕES DE BANCO DE DADOS (SUPABASE QUERIES)
+// ==========================================
+
+async function getVaccinesExpiringToday(supabase: any) {
+    try {
+        const todayStr = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local
+
+        const { data, error } = await supabase
+            .from('pet_vaccines')
+            .select(`
+                name,
+                expiry_date,
+                pets (
+                    name,
+                    customers (
+                        name,
+                        phone_1
+                    )
+                )
+            `)
+            .eq('expiry_date', todayStr)
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+            return { message: 'Nenhuma vacina está programada para vencer na data de hoje.' }
+        }
+
+        return data.map((item: any) => ({
+            vacina: item.name,
+            vencimento: item.expiry_date,
+            pet: item.pets?.name || 'Não informado',
+            tutor: item.pets?.customers?.name || 'Não informado',
+            whatsapp: item.pets?.customers?.phone_1 || 'Não informado'
+        }))
+    } catch (err: any) {
+        console.error('Erro ao buscar vacinas:', err)
+        return { error: 'Falha ao buscar vacinas vencendo hoje no banco de dados.' }
+    }
+}
+
+async function getTodayAppointments(supabase: any) {
+    try {
+        const startOfDay = new Date()
+        startOfDay.setHours(0, 0, 0, 0)
+        
+        const endOfDay = new Date()
+        endOfDay.setHours(23, 59, 59, 999)
+
+        const { data, error } = await supabase
+            .from('appointments')
+            .select(`
+                id,
+                scheduled_at,
+                status,
+                pets (name),
+                services (name)
+            `)
+            .gte('scheduled_at', startOfDay.toISOString())
+            .lte('scheduled_at', endOfDay.toISOString())
+            .order('scheduled_at', { ascending: true })
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+            return { message: 'Não há agendamentos agendados para a data de hoje.' }
+        }
+
+        const statusMap: Record<string, string> = {
+            pending: 'Pendente',
+            confirmed: 'Confirmado',
+            in_progress: 'Em Andamento',
+            done: 'Concluído',
+            canceled: 'Cancelado',
+            no_show: 'Falta'
+        }
+
+        return data.map((item: any) => ({
+            horario: new Date(item.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            pet: item.pets?.name || 'Não informado',
+            servico: item.services?.name || 'Não informado',
+            status: statusMap[item.status] || item.status
+        }))
+    } catch (err: any) {
+        console.error('Erro ao buscar agendamentos:', err)
+        return { error: 'Falha ao buscar agendamentos do dia no banco de dados.' }
+    }
+}
+
+async function getPetDetails(supabase: any, petName: string) {
+    try {
+        if (!petName || petName.length < 2) {
+            return { error: 'Por favor, informe um nome de pet válido com pelo menos 2 caracteres para busca.' }
+        }
+
+        const { data, error } = await supabase
+            .from('pets')
+            .select(`
+                name,
+                species,
+                breed,
+                size,
+                weight_kg,
+                gender,
+                medical_notes,
+                allergies,
+                temperament,
+                special_care,
+                customers (
+                    name,
+                    phone_1
+                )
+            `)
+            .ilike('name', `%${petName}%`)
+            .limit(5)
+
+        if (error) throw error
+
+        if (!data || data.length === 0) {
+            return { message: `Nenhum pet encontrado com o nome contendo "${petName}".` }
+        }
+
+        const speciesMap: Record<string, string> = {
+            dog: 'Cão',
+            cat: 'Gato',
+            other: 'Outro'
+        }
+
+        const sizeMap: Record<string, string> = {
+            small: 'Pequeno',
+            medium: 'Médio',
+            large: 'Grande',
+            giant: 'Gigante'
+        }
+
+        const genderMap: Record<string, string> = {
+            male: 'Macho',
+            female: 'Fêmea'
+        }
+
+        return data.map((item: any) => ({
+            nome: item.name,
+            especie: speciesMap[item.species] || item.species,
+            raca: item.breed || 'Não informada',
+            porte: sizeMap[item.size] || 'Não informado',
+            peso: item.weight_kg ? `${item.weight_kg} kg` : 'Não informado',
+            genero: genderMap[item.gender] || 'Não informado',
+            temperamento: item.temperament || 'Não informado',
+            alergias: item.allergies || 'Nenhuma registrada',
+            cuidados_especiais: item.special_care || 'Nenhum registrado',
+            notas_medicas: item.medical_notes || 'Nenhuma registrada',
+            tutor: item.customers?.name || 'Não cadastrado',
+            whatsapp_tutor: item.customers?.phone_1 || 'Não cadastrado'
+        }))
+    } catch (err: any) {
+        console.error('Erro ao buscar pet:', err)
+        return { error: 'Falha ao buscar ficha do pet no banco de dados.' }
+    }
+}
+
+// Gera a resposta em formato markdown a partir dos dados do tópico estático de ajuda
 function formatHelpSection(section: PageHelpSection, topicKey: string): string {
     let response = `### ${section.title}\n\n`
     response += `${section.description}\n\n`
@@ -68,7 +230,6 @@ function formatHelpSection(section: PageHelpSection, topicKey: string): string {
         response += `\n`
     }
 
-    // Adiciona link de navegação dependendo do tópico
     const routeMap: Record<string, string> = {
         services: '/owner/services',
         packages: '/owner/packages',
@@ -116,15 +277,18 @@ export async function POST(req: Request) {
         const userQuery = lastMessage.content || ''
         const normalizedQuery = normalizeText(userQuery)
 
+        // Criar o client do Supabase que lê automaticamente a sessão do cookie do usuário
+        const supabase = await createClient()
+
         const apiKey = process.env.GEMINI_API_KEY
 
         if (apiKey) {
             // ==========================================
-            // MODO DE IA REAL (GEMINI API)
+            // MODO DE IA REAL (GEMINI API) COM FUNCTION CALLING
             // ==========================================
             
-            // Construir o contexto para injetar no sistema
-            let helpContextText = "Aqui está a base de conhecimento de ajuda do sistema MyPet Flow que você DEVE usar para orientar o usuário:\n\n"
+            // 1. Construir a base de dados de ajuda estática como instruções de sistema
+            let helpContextText = "Aqui está a base de conhecimento de ajuda do sistema MyPet Flow que você DEVE usar para orientar o usuário sobre as telas do sistema:\n\n"
             Object.entries(pageHelpData).forEach(([key, section]) => {
                 helpContextText += `TÓPICO: ${key}\n`
                 helpContextText += `Título: ${section.title}\n`
@@ -135,21 +299,25 @@ export async function POST(req: Request) {
                 helpContextText += `---\n`
             })
 
-            const systemPrompt = `Você é o "Guia MyPet Flow", um assistente virtual integrado no sistema de gestão de petshops e clínicas veterinárias MyPet Flow.
-Sua missão é ajudar os usuários (proprietários e funcionários do petshop/clínica) a operarem o sistema.
+            const systemPrompt = `Você é o "Guia MyPet Flow", um assistente virtual e secretária administrativa integrado no sistema de gestão de petshops e clínicas veterinárias MyPet Flow.
+Sua missão é ajudar os usuários a operarem o sistema e buscar dados em tempo real quando solicitado.
 
 Regras de comportamento:
-1. Seja sempre extremamente simpático, prestativo e profissional.
-2. Responda SEMPRE em Português do Brasil.
-3. Use a base de conhecimento fornecida abaixo para dar respostas precisas. Não invente passos que não existem no sistema.
-4. Sempre que instruir o usuário a ir para uma tela, você pode incluir links no formato markdown [Nome da Tela](/caminho). Exemplo: [Cadastro de Serviços](/owner/services), [Agenda](/owner/agenda), [Financeiro](/owner/financeiro), [Pacotes](/owner/packages), [Tutores](/owner/tutors), [Pets](/owner/pets).
-5. O usuário está atualmente visualizando a página com a rota: "${pathname || 'não informada'}". Use isso para contextualizar se necessário.
-6. Mantenha as respostas claras, organizadas em tópicos ou passos, usando formatação Markdown (negrito, listas, etc.).
+1. Seja sempre extremamente simpático, prestativo e profissional. Responda em Português do Brasil.
+2. Para perguntas sobre como usar o sistema (ex: "como crio um serviço"), use a base de conhecimento de tópicos de ajuda fornecida no fim desta instrução.
+3. Se o usuário pedir para buscar dados em tempo real (como vacinas a vencer hoje, agendamentos de hoje ou buscar detalhes de um pet), utilize as ferramentas (functions) apropriadas disponíveis.
+4. Se o usuário demonstrar a intenção de cadastrar um NOVO TUTOR (ex: "quero cadastrar o tutor João Silva, CPF 122.333.444-55" ou "cadastrar novo tutor chamado Maria"), você deve:
+   - Extrair o nome do tutor e o CPF dele (caso informado).
+   - Gerar uma resposta amigável e incluir OBRIGATORIAMENTE um link em formato markdown no seguinte formato exato de URL para abrir a tela de cadastro pré-preenchida no frontend: 
+     [Clique aqui para cadastrar [Nome do Tutor]](/owner/tutors?new=true&name=[Nome_com_UrlEncode]&cpf=[CPF_ou_Vazio])
+     Exemplo: [Clique aqui para abrir o cadastro de João Silva](/owner/tutors?new=true&name=João%20Silva&cpf=122.333.444-55)
+   - Explique para o usuário que, ao clicar no link, o sistema abrirá a tela de cadastro com esses dados já preenchidos.
+5. Sempre que instruir o usuário a ir para uma tela normal, inclua links markdown [Nome da Tela](/caminho) (ex: [Cadastro de Serviços](/owner/services), [Agenda](/owner/agenda), [Financeiro](/owner/financeiro)).
+6. A página atual que o usuário visualiza no dashboard é: "${pathname || 'não informada'}".
 
 ${helpContextText}`
 
-            // Converter mensagens para o formato da API do Gemini
-            // O formato do Gemini espera array de { role: 'user'|'model', parts: [{ text: string }] }
+            // Converter o histórico para mensagens do Gemini API
             const geminiMessages = messages.map((m: any) => {
                 const role = m.role === 'assistant' ? 'model' : 'user'
                 return {
@@ -158,58 +326,263 @@ ${helpContextText}`
                 }
             })
 
+            // Definição das Ferramentas (Functions Declarations)
+            const tools = [
+                {
+                    functionDeclarations: [
+                        {
+                            name: 'get_vaccines_expiring_today',
+                            description: 'Retorna a lista de vacinas de pets que expiram/vencem no dia de hoje na organização do usuário.'
+                        },
+                        {
+                            name: 'get_today_appointments',
+                            description: 'Retorna a lista de agendamentos agendados para o dia de hoje, incluindo horário, pet, serviço e status.'
+                        },
+                        {
+                            name: 'get_pet_details',
+                            description: 'Busca os dados cadastrais detalhados de um ou mais pets pelo nome, incluindo raça, peso, restrições e o nome/WhatsApp do tutor.',
+                            parameters: {
+                                type: 'OBJECT',
+                                properties: {
+                                    petName: {
+                                        type: 'STRING',
+                                        description: 'Nome do pet a ser pesquisado (ex: Rex, Pipoca)'
+                                    }
+                                },
+                                required: ['petName']
+                            }
+                        }
+                    ]
+                }
+            ]
+
             try {
-                const response = await fetch(
+                // Primeira chamada para o Gemini (com tools)
+                let geminiRes = await fetch(
                     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
                     {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             contents: geminiMessages,
-                            systemInstruction: {
-                                parts: [{ text: systemPrompt }]
-                            },
-                            generationConfig: {
-                                temperature: 0.3,
-                                maxOutputTokens: 1000,
-                            }
-                        }),
+                            systemInstruction: { parts: [{ text: systemPrompt }] },
+                            tools: tools,
+                            generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+                        })
                     }
                 )
 
-                if (!response.ok) {
-                    const errorText = await response.text()
-                    console.error('Erro na API do Gemini:', errorText)
-                    throw new Error('Falha na resposta do Gemini API')
+                if (!geminiRes.ok) {
+                    throw new Error(`Gemini API retornou erro: ${await geminiRes.text()}`)
                 }
 
-                const data = await response.json()
-                const replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Desculpe, não consegui formular uma resposta no momento.'
+                let data = await geminiRes.json()
+                let responsePart = data.candidates?.[0]?.content?.parts?.[0]
 
+                // Se o Gemini decidir chamar uma função (Function Calling)
+                if (responsePart?.functionCall) {
+                    const call = responsePart.functionCall
+                    const functionName = call.name
+                    const args = call.args || {}
+
+                    let functionResult: any
+
+                    // Executar a consulta local apropriada baseada na chamada da IA
+                    if (functionName === 'get_vaccines_expiring_today') {
+                        functionResult = await getVaccinesExpiringToday(supabase)
+                    } else if (functionName === 'get_today_appointments') {
+                        functionResult = await getTodayAppointments(supabase)
+                    } else if (functionName === 'get_pet_details') {
+                        functionResult = await getPetDetails(supabase, args.petName)
+                    } else {
+                        functionResult = { error: 'Função desconhecida.' }
+                    }
+
+                    // Enviar o resultado de volta para o Gemini formular a resposta final
+                    const nextMessages = [
+                        ...geminiMessages,
+                        {
+                            role: 'model',
+                            parts: [
+                                {
+                                    functionCall: {
+                                        name: functionName,
+                                        args: args
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            role: 'function',
+                            parts: [
+                                {
+                                    functionResponse: {
+                                        name: functionName,
+                                        response: { output: functionResult }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+
+                    geminiRes = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                        {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: nextMessages,
+                                systemInstruction: { parts: [{ text: systemPrompt }] },
+                                tools: tools,
+                                generationConfig: { temperature: 0.3, maxOutputTokens: 1000 }
+                            })
+                        }
+                    )
+
+                    if (!geminiRes.ok) {
+                        throw new Error(`Falha na segunda chamada do Gemini: ${await geminiRes.text()}`)
+                    }
+
+                    data = await geminiRes.json()
+                    responsePart = data.candidates?.[0]?.content?.parts?.[0]
+                }
+
+                const replyText = responsePart?.text || 'Desculpe, não consegui obter uma resposta de dados agora.'
                 return NextResponse.json({ content: replyText })
+
             } catch (err) {
-                console.error('Erro ao chamar o Gemini, aplicando Fallback local:', err)
-                // Se der erro na API externa, cai no fallback local
+                console.error('Erro no fluxo do Gemini com Function Calling, ativando Fallback local:', err)
+                // Cai no fallback local abaixo
             }
         }
 
         // ==========================================
-        // MODO FALLBACK LOCAL (BUSCA HEURÍSTICA)
+        // MODO FALLBACK LOCAL (BUSCA HEURÍSTICA E QUERIES FIXAS)
         // ==========================================
         
+        // 1. Detecção de Intenção: Vacinas Vencendo Hoje
+        if (normalizedQuery.includes('vacina') && (normalizedQuery.includes('hoje') || normalizedQuery.includes('vencendo'))) {
+            const dataResult = await getVaccinesExpiringToday(supabase)
+            if ('error' in dataResult) {
+                return NextResponse.json({ content: `⚠️ ${dataResult.error}` })
+            }
+            if ('message' in dataResult) {
+                return NextResponse.json({ content: `🐾 ${dataResult.message}` })
+            }
+
+            let msg = `### 💉 Vacinas Vencendo Hoje\n\nIdentifiquei as seguintes aplicações com expiração na data de hoje:\n\n`
+            dataResult.forEach((item: any) => {
+                msg += `- **Pet:** ${item.pet} | **Vacina:** ${item.vacina}\n`
+                msg += `  - **Tutor:** ${item.tutor} (WhatsApp: [${item.whatsapp}](https://wa.me/55${item.whatsapp.replace(/\D/g, '')}))\n`
+            })
+            return NextResponse.json({ content: msg })
+        }
+
+        // 2. Detecção de Intenção: Agendamentos de Hoje
+        if ((normalizedQuery.includes('agenda') || normalizedQuery.includes('agendamento') || normalizedQuery.includes('servico')) && normalizedQuery.includes('hoje')) {
+            const dataResult = await getTodayAppointments(supabase)
+            if ('error' in dataResult) {
+                return NextResponse.json({ content: `⚠️ ${dataResult.error}` })
+            }
+            if ('message' in dataResult) {
+                return NextResponse.json({ content: `📅 ${dataResult.message}` })
+            }
+
+            let msg = `### 📅 Agendamentos de Hoje\n\nAqui está a lista de execuções do dia de hoje:\n\n`
+            dataResult.forEach((item: any) => {
+                msg += `- **${item.horario}** - **Pet:** ${item.pet} | **Serviço:** ${item.servico} | **Status:** *${item.status}*\n`
+            })
+            msg += `\n🔗 **[Ver Agenda Completa](/owner/agenda)**`
+            return NextResponse.json({ content: msg })
+        }
+
+        // 3. Detecção de Intenção: Função de Secretária (Cadastro de Tutor)
+        if (normalizedQuery.includes('cadastrar') || normalizedQuery.includes('cadastro') || normalizedQuery.includes('novo tutor') || normalizedQuery.includes('criar tutor')) {
+            // Regex para buscar CPF na string
+            const cpfRegex = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/
+            const cpfMatch = userQuery.match(cpfRegex)
+            const cpf = cpfMatch ? cpfMatch[0] : ''
+
+            // Extrair o nome limpando palavras de comando e CPF
+            let tutorName = userQuery
+                .replace(/quero cadastrar (o|um)?\s*tutor/i, '')
+                .replace(/cadastrar (o|um)?\s*tutor/i, '')
+                .replace(/cadastro de tutor/i, '')
+                .replace(/cadastro/i, '')
+                .replace(/novo tutor chamado/i, '')
+                .replace(/novo tutor/i, '')
+                .replace(/criar tutor/i, '')
+                .replace(cpfRegex, '')
+                .replace(/cpf/i, '')
+                .replace(/com o/i, '')
+                .replace(/chamado/i, '')
+                .replace(/[.,:;]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+
+            // Filtro caso a extração resulte em palavras vazias ou sem sentido
+            if (tutorName.toLowerCase() === 'tutor' || tutorName.length < 2) {
+                tutorName = ''
+            }
+
+            if (tutorName) {
+                const queryName = encodeURIComponent(tutorName)
+                const queryCpf = encodeURIComponent(cpf)
+                
+                return NextResponse.json({
+                    content: `Entendi! Você quer cadastrar um novo tutor chamado **${tutorName}**${cpf ? ` com o CPF **${cpf}**` : ''}.\n\nGerando link de preenchimento automático:\n\n🔗 **[Clique aqui para abrir o cadastro de ${tutorName}](/owner/tutors?new=true&name=${queryName}&cpf=${queryCpf})**\n\nAo clicar, a tela de tutores se abrirá e o modal de cadastro será preenchido automaticamente com esses dados.`
+                })
+            }
+        }
+
+        // 4. Detecção de Intenção: Buscar Ficha de Pet
+        if (normalizedQuery.includes('buscar pet') || normalizedQuery.includes('ficha do pet') || normalizedQuery.includes('detalhes do pet') || (normalizedQuery.includes('pet') && normalizedQuery.includes('buscar'))) {
+            // Extrai o nome do pet
+            let petSearchName = userQuery
+                .replace(/buscar pet/i, '')
+                .replace(/ficha do pet/i, '')
+                .replace(/detalhes do pet/i, '')
+                .replace(/buscar/i, '')
+                .replace(/info do pet/i, '')
+                .replace(/ficha de/i, '')
+                .replace(/sobre o/i, '')
+                .replace(/[.,:;]/g, '')
+                .trim()
+
+            if (petSearchName.length >= 2) {
+                const dataResult = await getPetDetails(supabase, petSearchName)
+                if ('error' in dataResult) {
+                    return NextResponse.json({ content: `⚠️ ${dataResult.error}` })
+                }
+                if ('message' in dataResult) {
+                    return NextResponse.json({ content: `🐾 ${dataResult.message}` })
+                }
+
+                let msg = `### 🐾 Ficha de Pets Encontrados\n\n`
+                dataResult.forEach((pet: any) => {
+                    msg += `#### Pet: ${pet.nome}\n`
+                    msg += `- **Espécie:** ${pet.especie} | **Raça:** ${pet.raca}\n`
+                    msg += `- **Porte:** ${pet.porte} | **Peso:** ${pet.peso} | **Gênero:** ${pet.genero}\n`
+                    msg += `- **Temperamento:** ${pet.temperamento}\n`
+                    msg += `- **Alergias:** *${pet.alergias}*\n`
+                    msg += `- **Cuidados Especiais:** *${pet.cuidados_especiais}*\n`
+                    msg += `- **Notas Médicas:** *${pet.notas_medicas}*\n`
+                    msg += `- **Tutor:** ${pet.tutor} (WhatsApp: [${pet.whatsapp_tutor}](https://wa.me/55${pet.whatsapp_tutor.replace(/\D/g, '')}))\n\n`
+                })
+                return NextResponse.json({ content: msg })
+            }
+        }
+
+        // 5. Fallback Padrão: Tópico de Ajuda Geral / Base Estática
         let bestMatchTopic: string | null = null
         let maxMatchCount = 0
 
-        // Varre todos os tópicos e seus sinônimos para encontrar a melhor correspondência
         Object.entries(topicSynonyms).forEach(([topicKey, keywords]) => {
             let matchCount = 0
             keywords.forEach(keyword => {
                 const normalizedKeyword = normalizeText(keyword)
-                // Se a query contém a palavra-chave inteira ou vice-versa
                 if (normalizedQuery.includes(normalizedKeyword)) {
-                    matchCount += normalizedKeyword.split(' ').length // Peso maior para termos mais longos
+                    matchCount += normalizedKeyword.split(' ').length
                 }
             })
 
@@ -219,28 +592,25 @@ ${helpContextText}`
             }
         })
 
-        // Se encontrou um tópico correspondente
         if (bestMatchTopic && pageHelpData[bestMatchTopic]) {
             const section = pageHelpData[bestMatchTopic]
             const formattedContent = formatHelpSection(section, bestMatchTopic)
             
             const intro = `Olá! Identifiquei que sua dúvida é sobre **${section.title.split(' ').slice(1).join(' ')}** (tópico de ajuda do MyPet Flow). Aqui está um guia prático para te ajudar:\n\n`
             
-            return NextResponse.json({
-                content: intro + formattedContent
-            })
+            return NextResponse.json({ content: intro + formattedContent })
         }
 
-        // Se for um cumprimento simples
+        // Cumprimento simples
         if (normalizedQuery.match(/\b(ola|oi|bom dia|boa tarde|boa noite|tudo bem|ei|hey)\b/)) {
             return NextResponse.json({
-                content: `Olá! Sou o **Guia MyPet Flow**, seu assistente para uso do sistema. 🐾\n\nComo posso te ajudar hoje? Você pode me perguntar sobre:\n\n- ✂️ [Cadastro de Serviços](/owner/services)\n- 📦 [Gestão de Pacotes](/owner/packages)\n- 📅 [Uso da Agenda](/owner/agenda)\n- 💰 [Módulo Financeiro](/owner/financeiro)\n- 🛁 [Fila de Banho & Tosa](/owner/banho-tosa)\n- 🏨 [Hospedagem / Hotel Pet](/owner/hospedagem)\n\nDigite qual sua dúvida ou escolha uma das opções acima!`
+                content: `Olá! Sou o **Guia MyPet Flow**, seu assistente e secretária administrativa. 🐾\n\nComo posso te ajudar hoje? Você pode me fazer perguntas de uso ou consultas como:\n\n- 💉 *"Quear ver as vacinas vencendo hoje"* ou *"vacinas de hoje"*\n- 📅 *"Quais são os agendamentos de hoje?"*\n- 👤 *"Quero cadastrar o tutor João Silva, CPF 123.456.789-10"*\n- 🐾 *"Buscar pet Pipoca"*\n\nAlém de tirar dúvidas sobre qualquer tela do sistema! O que você precisa agora?`
             })
         }
 
         // Caso padrão se não encontrar correspondência
         return NextResponse.json({
-            content: `Desculpe, não entendi muito bem sua pergunta sobre "${userQuery}".\n\nSou um assistente focado em ajudar você a navegar e configurar o **MyPet Flow**. \n\nPosso ajudar você com os seguintes tópicos:\n\n- ✂️ **Serviços** (Cadastro, Checklist e Matriz de Preço)\n- 📦 **Pacotes** (Criação de modelos e Contratos de Pets)\n- 📅 **Agenda** (Agendamentos e Filtros)\n- 💰 **Financeiro** (Fluxo de caixa, Entradas/Saídas)\n- 🛁 **Banho e Tosa** (Controle do fluxo de banhos)\n- 🐾 **Creche** e 🏨 **Hospedagem** (Check-in, Check-out e Diárias)\n- 💉 **Vacinas** (Carteira de vacinação)\n- 🩺 **Clínica e Prontuários** (Consultas e Exames)\n- 🔌 **Integrações** (WhatsApp Bot)\n- 🔬 **Laboratório** (Laudos e Exames)\n\nQual desses assuntos você gostaria de entender melhor? Se preferir, tente formular a pergunta de outra forma (ex: "como crio um serviço?" ou "como funciona o pacote?").`
+            content: `Desculpe, não entendi muito bem sua pergunta sobre "${userQuery}".\n\nSou um assistente focado em ajudar você a navegar no **MyPet Flow** e consultar dados em tempo real.\n\nExperimente me perguntar:\n\n- 💉 *"Vacinas vencendo hoje"* ou *"vacinas de hoje"*\n- 📅 *"Agendamentos de hoje"*\n- 👤 *"Cadastrar tutor Roberto Santos CPF 122.333.444-55"*\n- 🔍 *"Buscar pet Pipoca"*\n- ✂️ *"Como cadastrar um serviço?"*\n\nQual desses assuntos você gostaria de tratar?`
         })
 
     } catch (error) {

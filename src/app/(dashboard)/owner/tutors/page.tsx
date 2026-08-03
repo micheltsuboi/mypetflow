@@ -75,6 +75,37 @@ export default function TutorsPage() {
     const [instagram, setInstagram] = useState('')
     const [birthDate, setBirthDate] = useState<string | undefined>(undefined)
 
+    // Detectar parâmetros de URL para pré-preenchimento e abertura de modal (Secretária IA)
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search)
+            const isNew = params.get('new') === 'true'
+            const paramName = params.get('name')
+            const paramCpf = params.get('cpf')
+            const paramPhone = params.get('phone')
+
+            if (isNew || paramName || paramCpf || paramPhone) {
+                setSelectedTutor(null)
+                setName(paramName || '')
+                setPhysicalFileNumber('')
+                setEmail('')
+                setPhone(paramPhone ? maskPhone(paramPhone) : '')
+                setPhone2('')
+                setCep('')
+                setCpfCnpj(paramCpf ? maskCPF(paramCpf) : '')
+                setAddress('')
+                setNeighborhood('')
+                setCity('')
+                setInstagram('')
+                setBirthDate(undefined)
+                setShowModal(true)
+
+                // Limpa os parâmetros de busca da URL para manter a barra limpa
+                const newUrl = window.location.pathname
+                window.history.replaceState({}, '', newUrl)
+            }
+        }
+    }, [])
 
     // Server Action States
     const [createState, createAction, isCreatePending] = useActionState(createTutor, initialState)
