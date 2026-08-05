@@ -173,6 +173,22 @@ export async function updatePet(prevState: CreatePetState, formData: FormData) {
         return { message: `Erro ao atualizar pet: ${error.message}`, success: false }
     }
 
+    if (isDeceased) {
+        // Cancelar todos os agendamentos pendentes ou confirmados do pet falecido
+        const { error: cancelError } = await supabaseAdmin
+            .from('appointments')
+            .update({ 
+                status: 'canceled',
+                notes: '🚫 Agendamento cancelado automaticamente (Pet marcado como falecido)'
+            })
+            .eq('pet_id', id)
+            .in('status', ['pending', 'confirmed'])
+
+        if (cancelError) {
+            console.error('Erro ao cancelar agendamentos do pet falecido:', cancelError)
+        }
+    }
+
     revalidatePath('/owner/pets')
     revalidatePath('/tutor/avaliacoes')
     return { message: 'Pet atualizado com sucesso!', success: true }
