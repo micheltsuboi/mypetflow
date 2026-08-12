@@ -336,37 +336,131 @@ export async function searchPets(query: string) {
     if (!profile?.org_id) return { success: false, message: 'Org não encontrada', data: [] }
 
     try {
-        let { data, error } = await supabase
+        const words = query.trim().split(/\s+/).filter(w => w.length > 0)
+        if (words.length === 0) return { success: true, data: [] }
+
+        // Normalização de string para busca case-insensitive e acento-insensitive
+        const normalizeStr = (str: string) => {
+            if (!str) return ""
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        }
+
+        const petNameFilters = words.map(w => `name.ilike.%${w}%`).join(",")
+        const custFilters = words.map(w => `name.ilike.%${w}%,physical_file_number.ilike.%${w}%`).join(",")
+
+        // 1. Buscar pets candidatos pelo nome do pet
+        let petsCandidate: any[] = []
+        let petsByCustomer: any[] = []
+        let hasDeceasedColumn = true
+
+        // Tentamos buscar com a coluna is_deceased
+        const resPets = await supabase
             .from('pets')
             .select(`
                 id, name, species, breed, is_deceased,
-                customers!inner(name, org_id)
+                customers!inner(name, physical_file_number, org_id)
             `)
             .eq('customers.org_id', profile.org_id)
-            .ilike('name', `%${query}%`)
-            .order('name')
-            .limit(20)
+            .or(petNameFilters)
+            .limit(50)
 
-        if (error && error.message.includes('is_deceased')) {
-            const fallback = await supabase
-                .from('pets')
-                .select(`
-                    id, name, species, breed,
-                    customers!inner(name, org_id)
-                `)
-                .eq('customers.org_id', profile.org_id)
-                .ilike('name', `%${query}%`)
-                .order('name')
-                .limit(10)
-            if (fallback.error) throw fallback.error
-            data = fallback.data
-        } else if (error) {
-            throw error
+        if (resPets.error) {
+            if (resPets.error.message.includes('is_deceased')) {
+                hasDeceasedColumn = false
+                // Fallback sem is_deceased
+                const fallbackPets = await supabase
+                    .from('pets')
+                    .select(`
+                        id, name, species, breed,
+                        customers!inner(name, physical_file_number, org_id)
+                    `)
+                    .eq('customers.org_id', profile.org_id)
+                    .or(petNameFilters)
+                    .limit(50)
+                if (fallbackPets.error) throw fallbackPets.error
+                petsCandidate = fallbackPets.data || []
+            } else {
+                throw resPets.error
+            }
+        } else {
+            petsCandidate = resPets.data || []
         }
 
-        // Filtra pets falecidos para não permitir agendamentos/vendas indesejadas
-        const activePets = (data || []).filter((pet: any) => !pet.is_deceased).slice(0, 10)
-        return { success: true, data: activePets }
+        // 2. Buscar tutores candidatos pelo nome do tutor ou número da ficha
+        const resCust = await supabase
+            .from('customers')
+            .select('id')
+            .eq('org_id', profile.org_id)
+            .or(custFilters)
+            .limit(50)
+
+        if (resCust.error) throw resCust.error
+        const customers = resCust.data || []
+
+        if (customers.length > 0) {
+            const customerIds = customers.map(c => c.id)
+            
+            // Buscar pets dos tutores candidatos
+            let resPetsByCust
+            if (hasDeceasedColumn) {
+                resPetsByCust = await supabase
+                    .from('pets')
+                    .select(`
+                        id, name, species, breed, is_deceased,
+                        customers!inner(name, physical_file_number, org_id)
+                    `)
+                    .eq('customers.org_id', profile.org_id)
+                    .in('customer_id', customerIds)
+                    .limit(50)
+            } else {
+                resPetsByCust = await supabase
+                    .from('pets')
+                    .select(`
+                        id, name, species, breed,
+                        customers!inner(name, physical_file_number, org_id)
+                    `)
+                    .eq('customers.org_id', profile.org_id)
+                    .in('customer_id', customerIds)
+                    .limit(50)
+            }
+
+            if (resPetsByCust.error) throw resPetsByCust.error
+            petsByCustomer = resPetsByCust.data || []
+        }
+
+        // 3. Unir e remover duplicados
+        const candidatesMap = new Map()
+        ;[...petsCandidate, ...petsByCustomer].forEach(p => {
+            if (p && p.id) candidatesMap.set(p.id, p)
+        })
+
+        const candidates = Array.from(candidatesMap.values())
+
+        // 4. Filtrar em memória: todas as palavras devem constar em pelo menos um campo do pet/tutor
+        const normalizedWords = words.map(w => normalizeStr(w))
+
+        const filtered = candidates.filter(pet => {
+            // Se tiver a coluna, filtrar pets falecidos para não permitir agendamentos
+            if (hasDeceasedColumn && pet.is_deceased) {
+                return false
+            }
+
+            const petName = normalizeStr(pet.name)
+            const petBreed = normalizeStr(pet.breed || "")
+            const custName = normalizeStr(pet.customers?.name || "")
+            const custFile = normalizeStr(pet.customers?.physical_file_number || "")
+
+            return normalizedWords.every(word => {
+                return petName.includes(word) || 
+                       petBreed.includes(word) || 
+                       custName.includes(word) || 
+                       custFile.includes(word)
+            })
+        })
+
+        // Retornamos no máximo 10 resultados para otimizar o dropdown do frontend
+        return { success: true, data: filtered.slice(0, 10) }
+
     } catch (error: any) {
         console.error('Error searching pets:', error)
         return { success: false, message: error.message, data: [] }

@@ -12,11 +12,12 @@ interface Pet {
     breed: string | null
     customers: {
         name: string
+        physical_file_number?: string | null
     }
 }
 
 interface PetSearchSelectProps {
-    name: string
+    name?: string
     placeholder?: string
     defaultValue?: string
     initialPets?: Pet[]
@@ -101,7 +102,7 @@ export default function PetSearchSelect({
 
     return (
         <div className={styles.container} ref={containerRef}>
-            <input type="hidden" name={name} value={selectedPet?.id || ''} required={required} />
+            {name && <input type="hidden" name={name} value={selectedPet?.id || ''} required={required} />}
             
             {!selectedPet ? (
                 <div className={styles.searchWrapper}>
@@ -131,7 +132,9 @@ export default function PetSearchSelect({
                                     </div>
                                     <div className={styles.petInfo}>
                                         <div className={styles.petName}>{pet.name}</div>
-                                        <div className={styles.tutorName}>Tutor: {pet.customers?.name}</div>
+                                        <div className={styles.tutorName}>
+                                            Tutor: {pet.customers?.name} {pet.customers?.physical_file_number ? `(Ficha: ${pet.customers.physical_file_number})` : ''}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -150,7 +153,9 @@ export default function PetSearchSelect({
                     </div>
                     <div className={styles.selectedPetInfo}>
                         <div className={styles.selectedPetName}>{selectedPet.name}</div>
-                        <div className={styles.selectedTutorName}>Tutor: {selectedPet.customers?.name}</div>
+                        <div className={styles.selectedTutorName}>
+                            Tutor: {selectedPet.customers?.name} {selectedPet.customers?.physical_file_number ? `(Ficha: ${selectedPet.customers.physical_file_number})` : ''}
+                        </div>
                     </div>
                     <button type="button" className={styles.clearBtn} onClick={clearSelection}>
                         <X size={16} />
