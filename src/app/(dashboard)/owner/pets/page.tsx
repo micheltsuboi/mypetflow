@@ -308,6 +308,7 @@ function PetsContent() {
         vaccines: false,
         petshop: false,
         medical: false,
+        prescriptions: false,
         exams: false,
         vetAlerts: false,
         hospital: false,
@@ -491,6 +492,7 @@ function PetsContent() {
             } else if (key === 'medical') {
                 getVetConsultations(selectedPet.id).then(setVetConsultations)
                 getVetRecords(selectedPet.id).then(setVetRecords)
+            } else if (key === 'prescriptions') {
                 getPrescriptionsByPet(selectedPet.id).then(res => { if (res.success) setPrescriptions(res.data) })
             } else if (key === 'hospital') {
                 getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
@@ -630,9 +632,9 @@ function PetsContent() {
     const handleSelectPet = useCallback(async (pet: Pet) => {
         setSelectedPet(pet)
         setAccordions({
-            details: false, packages: false, creche: false, hotel: false,
+            details: false, packages: false, subscriptions: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false, vetAlerts: false, hospital: false,
+            medical: false, prescriptions: false, exams: false, vetAlerts: false, hospital: false,
             grooming: false
         })
         setPetAssessment(null)
@@ -643,9 +645,9 @@ function PetsContent() {
         setSelectedPet(null)
         setPetAssessment(null)
         setAccordions({
-            details: true, packages: false, creche: false, hotel: false,
+            details: true, packages: false, subscriptions: false, creche: false, hotel: false,
             assessment: false, vaccines: false, petshop: false,
-            medical: false, exams: false, vetAlerts: false, hospital: false,
+            medical: false, prescriptions: false, exams: false, vetAlerts: false, hospital: false,
             grooming: false
         })
         setShowModal(true)
@@ -1466,20 +1468,14 @@ function PetsContent() {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
                                                 <h4 style={{ margin: 0 }}>Histórico de Atendimentos</h4>
                                                 {!isReadOnly && (
-                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                        <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={async () => {
-                                                            if (!selectedPet) return
-                                                            const res = await createBlankConsultation(selectedPet.id)
-                                                            if (res.success) {
-                                                                setActiveConsultation(res.data)
-                                                                setShowConsultationModal(true)
-                                                            }
-                                                        }}>+ Nova Consulta</button>
-                                                        <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'var(--accent-primary)', border: 'none' }} onClick={() => {
-                                                            if (!selectedPet) return
-                                                            setShowPrescriptionModal(true)
-                                                        }}>+ Nova Receita Avulsa</button>
-                                                    </div>
+                                                    <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={async () => {
+                                                        if (!selectedPet) return
+                                                        const res = await createBlankConsultation(selectedPet.id)
+                                                        if (res.success) {
+                                                            setActiveConsultation(res.data)
+                                                            setShowConsultationModal(true)
+                                                        }
+                                                    }}>+ Nova Consulta</button>
                                                 )}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1524,50 +1520,72 @@ function PetsContent() {
                                                     </div>
                                                 ))}
                                             </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-                                                <h4 style={{ margin: '0 0 1rem 0' }}>Receitas Médicas Avulsas</h4>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                                    {prescriptions.length === 0 ? <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhuma receita emitida.</p> : prescriptions.map(p => (
-                                                        <div key={p.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                                <div>
-                                                                    <strong>{safeFormatDate(p.created_at)} - {p.veterinarians?.name || 'VET'}</strong>
-                                                                    {p.is_controlled && (
-                                                                        <span style={{ 
-                                                                            fontSize: '0.7rem', 
-                                                                            padding: '2px 6px', 
-                                                                            borderRadius: '4px', 
-                                                                            background: 'rgba(245,158,11,0.1)',
-                                                                            color: '#f59e0b',
-                                                                            marginLeft: '0.5rem',
-                                                                            fontWeight: 600
-                                                                        }}>
-                                                                            CONTROLE ESPECIAL ({p.control_number})
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                                    <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => handleReprintPrescription(p)}>Imprimir</button>
-                                                                    {!isReadOnly && (
-                                                                        <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }} onClick={async () => {
-                                                                            if (confirm('Deseja realmente excluir esta receita?')) {
-                                                                                const res = await deletePrescription(p.id)
-                                                                                if (res.success) {
-                                                                                    alert(res.message)
-                                                                                    getPrescriptionsByPet(selectedPet.id).then(r => { if (r.success) setPrescriptions(r.data) })
-                                                                                } else {
-                                                                                    alert(res.message)
-                                                                                }
-                                                                            }
-                                                                        }}>Excluir</button>
-                                                                    )}
-                                                                </div>
+                            {/* RECEITAS MÉDICAS (AVULSAS) ACCORDION */}
+                            {planFeatures.includes('clinica_vet') && (
+                                <div className={styles.accordionItem}>
+                                    <button type="button" onClick={() => toggleAccordion('prescriptions')} className={styles.accordionHeader}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                            <span style={{ fontSize: '18px' }}>📄</span>
+                                            <span>Receitas Médicas (Avulsas)</span>
+                                        </div>
+                                        <span>{accordions.prescriptions ? '−' : '+'}</span>
+                                    </button>
+                                    {accordions.prescriptions && (
+                                        <div className={styles.accordionContent}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
+                                                <h4 style={{ margin: 0 }}>Histórico de Receitas Emitidas</h4>
+                                                {!isReadOnly && (
+                                                    <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'var(--accent-primary)', border: 'none' }} onClick={() => {
+                                                        if (!selectedPet) return
+                                                        setShowPrescriptionModal(true)
+                                                    }}>+ Nova Receita Avulsa</button>
+                                                )}
+                                            </div>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                {prescriptions.length === 0 ? <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhuma receita emitida.</p> : prescriptions.map(p => (
+                                                    <div key={p.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                            <div>
+                                                                <strong>{safeFormatDate(p.created_at)} - {p.veterinarians?.name || 'VET'}</strong>
+                                                                {p.is_controlled && (
+                                                                    <span style={{ 
+                                                                        fontSize: '0.7rem', 
+                                                                        padding: '2px 6px', 
+                                                                        borderRadius: '4px', 
+                                                                        background: 'rgba(245,158,11,0.1)',
+                                                                        color: '#f59e0b',
+                                                                        marginLeft: '0.5rem',
+                                                                        fontWeight: 600
+                                                                    }}>
+                                                                        CONTROLE ESPECIAL ({p.control_number})
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            <p style={{ fontSize: '0.85rem', margin: '0.5rem 0 0 0', whiteSpace: 'pre-line', color: 'var(--text-secondary)' }}>{p.prescription_text}</p>
+                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => handleReprintPrescription(p)}>Imprimir</button>
+                                                                {!isReadOnly && (
+                                                                    <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }} onClick={async () => {
+                                                                        if (confirm('Deseja realmente excluir esta receita?')) {
+                                                                            const res = await deletePrescription(p.id)
+                                                                            if (res.success) {
+                                                                                alert(res.message)
+                                                                                getPrescriptionsByPet(selectedPet.id).then(r => { if (r.success) setPrescriptions(r.data) })
+                                                                            } else {
+                                                                                alert(res.message)
+                                                                            }
+                                                                        }
+                                                                    }}>Excluir</button>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <p style={{ fontSize: '0.85rem', margin: '0.5rem 0 0 0', whiteSpace: 'pre-line', color: 'var(--text-secondary)' }}>{p.prescription_text}</p>
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
                                     )}
