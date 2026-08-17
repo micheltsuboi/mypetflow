@@ -30,7 +30,7 @@ export async function getWhatsAppConfig() {
     const adminSupabase = await createAdminClient()
     const { data: org, error: orgError } = await adminSupabase
       .from('organizations')
-      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token, logo_url, notify_appointment_confirmed, notify_service_status, notify_reminder_24h, notify_reminder_same_day, notify_vet_alerts, notify_vaccine_reminder, notify_subscription_reminder')
+      .select('wa_integration_type, wa_api_url, wa_api_token, wa_client_token, logo_url, mapa_registration, notify_appointment_confirmed, notify_service_status, notify_reminder_24h, notify_reminder_same_day, notify_vet_alerts, notify_vaccine_reminder, notify_subscription_reminder')
       .eq('id', profile.org_id)
       .single()
 
@@ -47,6 +47,7 @@ export async function getWhatsAppConfig() {
         hasToken: !!org.wa_api_token,
         hasClientToken: !!org.wa_client_token,
         logoUrl: org.logo_url || null,
+        mapaRegistration: org.mapa_registration || '',
         notifications: {
           appointmentConfirmed: org.notify_appointment_confirmed ?? true,
           serviceStatus: org.notify_service_status ?? true,
@@ -91,6 +92,7 @@ export async function saveWhatsAppConfig(formData: FormData) {
     const apiToken = formData.get('api_token') as string
     const clientToken = formData.get('client_token') as string
     const logoUrl = formData.get('logo_url') as string
+    const mapaRegistration = formData.get('mapa_registration') as string || null
     
     // Notifications mapping
     const notify_appointment_confirmed = formData.get('notify_appointment_confirmed') === 'true'
@@ -113,6 +115,7 @@ export async function saveWhatsAppConfig(formData: FormData) {
     const payload: any = {
       wa_integration_type: integrationType,
       logo_url: logoUrl || null,
+      mapa_registration: mapaRegistration,
       notify_appointment_confirmed,
       notify_service_status,
       notify_reminder_24h,

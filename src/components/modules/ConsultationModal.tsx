@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import styles from './ConsultationModal.module.css'
-import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOrganizationLogo, getVetExamTypes, createVetExam, getVetExams, deleteVetExam } from '@/app/actions/veterinary'
+import { autosaveVetConsultation, getVeterinarians, finishVetConsultation, getOrganizationDetails, getVetExamTypes, createVetExam, getVetExams, deleteVetExam, updateExamPayment } from '@/app/actions/veterinary'
 import BodyMap from './BodyMap'
 import DateInput from '../ui/DateInput'
 import EmitirNFModal from '../EmitirNFModal'
@@ -25,6 +25,29 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
     const [nfData, setNfData] = useState<{ id: string, status: string, pdf_url?: string } | null>(null)
     const autosaveTimer = useRef<NodeJS.Timeout | null>(null)
     const pendingSave = useRef<{ field: string, value: any } | null>(null)
+
+    const [manualControl, setManualControl] = useState(false)
+    const [fetchingNumber, setFetchingNumber] = useState(false)
+
+    useEffect(() => {
+        async function fetchControlNumber() {
+            if (formData.is_controlled && !manualControl && !formData.control_number) {
+                try {
+                    setFetchingNumber(true)
+                    const { generateNextControlNumber } = await import('@/app/actions/veterinary')
+                    const res = await generateNextControlNumber()
+                    if (res.success && res.controlNumber) {
+                        handleFieldChange('control_number', res.controlNumber)
+                    }
+                } catch (err) {
+                    console.error('Error fetching control number:', err)
+                } finally {
+                    setFetchingNumber(false)
+                }
+            }
+        }
+        fetchControlNumber()
+    }, [formData.is_controlled, manualControl])
 
     // Exames
     const [examTypes, setExamTypes] = useState<any[]>([])
@@ -178,26 +201,23 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
             const { jsPDF } = await import('jspdf')
             const doc = new jsPDF()
 
-            let petName = consultation.pets?.name
-            let tutorName = consultation.pets?.customers?.name || consultation.pets?.customer?.name
+            // Fetch full pet and customer details to ensure we have CPF/Address
+            const { createClient } = await import('@/lib/supabase/client')
+            const supabase = createClient()
+            const { data: pet } = await supabase
+                .from('pets')
+                .select('name, species, breed, customers(name, cpf_cnpj, address, neighborhood, city, cep)')
+                .eq('id', formData.pet_id || consultation.pet_id)
+                .single()
 
-            if (!petName || !tutorName) {
-                const { createClient } = await import('@/lib/supabase/client')
-                const supabase = createClient()
-                const { data: pet } = await supabase
-                    .from('pets')
-                    .select('name, customers(name)')
-                    .eq('id', formData.pet_id || consultation.pet_id)
-                    .single()
-
-                if (pet) {
-                    petName = pet.name
-                    tutorName = Array.isArray(pet.customers) ? pet.customers[0]?.name : (pet.customers as any)?.name
-                }
-            }
-
-            petName = petName || 'Desconhecido'
-            tutorName = tutorName || 'Desconhecido'
+            const petName = pet?.name || 'Desconhecido'
+            const petSpecies = pet?.species || ''
+            const petBreed = pet?.breed || ''
+            
+            const tutor = pet?.customers ? (Array.isArray(pet.customers) ? pet.customers[0] : pet.customers as any) : null
+            const tutorName = tutor?.name || 'Desconhecido'
+            const tutorCpf = tutor?.cpf_cnpj || 'Não informado'
+            const tutorAddress = [tutor?.address, tutor?.neighborhood, tutor?.city, tutor?.cep].filter(Boolean).join(', ') || 'Não informado'
 
             const dateStr = formData.consultation_date
                 ? new Date(formData.consultation_date).toLocaleDateString('pt-BR')
@@ -206,59 +226,137 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
             const vet = vets.find(v => v.id === formData.veterinarian_id) || consultation.veterinarians
             const vetName = vet?.name || 'Veterinário não especificado'
             const vetCrmv = vet?.crmv || 'CRMV não especificado'
+            const vetCpf = vet?.cpf || 'Não especificado'
 
-            // --- Header com Logo ---
-            let yPos = 20
-            const orgLogo = await getOrganizationLogo()
-            
-            if (orgLogo) {
-                try {
-                    // Adiciona o logo mantendo a proporção (preserveAspectRatio)
-                    // Aumentando para 50x30mm para dar mais visibilidade
-                    doc.addImage(orgLogo, 'PNG', 105 - 25, yPos, 50, 30, undefined, 'FAST')
-                    yPos += 35
-                } catch (e) {
-                    console.error('Erro ao adicionar logo ao PDF:', e)
-                    // Tenta novamente sem especificar formato se falhar
-                    try {
-                        doc.addImage(orgLogo, 105 - 25, yPos, 50, 30)
-                        yPos += 35
-                    } catch(e2) {}
+            const isControlled = formData.is_controlled || false
+            const ctrlNum = formData.control_number || ''
+
+            if (isControlled) {
+                if (!tutorCpf || tutorCpf === 'Não informado') {
+                    alert('Atenção: O CPF do Tutor é obrigatório para receitas de controle especial. Atualize o cadastro do tutor.')
+                    return
+                }
+                if (!vetCpf || vetCpf === 'Não especificado') {
+                    alert('Atenção: O CPF do Veterinário é obrigatório para receitas de controle especial. Preencha o CPF do veterinário em seu perfil.')
+                    return
                 }
             }
 
-            doc.setFontSize(18)
-            doc.setFont('helvetica', 'bold')
-            doc.text('RECEITUÁRIO VETERINÁRIO', 105, yPos, { align: 'center' })
-            yPos += 15
+            const org = await getOrganizationDetails()
 
-            doc.setFontSize(12)
-            doc.setFont('helvetica', 'normal')
-            doc.text(`Tutor(a): ${tutorName}`, 20, yPos)
-            doc.text(`Data: ${dateStr}`, 150, yPos)
-            yPos += 10
-            doc.text(`Paciente: ${petName}`, 20, yPos)
-            yPos += 5
+            const vias = isControlled ? [
+                "1ª VIA - ESTABELECIMENTO COMERCIAL (RETIDA)",
+                "2ª VIA - PROPRIETÁRIO / TUTOR (ORIENTAÇÕES DE USO)",
+                "3ª VIA - MÉDICO VETERINÁRIO EMITENTE (ARQUIVO)"
+            ] : ["RECEITUÁRIO VETERINÁRIO"]
 
-            doc.setLineWidth(0.5)
-            doc.line(20, yPos, 190, yPos)
-            yPos += 10
+            for (let i = 0; i < vias.length; i++) {
+                if (i > 0) doc.addPage()
 
-            doc.setFontSize(11)
-            doc.setFont('helvetica', 'bold')
-            doc.text('Prescrição:', 20, yPos)
-            yPos += 10
+                let yPos = 20
 
-            doc.setFont('helvetica', 'normal')
-            const prescriptionText = formData.prescription || 'Nenhuma prescrição informada.'
-            const splitText = doc.splitTextToSize(prescriptionText, 170)
-            doc.text(splitText, 20, yPos)
+                // Logo
+                if (org?.logo_url) {
+                    try {
+                        doc.addImage(org.logo_url, 'PNG', 105 - 20, yPos, 40, 24, undefined, 'FAST')
+                        yPos += 28
+                    } catch (e) {
+                        yPos += 5
+                    }
+                }
 
-            const pageHeight = doc.internal.pageSize.height
-            doc.line(60, pageHeight - 40, 150, pageHeight - 40)
-            doc.setFontSize(10)
-            doc.text(`Dr(a). ${vetName}`, 105, pageHeight - 35, { align: 'center' })
-            doc.text(`CRMV: ${vetCrmv}`, 105, pageHeight - 30, { align: 'center' })
+                // Header Clinic info
+                doc.setFontSize(10)
+                doc.setFont('helvetica', 'normal')
+                doc.text(org?.name || 'Clínica Veterinária', 105, yPos, { align: 'center' })
+                yPos += 5
+                if (org?.phone) {
+                    doc.text(`Telefone: ${org.phone} | Cidade: ${org.city || ''}`, 105, yPos, { align: 'center' })
+                    yPos += 5
+                }
+                if (isControlled && org?.mapa_registration) {
+                    doc.text(`Registro MAPA: ${org.mapa_registration}`, 105, yPos, { align: 'center' })
+                    yPos += 5
+                }
+
+                yPos += 5
+                doc.setLineWidth(0.5)
+                doc.line(20, yPos, 190, yPos)
+                yPos += 10
+
+                // Title
+                doc.setFontSize(isControlled ? 14 : 16)
+                doc.setFont('helvetica', 'bold')
+                if (isControlled) {
+                    doc.text('RECEITUÁRIO DE CONTROLE ESPECIAL', 105, yPos, { align: 'center' })
+                    yPos += 6
+                    doc.setFontSize(12)
+                    doc.text(`Nº CONTROLE: ${ctrlNum}`, 105, yPos, { align: 'center' })
+                    yPos += 10
+                } else {
+                    doc.text('RECEITUÁRIO VETERINÁRIO', 105, yPos, { align: 'center' })
+                    yPos += 10
+                }
+
+                // Patient & Tutor
+                doc.setFontSize(10)
+                doc.setFont('helvetica', 'bold')
+                doc.text('PROPRIETÁRIO / TUTOR:', 20, yPos)
+                doc.setFont('helvetica', 'normal')
+                doc.text(`${tutorName} (CPF: ${tutorCpf})`, 70, yPos)
+                yPos += 6
+
+                if (isControlled) {
+                    doc.setFont('helvetica', 'bold')
+                    doc.text('ENDEREÇO:', 20, yPos)
+                    doc.setFont('helvetica', 'normal')
+                    const splitAddress = doc.splitTextToSize(tutorAddress, 120)
+                    doc.text(splitAddress, 70, yPos)
+                    yPos += (splitAddress.length * 5) + 1
+                }
+
+                doc.setFont('helvetica', 'bold')
+                doc.text('ANIMAL:', 20, yPos)
+                doc.setFont('helvetica', 'normal')
+                doc.text(`${petName} (${petSpecies} - ${petBreed})`, 70, yPos)
+                doc.text(`Data: ${dateStr}`, 150, yPos)
+                yPos += 10
+
+                doc.line(20, yPos, 190, yPos)
+                yPos += 10
+
+                // Prescription text
+                doc.setFontSize(11)
+                doc.setFont('helvetica', 'bold')
+                doc.text('Prescrição:', 20, yPos)
+                yPos += 8
+
+                doc.setFont('helvetica', 'normal')
+                const prescriptionText = formData.prescription || 'Nenhuma prescrição informada.'
+                const splitPresc = doc.splitTextToSize(prescriptionText, 170)
+                doc.text(splitPresc, 20, yPos)
+
+                // Footer Signature
+                const pageHeight = doc.internal.pageSize.height
+                doc.line(60, pageHeight - 35, 150, pageHeight - 35)
+                doc.setFontSize(10)
+                doc.setFont('helvetica', 'bold')
+                doc.text(`Dr(a). ${vetName}`, 105, pageHeight - 30, { align: 'center' })
+                doc.setFont('helvetica', 'normal')
+                if (isControlled) {
+                    doc.text(`CRMV: ${vetCrmv} | CPF: ${vetCpf}`, 105, pageHeight - 25, { align: 'center' })
+                } else {
+                    doc.text(`CRMV: ${vetCrmv}`, 105, pageHeight - 25, { align: 'center' })
+                }
+
+                // Stamp Via destination at the bottom
+                doc.setFontSize(8)
+                doc.setFont('helvetica', 'bold')
+                doc.setTextColor(120, 120, 120)
+                doc.line(20, pageHeight - 15, 190, pageHeight - 15)
+                doc.text(vias[i], 105, pageHeight - 10, { align: 'center' })
+                doc.setTextColor(0, 0, 0)
+            }
 
             doc.save(`Receita_${petName.replace(/\s+/g, '_')}_${dateStr.replace(/\//g, '-')}.pdf`)
         } catch (error) {
@@ -369,8 +467,8 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                     <div className={styles.formGroup}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
                             <label style={{ margin: 0 }}>Prescrição Médica / Receita</label>
-                            <button className={styles.actionBtn} style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }} onClick={handleGeneratePDF}>
-                                🖨️ Gerar PDF
+                            <button type="button" className={styles.actionBtn} style={{ padding: '0.25rem 0.75rem', fontSize: '0.85rem' }} onClick={handleGeneratePDF} disabled={fetchingNumber}>
+                                🖨️ Gerar PDF {formData.is_controlled && '(3 Vias Controladas)'}
                             </button>
                         </div>
                         <textarea
@@ -381,6 +479,72 @@ export default function ConsultationModal({ consultation, onClose, onSave, readO
                             placeholder="Liste os medicamentos, dosagens e horários..."
                             disabled={readOnly}
                         />
+
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            gap: '0.5rem', 
+                            marginTop: '0.5rem', 
+                            padding: '0.75rem', 
+                            background: 'rgba(140, 180, 201, 0.05)', 
+                            borderRadius: '6px', 
+                            border: '1px dashed var(--border)' 
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <input 
+                                    type="checkbox"
+                                    id="isControlled"
+                                    checked={formData.is_controlled || false}
+                                    onChange={(e) => {
+                                        handleFieldChange('is_controlled', e.target.checked)
+                                        if (!e.target.checked) {
+                                            handleFieldChange('control_number', '')
+                                            setManualControl(false)
+                                        }
+                                    }}
+                                    disabled={readOnly}
+                                    style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                />
+                                <label htmlFor="isControlled" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                    Receituário de Controle Especial (SIPEAGRO/MAPA)
+                                </label>
+                            </div>
+
+                            {(formData.is_controlled) && (
+                                <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                        <input 
+                                            type="checkbox"
+                                            id="manualControl"
+                                            checked={manualControl}
+                                            onChange={(e) => {
+                                                setManualControl(e.target.checked)
+                                                handleFieldChange('control_number', '')
+                                            }}
+                                            disabled={readOnly}
+                                            style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="manualControl" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', margin: 0 }}>
+                                            Digitar número de controle manualmente
+                                        </label>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                        <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Número de Controle SIPEAGRO</label>
+                                        <input
+                                            type="text"
+                                            className={styles.input}
+                                            style={{ padding: '0.5rem', fontSize: '0.85rem' }}
+                                            placeholder={fetchingNumber ? "Gerando número..." : "Ex: RC-2026-00001"}
+                                            value={formData.control_number || ''}
+                                            onChange={(e) => handleFieldChange('control_number', e.target.value)}
+                                            disabled={!manualControl || fetchingNumber || readOnly}
+                                            required={formData.is_controlled}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className={styles.formGroup}>

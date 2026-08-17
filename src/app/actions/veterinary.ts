@@ -53,6 +53,7 @@ export async function createVeterinarian(formData: FormData) {
 
         const name = formData.get('name') as string
         const crmv = formData.get('crmv') as string
+        const cpf = formData.get('cpf') as string || null
         const specialty = formData.get('specialty') as string || null
         const phone = formData.get('phone') as string || null
         const email = formData.get('email') as string || null
@@ -99,6 +100,7 @@ export async function createVeterinarian(formData: FormData) {
             org_id: profile.org_id,
             name,
             crmv,
+            cpf,
             specialty,
             phone,
             email,
@@ -138,6 +140,7 @@ export async function updateVeterinarian(formData: FormData) {
         const id = formData.get('id') as string
         const name = formData.get('name') as string
         const crmv = formData.get('crmv') as string
+        const cpf = formData.get('cpf') as string || null
         const specialty = formData.get('specialty') as string || null
         const phone = formData.get('phone') as string || null
         const email = formData.get('email') as string || null
@@ -202,6 +205,7 @@ export async function updateVeterinarian(formData: FormData) {
             .update({
                 name,
                 crmv,
+                cpf,
                 specialty,
                 phone,
                 email,
@@ -233,8 +237,8 @@ export async function getVetConsultations(petId: string) {
             .select(`
                 id, consultation_date, reason, anamnesis, diagnosis, treatment, prescription, notes, 
                 consultation_fee, discount_type, discount_percent, discount_fixed, 
-                payment_status, payment_method, pet_id,
-                veterinarians:veterinarian_id(name, crmv)
+                payment_status, payment_method, pet_id, is_controlled, control_number,
+                veterinarians:veterinarian_id(name, crmv, cpf)
             `)
             .eq('pet_id', petId)
             .order('consultation_date', { ascending: false })
@@ -270,6 +274,8 @@ export async function createVetConsultation(formData: FormData) {
         const prescription = formData.get('prescription') as string || null
         const anamnesis = formData.get('anamnesis') as string || null
         const notes = formData.get('notes') as string || null
+        const is_controlled = formData.get('is_controlled') === 'true'
+        const control_number = formData.get('control_number') as string || null
 
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
         const discount_type = formData.get('discount_type') as string || 'percent'
@@ -299,6 +305,8 @@ export async function createVetConsultation(formData: FormData) {
                 discount_fixed,
                 payment_status,
                 payment_method,
+                is_controlled,
+                control_number,
                 created_by: user.id
             })
             .select('id')
@@ -352,6 +360,8 @@ export async function updateVetConsultation(formData: FormData) {
         const prescription = formData.get('prescription') as string || null
         const anamnesis = formData.get('anamnesis') as string || null
         const notes = formData.get('notes') as string || null
+        const is_controlled = formData.get('is_controlled') === 'true'
+        const control_number = formData.get('control_number') as string || null
         const consultation_fee = parseFloat(formData.get('consultation_fee') as string || '0')
         const discount_type = formData.get('discount_type') as string || 'percent'
         const discount_percent = parseFloat(formData.get('discount_percent') as string || '0')
@@ -375,7 +385,9 @@ export async function updateVetConsultation(formData: FormData) {
                 discount_percent,
                 discount_fixed,
                 payment_status,
-                payment_method
+                payment_method,
+                is_controlled,
+                control_number
             })
             .eq('id', id)
 
@@ -744,6 +756,7 @@ export async function registerCurrentAdminAsVet(formData: FormData) {
         if (!profile?.org_id) return { success: false, message: 'Organização não encontrada.' }
 
         const crmv = formData.get('crmv') as string
+        const cpf = formData.get('cpf') as string || null
         const specialty = formData.get('specialty') as string || null
 
         if (!crmv) return { success: false, message: 'CRMV é obrigatório.' }
@@ -753,9 +766,25 @@ export async function registerCurrentAdminAsVet(formData: FormData) {
             .from('veterinarians')
             .select('id')
             .eq('user_id', user.id)
-            .single()
+            .maybeSingle()
 
-        if (existing) return { success: false, message: 'Você já possui um perfil de veterinário ativo.' }
+        if (existing) {
+            // Se já existe, atualiza os dados
+            const { error } = await supabase
+                .from('veterinarians')
+                .update({
+                    crmv,
+                    cpf,
+                    specialty
+                })
+                .eq('id', existing.id)
+
+            if (error) throw error
+
+            revalidatePath('/owner/profile')
+            revalidatePath('/owner/veterinary')
+            return { success: true, message: 'Perfil profissional atualizado com sucesso!' }
+        }
 
         const { error } = await supabase
             .from('veterinarians')
@@ -764,6 +793,7 @@ export async function registerCurrentAdminAsVet(formData: FormData) {
                 user_id: user.id,
                 name: profile.full_name || user.email,
                 crmv,
+                cpf,
                 specialty,
                 phone: profile.phone,
                 email: user.email,
@@ -1375,6 +1405,172 @@ export async function getOrganizationLogo() {
         return org?.logo_url || null
     } catch (error) {
         console.error('Error fetching org logo:', error)
+        return null
+    }
+}
+
+export async function createPrescription(formData: FormData) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
+
+        const pet_id = formData.get('pet_id') as string
+        const veterinarian_id = formData.get('veterinarian_id') as string || null
+        const consultation_id = formData.get('consultation_id') as string || null
+        const prescription_text = formData.get('prescription_text') as string
+        const is_controlled = formData.get('is_controlled') === 'true'
+        const control_number = formData.get('control_number') as string || null
+
+        if (!pet_id) return { success: false, message: 'Pet não informado.' }
+        if (!prescription_text) return { success: false, message: 'Texto da receita não informado.' }
+
+        const { data, error } = await supabase
+            .from('vet_prescriptions')
+            .insert({
+                org_id: profile.org_id,
+                pet_id,
+                veterinarian_id,
+                consultation_id,
+                is_controlled,
+                control_number,
+                prescription_text
+            })
+            .select('id')
+            .single()
+
+        if (error) throw error
+
+        revalidatePath('/owner/pets')
+        revalidatePath('/owner/consultas')
+        return { success: true, message: 'Receita salva com sucesso!', data }
+    } catch (error: any) {
+        console.error('Error creating prescription:', error)
+        return { success: false, message: error.message }
+    }
+}
+
+export async function getPrescriptionsByPet(petId: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado', data: [] }
+
+        const { data, error } = await supabase
+            .from('vet_prescriptions')
+            .select(`
+                *,
+                veterinarians(name, crmv)
+            `)
+            .eq('pet_id', petId)
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return { success: true, data }
+    } catch (error: any) {
+        console.error('Error fetching prescriptions:', error)
+        return { success: false, message: error.message, data: [] }
+    }
+}
+
+export async function deletePrescription(id: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { error } = await supabase
+            .from('vet_prescriptions')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+
+        revalidatePath('/owner/pets')
+        return { success: true, message: 'Receita excluída com sucesso!' }
+    } catch (error: any) {
+        console.error('Error deleting prescription:', error)
+        return { success: false, message: error.message }
+    }
+}
+
+export async function generateNextControlNumber() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, message: 'Não autorizado' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
+
+        // Faremos uma transação segura:
+        // 1. Obter o último número e o estado da clínica
+        const { data: org, error: orgError } = await supabase
+            .from('organizations')
+            .select('last_controlled_prescription_number, city')
+            .eq('id', profile.org_id)
+            .single()
+
+        if (orgError) throw orgError
+
+        const nextNum = (org.last_controlled_prescription_number || 0) + 1
+
+        // 2. Incrementar no banco
+        const { error: updateError } = await supabase
+            .from('organizations')
+            .update({ last_controlled_prescription_number: nextNum })
+            .eq('id', profile.org_id)
+
+        if (updateError) throw updateError
+
+        // 3. Montar o número no formato EX: UF-ANO-SEQUENCIAL (ex: SP-2026-00001)
+        const currentYear = new Date().getFullYear()
+        const formattedNum = String(nextNum).padStart(5, '0')
+        const controlNumber = `RC-${currentYear}-${formattedNum}`
+
+        return { success: true, controlNumber }
+    } catch (error: any) {
+        console.error('Error generating control number:', error)
+        return { success: false, message: error.message }
+    }
+}
+
+export async function getOrganizationDetails() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return null
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.org_id) return null
+
+        const { data: org } = await supabase
+            .from('organizations')
+            .select('name, logo_url, mapa_registration, phone, city')
+            .eq('id', profile.org_id)
+            .single()
+
+        return org || null
+    } catch (error) {
+        console.error('Error fetching org details:', error)
         return null
     }
 }

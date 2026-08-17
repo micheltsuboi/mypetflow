@@ -32,7 +32,10 @@ import {
     getVetExams,
     createVetExam,
     deleteVetExam,
-    updateExamPayment
+    updateExamPayment,
+    getPrescriptionsByPet,
+    deletePrescription,
+    getOrganizationDetails
 } from '@/app/actions/veterinary'
 import {
     getPetVaccinations, 
@@ -54,6 +57,7 @@ import {
     getActiveSubscriptions
 } from '@/app/actions/subscription'
 import ConsultationModal from '@/components/modules/ConsultationModal'
+import PrescriptionModal from '@/components/modules/PrescriptionModal'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 import Pagination from '@/components/ui/Pagination'
 import { getPetAdmissionsHistory, getAllAdmissionMedications } from '@/app/actions/hospital'
@@ -172,6 +176,8 @@ function PetsContent() {
     const [currentVet, setCurrentVet] = useState<any>(null)
     const [showConsultationModal, setShowConsultationModal] = useState(false)
     const [activeConsultation, setActiveConsultation] = useState<any | null>(null)
+    const [showPrescriptionModal, setShowPrescriptionModal] = useState(false)
+    const [prescriptions, setPrescriptions] = useState<any[]>([])
     const [userRole, setUserRole] = useState<string | null>(null)
 
     // Other State
@@ -331,6 +337,136 @@ function PetsContent() {
         }
     }
 
+    const handleReprintPrescription = async (p: any) => {
+        try {
+            const { jsPDF } = await import('jspdf')
+            const doc = new jsPDF()
+            
+            const org = await getOrganizationDetails()
+            const tutor = (selectedPet as any)?.customers || (selectedPet as any)?.customer
+            const tutorName = tutor?.name || 'Não informado'
+            const tutorCpf = tutor?.cpf_cnpj || tutor?.cpf || 'Não informado'
+            const tutorAddress = [tutor?.address, tutor?.neighborhood, tutor?.city, tutor?.cep].filter(Boolean).join(', ') || 'Não informado'
+            
+            const vetName = p.veterinarians?.name || 'Não informado'
+            const vetCrmv = p.veterinarians?.crmv || 'Não informado'
+            const vetCpf = p.veterinarians?.cpf || 'Não informado'
+            
+            const vias = p.is_controlled ? [
+                "1ª VIA - ESTABELECIMENTO COMERCIAL (RETIDA)",
+                "2ª VIA - PROPRIETÁRIO / TUTOR (ORIENTAÇÕES DE USO)",
+                "3ª VIA - MÉDICO VETERINÁRIO EMITENTE (ARQUIVO)"
+            ] : ["RECEITUÁRIO VETERINÁRIO"]
+            
+            const dateStr = new Date(p.created_at || p.consultation_date).toLocaleDateString('pt-BR')
+            
+            for (let i = 0; i < vias.length; i++) {
+                if (i > 0) doc.addPage()
+                
+                let yPos = 20
+                
+                if (org?.logo_url) {
+                    try {
+                        doc.addImage(org.logo_url, 'PNG', 105 - 20, yPos, 40, 24, undefined, 'FAST')
+                        yPos += 28
+                    } catch (e) {
+                        yPos += 5
+                    }
+                }
+                
+                doc.setFontSize(10)
+                doc.setFont('helvetica', 'normal')
+                doc.text(org?.name || 'Clínica Veterinária', 105, yPos, { align: 'center' })
+                yPos += 5
+                if (org?.phone) {
+                    doc.text(`Telefone: ${org.phone} | Cidade: ${org.city || ''}`, 105, yPos, { align: 'center' })
+                    yPos += 5
+                }
+                if (p.is_controlled && org?.mapa_registration) {
+                    doc.text(`Registro MAPA: ${org.mapa_registration}`, 105, yPos, { align: 'center' })
+                    yPos += 5
+                }
+                
+                yPos += 5
+                doc.setLineWidth(0.5)
+                doc.line(20, yPos, 190, yPos)
+                yPos += 10
+                
+                doc.setFontSize(p.is_controlled ? 14 : 16)
+                doc.setFont('helvetica', 'bold')
+                if (p.is_controlled) {
+                    doc.text('RECEITUÁRIO DE CONTROLE ESPECIAL', 105, yPos, { align: 'center' })
+                    yPos += 6
+                    doc.setFontSize(12)
+                    doc.text(`Nº CONTROLE: ${p.control_number}`, 105, yPos, { align: 'center' })
+                    yPos += 10
+                } else {
+                    doc.text('RECEITUÁRIO VETERINÁRIO', 105, yPos, { align: 'center' })
+                    yPos += 10
+                }
+                
+                doc.setFontSize(10)
+                doc.setFont('helvetica', 'bold')
+                doc.text('PROPRIETÁRIO / TUTOR:', 20, yPos)
+                doc.setFont('helvetica', 'normal')
+                doc.text(`${tutorName} (CPF: ${tutorCpf})`, 70, yPos)
+                yPos += 6
+                
+                if (p.is_controlled) {
+                    doc.setFont('helvetica', 'bold')
+                    doc.text('ENDEREÇO:', 20, yPos)
+                    doc.setFont('helvetica', 'normal')
+                    const splitAddress = doc.splitTextToSize(tutorAddress, 120)
+                    doc.text(splitAddress, 70, yPos)
+                    yPos += (splitAddress.length * 5) + 1
+                }
+                
+                doc.setFont('helvetica', 'bold')
+                doc.text('ANIMAL:', 20, yPos)
+                doc.setFont('helvetica', 'normal')
+                doc.text(`${selectedPet?.name || 'Desconhecido'} (${selectedPet?.species || ''} - ${selectedPet?.breed || ''})`, 70, yPos)
+                doc.text(`Data: ${dateStr}`, 150, yPos)
+                yPos += 10
+                
+                doc.line(20, yPos, 190, yPos)
+                yPos += 10
+                
+                doc.setFontSize(11)
+                doc.setFont('helvetica', 'bold')
+                doc.text('Prescrição:', 20, yPos)
+                yPos += 8
+                
+                doc.setFont('helvetica', 'normal')
+                const splitPresc = doc.splitTextToSize(p.prescription_text || p.prescription, 170)
+                doc.text(splitPresc, 20, yPos)
+                
+                const pageHeight = doc.internal.pageSize.height
+                doc.line(60, pageHeight - 35, 150, pageHeight - 35)
+                doc.setFontSize(10)
+                doc.setFont('helvetica', 'bold')
+                doc.text(`Dr(a). ${vetName}`, 105, pageHeight - 30, { align: 'center' })
+                doc.setFont('helvetica', 'normal')
+                if (p.is_controlled) {
+                    doc.text(`CRMV: ${vetCrmv} | CPF: ${vetCpf}`, 105, pageHeight - 25, { align: 'center' })
+                } else {
+                    doc.text(`CRMV: ${vetCrmv}`, 105, pageHeight - 25, { align: 'center' })
+                }
+                
+                doc.setFontSize(8)
+                doc.setFont('helvetica', 'bold')
+                doc.setTextColor(120, 120, 120)
+                doc.line(20, pageHeight - 15, 190, pageHeight - 15)
+                doc.text(vias[i], 105, pageHeight - 10, { align: 'center' })
+                doc.setTextColor(0, 0, 0)
+            }
+            
+            doc.save(`Receita_${selectedPet?.name || 'Pet'}_${dateStr.replace(/\//g, '-')}.pdf`)
+        } catch (e) {
+            console.error('Error reprinting PDF:', e)
+            alert('Erro ao gerar PDF.')
+        }
+    }
+
     const toggleAccordion = async (key: keyof typeof accordions) => {
         setAccordions(prev => ({ ...prev, [key]: !prev[key] }))
 
@@ -355,6 +491,7 @@ function PetsContent() {
             } else if (key === 'medical') {
                 getVetConsultations(selectedPet.id).then(setVetConsultations)
                 getVetRecords(selectedPet.id).then(setVetRecords)
+                getPrescriptionsByPet(selectedPet.id).then(res => { if (res.success) setPrescriptions(res.data) })
             } else if (key === 'hospital') {
                 getPetAdmissionsHistory(selectedPet.id).then(setHospitalHistory)
             } else if (key === 'exams') {
@@ -1329,14 +1466,20 @@ function PetsContent() {
                                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'center' }}>
                                                 <h4 style={{ margin: 0 }}>Histórico de Atendimentos</h4>
                                                 {!isReadOnly && (
-                                                    <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={async () => {
-                                                        if (!selectedPet) return
-                                                        const res = await createBlankConsultation(selectedPet.id)
-                                                        if (res.success) {
-                                                            setActiveConsultation(res.data)
-                                                            setShowConsultationModal(true)
-                                                        }
-                                                    }}>+ Nova Consulta</button>
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={async () => {
+                                                            if (!selectedPet) return
+                                                            const res = await createBlankConsultation(selectedPet.id)
+                                                            if (res.success) {
+                                                                setActiveConsultation(res.data)
+                                                                setShowConsultationModal(true)
+                                                            }
+                                                        }}>+ Nova Consulta</button>
+                                                        <button className={styles.addButton} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'var(--accent-primary)', border: 'none' }} onClick={() => {
+                                                            if (!selectedPet) return
+                                                            setShowPrescriptionModal(true)
+                                                        }}>+ Nova Receita Avulsa</button>
+                                                    </div>
                                                 )}
                                             </div>
                                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -1345,6 +1488,19 @@ function PetsContent() {
                                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                             <div>
                                                                 <strong>{safeFormatDate(c.consultation_date)} - {c.veterinarians?.name || 'VET'}</strong>
+                                                                {c.is_controlled && (
+                                                                    <span style={{ 
+                                                                        fontSize: '0.7rem', 
+                                                                        padding: '2px 6px', 
+                                                                        borderRadius: '4px', 
+                                                                        background: 'rgba(245,158,11,0.1)',
+                                                                        color: '#f59e0b',
+                                                                        marginLeft: '0.5rem',
+                                                                        fontWeight: 600
+                                                                    }}>
+                                                                        CONTROLE ESPECIAL ({c.control_number})
+                                                                    </span>
+                                                                )}
                                                                 <span style={{ 
                                                                     fontSize: '0.7rem', 
                                                                     padding: '2px 6px', 
@@ -1357,11 +1513,61 @@ function PetsContent() {
                                                                     {c.payment_status === 'paid' ? 'PAGO' : c.payment_status === 'partial' ? 'PARCIAL' : 'PENDENTE'}
                                                                 </span>
                                                             </div>
-                                                            <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => { setActiveConsultation(c); setShowConsultationModal(true); }}>Abrir</button>
+                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                {c.prescription && (
+                                                                    <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => handleReprintPrescription(c)}>Receita</button>
+                                                                )}
+                                                                <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => { setActiveConsultation(c); setShowConsultationModal(true); }}>Abrir</button>
+                                                            </div>
                                                         </div>
                                                         <p style={{ fontSize: '0.85rem', margin: '0.25rem 0' }}>{c.reason}</p>
                                                     </div>
                                                 ))}
+                                            </div>
+
+                                            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+                                                <h4 style={{ margin: '0 0 1rem 0' }}>Receitas Médicas Avulsas</h4>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                    {prescriptions.length === 0 ? <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nenhuma receita emitida.</p> : prescriptions.map(p => (
+                                                        <div key={p.id} style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div>
+                                                                    <strong>{safeFormatDate(p.created_at)} - {p.veterinarians?.name || 'VET'}</strong>
+                                                                    {p.is_controlled && (
+                                                                        <span style={{ 
+                                                                            fontSize: '0.7rem', 
+                                                                            padding: '2px 6px', 
+                                                                            borderRadius: '4px', 
+                                                                            background: 'rgba(245,158,11,0.1)',
+                                                                            color: '#f59e0b',
+                                                                            marginLeft: '0.5rem',
+                                                                            fontWeight: 600
+                                                                        }}>
+                                                                            CONTROLE ESPECIAL ({p.control_number})
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                    <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => handleReprintPrescription(p)}>Imprimir</button>
+                                                                    {!isReadOnly && (
+                                                                        <button className={styles.actionBtn} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', background: 'rgba(239,68,68,0.1)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }} onClick={async () => {
+                                                                            if (confirm('Deseja realmente excluir esta receita?')) {
+                                                                                const res = await deletePrescription(p.id)
+                                                                                if (res.success) {
+                                                                                    alert(res.message)
+                                                                                    getPrescriptionsByPet(selectedPet.id).then(r => { if (r.success) setPrescriptions(r.data) })
+                                                                                } else {
+                                                                                    alert(res.message)
+                                                                                }
+                                                                            }
+                                                                        }}>Excluir</button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <p style={{ fontSize: '0.85rem', margin: '0.5rem 0 0 0', whiteSpace: 'pre-line', color: 'var(--text-secondary)' }}>{p.prescription_text}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -2322,15 +2528,28 @@ function PetsContent() {
                 />
             )}
             {showConsultationModal && activeConsultation && (
-                <ConsultationModal
-                    consultation={activeConsultation}
-                    readOnly={isReadOnly}
-                    onClose={() => {
-                        setShowConsultationModal(false);
-                        if (selectedPet) getVetConsultations(selectedPet.id).then(setVetConsultations);
-                    }}
-                />
-            )}
+                                <ConsultationModal
+                                    consultation={activeConsultation}
+                                    readOnly={isReadOnly}
+                                    onClose={() => {
+                                        setShowConsultationModal(false);
+                                        if (selectedPet) getVetConsultations(selectedPet.id).then(setVetConsultations);
+                                    }}
+                                />
+                            )}
+                            {showPrescriptionModal && selectedPet && (
+                                <PrescriptionModal
+                                    pet={selectedPet}
+                                    onClose={() => setShowPrescriptionModal(false)}
+                                    onSave={() => {
+                                        if (selectedPet) {
+                                            getPrescriptionsByPet(selectedPet.id).then(res => {
+                                                if (res.success) setPrescriptions(res.data)
+                                            })
+                                        }
+                                    }}
+                                />
+                            )}
             {showPackagePaymentModal && selectedPackageToPay && (
                 <FinanceiroPaymentModal
                     recordId={selectedPackageToPay.customer_package_id}

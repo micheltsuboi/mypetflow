@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { createUser, updateUser } from '@/app/actions/user'
 import PlanGuard from '@/components/modules/PlanGuard'
 import PageHelpModal from '@/components/ui/PageHelpModal'
+import { maskCPF } from '@/utils/masks'
 
 export interface WorkScheduleDay {
     day: number
@@ -80,6 +81,7 @@ export default function UsuariosPage() {
     const [selectedRole, setSelectedRole] = useState<string>('staff')
     const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
     const [crmv, setCrmv] = useState('')
+    const [cpf, setCpf] = useState('')
     const [specialty, setSpecialty] = useState('')
 
     // Server Action State - Create
@@ -117,7 +119,7 @@ export default function UsuariosPage() {
             // Fetch veterinarians
             const { data: vetsData } = await supabase
                 .from('veterinarians')
-                .select('user_id, crmv, specialty')
+                .select('user_id, crmv, cpf, specialty')
                 .eq('org_id', currentUserProfile.org_id)
             
             if (vetsData) setVets(vetsData)
@@ -155,6 +157,7 @@ export default function UsuariosPage() {
         setSelectedPermissions(user.permissions || [])
         const vet = vets.find(v => v.user_id === user.id)
         setCrmv(vet?.crmv || '')
+        setCpf(vet?.cpf ? maskCPF(vet.cpf) : '')
         setSpecialty(vet?.specialty || '')
         setShowEditModal(true)
     }
@@ -205,6 +208,7 @@ export default function UsuariosPage() {
                         setSelectedRole('staff');
                         setSelectedPermissions([]);
                         setCrmv('');
+                        setCpf('');
                         setSpecialty('');
                         setShowModal(true)
                     }}>
@@ -386,6 +390,18 @@ export default function UsuariosPage() {
                                             />
                                         </div>
                                         <div className={styles.formGroup} style={{ flex: 1 }}>
+                                            <label htmlFor="cpf" className={styles.label}>CPF Veterinário</label>
+                                            <input
+                                                id="cpf"
+                                                name="cpf"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="000.000.000-00"
+                                                value={cpf}
+                                                onChange={e => setCpf(maskCPF(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ flex: 1 }}>
                                             <label htmlFor="specialty" className={styles.label}>Especialidade</label>
                                             <input
                                                 id="specialty"
@@ -539,6 +555,18 @@ export default function UsuariosPage() {
                                                 placeholder="Ex: 12345/SP"
                                                 value={crmv}
                                                 onChange={e => setCrmv(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup} style={{ flex: 1 }}>
+                                            <label htmlFor="editCpf" className={styles.label}>CPF Veterinário</label>
+                                            <input
+                                                id="editCpf"
+                                                name="cpf"
+                                                type="text"
+                                                className={styles.input}
+                                                placeholder="000.000.000-00"
+                                                value={cpf}
+                                                onChange={e => setCpf(maskCPF(e.target.value))}
                                             />
                                         </div>
                                         <div className={styles.formGroup} style={{ flex: 1 }}>

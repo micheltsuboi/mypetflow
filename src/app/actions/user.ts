@@ -36,6 +36,7 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
     const workScheduleStr = formData.get('workSchedule') as string
     const permissionsStr = formData.get('permissions') as string
     const crmv = formData.get('crmv') as string
+    const cpf = formData.get('cpf') as string || null
     const specialty = formData.get('specialty') as string || null
 
     if (!email || !password || !fullName || !role) {
@@ -107,6 +108,7 @@ export async function createUser(prevState: CreateUserState, formData: FormData)
                 user_id: newUser.user.id,
                 name: fullName,
                 crmv,
+                cpf,
                 specialty,
                 email,
                 is_active: true
@@ -149,6 +151,7 @@ export async function updateUser(prevState: any, formData: FormData) {
     const permissionsStr = formData.get('permissions') as string
     const isActive = formData.get('isActive') === 'true'
     const crmv = formData.get('crmv') as string
+    const cpf = formData.get('cpf') as string || null
     const specialty = formData.get('specialty') as string || null
 
     if (!userId || !fullName || !role) {
@@ -221,6 +224,7 @@ export async function updateUser(prevState: any, formData: FormData) {
                     .update({
                         name: fullName,
                         crmv,
+                        cpf,
                         specialty,
                         email: userEmail,
                         is_active: isActive
@@ -239,6 +243,7 @@ export async function updateUser(prevState: any, formData: FormData) {
                         user_id: userId,
                         name: fullName,
                         crmv,
+                        cpf,
                         specialty,
                         email: userEmail,
                         is_active: isActive,

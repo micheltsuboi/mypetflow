@@ -17,6 +17,7 @@ export default function IntegracoesPage() {
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [logoUrl, setLogoUrl] = useState<string | null>(null)
+    const [mapaRegistration, setMapaRegistration] = useState('')
     const [notifications, setNotifications] = useState({
         appointmentConfirmed: true,
         serviceStatus: true,
@@ -38,6 +39,7 @@ export default function IntegracoesPage() {
                     setHasExistingToken(res.data.hasToken)
                     setHasExistingClientToken(res.data.hasClientToken || false)
                     setLogoUrl(res.data.logoUrl || null)
+                    setMapaRegistration(res.data.mapaRegistration || '')
                     if (res.data.notifications) {
                         setNotifications(res.data.notifications as any)
                     }
@@ -64,6 +66,7 @@ export default function IntegracoesPage() {
         formData.append('api_token', apiToken)
         formData.append('client_token', clientToken)
         formData.append('logo_url', logoUrl || '')
+        formData.append('mapa_registration', mapaRegistration || '')
         
         // Notifications
         formData.append('notify_appointment_confirmed', String(notifications.appointmentConfirmed))
@@ -191,9 +194,20 @@ export default function IntegracoesPage() {
                     )}
 
                     <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid rgba(140, 180, 201, 0.1)' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#fff' }}>Logo da Clínica / Pet Shop</h3>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Este logo será exibido nos cabeçalhos dos documentos gerados (Receitas, Prontuários, etc).</p>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1rem', color: '#fff' }}>Logo e Dados da Clínica</h3>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Esses dados serão exibidos nos cabeçalhos dos documentos gerados (Receitas, Prontuários, etc).</p>
                         
+                        <div className={styles.formGroup} style={{ marginBottom: '1.5rem' }}>
+                            <label className={styles.label}>Nº Registro MAPA / SIPEAGRO da Clínica</label>
+                            <input 
+                                className={styles.input} 
+                                type="text" 
+                                placeholder="Ex: SP-001234-V"
+                                value={mapaRegistration}
+                                onChange={(e) => setMapaRegistration(e.target.value)}
+                            />
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'center' }}>
                             <ImageUpload 
                                 bucket="logos" 

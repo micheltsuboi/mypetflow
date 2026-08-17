@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import styles from './page.module.css'
 import ImageUpload from '@/components/ImageUpload'
-import { maskPhone } from '@/utils/masks'
+import { maskPhone, maskCPF } from '@/utils/masks'
 import { registerCurrentAdminAsVet } from '@/app/actions/veterinary'
 
 import { Profile } from '@/types/database'
@@ -27,6 +27,7 @@ export default function ProfilePage() {
     const [isVet, setIsVet] = useState(false)
     const [vetData, setVetData] = useState({
         crmv: '',
+        cpf: '',
         specialty: '',
         loading: false
     })
@@ -64,6 +65,7 @@ export default function ProfilePage() {
                         setIsVet(true)
                         setVetData({
                             crmv: vet.crmv || '',
+                            cpf: maskCPF(vet.cpf || ''),
                             specialty: vet.specialty || '',
                             loading: false
                         })
@@ -140,6 +142,7 @@ export default function ProfilePage() {
             setVetData(prev => ({ ...prev, loading: true }))
             const form = new FormData()
             form.append('crmv', vetData.crmv)
+            form.append('cpf', vetData.cpf.replace(/\D/g, ''))
             form.append('specialty', vetData.specialty)
 
             const res = await registerCurrentAdminAsVet(form)
@@ -279,7 +282,17 @@ export default function ProfilePage() {
                                 onChange={e => setVetData({ ...vetData, crmv: e.target.value })}
                                 className={styles.input}
                                 placeholder="Ex: 12345/SP"
-                                disabled={isVet}
+                                required
+                            />
+                        </div>
+                        <div className={styles.formGroup}>
+                            <label>CPF Profissional (Obrigatório para SIPEAGRO)</label>
+                            <input
+                                type="text"
+                                value={vetData.cpf}
+                                onChange={e => setVetData({ ...vetData, cpf: maskCPF(e.target.value) })}
+                                className={styles.input}
+                                placeholder="000.000.000-00"
                                 required
                             />
                         </div>
@@ -291,19 +304,16 @@ export default function ProfilePage() {
                                 onChange={e => setVetData({ ...vetData, specialty: e.target.value })}
                                 className={styles.input}
                                 placeholder="Ex: Dermatologia, Cirurgia"
-                                disabled={isVet}
                             />
                         </div>
-                        {!isVet && (
-                            <div className={styles.buttonGroup}>
-                                <button type="submit" className={styles.saveButton} disabled={vetData.loading || !vetData.crmv}>
-                                    {vetData.loading ? 'Ativando...' : 'Ativar Perfil de Veterinário'}
-                                </button>
-                            </div>
-                        )}
+                        <div className={styles.buttonGroup}>
+                            <button type="submit" className={styles.saveButton} disabled={vetData.loading || !vetData.crmv || !vetData.cpf}>
+                                {vetData.loading ? 'Salvando...' : (isVet ? 'Salvar Alterações Profissionais' : 'Ativar Perfil de Veterinário')}
+                            </button>
+                        </div>
                         {isVet && (
                             <p style={{ color: 'var(--success)', fontWeight: '500', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-                                ✓ Perfil de Veterinário Ativo
+                                ✓ Perfil de Veterinário Ativo e Editável
                             </p>
                         )}
                     </form>
