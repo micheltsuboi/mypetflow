@@ -278,7 +278,7 @@ export default function CrechePage() {
         } finally {
             if (!isBackground) setLoading(false)
         }
-    }, [supabase, dateRange, customStartDate, customEndDate, viewMode])
+    }, [dateRange, customStartDate, customEndDate, viewMode])
 
     useEffect(() => {
         fetchCrecheData()
@@ -307,7 +307,7 @@ export default function CrechePage() {
             )
             .subscribe()
         return () => { supabase.removeChannel(channel) }
-    }, [supabase])
+    }, [])
 
     const handleCheckIn = (appointmentId: string) => {
         const currentObj = appointments.find(a => a.id === appointmentId)

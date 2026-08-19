@@ -198,7 +198,7 @@ export default function TutorsPage() {
         } finally {
             if (isInitial) setLoading(false)
         }
-    }, [supabase, debouncedSearchTerm, currentPage, pageSize, sortBy])
+    }, [debouncedSearchTerm, currentPage, pageSize, sortBy])
 
     useEffect(() => {
         fetchTutors(tutors.length === 0)

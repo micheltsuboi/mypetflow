@@ -549,7 +549,7 @@ export default function FinanceiroPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, startDate, endDate])
+    }, [startDate, endDate])
 
     // Helper para buscar notas fiscais filtradas
     const getFilteredNFs = () => {
@@ -635,7 +635,7 @@ export default function FinanceiroPage() {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [supabase])
+    }, [])
 
     const handleOpenExtract = (type: 'revenue' | 'expenses' | 'pending') => {
         setExtractRecords(prev => ({ ...prev, type }))

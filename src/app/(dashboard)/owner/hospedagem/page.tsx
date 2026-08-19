@@ -268,7 +268,7 @@ export default function HospedagemPage() {
         } finally {
             if (!isBackground) setLoading(false)
         }
-    }, [supabase, dateRange, customStartDate, customEndDate, viewMode])
+    }, [dateRange, customStartDate, customEndDate, viewMode])
 
     useEffect(() => {
         fetchHospedagemData()
@@ -297,7 +297,7 @@ export default function HospedagemPage() {
             )
             .subscribe()
         return () => { supabase.removeChannel(channel) }
-    }, [supabase])
+    }, [])
 
     const handleCheckIn = (appointmentId: string) => {
         const currentObj = appointments.find(a => a.id === appointmentId)

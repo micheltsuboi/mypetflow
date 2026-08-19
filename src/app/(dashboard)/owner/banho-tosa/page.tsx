@@ -278,7 +278,7 @@ export default function BanhoTosaPage() {
         } finally {
             if (!isBackground) setLoading(false)
         }
-    }, [supabase, dateRange, customStartDate, customEndDate, viewMode])
+    }, [dateRange, customStartDate, customEndDate, viewMode])
 
     useEffect(() => {
         fetchBanhoTosaData()
@@ -307,7 +307,7 @@ export default function BanhoTosaPage() {
             )
             .subscribe()
         return () => { supabase.removeChannel(channel) }
-    }, [supabase])
+    }, [])
 
     const handleCheckIn = (appointmentId: string) => {
         const currentObj = appointments.find(a => a.id === appointmentId)

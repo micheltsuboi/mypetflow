@@ -623,7 +623,7 @@ function PetsContent() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, debouncedSearchTerm, activeTab, currentPage, pageSize, sortBy])
+    }, [debouncedSearchTerm, activeTab, currentPage, pageSize, sortBy])
 
     useEffect(() => {
         fetchData()

@@ -196,7 +196,7 @@ export default function PontoHistoryPage() {
         } finally {
             setLoading(false)
         }
-    }, [supabase, startDate, endDate])
+    }, [startDate, endDate])
 
     useEffect(() => {
         fetchHistory()

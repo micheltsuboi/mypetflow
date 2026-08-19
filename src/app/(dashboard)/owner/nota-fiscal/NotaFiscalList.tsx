@@ -97,7 +97,7 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         return () => {
             supabase.removeChannel(channel)
         }
-    }, [orgId, supabase])
+    }, [orgId])
 
     const filteredNotas = useMemo(() => {
         return notas.filter(nota => {
