@@ -96,6 +96,7 @@ interface Appointment {
     package_credit_id?: string | null
     session_number?: number
     total_sessions?: number
+    veterinarian_id?: string | null
 }
 
 interface ScheduleBlock {
@@ -455,7 +456,7 @@ function AgendaContent() {
         } finally {
             setLoading(false)
         }
-    }, [selectedDate, viewMode, supabase]) // Simplified deps
+    }, [selectedDate, viewMode]) // Simplified deps
 
     useEffect(() => {
         fetchData()
