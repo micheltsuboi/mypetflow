@@ -739,13 +739,31 @@ export async function reschedulePackageSession(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { message: 'Não autorizado.', success: false }
 
+    const { data: session } = await supabase
+        .from('package_sessions')
+        .select('appointment_id')
+        .eq('id', sessionId)
+        .single()
+
+    if (!session) return { message: 'Sessão não encontrada.', success: false }
+
     const updateData: any = {
         scheduled_at: newScheduledAt,
         status: 'rescheduled'
     }
 
-    if (createNewAppointment && petId && orgId && serviceId) {
-        const { data: appt } = await supabase
+    if (session.appointment_id) {
+        const { error: apptError } = await supabase
+            .from('appointments')
+            .update({ scheduled_at: newScheduledAt })
+            .eq('id', session.appointment_id)
+            
+        if (apptError) {
+            console.error('Erro ao atualizar agendamento:', apptError)
+            return { message: 'Erro ao reagendar na agenda.', success: false }
+        }
+    } else if (createNewAppointment && petId && orgId && serviceId) {
+        const { data: appt, error: apptError } = await supabase
             .from('appointments')
             .insert({
                 org_id: orgId,
@@ -763,6 +781,10 @@ export async function reschedulePackageSession(
             .select('id')
             .single()
 
+        if (apptError) {
+            console.error('Erro ao criar agendamento:', apptError)
+            return { message: 'Erro ao criar agendamento na agenda.', success: false }
+        }
         if (appt) updateData.appointment_id = appt.id
     }
 
@@ -771,10 +793,15 @@ export async function reschedulePackageSession(
         .update(updateData)
         .eq('id', sessionId)
 
-    if (error) return { message: error.message, success: false }
+    if (error) {
+        console.error('Erro ao atualizar sessão:', error)
+        return { message: error.message, success: false }
+    }
 
     revalidatePath('/owner/agenda')
     revalidatePath('/owner/pets')
+    revalidatePath('/owner/mensalidades')
+    revalidatePath('/owner/packages')
     return { message: 'Sessão reagendada!', success: true }
 }
 
