@@ -45,6 +45,7 @@ export default function MensalidadesPage() {
     const [editingContractId, setEditingContractId] = useState<string | null>(null)
     const [editContDays, setEditContDays] = useState<number[]>([])
     const [editContTime, setEditContTime] = useState('09:00')
+    const [editContractPrice, setEditContractPrice] = useState<string>('')
 
     // New subscription state
     const [showSubscribeModal, setShowSubscribeModal] = useState(false)
@@ -329,6 +330,7 @@ export default function MensalidadesPage() {
                                                     }
                                                 }
                                                 setSubSchedules(initialSchedules)
+                                                setEditContractPrice(sub.total_price !== null && sub.total_price !== undefined ? String(sub.total_price) : String(sub.service_packages?.total_price || ''))
                                             }}
                                         >✏️ Ajustar</button>
                                         <button
@@ -774,6 +776,22 @@ export default function MensalidadesPage() {
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 <div style={{ background: 'var(--bg-tertiary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>💰 Valor da Mensalidade</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <label style={{ fontSize: '0.85rem', color: 'var(--text-primary)', fontWeight: 600 }}>R$</label>
+                                        <input
+                                            type="number"
+                                            className={styles.input}
+                                            value={editContractPrice}
+                                            onChange={e => setEditContractPrice(e.target.value)}
+                                            style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                                            placeholder="Ex: 150.00"
+                                            step="0.01"
+                                            min="0"
+                                        />
+                                    </div>
+                                </div>
+                                <div style={{ background: 'var(--bg-tertiary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                     <div style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>🗓️ Agendamento Individual por Serviço</div>
                                     {plan?.package_items?.map((item: any) => {
                                         const svcSchedule = subSchedules[item.service_id] || { days: [], time: '09:00' }
@@ -851,7 +869,10 @@ export default function MensalidadesPage() {
                                             preferred_time: subSchedules[serviceId].time || null
                                         }))
 
-                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules)
+                                        const priceNum = parseFloat(editContractPrice)
+                                        const finalPrice = !isNaN(priceNum) ? priceNum : null
+
+                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules, finalPrice)
                                         if (res.success) {
                                             alert(res.message)
                                             setEditingContractId(null)

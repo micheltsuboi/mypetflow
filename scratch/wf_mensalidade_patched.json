@@ -1,0 +1,466 @@
+{
+  "updatedAt": "2026-07-13T12:00:30.744Z",
+  "createdAt": "2026-04-16T14:00:14.430Z",
+  "id": "iGv778THSMg82jrs",
+  "name": "🐾 Pet Flow - Lembrete de Mensalidade 🐾",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "Schedule",
+      "name": "Schedule",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3
+    },
+    {
+      "id": "Code",
+      "name": "Code",
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst nowSP = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\nconst d7 = new Date(nowSP); \nd7.setDate(d7.getDate() + 7);\n\nconst formatDate = (date) => {\n    const y = date.getFullYear();\n    const m = String(date.getMonth() + 1).padStart(2, '0');\n    const d = String(date.getDate()).padStart(2, '0');\n    return `${y}-${m}-${d}`;\n}\n\nreturn [{\n    date7: formatDate(d7)\n}];"
+      },
+      "position": [
+        200,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "Supabase Fetch",
+      "name": "Supabase Fetch",
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtud3hnd2tscGJ5a21uemxiaHBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkyNDM5NSwiZXhwIjoyMDg3NTAwMzk1fQ.2t1MjHxS9SCbVLB7C0GyuzdQyrDhbmN4W2OEKnVvKMM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtud3hnd2tscGJ5a21uemxiaHBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkyNDM5NSwiZXhwIjoyMDg3NTAwMzk1fQ.2t1MjHxS9SCbVLB7C0GyuzdQyrDhbmN4W2OEKnVvKMM"
+            }
+          ]
+        },
+        "method": "GET",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "is_subscription",
+              "value": "eq.true"
+            },
+            {
+              "name": "due_date",
+              "value": "=eq.{{ $json.date7 }}"
+            },
+            {
+              "name": "select",
+              "value": "*,pets!inner(name),customers!inner(name,phone_1),service_packages!inner(name,total_price),organizations!inner(notify_subscription_reminder,wa_integration_type,wa_api_url,wa_api_token,wa_client_token)"
+            },
+            {
+              "name": "organizations.notify_subscription_reminder",
+              "value": "eq.true"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "sendQuery": true,
+        "url": "https://knwxgwklpbykmnzlbhpk.supabase.co/rest/v1/customer_packages"
+      },
+      "position": [
+        400,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1
+    },
+    {
+      "id": "WhatsApp Send",
+      "name": "WhatsApp Send",
+      "parameters": {
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ ($json.customers?.phone_1 || '').replace(/\\D/g, '').startsWith('55') ? ($json.customers?.phone_1 || '').replace(/\\D/g, '') : '55' + ($json.customers?.phone_1 || '').replace(/\\D/g, '') }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ \"💳 *Lembrete de Mensalidade!*\\n\\nOlá *\" + $json.customers?.name + \"*! Passando para lembrar que a mensalidade do(a) *\" + $json.pets?.name + \"* (*\" + $json.service_packages?.name + \"*) vence em breve.\\n\\nValor: R$ \" + $json.service_packages?.total_price.toFixed(2).replace('.', ',') + \".\\n\\nQualquer dúvida, estamos à disposição! 🐾\" }}"
+            }
+          ]
+        },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "={{ $json.organizations?.wa_integration_type === 'custom' && $json.organizations?.wa_client_token ? $json.organizations.wa_client_token : 'F9a70c76e1ddd4ec79ff35af7549a478fS' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "method": "POST",
+        "sendBody": true,
+        "sendHeaders": true,
+        "url": "={{ $json.organizations?.wa_integration_type === 'custom' && $json.organizations?.wa_api_url ? ($json.organizations.wa_api_url.toLowerCase().includes('/token/') ? $json.organizations.wa_api_url.replace(/\\/$/, '') + '/send-text' : $json.organizations.wa_api_url.replace(/\\/$/, '') + '/token/' + $json.organizations.wa_api_token + '/send-text') : 'https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text' }}"
+      },
+      "position": [
+        600,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1
+    },
+    {
+      "id": "http_auto_renew_id",
+      "name": "HTTP Auto-Renew",
+      "parameters": {
+        "method": "POST",
+        "url": "https://mypetflow.com.br/api/subscriptions/cron",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer mypetflow_n8n_secret_2026"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "renew"
+            }
+          ]
+        }
+      },
+      "position": [
+        100,
+        150
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1
+    }
+  ],
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Supabase Fetch",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Schedule": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "HTTP Auto-Renew",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Supabase Fetch": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "WhatsApp Send",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HTTP Auto-Renew": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Code",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "aadd5758-56c8-4b03-b42e-45facdd149eb",
+  "activeVersionId": "aadd5758-56c8-4b03-b42e-45facdd149eb",
+  "versionCounter": 54,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-16T14:00:14.433Z",
+      "createdAt": "2026-04-16T14:00:14.433Z",
+      "role": "workflow:owner",
+      "workflowId": "iGv778THSMg82jrs",
+      "projectId": "CE9kAGYsHQGbXxVK",
+      "project": {
+        "updatedAt": "2026-01-10T18:30:33.626Z",
+        "createdAt": "2026-01-10T18:29:01.184Z",
+        "id": "CE9kAGYsHQGbXxVK",
+        "name": "Michel Tsuboi <michel.tsuboi@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "5e32b87f-d23d-495a-8183-71de83d05d9d",
+        "projectRelations": [
+          {
+            "updatedAt": "2026-01-10T18:29:01.184Z",
+            "createdAt": "2026-01-10T18:29:01.184Z",
+            "userId": "5e32b87f-d23d-495a-8183-71de83d05d9d",
+            "projectId": "CE9kAGYsHQGbXxVK",
+            "user": {
+              "updatedAt": "2026-07-31T17:16:39.000Z",
+              "createdAt": "2026-01-10T18:29:00.020Z",
+              "id": "5e32b87f-d23d-495a-8183-71de83d05d9d",
+              "email": "michel.tsuboi@gmail.com",
+              "firstName": "Michel",
+              "lastName": "Tsuboi",
+              "personalizationAnswers": {
+                "version": "v4",
+                "personalization_survey_submitted_at": "2026-01-10T18:30:41.573Z",
+                "personalization_survey_n8n_version": "2.1.5",
+                "companyType": "personal",
+                "reportedSource": "google"
+              },
+              "settings": {
+                "userActivated": true,
+                "firstSuccessfulWorkflowId": "E6kMl94kGmAUpe1k",
+                "userActivatedAt": 1768070477374,
+                "npsSurvey": {
+                  "responded": true,
+                  "lastShownAt": 1772744427710
+                }
+              },
+              "disabled": false,
+              "mfaEnabled": false,
+              "lastActiveAt": "2026-07-31",
+              "isPending": false
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-07-13T12:00:30.745Z",
+    "createdAt": "2026-07-13T12:00:30.745Z",
+    "versionId": "aadd5758-56c8-4b03-b42e-45facdd149eb",
+    "workflowId": "iGv778THSMg82jrs",
+    "nodes": [
+      {
+        "id": "Schedule",
+        "name": "Schedule",
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 9
+              }
+            ]
+          }
+        },
+        "position": [
+          0,
+          0
+        ],
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.3
+      },
+      {
+        "id": "Code",
+        "name": "Code",
+        "parameters": {
+          "jsCode": "const now = new Date();\nconst nowSP = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\nconst d7 = new Date(nowSP); \nd7.setDate(d7.getDate() + 7);\n\nconst formatDate = (date) => {\n    const y = date.getFullYear();\n    const m = String(date.getMonth() + 1).padStart(2, '0');\n    const d = String(date.getDate()).padStart(2, '0');\n    return `${y}-${m}-${d}`;\n}\n\nreturn [{\n    date7: formatDate(d7)\n}];"
+        },
+        "position": [
+          200,
+          0
+        ],
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2
+      },
+      {
+        "id": "Supabase Fetch",
+        "name": "Supabase Fetch",
+        "parameters": {
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtud3hnd2tscGJ5a21uemxiaHBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkyNDM5NSwiZXhwIjoyMDg3NTAwMzk1fQ.2t1MjHxS9SCbVLB7C0GyuzdQyrDhbmN4W2OEKnVvKMM"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtud3hnd2tscGJ5a21uemxiaHBrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTkyNDM5NSwiZXhwIjoyMDg3NTAwMzk1fQ.2t1MjHxS9SCbVLB7C0GyuzdQyrDhbmN4W2OEKnVvKMM"
+              }
+            ]
+          },
+          "method": "GET",
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "is_subscription",
+                "value": "eq.true"
+              },
+              {
+                "name": "due_date",
+                "value": "=eq.{{ $json.date7 }}"
+              },
+              {
+                "name": "select",
+                "value": "*,pets!inner(name),customers!inner(name,phone_1),service_packages!inner(name,total_price),organizations!inner(notify_subscription_reminder,wa_integration_type,wa_api_url,wa_api_token,wa_client_token)"
+              },
+              {
+                "name": "organizations.notify_subscription_reminder",
+                "value": "eq.true"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "sendQuery": true,
+          "url": "https://knwxgwklpbykmnzlbhpk.supabase.co/rest/v1/customer_packages"
+        },
+        "position": [
+          400,
+          0
+        ],
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1
+      },
+      {
+        "id": "WhatsApp Send",
+        "name": "WhatsApp Send",
+        "parameters": {
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "phone",
+                "value": "={{ ($json.customers?.phone_1 || '').replace(/\\D/g, '').startsWith('55') ? ($json.customers?.phone_1 || '').replace(/\\D/g, '') : '55' + ($json.customers?.phone_1 || '').replace(/\\D/g, '') }}"
+              },
+              {
+                "name": "message",
+                "value": "={{ \"💳 *Lembrete de Mensalidade!*\\n\\nOlá *\" + $json.customers?.name + \"*! Passando para lembrar que a mensalidade do(a) *\" + $json.pets?.name + \"* (*\" + $json.service_packages?.name + \"*) vence em breve.\\n\\nValor: R$ \" + $json.service_packages?.total_price.toFixed(2).replace('.', ',') + \".\\n\\nQualquer dúvida, estamos à disposição! 🐾\" }}"
+              }
+            ]
+          },
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Client-Token",
+                "value": "={{ $json.organizations?.wa_integration_type === 'custom' && $json.organizations?.wa_client_token ? $json.organizations.wa_client_token : 'F9a70c76e1ddd4ec79ff35af7549a478fS' }}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "method": "POST",
+          "sendBody": true,
+          "sendHeaders": true,
+          "url": "={{ $json.organizations?.wa_integration_type === 'custom' && $json.organizations?.wa_api_url ? ($json.organizations.wa_api_url.toLowerCase().includes('/token/') ? $json.organizations.wa_api_url.replace(/\\/$/, '') + '/send-text' : $json.organizations.wa_api_url.replace(/\\/$/, '') + '/token/' + $json.organizations.wa_api_token + '/send-text') : 'https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text' }}"
+        },
+        "position": [
+          600,
+          0
+        ],
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.1
+      }
+    ],
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "index": 0,
+              "node": "Supabase Fetch",
+              "type": "main"
+            }
+          ]
+        ]
+      },
+      "Schedule": {
+        "main": [
+          [
+            {
+              "index": 0,
+              "node": "Code",
+              "type": "main"
+            }
+          ]
+        ]
+      },
+      "Supabase Fetch": {
+        "main": [
+          [
+            {
+              "index": 0,
+              "node": "WhatsApp Send",
+              "type": "main"
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Michel Tsuboi",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-07-13T12:00:30.839Z",
+        "id": 199,
+        "workflowId": "iGv778THSMg82jrs",
+        "versionId": "aadd5758-56c8-4b03-b42e-45facdd149eb",
+        "event": "activated",
+        "userId": "5e32b87f-d23d-495a-8183-71de83d05d9d"
+      }
+    ]
+  }
+}

@@ -657,7 +657,8 @@ export async function updateSubscriptionContract(
     id: string,
     daysOfWeek: number[] | null,
     time: string | null,
-    creditSchedules?: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null
+    creditSchedules?: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null,
+    totalPrice?: number | null
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -667,13 +668,18 @@ export async function updateSubscriptionContract(
     if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
 
     // 1. Update contract preferences
+    const updatePayload: any = {
+        preferred_days_of_week: daysOfWeek,
+        preferred_day_of_week: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek[0] : null,
+        preferred_time: time
+    }
+    if (totalPrice !== undefined && totalPrice !== null) {
+        updatePayload.total_price = totalPrice
+    }
+
     const { error: updateError } = await supabase
         .from('customer_packages')
-        .update({
-            preferred_days_of_week: daysOfWeek,
-            preferred_day_of_week: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek[0] : null,
-            preferred_time: time
-        })
+        .update(updatePayload)
         .eq('id', id)
 
     if (updateError) return { message: updateError.message, success: false }
