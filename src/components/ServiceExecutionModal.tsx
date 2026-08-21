@@ -127,6 +127,7 @@ export default function ServiceExecutionModal({ appointment, onClose, onSave }: 
         await updatePetPreferences(appointment.pet_id, {
             [type === 'perfume' ? 'perfume_allowed' : 'accessories_allowed']: value
         })
+        onSave()
     }
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
