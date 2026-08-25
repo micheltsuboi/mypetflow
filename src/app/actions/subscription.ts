@@ -706,41 +706,10 @@ export async function updateSubscriptionContract(
             .eq('customer_package_id', id)
     }
 
-    // 2. Clean up future sessions and appointments that are still "scheduled/pending"
-    // We only remove from today onwards
-    const today = new Date().toISOString().split('T')[0]
-    
-    // First, find appointments to delete
-    const { data: sessionsToDelete } = await supabase
-        .from('package_sessions')
-        .select('appointment_id')
-        .eq('customer_package_id', id)
-        .gte('scheduled_at', today)
-        .eq('status', 'scheduled')
-
-    const apptIds = sessionsToDelete?.map(s => s.appointment_id).filter(Boolean) as string[]
-    
-    if (apptIds && apptIds.length > 0) {
-        await supabase.from('appointments').delete().in('id', apptIds).eq('status', 'pending')
-    }
-
-    await supabase.from('package_sessions')
-        .delete()
-        .eq('customer_package_id', id)
-        .gte('scheduled_at', today)
-        .eq('status', 'scheduled')
-
-    // 3. Re-generate sessions for the rest of the month
-    const monthStart = new Date().toISOString().split('T')[0] // Use current date as reference
-    await supabase.rpc('generate_subscription_sessions_for_month', {
-        p_customer_package_id: id,
-        p_month_start: monthStart
-    })
-
-    await supabase.rpc('create_appointments_from_subscription_sessions', {
-        p_customer_package_id: id,
-        p_org_id: profile.org_id
-    })
+    // As configurações foram atualizadas em `customer_packages` e `package_credits`.
+    // Não iremos deletar/recriar as sessões do mês atual. 
+    // Os agendamentos já feitos deverão ser alterados manualmente. 
+    // Os agendamentos do próximo mês utilizarão a nova configuração automaticamente.
 
     revalidatePath('/owner/mensalidades')
     revalidatePath('/owner/pets')
