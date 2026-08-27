@@ -3,10 +3,11 @@
 import { useState, useMemo } from 'react'
 import { Product, ProductFormData } from '@/types/database'
 import styles from './InventoryManagement.module.css'
-import { Search, Plus, Edit2, Trash2, Package, AlertTriangle, DollarSign, X } from 'lucide-react'
+import { Search, Plus, Edit2, Trash2, Package, AlertTriangle, DollarSign, X, FileText } from 'lucide-react'
 import ImageUpload from '@/components/ImageUpload'
 import DateInput from '@/components/ui/DateInput'
 import { createClient } from '@/lib/supabase/client'
+import XmlImportModal from './XmlImportModal'
 
 interface InventoryManagementProps {
     products: Product[]
@@ -18,6 +19,7 @@ export default function InventoryManagement({ products, onUpdate }: InventoryMan
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('Todas')
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isXmlModalOpen, setIsXmlModalOpen] = useState(false)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -183,6 +185,9 @@ export default function InventoryManagement({ products, onUpdate }: InventoryMan
                     >
                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
+                    <button className={styles.addButton} style={{ background: 'var(--color-navy)', marginRight: '8px' }} onClick={() => setIsXmlModalOpen(true)}>
+                        <FileText size={18} /> Importar XML
+                    </button>
                     <button className={styles.addButton} onClick={() => handleOpenModal()}>
                         <Plus size={18} /> Novo Produto
                     </button>
@@ -312,6 +317,18 @@ export default function InventoryManagement({ products, onUpdate }: InventoryMan
                         </form>
                     </div>
                 </div>
+            )}
+            
+            {/* Modal de Importação de XML */}
+            {isXmlModalOpen && (
+                <XmlImportModal 
+                    onClose={() => setIsXmlModalOpen(false)}
+                    onSuccess={() => {
+                        setIsXmlModalOpen(false)
+                        onUpdate()
+                    }}
+                    existingProducts={products}
+                />
             )}
         </div>
     )
