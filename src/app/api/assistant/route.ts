@@ -238,7 +238,6 @@ async function scheduleAppointmentAI(supabase: any, petName: string, serviceName
             .from('pets')
             .select('id, name, customer_id, customers(name)')
             .ilike('name', `%${petName}%`)
-            .eq('org_id', org_id)
 
         if (petError) {
             console.error('Pet fetch error:', petError)
