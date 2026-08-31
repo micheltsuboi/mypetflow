@@ -220,6 +220,86 @@ async function getPetDetails(supabase: any, petName: string) {
     }
 }
 
+async function scheduleAppointmentAI(supabase: any, petName: string, serviceName: string, scheduledAt: string) {
+    try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Usuário não autenticado.' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', user.id)
+            .single()
+            
+        if (!profile?.org_id) return { error: 'Organização não encontrada.' }
+        const org_id = profile.org_id
+
+        const { data: pets, error: petError } = await supabase
+            .from('pets')
+            .select('id, name, customer_id, customers(name)')
+            .ilike('name', `%${petName}%`)
+            .eq('org_id', org_id)
+
+        if (petError) {
+            console.error('Pet fetch error:', petError)
+        }
+
+        if (!pets || pets.length === 0) return { error: `Nenhum pet encontrado com o nome "${petName}".` }
+        if (pets.length > 1) {
+            const petList = pets.map((p:any) => `${p.name} (Tutor: ${p.customers?.name})`).join(', ')
+            return { error: `Encontrei múltiplos pets com nome "${petName}": ${petList}. Por favor, especifique o tutor ou seja mais específico.` }
+        }
+        const pet = pets[0]
+
+        const { data: services, error: serviceError } = await supabase
+            .from('services')
+            .select('id, name, category_id, base_price, checklist_template')
+            .ilike('name', `%${serviceName}%`)
+            .eq('org_id', org_id)
+
+        if (serviceError) {
+            console.error('Service fetch error:', serviceError)
+        }
+
+        if (!services || services.length === 0) return { error: `Nenhum serviço encontrado contendo "${serviceName}".` }
+        const service = services[0]
+        
+        const finalChecklist = Array.isArray(service.checklist_template) ? service.checklist_template.map((item: string) => ({
+            text: item,
+            completed: false,
+            completed_at: null
+        })) : []
+
+        const { error: insertError } = await supabase
+            .from('appointments')
+            .insert({
+                org_id: org_id,
+                pet_id: pet.id,
+                service_id: service.id,
+                service_category_id: service.category_id,
+                customer_id: pet.customer_id,
+                scheduled_at: scheduledAt,
+                status: 'pending',
+                checklist: finalChecklist,
+                calculated_price: service.base_price || 0,
+                final_price: service.base_price || 0,
+                payment_status: 'pending'
+            })
+
+        if (insertError) {
+            console.error('Erro ao agendar:', insertError)
+            return { error: `Falha ao salvar agendamento: ${insertError.message}` }
+        }
+
+        const dateFormatted = new Date(scheduledAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+        return { message: `Agendamento de "${service.name}" para o pet ${pet.name} (Tutor: ${pet.customers?.name || 'Sem tutor'}) marcado com sucesso para ${dateFormatted}!` }
+
+    } catch (err: any) {
+        console.error('Erro no scheduleAppointmentAI:', err)
+        return { error: 'Ocorreu um erro inesperado ao agendar.' }
+    }
+}
+
 // Gera a resposta em formato markdown a partir dos dados do tópico estático de ajuda
 function formatHelpSection(section: PageHelpSection, topicKey: string): string {
     let response = `### ${section.title}\n\n`
@@ -337,7 +417,8 @@ Regras de comportamento e segurança de dados:
      Exemplo: [Clique aqui para abrir o cadastro de João Silva](/owner/tutors?new=true&name=João%20Silva&cpf=122.333.444-55)
    - Explique para o usuário que, ao clicar no link, o sistema abrirá a tela de cadastro com esses dados já preenchidos.
 6. Sempre que instruir o usuário a ir para uma tela normal, inclua links markdown [Nome da Tela](/caminho) (ex: [Cadastro de Serviços](/owner/services), [Agenda](/owner/agenda), [Financeiro](/owner/financeiro)).
-7. A página atual que o usuário visualiza no dashboard é: "${pathname || 'não informada'}".
+7. Se o usuário pedir para AGENDAR ou MARCAR um serviço para um pet, você DEVE usar a ferramenta schedule_appointment. Extraia o nome do pet, o nome do serviço e a data/hora solicitada (formatada em ISO 8601). Exemplo: "Agendar banho e tosa para o Theo dia 10 as 14 horas" -> petName="Theo", serviceName="banho e tosa", scheduledAt="2026-09-10T14:00:00.000Z". Use o ano atual (2026) a menos que especificado.
+8. A página atual que o usuário visualiza no dashboard é: "${pathname || 'não informada'}".
 
 ${helpContextText}`
 
@@ -384,6 +465,28 @@ ${helpContextText}`
                                 },
                                 required: ['petName']
                             }
+                        },
+                        {
+                            name: 'schedule_appointment',
+                            description: 'Agenda um serviço para um pet em uma data e hora específicas.',
+                            parameters: {
+                                type: 'OBJECT',
+                                properties: {
+                                    petName: {
+                                        type: 'STRING',
+                                        description: 'Nome do pet a ser agendado (ex: Theo)'
+                                    },
+                                    serviceName: {
+                                        type: 'STRING',
+                                        description: 'Nome do serviço a ser agendado (ex: Banho e Tosa, Consulta)'
+                                    },
+                                    scheduledAt: {
+                                        type: 'STRING',
+                                        description: 'Data e hora do agendamento no formato ISO 8601 (ex: 2026-09-10T14:00:00.000Z)'
+                                    }
+                                },
+                                required: ['petName', 'serviceName', 'scheduledAt']
+                            }
                         }
                     ]
                 }
@@ -428,6 +531,8 @@ ${helpContextText}`
                         functionResult = await getTodayAppointments(supabase)
                     } else if (functionName === 'get_pet_details') {
                         functionResult = await getPetDetails(supabase, args.petName)
+                    } else if (functionName === 'schedule_appointment') {
+                        functionResult = await scheduleAppointmentAI(supabase, args.petName, args.serviceName, args.scheduledAt)
                     } else {
                         functionResult = { error: 'Função desconhecida.' }
                     }
