@@ -398,7 +398,8 @@ function AgendaContent() {
                 const monthlyCountMap: Record<string, number> = {}
                 if (subscriptionContracts.size > 0) {
                     // Always calculate full month range for session count, regardless of current viewMode
-                    const countStart = new Date(selectedDate)
+                    const [selY, selM, selD] = selectedDate.split('-').map(Number)
+                    const countStart = new Date(selY, selM - 1, selD)
                     countStart.setDate(1)
                     countStart.setHours(0,0,0,0)
                     const countEnd = new Date(countStart.getFullYear(), countStart.getMonth() + 1, 0)
@@ -999,8 +1000,9 @@ function AgendaContent() {
 
     const renderMonthView = () => {
         // Simple month view implementation
-        const year = new Date(selectedDate).getFullYear()
-        const month = new Date(selectedDate).getMonth()
+        const [y, m, d] = selectedDate.split('-').map(Number)
+        const year = y
+        const month = m - 1
         const firstDay = new Date(year, month, 1)
         const daysInMonth = new Date(year, month + 1, 0).getDate()
 
@@ -1111,9 +1113,10 @@ function AgendaContent() {
 
                     <div className={styles.dateNav}>
                         <button className={styles.navBtn} onClick={() => {
-                            const d = new Date(selectedDate)
-                            d.setDate(d.getDate() - 1)
-                            setSelectedDate(d.toISOString().split('T')[0])
+                            const [y, m, day] = selectedDate.split('-').map(Number)
+                            const d = new Date(y, m - 1, day - 1)
+                            const newStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                            setSelectedDate(newStr)
                         }}>◀</button>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <DateInput
@@ -1127,9 +1130,10 @@ function AgendaContent() {
                             )}
                         </div>
                         <button className={styles.navBtn} onClick={() => {
-                            const d = new Date(selectedDate)
-                            d.setDate(d.getDate() + 1)
-                            setSelectedDate(d.toISOString().split('T')[0])
+                            const [y, m, day] = selectedDate.split('-').map(Number)
+                            const d = new Date(y, m - 1, day + 1)
+                            const newStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                            setSelectedDate(newStr)
                         }}>▶</button>
                     </div>
                 </div>
