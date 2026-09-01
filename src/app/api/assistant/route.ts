@@ -416,7 +416,7 @@ Regras de comportamento e segurança de dados:
      Exemplo: [Clique aqui para abrir o cadastro de João Silva](/owner/tutors?new=true&name=João%20Silva&cpf=122.333.444-55)
    - Explique para o usuário que, ao clicar no link, o sistema abrirá a tela de cadastro com esses dados já preenchidos.
 6. Sempre que instruir o usuário a ir para uma tela normal, inclua links markdown [Nome da Tela](/caminho) (ex: [Cadastro de Serviços](/owner/services), [Agenda](/owner/agenda), [Financeiro](/owner/financeiro)).
-7. Se o usuário pedir para AGENDAR ou MARCAR um serviço para um pet, você DEVE usar a ferramenta schedule_appointment. Extraia o nome do pet, o nome do serviço e a data/hora solicitada (formatada em ISO 8601). Exemplo: "Agendar banho e tosa para o Theo dia 10 as 14 horas" -> petName="Theo", serviceName="banho e tosa", scheduledAt="2026-09-10T14:00:00.000Z". Use o ano atual (2026) a menos que especificado.
+7. Se o usuário pedir para AGENDAR ou MARCAR um serviço para um pet, você DEVE usar a ferramenta schedule_appointment. Extraia o nome do pet, o nome do serviço e a data/hora solicitada (formatada em ISO 8601 COM O FUSO HORÁRIO DE BRASÍLIA -03:00). Exemplo: "Agendar banho e tosa para o Theo dia 10 as 14 horas" -> petName="Theo", serviceName="banho e tosa", scheduledAt="2026-09-10T14:00:00-03:00". Atenção: NÃO esqueça do horário, se o usuário disse 15h, o campo deve ser T15:00:00-03:00. Use o ano atual (2026) a menos que especificado.
 8. A página atual que o usuário visualiza no dashboard é: "${pathname || 'não informada'}".
 
 ${helpContextText}`
@@ -481,7 +481,7 @@ ${helpContextText}`
                                     },
                                     scheduledAt: {
                                         type: 'STRING',
-                                        description: 'Data e hora do agendamento no formato ISO 8601 (ex: 2026-09-10T14:00:00.000Z)'
+                                        description: 'Data e hora do agendamento no formato ISO 8601 COM fuso horário -03:00 (ex: 2026-09-10T14:00:00-03:00). Nunca esqueça de incluir as horas.'
                                     }
                                 },
                                 required: ['petName', 'serviceName', 'scheduledAt']
@@ -539,19 +539,9 @@ ${helpContextText}`
                     // Enviar o resultado de volta para o Gemini formular a resposta final
                     const nextMessages = [
                         ...geminiMessages,
+                        data.candidates[0].content,
                         {
-                            role: 'model',
-                            parts: [
-                                {
-                                    functionCall: {
-                                        name: functionName,
-                                        args: args
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            role: 'function',
+                            role: 'user',
                             parts: [
                                 {
                                     functionResponse: {
