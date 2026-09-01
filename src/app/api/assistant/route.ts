@@ -494,7 +494,7 @@ ${helpContextText}`
             try {
                 // Primeira chamada para o Gemini (com tools)
                 let geminiRes = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -565,7 +565,7 @@ ${helpContextText}`
 
                     // Segunda chamada para o Gemini (com o resultado da ferramenta)
                     const finalRes = await fetch(
-                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`,
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
