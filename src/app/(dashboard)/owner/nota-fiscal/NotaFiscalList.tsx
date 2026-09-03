@@ -236,6 +236,36 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
         }
     }
 
+    const [isSyncingAll, setIsSyncingAll] = useState(false)
+    const handleSyncAll = async () => {
+        const notasPendentes = notas.filter(n => n.status.toLowerCase().includes('processando') || n.status.toLowerCase().includes('erro'))
+        if (notasPendentes.length === 0) {
+            alert('Não há notas pendentes de sincronização (status "processando" ou "erro").')
+            return
+        }
+
+        if (!confirm(`Deseja sincronizar ${notasPendentes.length} notas pendentes com a SEFAZ?`)) return
+
+        setIsSyncingAll(true)
+        let count = 0
+        try {
+            for (const nota of notasPendentes) {
+                try {
+                    const res = await fetch(`/api/nf/sync?ref=${nota.referencia}&org_id=${nota.org_id}`)
+                    if (res.ok) count++
+                } catch (e) {
+                    console.error(`Erro ao sincronizar NF ${nota.referencia}:`, e)
+                }
+            }
+            alert(`Sincronização finalizada: ${count} notas processadas com sucesso.`)
+            await fetchNotas()
+        } catch (error: any) {
+            alert('Ocorreu um erro durante a sincronização em lote.')
+        } finally {
+            setIsSyncingAll(false)
+        }
+    }
+
     const handleOpenCancel = (nota: NotaFiscal) => {
         setSelectedNfToCancel({ id: nota.id, numero: nota.numero_nf || undefined })
         setIsCancelModalOpen(true)
@@ -315,6 +345,16 @@ export default function NotaFiscalList({ notas: initialNotas, orgId }: Props) {
                             : 'Exportar XMLs (ZIP)'
                         }
                     </span>
+                </button>
+
+                <button 
+                    className={styles.exportButton}
+                    style={{ background: '#3b82f6', borderColor: '#2563eb' }}
+                    onClick={handleSyncAll}
+                    disabled={isSyncingAll}
+                >
+                    <RefreshCw size={18} className={isSyncingAll ? styles.spin : ''} />
+                    <span>{isSyncingAll ? 'Sincronizando...' : 'Sincronizar Pendentes'}</span>
                 </button>
 
                 <button 

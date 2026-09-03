@@ -328,3 +328,12 @@
         border-color: rgba(211, 47, 47, 0.25);
     }
 }
+
+.spin {
+    animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
