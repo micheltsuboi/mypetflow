@@ -60,6 +60,9 @@ export async function createTutor(prevState: CreateTutorState, formData: FormDat
         })
 
         if (createError) {
+            if (createError.message.includes('already been registered') || createError.status === 422) {
+                return { message: `Este e-mail já está em uso por outro usuário no sistema.`, success: false }
+            }
             return { message: `Erro ao criar acesso do portal: ${createError.message}`, success: false }
         }
 
@@ -173,6 +176,9 @@ export async function updateTutor(prevState: CreateTutorState, formData: FormDat
                 })
 
                 if (createError) {
+                    if (createError.message.includes('already been registered') || createError.status === 422) {
+                        return { message: `Este e-mail já possui um acesso criado no sistema (provavelmente pelo portal). Se você deseja apenas atualizar o cadastro, apague o que estiver no campo 'Senha' e salve novamente.`, success: false }
+                    }
                     return { message: `Erro ao criar acesso: ${createError.message}`, success: false }
                 }
 

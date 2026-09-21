@@ -542,6 +542,7 @@ export default function TutorsPage() {
                                             id="password" name="password" type="password" className={styles.input}
                                             placeholder={selectedTutor ? "Deixe em branco para não alterar" : "****** (P/ portal do tutor)"}
                                             minLength={6}
+                                            autoComplete="new-password"
                                         />
                                         {selectedTutor && !selectedTutor.user_id && (
                                             <small style={{ color: 'var(--color-coral)', fontSize: '0.75rem' }}>
