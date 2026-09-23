@@ -107,6 +107,26 @@ export default function TutorsPage() {
         }
     }, [])
 
+    const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = maskCEP(e.target.value)
+        setCep(value)
+
+        const cleanCep = value.replace(/\D/g, '')
+        if (cleanCep.length === 8) {
+            try {
+                const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+                const data = await res.json()
+                if (!data.erro) {
+                    setAddress(data.logradouro || '')
+                    setNeighborhood(data.bairro || '')
+                    setCity(data.localidade ? `${data.localidade} - ${data.uf}` : '')
+                }
+            } catch (err) {
+                console.error('Erro ao buscar CEP:', err)
+            }
+        }
+    }
+
     // Server Action States
     const [createState, createAction, isCreatePending] = useActionState(createTutor, initialState)
     const [updateState, updateAction, isUpdatePending] = useActionState(updateTutor, initialState)
@@ -600,7 +620,7 @@ export default function TutorsPage() {
                                             id="cep" name="cep" type="text" className={styles.input}
                                             placeholder="00000-000"
                                             value={cep}
-                                            onChange={(e) => setCep(maskCEP(e.target.value))}
+                                            onChange={handleCepChange}
                                             maxLength={9}
                                         />
                                     </div>
