@@ -467,6 +467,17 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
         }
     }
 
+    // 1. Fetch old appointment to check for changes
+    const { data: oldAppt } = await supabase
+        .from('appointments')
+        .select(`
+            scheduled_at, check_in_date, check_out_date,
+            pet_id, customer_id, org_id,
+            pets (name), services (name)
+        `)
+        .eq('id', id)
+        .single()
+
     const { error } = await supabase
         .from('appointments')
         .update({
@@ -480,6 +491,49 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
         .eq('id', id)
 
     if (error) return { message: error.message, success: false }
+
+    // 2. Check if date or time changed
+    if (oldAppt) {
+        const oldScheduledAt = oldAppt.scheduled_at ? new Date(oldAppt.scheduled_at).toISOString() : null
+        const newScheduledAt = scheduledAt ? new Date(scheduledAt).toISOString() : null
+        
+        const oldCheckIn = oldAppt.check_in_date
+        const newCheckIn = checkInDate || null
+
+        if (oldScheduledAt !== newScheduledAt || oldCheckIn !== newCheckIn) {
+            try {
+                const petName = (oldAppt.pets as any)?.name || 'seu pet'
+                const serviceName = (oldAppt.services as any)?.name || 'o serviço'
+                
+                let formattedDate = ''
+                let formattedTime = ''
+                
+                if (checkInDate) {
+                    const start = new Date(`${checkInDate}T12:00:00-03:00`)
+                    const end = checkOutDate ? new Date(`${checkOutDate}T12:00:00-03:00`) : start
+                    const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+                    const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
+                    formattedDate = `${startFmt} a ${endFmt}`
+                    formattedTime = 'entrada'
+                } else if (date && time) {
+                    const dateObj = new Date(`${date}T${time}:00-03:00`)
+                    formattedDate = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
+                    formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+                }
+
+                const msg = `Olá! O horário de ${petName} foi atualizado para ${formattedDate} às ${formattedTime}.`
+
+                await triggerNotification(oldAppt.org_id, oldAppt.customer_id, msg, 'pet-reagendamento', {
+                    petName,
+                    serviceName,
+                    formattedDate,
+                    formattedTime
+                })
+            } catch (err) {
+                console.error('[updateAppointment] Error triggering WA notification:', err)
+            }
+        }
+    }
 
     revalidatePath('/owner/agenda')
     return { message: 'Agendamento atualizado!', success: true }
