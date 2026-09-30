@@ -5,13 +5,13 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "pet-reagendamento",
-        "responseMode": "responseNode",
-        "options": {}
+        "options": {},
+        "responseMode": "onReceived"
       },
       "id": "webhook-reagendamento",
       "name": "Webhook - Reagendamento",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
+      "typeVersion": 1.1,
       "position": [
         240,
         300
@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const pet = $json.petName || 'seu pet';\nconst service = $json.serviceName || 'serviço';\nconst date = $json.formattedDate || '';\nconst time = $json.formattedTime || '';\nconst phone = ($json.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🔄 *Horário Reagendado!*\\n\\nOlá! Passando para avisar que o horário do *${pet}* para *${service}* foi atualizado.\\n\\n📆 Nova Data: *${date}* às *${time}*\\n\\nQualquer dúvida, estamos à disposição! 🐶`\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\nconst body = (input.body && input.body.body) ? input.body.body : (input.body || input);\nconst pet = body.petName || 'seu pet';\nconst service = body.serviceName || 'serviço';\nconst date = body.formattedDate || '';\nconst time = body.formattedTime || '';\nconst phone = (body.tutorPhone || '').replace(/\\D/g, '');\nconst phone55 = phone.startsWith('55') ? phone : '55' + phone;\nreturn [{\n  json: {\n    phone: phone55,\n    message: `🔄 *Horário Reagendado!*\\n\\nOlá! Passando para avisar que o horário do *${pet}* para *${service}* foi atualizado.\\n\\n📆 Nova Data: *${date}* às *${time}*\\n\\nQualquer dúvida, estamos à disposição! 🐶`,\n    wa_integration_type: body.wa_integration_type || 'system',\n    wa_api_url: body.wa_api_url || '',\n    wa_api_token: body.wa_api_token || '',\n    wa_client_token: body.wa_client_token || ''\n  }\n}];"
       },
       "id": "msg-reagendamento",
       "name": "Montar Mensagem",
@@ -34,7 +34,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text",
+        "url": "={{ $json.wa_integration_type === 'custom' && $json.wa_api_url ? ($json.wa_api_url.toLowerCase().includes('/token/') ? $json.wa_api_url.replace(/\\/$/, '') + '/send-text' : $json.wa_api_url.replace(/\\/$/, '') + '/token/' + $json.wa_api_token + '/send-text') : 'https://api.z-api.io/instances/3F245682DF48F0823F789694814B07C7/token/7880A683DDA466109EACD383/send-text' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -44,7 +44,7 @@
             },
             {
               "name": "Client-Token",
-              "value": "F9a70c76e1ddd4ec79ff35af7549a478fS"
+              "value": "={{ $json.wa_integration_type === 'custom' && $json.wa_client_token ? $json.wa_client_token : 'F9a70c76e1ddd4ec79ff35af7549a478fS' }}"
             }
           ]
         },
@@ -66,24 +66,9 @@
       "id": "zapi-reagendamento",
       "name": "Z-API: Enviar Reagendamento",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.1,
       "position": [
         760,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "text",
-        "responseBody": "ok",
-        "options": {}
-      },
-      "id": "respond",
-      "name": "Respond",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        1020,
         300
       ]
     }
@@ -105,17 +90,6 @@
         [
           {
             "node": "Z-API: Enviar Reagendamento",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Z-API: Enviar Reagendamento": {
-      "main": [
-        [
-          {
-            "node": "Respond",
             "type": "main",
             "index": 0
           }
