@@ -473,7 +473,7 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
         .select(`
             scheduled_at, check_in_date, check_out_date,
             pet_id, customer_id, org_id,
-            pets (name), services (name)
+            pets (name), services (name, service_categories(name))
         `)
         .eq('id', id)
         .single()
@@ -505,12 +505,16 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
                 const petName = (oldAppt.pets as any)?.name || 'seu pet'
                 const serviceName = (oldAppt.services as any)?.name || 'o serviço'
                 
+                const sc = (oldAppt.services as any)?.service_categories
+                const catName = Array.isArray(sc) ? sc[0]?.name : sc?.name
+                const isHospedagem = catName === 'Hospedagem'
+
                 let formattedDate = ''
                 let formattedTime = ''
                 
-                if (checkInDate) {
+                if (isHospedagem && checkInDate && checkOutDate) {
                     const start = new Date(`${checkInDate}T12:00:00-03:00`)
-                    const end = checkOutDate ? new Date(`${checkOutDate}T12:00:00-03:00`) : start
+                    const end = new Date(`${checkOutDate}T12:00:00-03:00`)
                     const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
                     const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
                     formattedDate = `${startFmt} a ${endFmt}`
