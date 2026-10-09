@@ -228,7 +228,10 @@ export async function getActiveSubscriptions() {
             *,
             customers(id, name, phone_1),
             pets(id, name, species),
-            service_packages(id, name, total_price, billing_day, is_subscription)
+            service_packages(
+                id, name, total_price, billing_day, is_subscription,
+                package_items(id, service_id, quantity, recurrence_type, services(id, name, category, base_price))
+            )
         `)
         .eq('org_id', profile.org_id)
         .eq('is_subscription', true)
@@ -246,7 +249,10 @@ export async function getPetSubscriptions(petId: string) {
         .from('customer_packages')
         .select(`
             *,
-            service_packages(id, name, total_price, billing_day, is_subscription),
+            service_packages(
+                id, name, total_price, billing_day, is_subscription,
+                package_items(id, service_id, quantity, recurrence_type, services(id, name, category, base_price))
+            ),
             package_sessions(id, scheduled_at, status, session_number, appointment_id)
         `)
         .eq('pet_id', petId)
@@ -658,7 +664,8 @@ export async function updateSubscriptionContract(
     daysOfWeek: number[] | null,
     time: string | null,
     creditSchedules?: { service_id: string, preferred_days_of_week?: number[] | null, preferred_time?: string | null }[] | null,
-    totalPrice?: number | null
+    totalPrice?: number | null,
+    updateFutureSessions: boolean = true
 ) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -667,11 +674,19 @@ export async function updateSubscriptionContract(
     const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
     if (!profile?.org_id) return { message: 'Erro de organização.', success: false }
 
-    // 1. Update contract preferences
+    // 1. Extrair dias e horários consolidados a partir de creditSchedules se daysOfWeek/time não foram passados
+    let effectiveDays = daysOfWeek
+    let effectiveTime = time
+    if ((!effectiveDays || effectiveDays.length === 0) && creditSchedules && creditSchedules.length > 0) {
+        effectiveDays = Array.from(new Set(creditSchedules.flatMap(s => s.preferred_days_of_week || []))).sort((a, b) => a - b)
+        effectiveTime = creditSchedules.find(s => s.preferred_time)?.preferred_time || time
+    }
+
+    // 2. Atualiza customer_packages
     const updatePayload: any = {
-        preferred_days_of_week: daysOfWeek,
-        preferred_day_of_week: daysOfWeek && daysOfWeek.length > 0 ? daysOfWeek[0] : null,
-        preferred_time: time
+        preferred_days_of_week: effectiveDays && effectiveDays.length > 0 ? effectiveDays : null,
+        preferred_day_of_week: effectiveDays && effectiveDays.length > 0 ? effectiveDays[0] : null,
+        preferred_time: effectiveTime || null
     }
     if (totalPrice !== undefined && totalPrice !== null) {
         updatePayload.total_price = totalPrice
@@ -684,14 +699,14 @@ export async function updateSubscriptionContract(
 
     if (updateError) return { message: updateError.message, success: false }
 
-    // 1.1. Update package_credits preferences
+    // 3. Atualiza package_credits
     if (creditSchedules && creditSchedules.length > 0) {
         for (const sched of creditSchedules) {
             await supabase
                 .from('package_credits')
                 .update({
-                    preferred_days_of_week: sched.preferred_days_of_week,
-                    preferred_time: sched.preferred_time
+                    preferred_days_of_week: sched.preferred_days_of_week && sched.preferred_days_of_week.length > 0 ? sched.preferred_days_of_week : null,
+                    preferred_time: sched.preferred_time || null
                 })
                 .eq('customer_package_id', id)
                 .eq('service_id', sched.service_id)
@@ -700,21 +715,68 @@ export async function updateSubscriptionContract(
         await supabase
             .from('package_credits')
             .update({
-                preferred_days_of_week: daysOfWeek,
-                preferred_time: time
+                preferred_days_of_week: effectiveDays && effectiveDays.length > 0 ? effectiveDays : null,
+                preferred_time: effectiveTime || null
             })
             .eq('customer_package_id', id)
     }
 
-    // As configurações foram atualizadas em `customer_packages` e `package_credits`.
-    // Não iremos deletar/recriar as sessões do mês atual. 
-    // Os agendamentos já feitos deverão ser alterados manualmente. 
-    // Os agendamentos do próximo mês utilizarão a nova configuração automaticamente.
+    // 4. Se solicitado, atualiza os agendamentos/sessões pendentes futuras deste mês para o novo dia e horário
+    let rescheduledCount = 0
+    if (updateFutureSessions && creditSchedules && creditSchedules.length > 0) {
+        const now = new Date()
+        const { data: pendingSessions } = await supabase
+            .from('package_sessions')
+            .select('id, scheduled_at, appointment_id, service_id')
+            .eq('customer_package_id', id)
+            .in('status', ['scheduled', 'rescheduled'])
+            .gte('scheduled_at', now.toISOString())
+            .order('scheduled_at', { ascending: true })
+
+        if (pendingSessions && pendingSessions.length > 0) {
+            for (const sess of pendingSessions) {
+                const sched = creditSchedules.find(s => s.service_id === sess.service_id)
+                const targetDays = sched?.preferred_days_of_week || effectiveDays
+                if (targetDays && targetDays.length > 0 && sess.scheduled_at) {
+                    const targetDay = targetDays[0] // 0 = Dom, 1 = Seg, 2 = Ter...
+                    const oldDate = new Date(sess.scheduled_at)
+                    
+                    // Ajusta para o dia desejado na mesma semana (Segunda a Domingo)
+                    const currentDow = oldDate.getDay()
+                    const diffDays = targetDay - currentDow
+                    const newDate = new Date(oldDate)
+                    newDate.setDate(oldDate.getDate() + diffDays)
+                    
+                    const timeStr = sched?.preferred_time || effectiveTime || '09:00'
+                    const [h, m] = timeStr.split(':')
+                    newDate.setHours(parseInt(h || '9', 10), parseInt(m || '0', 10), 0, 0)
+                    const newIso = newDate.toISOString()
+
+                    await supabase
+                        .from('package_sessions')
+                        .update({ scheduled_at: newIso, status: 'rescheduled' })
+                        .eq('id', sess.id)
+
+                    if (sess.appointment_id) {
+                        await supabase
+                            .from('appointments')
+                            .update({ scheduled_at: newIso })
+                            .eq('id', sess.appointment_id)
+                    }
+                    rescheduledCount++
+                }
+            }
+        }
+    }
 
     revalidatePath('/owner/mensalidades')
     revalidatePath('/owner/pets')
     revalidatePath('/owner/agenda')
 
-    return { message: 'Ajustes da mensalidade salvos e agenda atualizada!', success: true }
+    const successMsg = rescheduledCount > 0 
+        ? `Mensalidade atualizada e ${rescheduledCount} agendamento(s) futuro(s) movidos para o novo dia!`
+        : 'Ajustes da mensalidade salvos com sucesso!'
+
+    return { message: successMsg, success: true }
 }
 

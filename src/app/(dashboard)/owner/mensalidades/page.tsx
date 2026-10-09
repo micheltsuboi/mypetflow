@@ -46,6 +46,7 @@ export default function MensalidadesPage() {
     const [editContDays, setEditContDays] = useState<number[]>([])
     const [editContTime, setEditContTime] = useState('09:00')
     const [editContractPrice, setEditContractPrice] = useState<string>('')
+    const [editUpdateFutureSessions, setEditUpdateFutureSessions] = useState(true)
 
     // New subscription state
     const [showSubscribeModal, setShowSubscribeModal] = useState(false)
@@ -311,25 +312,25 @@ export default function MensalidadesPage() {
                                                     .eq('customer_package_id', sub.id)
                                                 
                                                 const initialSchedules: Record<string, { days: number[], time: string }> = {}
-                                                if (creditsData && creditsData.length > 0) {
-                                                    creditsData.forEach((item: any) => {
+                                                const plan = sub.service_packages as any
+                                                if (plan?.package_items && plan.package_items.length > 0) {
+                                                    plan.package_items.forEach((item: any) => {
+                                                        const cred = creditsData?.find((c: any) => c.service_id === item.service_id)
                                                         initialSchedules[item.service_id] = {
-                                                            days: item.preferred_days_of_week || [],
-                                                            time: item.preferred_time?.substring(0,5) || '09:00'
+                                                            days: cred?.preferred_days_of_week || sub.preferred_days_of_week || [],
+                                                            time: cred?.preferred_time?.substring(0,5) || sub.preferred_time?.substring(0,5) || '09:00'
                                                         }
                                                     })
-                                                } else {
-                                                    const plan = sub.service_packages as any
-                                                    if (plan?.package_items) {
-                                                        plan.package_items.forEach((item: any) => {
-                                                            initialSchedules[item.service_id] = {
-                                                                days: sub.preferred_days_of_week || [],
-                                                                time: sub.preferred_time?.substring(0,5) || '09:00'
-                                                            }
-                                                        })
-                                                    }
+                                                } else if (creditsData && creditsData.length > 0) {
+                                                    creditsData.forEach((item: any) => {
+                                                        initialSchedules[item.service_id] = {
+                                                            days: item.preferred_days_of_week || sub.preferred_days_of_week || [],
+                                                            time: item.preferred_time?.substring(0,5) || sub.preferred_time?.substring(0,5) || '09:00'
+                                                        }
+                                                    })
                                                 }
                                                 setSubSchedules(initialSchedules)
+                                                setEditUpdateFutureSessions(true)
                                                 setEditContractPrice(sub.total_price !== null && sub.total_price !== undefined ? String(sub.total_price) : String(sub.service_packages?.total_price || ''))
                                             }}
                                         >✏️ Ajustar</button>
@@ -858,7 +859,19 @@ export default function MensalidadesPage() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+                            <div style={{ marginTop: '0.75rem', padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={editUpdateFutureSessions} 
+                                        onChange={e => setEditUpdateFutureSessions(e.target.checked)} 
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    <span>🗓️ Mover automaticamente os agendamentos pendentes deste mês para o novo dia/horário</span>
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
                                 <button type="button" onClick={() => setEditingContractId(null)} className={styles.cancelBtn}>Cancelar</button>
                                 <button
                                     onClick={async () => {
@@ -872,7 +885,7 @@ export default function MensalidadesPage() {
                                         const priceNum = parseFloat(editContractPrice)
                                         const finalPrice = !isNaN(priceNum) ? priceNum : null
 
-                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules, finalPrice)
+                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules, finalPrice, editUpdateFutureSessions)
                                         if (res.success) {
                                             alert(res.message)
                                             setEditingContractId(null)

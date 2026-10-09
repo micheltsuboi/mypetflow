@@ -226,6 +226,7 @@ function PetsContent() {
     const [editingSubId, setEditingSubId] = useState<string | null>(null)
     const [editSubDays, setEditSubDays] = useState<number[]>([])
     const [editSubTime, setEditSubTime] = useState<string>('09:00')
+    const [editSubUpdateFutureSessions, setEditSubUpdateFutureSessions] = useState(true)
     const [reschedulingSession, setReschedulingSession] = useState<any | null>(null)
     const [rescheduleDateTime, setRescheduleDateTime] = useState<string>('')
 
@@ -2333,25 +2334,25 @@ function PetsContent() {
                                                                                         .eq('customer_package_id', sub.id)
                                                                                     
                                                                                     const initialSchedules: Record<string, { days: number[], time: string }> = {}
-                                                                                    if (creditsData && creditsData.length > 0) {
-                                                                                        creditsData.forEach((item: any) => {
+                                                                                    const plan = sub.service_packages as any
+                                                                                    if (plan?.package_items && plan.package_items.length > 0) {
+                                                                                        plan.package_items.forEach((item: any) => {
+                                                                                            const cred = creditsData?.find((c: any) => c.service_id === item.service_id)
                                                                                             initialSchedules[item.service_id] = {
-                                                                                                days: item.preferred_days_of_week || [],
-                                                                                                time: item.preferred_time?.substring(0,5) || '09:00'
+                                                                                                days: cred?.preferred_days_of_week || sub.preferred_days_of_week || [],
+                                                                                                time: cred?.preferred_time?.substring(0,5) || sub.preferred_time?.substring(0,5) || '09:00'
                                                                                             }
                                                                                         })
-                                                                                    } else {
-                                                                                        const plan = sub.service_packages
-                                                                                        if (plan?.package_items) {
-                                                                                            plan.package_items.forEach((item: any) => {
-                                                                                                initialSchedules[item.service_id] = {
-                                                                                                    days: sub.preferred_days_of_week || [],
-                                                                                                    time: sub.preferred_time?.substring(0,5) || '09:00'
-                                                                                                }
-                                                                                            })
-                                                                                        }
+                                                                                    } else if (creditsData && creditsData.length > 0) {
+                                                                                        creditsData.forEach((item: any) => {
+                                                                                            initialSchedules[item.service_id] = {
+                                                                                                days: item.preferred_days_of_week || sub.preferred_days_of_week || [],
+                                                                                                time: item.preferred_time?.substring(0,5) || sub.preferred_time?.substring(0,5) || '09:00'
+                                                                                            }
+                                                                                        })
                                                                                     }
                                                                                     setSubSchedules(initialSchedules)
+                                                                                    setEditSubUpdateFutureSessions(true)
                                                                                 }}
                                                                                 className={styles.actionBtn}
                                                                                 style={{ fontSize: '0.7rem', padding: '4px 8px' }}
@@ -2882,7 +2883,19 @@ function PetsContent() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
+                            <div style={{ marginTop: '0.75rem', padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={editSubUpdateFutureSessions} 
+                                        onChange={e => setEditSubUpdateFutureSessions(e.target.checked)} 
+                                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    <span>🗓️ Mover automaticamente os agendamentos pendentes deste mês para o novo dia/horário</span>
+                                </label>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
                                 <button type="button" onClick={() => setEditingSubId(null)} style={{ padding: '0.6rem 1.25rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600 }}>Cancelar</button>
                                 <button
                                     onClick={async () => {
@@ -2893,7 +2906,7 @@ function PetsContent() {
                                             preferred_time: subSchedules[serviceId].time || null
                                         }))
 
-                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules)
+                                        const res = await updateSubscriptionContract(sub.id, null, null, creditSchedules, null, editSubUpdateFutureSessions)
                                         if (res.success) {
                                             alert(res.message)
                                             setEditingSubId(null)
