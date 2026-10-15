@@ -601,7 +601,7 @@ function PetsContent() {
                 }
             })
 
-            const customersPromise = supabase.from('customers').select('id, name, phone_1').eq('org_id', profile.org_id).order('name').then(({ data: customersData }) => {
+            const customersPromise = supabase.from('customers').select('id, name, phone_1, physical_file_number').eq('org_id', profile.org_id).order('name').then(({ data: customersData }) => {
                 if (customersData) setCustomers(customersData as any)
             })
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Search, X, Loader2, User } from 'lucide-react'
 import { searchTutors } from '@/app/actions/tutor'
+import { createClient } from '@/lib/supabase/client'
 import styles from './TutorSearchSelect.module.css'
 
 interface Tutor {
@@ -24,7 +25,7 @@ interface TutorSearchSelectProps {
 
 export default function TutorSearchSelect({
     name,
-    placeholder = 'Pesquisar tutor...',
+    placeholder = 'Pesquisar por nome, telefone ou nº da ficha...',
     defaultValue = '',
     initialTutors = [],
     required = false,
@@ -40,17 +41,29 @@ export default function TutorSearchSelect({
 
     // Initial load if defaultValue is provided (tutorId)
     useEffect(() => {
-        if (defaultValue && !selectedTutor) {
+        if (defaultValue) {
             const found = initialTutors.find(t => t.id === defaultValue)
             if (found) {
                 setSelectedTutor(found)
+            } else if (!selectedTutor || selectedTutor.id !== defaultValue) {
+                const supabase = createClient()
+                supabase
+                    .from('customers')
+                    .select('id, name, phone_1, physical_file_number')
+                    .eq('id', defaultValue)
+                    .maybeSingle()
+                    .then(({ data }) => {
+                        if (data) setSelectedTutor(data)
+                    })
             }
+        } else {
+            setSelectedTutor(null)
         }
     }, [defaultValue, initialTutors])
 
     useEffect(() => {
         const timer = setTimeout(async () => {
-            if (query.trim().length >= 2) {
+            if (query.trim().length >= 1) {
                 setIsSearching(true)
                 const res = await searchTutors(query)
                 if (res.success && res.data) {
@@ -59,12 +72,12 @@ export default function TutorSearchSelect({
                 }
                 setIsSearching(false)
             } else if (query.trim().length === 0) {
-                setResults(initialTutors)
+                setResults(initialTutors.slice(0, 15))
             } else {
                 setResults([])
                 setIsOpen(false)
             }
-        }, 300)
+        }, 250)
 
         return () => clearTimeout(timer)
     }, [query, initialTutors])
@@ -138,7 +151,7 @@ export default function TutorSearchSelect({
                             ))}
                         </div>
                     )}
-                    {isOpen && results.length === 0 && query.length >= 2 && !isSearching && (
+                    {isOpen && results.length === 0 && query.trim().length >= 1 && !isSearching && (
                         <div className={styles.dropdown}>
                             <div className={styles.noResults}>Nenhum tutor encontrado</div>
                         </div>
@@ -150,7 +163,14 @@ export default function TutorSearchSelect({
                         <User size={18} />
                     </div>
                     <div className={styles.selectedTutorInfo}>
-                        <div className={styles.selectedTutorName}>{selectedTutor.name}</div>
+                        <div className={styles.selectedTutorName}>
+                            {selectedTutor.name}
+                            {selectedTutor.physical_file_number && (
+                                <span style={{ fontSize: '0.75rem', color: '#64748b', marginLeft: '0.5rem', fontWeight: 500 }}>
+                                    (Ficha: {selectedTutor.physical_file_number})
+                                </span>
+                            )}
+                        </div>
                         {selectedTutor.phone_1 && <div className={styles.selectedTutorPhone}>{selectedTutor.phone_1}</div>}
                     </div>
                     <button type="button" className={styles.clearBtn} onClick={clearSelection}>

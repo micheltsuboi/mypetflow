@@ -288,15 +288,68 @@ export async function searchTutors(query: string) {
 
         if (!profile?.org_id) return { success: false, message: 'Org não encontrada' }
 
+        const trimmed = query.trim().replace(/^#+/, '')
+        if (!trimmed) return { success: true, data: [] }
+
+        const words = trimmed.split(/\s+/).filter(w => w.length > 0)
+        if (words.length === 0) return { success: true, data: [] }
+
+        const normalizeStr = (str: string) => {
+            if (!str) return ""
+            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        }
+
+        const stopWords = new Set(['ficha', 'fichas', 'n', 'nº', 'no', 'num', 'numero', 'número'])
+        let searchWords = words.filter(w => !stopWords.has(normalizeStr(w)))
+        if (searchWords.length === 0) searchWords = words
+
+        const orClauses = searchWords.map(w => 
+            `name.ilike.%${w}%,physical_file_number.ilike.%${w}%,phone_1.ilike.%${w}%,cpf.ilike.%${w}%`
+        ).join(',')
+
         const { data, error } = await supabase
             .from('customers')
-            .select('id, name, phone_1, physical_file_number')
+            .select('id, name, phone_1, physical_file_number, cpf')
             .eq('org_id', profile.org_id)
-            .ilike('name', `%${query}%`)
-            .limit(10)
+            .or(orClauses)
+            .limit(50)
 
         if (error) throw error
-        return { success: true, data }
+
+        const normalizedWords = searchWords.map(w => normalizeStr(w))
+
+        const filtered = (data || []).filter(tutor => {
+            const name = normalizeStr(tutor.name || '')
+            const file = normalizeStr(tutor.physical_file_number || '')
+            const phone = normalizeStr(tutor.phone_1 || '')
+            const cpf = normalizeStr(tutor.cpf || '')
+
+            return normalizedWords.every(word => 
+                name.includes(word) || 
+                file.includes(word) || 
+                phone.includes(word) || 
+                cpf.includes(word)
+            )
+        })
+
+        // Ordenação inteligente: match exato de ficha ou início de nome no topo
+        const lowerTrimmed = trimmed.toLowerCase()
+        filtered.sort((a, b) => {
+            const aFile = (a.physical_file_number || '').trim().toLowerCase()
+            const bFile = (b.physical_file_number || '').trim().toLowerCase()
+
+            if (aFile === lowerTrimmed && bFile !== lowerTrimmed) return -1
+            if (bFile === lowerTrimmed && aFile !== lowerTrimmed) return 1
+
+            const aName = (a.name || '').toLowerCase()
+            const bName = (b.name || '').toLowerCase()
+            if (aName.startsWith(lowerTrimmed) && !bName.startsWith(lowerTrimmed)) return -1
+            if (bName.startsWith(lowerTrimmed) && !aName.startsWith(lowerTrimmed)) return 1
+
+            return aName.localeCompare(bName)
+        })
+
+        return { success: true, data: filtered.slice(0, 15) }
     } catch (error) {
         console.error('Error searching tutors:', error)
         return { success: false, message: 'Erro ao buscar tutores' }
