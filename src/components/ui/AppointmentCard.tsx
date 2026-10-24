@@ -13,6 +13,7 @@ interface AppointmentCardProps {
     onCheckOut: (id: string, type?: string) => void
     onDelete: (id: string) => void
     onEdit: (appt: any) => void
+    onWhatsAppAction?: (appt: any) => void
     onNFAction?: (appt: any) => void
     onWhatsAppNF?: (ref: string) => void
     onViewReport?: (appt: any) => void
@@ -31,6 +32,7 @@ export default function AppointmentCard({
     onCheckOut,
     onDelete,
     onEdit,
+    onWhatsAppAction,
     onNFAction,
     onWhatsAppNF,
     onViewReport,
@@ -234,7 +236,30 @@ export default function AppointmentCard({
                 </div>
 
                 {viewMode === 'active' && (
-                    <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0, marginLeft: '0.5rem' }}>
+                        {onWhatsAppAction && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onWhatsAppAction(appt)
+                                }}
+                                title="Enviar Mensagem via WhatsApp ao Tutor"
+                                style={{
+                                    background: 'rgba(37, 211, 102, 0.12)',
+                                    border: '1px solid rgba(37, 211, 102, 0.3)',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '0.95rem'
+                                }}
+                            >
+                                💬
+                            </button>
+                        )}
                         <button
                             onClick={(e) => {
                                 e.stopPropagation()

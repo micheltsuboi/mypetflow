@@ -13,6 +13,7 @@ import PetSearchSelect from '@/components/ui/PetSearchSelect'
 import EmitirNFModal from '@/components/EmitirNFModal'
 import AppointmentCard from '@/components/ui/AppointmentCard'
 import ConfirmationModal from '@/components/ui/ConfirmationModal'
+import SendWhatsAppModal, { WhatsAppRecipient } from '@/components/SendWhatsAppModal'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 
 interface Appointment {
@@ -97,6 +98,39 @@ export default function BanhoTosaPage() {
             isOpen: true,
             ...options
         })
+    }
+
+    // Modal de envio manual de WhatsApp
+    const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false)
+    const [whatsAppRecipient, setWhatsAppRecipient] = useState<WhatsAppRecipient | null>(null)
+
+    const handleOpenWhatsAppModal = (appt: any) => {
+        if (!appt) return
+        const petObj = appt.pets as any
+        const customer = petObj?.customers as any
+        const tutorName = customer?.name || appt.customer_name || 'Tutor'
+        const tutorPhone = customer?.phone_1 || customer?.phone_2 || appt.customer_phone || ''
+        
+        let scheduledDate = ''
+        let scheduledTime = ''
+        if (appt.scheduled_at) {
+            const d = new Date(appt.scheduled_at)
+            scheduledDate = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Sao_Paulo' })
+            scheduledTime = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+        }
+
+        setWhatsAppRecipient({
+            name: tutorName,
+            phone: tutorPhone,
+            petName: petObj?.name || 'Pet',
+            serviceName: appt.services?.name || 'Banho e Tosa',
+            scheduledDate,
+            scheduledTime,
+            price: Number(appt.final_price || appt.calculated_price || 0),
+            appointmentId: appt.id,
+            customerId: appt.customer_id || petObj?.customer_id
+        })
+        setWhatsAppModalOpen(true)
     }
 
     const handleSendWhatsApp = async (referencia: string) => {
@@ -480,6 +514,7 @@ export default function BanhoTosaPage() {
                                     setShowNFModal(true)
                                 }}
                                 onWhatsAppNF={handleSendWhatsApp}
+                                onWhatsAppAction={(a) => handleOpenWhatsAppModal(a)}
                                 onViewReport={(a) => setSelectedAppointment(a)}
                             />
                         ))}
@@ -542,6 +577,13 @@ export default function BanhoTosaPage() {
                 type={confirmModal.type}
                 onConfirm={confirmModal.onConfirm}
                 onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+            />
+
+            <SendWhatsAppModal
+                isOpen={whatsAppModalOpen}
+                onClose={() => setWhatsAppModalOpen(false)}
+                recipient={whatsAppRecipient}
+                onSuccess={() => fetchBanhoTosaData(true)}
             />
         </PlanGuard>
     )

@@ -46,15 +46,21 @@ export async function sendWhatsAppMessage(
         const service = extraData.serviceName || extraData.service_name || 'serviço'
         const date = extraData.formattedDate || ''
         const time = extraData.formattedTime || ''
+        const timePart = time && time !== 'entrada' ? ` às *${time}*` : ''
         const orgName = extraData.orgName || org?.name || ''
         const orgSuffix = orgName ? ` na *${orgName}*` : ''
-        finalMessage = `📅 *Agendamento Confirmado!*\n\n🐾 Pet: *${pet}*\n📋 Serviço: *${service}*\n📆 Data: *${date}* às *${time}*\n\nEstamos te esperando${orgSuffix}! Qualquer dúvida, é só chamar. 🐶`
+        finalMessage = `📅 *Agendamento Confirmado!*\n\n🐾 Pet: *${pet}*\n📋 Serviço: *${service}*\n📆 Data: *${date}*${timePart}\n\nEstamos te esperando${orgSuffix}! Qualquer dúvida, é só chamar. 🐶`
     } else if (webhookPath === 'pet-reagendamento' && extraData.petName) {
         const pet = extraData.petName || 'seu pet'
         const service = extraData.serviceName || 'serviço'
         const date = extraData.formattedDate || ''
         const time = extraData.formattedTime || ''
-        finalMessage = `🔄 *Horário Reagendado!*\n\nOlá! Passando para avisar que o horário do *${pet}* para *${service}* foi atualizado.\n\n📆 Nova Data: *${date}* às *${time}*\n\nQualquer dúvida, estamos à disposição! 🐶`
+        const timePart = time && time !== 'entrada' ? ` às *${time}*` : ''
+        finalMessage = `🔄 *Horário Reagendado!*\n\nOlá! Passando para avisar que o horário do *${pet}* para *${service}* foi atualizado.\n\n📆 Nova Data: *${date}*${timePart}\n\nQualquer dúvida, estamos à disposição! 🐶`
+    } else if (webhookPath === 'pet-status' && extraData.petName && !message) {
+        const pet = extraData.petName || 'seu pet'
+        const statusLabel = extraData.statusLabel || 'Atualizado'
+        finalMessage = `🐾 *Atualização do Atendimento*\n\nOlá! O status do atendimento do *${pet}* foi atualizado para: *${statusLabel}*.`
     }
 
     // Configuração do endpoint Z-API direto
@@ -80,14 +86,14 @@ export async function sendWhatsAppMessage(
         }
     }
 
-    // Função de fallback para envio direto via Z-API
+    // Função de envio direto via Z-API
     const sendDirectZapi = async () => {
         if (!zapiEndpoint) {
-            console.error('[sendWhatsAppMessage] Fallback Z-API endpoint não configurado.')
+            console.error('[sendWhatsAppMessage] Endpoint Z-API não configurado.')
             return { success: false, error: 'Endpoint Z-API não configurado.' }
         }
 
-        console.log(`[sendWhatsAppMessage] Fallback ativo: Enviando direto via Z-API (${zapiEndpoint})...`)
+        console.log(`[sendWhatsAppMessage] Enviando direto via Z-API (${zapiEndpoint})...`)
         try {
             const zapiRes = await fetch(zapiEndpoint, {
                 method: 'POST',
@@ -103,47 +109,56 @@ export async function sendWhatsAppMessage(
             })
 
             if (!zapiRes.ok) {
-                const errBody = await zapiRes.text()
-                console.error('[sendWhatsAppMessage] Fallback Z-API erro:', zapiRes.status, errBody)
+                const errBody = await zapiRes.text().catch(() => '')
+                console.error('[sendWhatsAppMessage] Z-API erro:', zapiRes.status, errBody)
                 return { success: false, error: `Erro Z-API: ${zapiRes.status} - ${errBody}` }
             }
 
             const zapiData = await zapiRes.json().catch(() => ({}))
-            console.log('[sendWhatsAppMessage] Fallback Z-API enviado com sucesso!', zapiData)
+            console.log('[sendWhatsAppMessage] Z-API enviado com sucesso!', zapiData)
             return { success: true }
         } catch (zapiErr: any) {
-            console.error('[sendWhatsAppMessage] Fallback Z-API exception:', zapiErr)
+            console.error('[sendWhatsAppMessage] Z-API exception:', zapiErr)
             return { success: false, error: `Falha no envio direto Z-API: ${zapiErr.message}` }
         }
     }
 
-    // Payload unificado que o N8N vai processar
-    const payload = {
-        ...extraData,
-        phone: normalizedPhone,
-        tutorPhone: normalizedPhone,
-        normalizedPhone: normalizedPhone,
-        message: finalMessage,
-        customMessage: finalMessage,
-        tenant_id: orgId,
-        type: 'system_notification',
-        wa_api_url: rawZapiUrl,
-        wa_api_token: zapiToken,
-        wa_client_token: zapiClientToken,
-        wa_integration_type: integrationType
+    // 1. Envio Direto via Z-API (Método Primário e Independente do N8N)
+    if (zapiEndpoint) {
+        const zapiResult = await sendDirectZapi()
+        if (zapiResult.success) {
+            return { success: true }
+        }
+        console.warn('[sendWhatsAppMessage] Envio direto Z-API não concluiu. Tentando contingência N8N...', zapiResult.error)
     }
 
-    // 1. Tentar enviar via N8N se não estiver marcado como offline temporariamente
+    // 2. Contingência Secundária via N8N (se disponível e não estiver em circuit breaker)
     const isN8nTemporarilyOffline = Date.now() < n8nOfflineUntil
 
-    if (!isN8nTemporarilyOffline) {
+    if (!isN8nTemporarilyOffline && process.env.N8N_BASE_URL) {
+        // Payload unificado para o N8N
+        const payload = {
+            ...extraData,
+            phone: normalizedPhone,
+            tutorPhone: normalizedPhone,
+            normalizedPhone: normalizedPhone,
+            message: finalMessage,
+            customMessage: finalMessage,
+            tenant_id: orgId,
+            type: 'system_notification',
+            wa_api_url: rawZapiUrl,
+            wa_api_token: zapiToken,
+            wa_client_token: zapiClientToken,
+            wa_integration_type: integrationType
+        }
+
         try {
-            console.log(`[sendWhatsAppMessage] Tentando roteador N8N: ${fullUrl}`)
+            console.log(`[sendWhatsAppMessage] Tentando contingência N8N: ${fullUrl}`)
             const response = await fetch(fullUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
-                signal: AbortSignal.timeout(1200)
+                signal: AbortSignal.timeout(1500)
             })
 
             if (response.ok) {
@@ -151,19 +166,16 @@ export async function sendWhatsAppMessage(
                 return { success: true }
             } else {
                 const errText = await response.text().catch(() => '')
-                console.warn(`[sendWhatsAppMessage] N8N retornou status ${response.status} (${errText}). Ativando fallback Z-API...`)
+                console.warn(`[sendWhatsAppMessage] N8N contingência retornou status ${response.status} (${errText}).`)
                 n8nOfflineUntil = Date.now() + 5 * 60 * 1000 // 5 minutos
             }
         } catch (n8nErr: any) {
-            console.warn(`[sendWhatsAppMessage] N8N indisponível (${n8nErr.name}: ${n8nErr.message}). Circuito aberto por 5 minutos, ativando fallback Z-API direto...`)
+            console.warn(`[sendWhatsAppMessage] N8N contingência indisponível (${n8nErr.name}: ${n8nErr.message}).`)
             n8nOfflineUntil = Date.now() + 5 * 60 * 1000 // 5 minutos
         }
-    } else {
-        console.log('[sendWhatsAppMessage] N8N em modo offline (circuit breaker ativo). Enviando direto via Z-API...')
     }
 
-    // 2. Se o N8N falhou, está em modo offline ou inacessível, disparar direto no Z-API
-    return await sendDirectZapi()
+    return { success: false, error: 'Não foi possível enviar a mensagem pelas integrações disponíveis.' }
 
   } catch (error: any) {
     console.error('sendWhatsAppMessage Global Exception:', error)
