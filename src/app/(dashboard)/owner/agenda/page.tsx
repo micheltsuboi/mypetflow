@@ -144,7 +144,7 @@ function AgendaContent() {
         cancelLabel?: string
         confirmColor?: string
         type?: 'danger' | 'warning' | 'success' | 'info'
-        onConfirm: () => void
+        onConfirm: () => Promise<void> | void
     }>({
         isOpen: false,
         title: '',
@@ -159,7 +159,7 @@ function AgendaContent() {
         cancelLabel?: string
         confirmColor?: string
         type?: 'danger' | 'warning' | 'success' | 'info'
-        onConfirm: () => void
+        onConfirm: () => Promise<void> | void
     }) => {
         setConfirmModal({
             isOpen: true,
@@ -639,14 +639,14 @@ function AgendaContent() {
             type: 'danger',
             onConfirm: async () => {
                 const res = await deleteAppointment(target.id)
-                if (res.success) {
-                    setShowDetailModal(false)
-                    setIsEditing(false)
-                    fetchData()
-                } else {
-                    alert(res.message)
-                }
+                setShowDetailModal(false)
+                setIsEditing(false)
                 setConfirmModal(prev => ({ ...prev, isOpen: false }))
+                if (res.success) {
+                    await fetchData()
+                } else {
+                    alert(res.message || 'Erro ao cancelar agendamento.')
+                }
             }
         })
     }

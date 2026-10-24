@@ -371,13 +371,12 @@ export default function CrechePage() {
             type: 'danger',
             onConfirm: async () => {
                 const result = await deleteAppointment(id)
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
                 if (result.success) {
-                    alert(result.message)
-                    fetchCrecheData()
+                    await fetchCrecheData()
                 } else {
                     alert(result.message)
                 }
-                setConfirmModal(prev => ({ ...prev, isOpen: false }))
             }
         })
     }

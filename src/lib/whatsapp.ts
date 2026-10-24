@@ -1,6 +1,9 @@
 import { createClient } from './supabase/server'
 import { createAdminClient } from './supabase/admin'
 
+// Circuit Breaker para evitar atrasos caso o N8N esteja offline
+let n8nOfflineUntil = 0
+
 export async function sendWhatsAppMessage(
   orgId: string,
   phone: string,
@@ -130,28 +133,36 @@ export async function sendWhatsAppMessage(
         wa_integration_type: integrationType
     }
 
-    // 1. Tentar enviar via N8N com timeout de 2.5s (para não travar caso o N8N esteja offline)
-    try {
-        console.log(`[sendWhatsAppMessage] Tentando roteador N8N: ${fullUrl}`)
-        const response = await fetch(fullUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: AbortSignal.timeout(2500)
-        })
+    // 1. Tentar enviar via N8N se não estiver marcado como offline temporariamente
+    const isN8nTemporarilyOffline = Date.now() < n8nOfflineUntil
 
-        if (response.ok) {
-            console.log('[sendWhatsAppMessage] N8N enviado com sucesso!')
-            return { success: true }
-        } else {
-            const errText = await response.text().catch(() => '')
-            console.warn(`[sendWhatsAppMessage] N8N retornou status ${response.status} (${errText}). Ativando fallback Z-API...`)
+    if (!isN8nTemporarilyOffline) {
+        try {
+            console.log(`[sendWhatsAppMessage] Tentando roteador N8N: ${fullUrl}`)
+            const response = await fetch(fullUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(1200)
+            })
+
+            if (response.ok) {
+                console.log('[sendWhatsAppMessage] N8N enviado com sucesso!')
+                return { success: true }
+            } else {
+                const errText = await response.text().catch(() => '')
+                console.warn(`[sendWhatsAppMessage] N8N retornou status ${response.status} (${errText}). Ativando fallback Z-API...`)
+                n8nOfflineUntil = Date.now() + 5 * 60 * 1000 // 5 minutos
+            }
+        } catch (n8nErr: any) {
+            console.warn(`[sendWhatsAppMessage] N8N indisponível (${n8nErr.name}: ${n8nErr.message}). Circuito aberto por 5 minutos, ativando fallback Z-API direto...`)
+            n8nOfflineUntil = Date.now() + 5 * 60 * 1000 // 5 minutos
         }
-    } catch (n8nErr: any) {
-        console.warn(`[sendWhatsAppMessage] N8N indisponível (${n8nErr.name}: ${n8nErr.message}). Ativando fallback Z-API direto...`)
+    } else {
+        console.log('[sendWhatsAppMessage] N8N em modo offline (circuit breaker ativo). Enviando direto via Z-API...')
     }
 
-    // 2. Se o N8N falhou ou está inacessível, disparar direto no Z-API
+    // 2. Se o N8N falhou, está em modo offline ou inacessível, disparar direto no Z-API
     return await sendDirectZapi()
 
   } catch (error: any) {

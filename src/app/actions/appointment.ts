@@ -383,23 +383,57 @@ export async function deleteAppointment(id: string) {
     
     if (!appointment) return { message: 'Agendamento não encontrado.', success: false }
 
-    // Verificar org
+    // Verificar org (suportando superadmin)
     const { data: profile } = await adminSupabase
         .from('profiles')
-        .select('org_id')
+        .select('org_id, role')
         .eq('id', user.id)
         .single()
     
-    if (!profile || appointment.org_id !== profile.org_id) {
+    if (!profile || (profile.role !== 'superadmin' && appointment.org_id !== profile.org_id)) {
         return { message: 'Não autorizado para esta organização.', success: false }
     }
 
-    // Se usou crédito, devolver antes de deletar
+    // Se usou crédito de pacote avulso, devolver antes de deletar
     if (appointment?.package_credit_id) {
-        await adminSupabase.rpc('return_package_credit', {
-            p_credit_id: appointment.package_credit_id
-        })
+        try {
+            await adminSupabase.rpc('return_package_credit', {
+                p_credit_id: appointment.package_credit_id
+            })
+        } catch (rpcErr) {
+            console.error('[deleteAppointment] Erro ao devolver crédito:', rpcErr)
+        }
     }
+
+    // Desvincular e limpar tabelas relacionadas para evitar erro de Foreign Key
+    // 1. Sessões de pacote/mensalidade
+    await adminSupabase
+        .from('package_sessions')
+        .update({ appointment_id: null, status: 'pending', scheduled_at: null })
+        .eq('appointment_id', id)
+
+    // 2. Consultas veterinárias
+    await adminSupabase
+        .from('vet_consultations')
+        .update({ appointment_id: null })
+        .eq('appointment_id', id)
+
+    // 3. Relatórios diários (timeline e creche)
+    await adminSupabase
+        .from('daily_reports')
+        .delete()
+        .eq('appointment_id', id)
+
+    await adminSupabase
+        .from('appointment_daily_reports')
+        .delete()
+        .eq('appointment_id', id)
+
+    // 4. Alertas veterinários
+    await adminSupabase
+        .from('vet_alerts')
+        .delete()
+        .eq('appointment_id', id)
 
     // Deletar transações vinculadas
     await adminSupabase.from('financial_transactions').delete().eq('reference_id', id)
@@ -428,11 +462,17 @@ export async function deleteAppointment(id: string) {
     }
 
     const { error } = await adminSupabase.from('appointments').delete().eq('id', id)
-    if (error) return { message: error.message, success: false }
+    if (error) {
+        console.error('[deleteAppointment] Erro ao deletar:', error)
+        return { message: error.message, success: false }
+    }
 
     revalidatePath('/owner/agenda')
     revalidatePath('/owner/pets')
-    return { message: 'Agendamento excluído.', success: true }
+    revalidatePath('/owner/banho-tosa')
+    revalidatePath('/owner/creche')
+    revalidatePath('/owner/hospedagem')
+    return { message: 'Agendamento excluído com sucesso.', success: true }
 }
 
 export async function updateAppointment(prevState: CreateAppointmentState, formData: FormData) {

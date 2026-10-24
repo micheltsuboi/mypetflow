@@ -274,10 +274,11 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                                         color: '#ef4444',
                                         cursor: 'pointer',
                                         fontWeight: 600,
-                                        marginRight: 'auto'
+                                        marginRight: 'auto',
+                                        opacity: loading ? 0.6 : 1
                                     }}
                                 >
-                                    Excluir
+                                    {loading ? 'Excluindo...' : 'Excluir'}
                                 </button>
                             )}
                             <button

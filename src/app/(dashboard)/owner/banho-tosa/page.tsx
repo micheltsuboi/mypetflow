@@ -372,13 +372,12 @@ export default function BanhoTosaPage() {
             type: 'danger',
             onConfirm: async () => {
                 const result = await deleteAppointment(id)
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
                 if (result.success) {
-                    alert(result.message)
-                    fetchBanhoTosaData()
+                    await fetchBanhoTosaData()
                 } else {
                     alert(result.message)
                 }
-                setConfirmModal(prev => ({ ...prev, isOpen: false }))
             }
         })
     }

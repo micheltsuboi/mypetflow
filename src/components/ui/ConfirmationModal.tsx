@@ -1,6 +1,7 @@
 'use client'
 
-import { AlertTriangle, HelpCircle, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { AlertTriangle, HelpCircle, X, Loader2 } from 'lucide-react'
 
 interface ConfirmationModalProps {
     isOpen: boolean
@@ -10,7 +11,7 @@ interface ConfirmationModalProps {
     cancelLabel?: string
     confirmColor?: string
     type?: 'danger' | 'warning' | 'success' | 'info'
-    onConfirm: () => void
+    onConfirm: () => Promise<void> | void
     onCancel: () => void
 }
 
@@ -25,7 +26,27 @@ export default function ConfirmationModal({
     onConfirm,
     onCancel
 }: ConfirmationModalProps) {
+    const [isConfirming, setIsConfirming] = useState(false)
+
+    useEffect(() => {
+        if (!isOpen) {
+            setIsConfirming(false)
+        }
+    }, [isOpen])
+
     if (!isOpen) return null
+
+    const handleConfirmClick = async () => {
+        if (isConfirming) return
+        try {
+            setIsConfirming(true)
+            await onConfirm()
+        } catch (error) {
+            console.error('[ConfirmationModal] Error in onConfirm:', error)
+        } finally {
+            setIsConfirming(false)
+        }
+    }
 
     const colors = {
         danger: '#EF4444',
@@ -66,6 +87,7 @@ export default function ConfirmationModal({
             }}>
                 <button
                     onClick={onCancel}
+                    disabled={isConfirming}
                     style={{
                         position: 'absolute',
                         top: '1.25rem',
@@ -73,15 +95,16 @@ export default function ConfirmationModal({
                         background: 'none',
                         border: 'none',
                         color: 'var(--text-muted)',
-                        cursor: 'pointer',
+                        cursor: isConfirming ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         padding: '4px',
                         borderRadius: '50%',
+                        opacity: isConfirming ? 0.4 : 1,
                         transition: 'background-color 0.2s'
                     }}
-                    onMouseOver={e => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                    onMouseOver={e => (!isConfirming && (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'))}
                     onMouseOut={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                     <X size={20} />
@@ -104,6 +127,7 @@ export default function ConfirmationModal({
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
                     <button
                         onClick={onCancel}
+                        disabled={isConfirming}
                         style={{
                             padding: '0.75rem 1.5rem',
                             background: 'var(--bg-tertiary)',
@@ -111,33 +135,40 @@ export default function ConfirmationModal({
                             border: '1px solid var(--card-border)',
                             borderRadius: '8px',
                             fontWeight: 700,
-                            cursor: 'pointer',
+                            cursor: isConfirming ? 'not-allowed' : 'pointer',
                             fontSize: '0.9rem',
+                            opacity: isConfirming ? 0.5 : 1,
                             transition: 'background-color 0.2s'
                         }}
-                        onMouseOver={e => (e.currentTarget.style.backgroundColor = 'var(--card-hover)')}
+                        onMouseOver={e => (!isConfirming && (e.currentTarget.style.backgroundColor = 'var(--card-hover)'))}
                         onMouseOut={e => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
                     >
                         {cancelLabel}
                     </button>
                     <button
-                        onClick={onConfirm}
+                        onClick={handleConfirmClick}
+                        disabled={isConfirming}
                         style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
                             padding: '0.75rem 1.5rem',
                             background: buttonColor,
                             color: '#fff',
                             border: 'none',
                             borderRadius: '8px',
                             fontWeight: 700,
-                            cursor: 'pointer',
+                            cursor: isConfirming ? 'not-allowed' : 'pointer',
                             fontSize: '0.9rem',
                             boxShadow: `0 4px 14px ${buttonColor}35`,
+                            opacity: isConfirming ? 0.8 : 1,
                             transition: 'opacity 0.2s'
                         }}
-                        onMouseOver={e => (e.currentTarget.style.opacity = '0.9')}
+                        onMouseOver={e => (!isConfirming && (e.currentTarget.style.opacity = '0.9'))}
                         onMouseOut={e => (e.currentTarget.style.opacity = '1')}
                     >
-                        {confirmLabel}
+                        {isConfirming && <Loader2 size={16} className="animate-spin" style={{ animation: 'spin 1s linear infinite' }} />}
+                        {isConfirming ? (type === 'danger' ? 'Excluindo...' : 'Processando...') : confirmLabel}
                     </button>
                 </div>
             </div>
@@ -145,6 +176,10 @@ export default function ConfirmationModal({
                 @keyframes scaleIn {
                     from { transform: scale(0.95); opacity: 0; }
                     to { transform: scale(1); opacity: 1; }
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>

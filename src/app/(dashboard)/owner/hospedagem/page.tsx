@@ -361,13 +361,12 @@ export default function HospedagemPage() {
             type: 'danger',
             onConfirm: async () => {
                 const result = await deleteAppointment(id)
+                setConfirmModal(prev => ({ ...prev, isOpen: false }))
                 if (result.success) {
-                    alert(result.message)
-                    fetchHospedagemData()
+                    await fetchHospedagemData()
                 } else {
                     alert(result.message)
                 }
-                setConfirmModal(prev => ({ ...prev, isOpen: false }))
             }
         })
     }
