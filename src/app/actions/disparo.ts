@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { getFirstName } from '@/utils/formatters'
 
 interface DisparoResponse {
   success: boolean
@@ -153,8 +154,8 @@ export async function iniciarDisparoMassa(messageTemplate: string): Promise<Disp
         // Formatar número para garantir DDI 55
         const phone55 = phoneClean.startsWith('55') ? phoneClean : '55' + phoneClean
         
-        // Personalizar a mensagem substituindo o placeholder {nome} pelo nome do tutor
-        const customizedMessage = messageTemplate.replace(/{nome}/g, c.name)
+        // Personalizar a mensagem substituindo o placeholder {nome} pelo primeiro nome do tutor
+        const customizedMessage = messageTemplate.replace(/{nome}/g, getFirstName(c.name))
 
         return {
           phone: phone55,

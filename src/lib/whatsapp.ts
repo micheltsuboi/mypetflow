@@ -1,5 +1,6 @@
 import { createClient } from './supabase/server'
 import { createAdminClient } from './supabase/admin'
+import { getFirstName } from '@/utils/formatters'
 
 // Circuit Breaker para evitar atrasos caso o N8N esteja offline
 let n8nOfflineUntil = 0
@@ -39,8 +40,11 @@ export async function sendWhatsAppMessage(
     const baseUrlFormatted = n8nBaseUrl?.replace(/\/$/, '')
     const fullUrl = `${baseUrlFormatted}/webhook/${webhookPath}`
 
-    // Formata a mensagem final conforme o tipo de evento (idêntico aos templates dos workflows do N8N)
+    // Formata a mensagem final conforme o tipo de evento (usando apenas o primeiro nome do tutor)
     let finalMessage = message
+    const tutorFirstName = getFirstName(extraData.tutorName)
+    const greeting = tutorFirstName && tutorFirstName !== 'Tutor' ? `Olá ${tutorFirstName}!` : 'Olá!'
+
     if (webhookPath === 'pet-agendamento' && extraData.petName) {
         const pet = extraData.petName || 'seu pet'
         const service = extraData.serviceName || extraData.service_name || 'serviço'
@@ -49,18 +53,20 @@ export async function sendWhatsAppMessage(
         const timePart = time && time !== 'entrada' ? ` às *${time}*` : ''
         const orgName = extraData.orgName || org?.name || ''
         const orgSuffix = orgName ? ` na *${orgName}*` : ''
-        finalMessage = `📅 *Agendamento Confirmado!*\n\n🐾 Pet: *${pet}*\n📋 Serviço: *${service}*\n📆 Data: *${date}*${timePart}\n\nEstamos te esperando${orgSuffix}! Qualquer dúvida, é só chamar. 🐶`
+        finalMessage = `📅 *Agendamento Confirmado!*\n\n${greeting} Confirmamos o agendamento de *${pet}* para *${service}* no dia *${date}*${timePart}. Estamos te esperando${orgSuffix}! Qualquer dúvida, é só chamar. 🐶`
     } else if (webhookPath === 'pet-reagendamento' && extraData.petName) {
         const pet = extraData.petName || 'seu pet'
         const service = extraData.serviceName || 'serviço'
         const date = extraData.formattedDate || ''
         const time = extraData.formattedTime || ''
         const timePart = time && time !== 'entrada' ? ` às *${time}*` : ''
-        finalMessage = `🔄 *Horário Reagendado!*\n\nOlá! Passando para avisar que o horário do *${pet}* para *${service}* foi atualizado.\n\n📆 Nova Data: *${date}*${timePart}\n\nQualquer dúvida, estamos à disposição! 🐶`
+        finalMessage = `🔄 *Horário Reagendado!*\n\n${greeting} Passando para avisar que o horário do *${pet}* para *${service}* foi atualizado.\n\n📆 Nova Data: *${date}*${timePart}\n\nQualquer dúvida, estamos à disposição! 🐶`
     } else if (webhookPath === 'pet-status' && extraData.petName && !message) {
         const pet = extraData.petName || 'seu pet'
         const statusLabel = extraData.statusLabel || 'Atualizado'
-        finalMessage = `🐾 *Atualização do Atendimento*\n\nOlá! O status do atendimento do *${pet}* foi atualizado para: *${statusLabel}*.`
+        finalMessage = `🐾 *Atualização do Atendimento*\n\n${greeting} O status do atendimento do *${pet}* foi atualizado para: *${statusLabel}*.`
+    } else if (greeting !== 'Olá!' && finalMessage) {
+        finalMessage = finalMessage.replace(/^Olá(!|,\s*[^!\n]+!)/, greeting)
     }
 
     // Configuração do endpoint Z-API direto
@@ -139,6 +145,7 @@ export async function sendWhatsAppMessage(
         // Payload unificado para o N8N
         const payload = {
             ...extraData,
+            tutorName: tutorFirstName || extraData.tutorName,
             phone: normalizedPhone,
             tutorPhone: normalizedPhone,
             normalizedPhone: normalizedPhone,

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { getFirstName } from '@/utils/formatters'
 
 // ==========================================
 // VETERINARIANS
@@ -1192,7 +1193,7 @@ export async function createVetAlert({
             try {
                 const petName = pet?.name || 'seu pet'
                 const customerData = Array.isArray(pet?.customers) ? pet.customers[0] : pet?.customers;
-                const tutorName = (customerData as any)?.name || 'Cliente'
+                const tutorName = getFirstName((customerData as any)?.name)
                 const phoneRaw = (customerData as any)?.phone_1 || (customerData as any)?.phone_2 || ''
 
                 if (phoneRaw && phoneRaw.replace(/\D/g, '').length >= 8) {

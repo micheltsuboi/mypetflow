@@ -13,6 +13,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import InputMasked from '@/components/ui/InputMasked'
+import { getFirstName } from '@/utils/formatters'
 import { maskDate, parseDateToISO } from '@/utils/masks'
 import PageHelpModal from '@/components/ui/PageHelpModal'
 
@@ -397,7 +398,8 @@ export default function VacinasPage() {
                                             const tutorPhone = pv.pets?.customers?.phone_1 || ''
                                             const tutorPhoneClean = tutorPhone.replace(/\D/g, '')
                                             const tutorPhoneFinal = tutorPhoneClean.startsWith('55') ? tutorPhoneClean : '55' + tutorPhoneClean
-                                            const messageText = `Olá, *${pv.pets?.customers?.name || 'cliente'}*! 🐾\n\nPassando para lembrar que a vacina *${pv.name}* do(a) *${pv.pets?.name}* vence em *${expDateFormatted}*.\n\nManter a imunização em dia é essencial para a proteção dele(a). Vamos agendar um horário para o reforço? 😊💉`
+                                            const tutorFirstName = getFirstName(pv.pets?.customers?.name)
+                                            const messageText = `Olá, *${tutorFirstName}*! 🐾\n\nPassando para lembrar que a vacina *${pv.name}* do(a) *${pv.pets?.name}* vence em *${expDateFormatted}*.\n\nManter a imunização em dia é essencial para a proteção dele(a). Vamos agendar um horário para o reforço? 😊💉`
                                             const encodedMsg = encodeURIComponent(messageText)
                                             const waLink = `https://wa.me/${tutorPhoneFinal}?text=${encodedMsg}`
 

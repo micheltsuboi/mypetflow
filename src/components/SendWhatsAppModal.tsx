@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { MessageSquare, Send, ExternalLink, X, Check, Loader2, Sparkles } from 'lucide-react'
 import { sendManualWhatsApp } from '@/app/actions/whatsapp'
 import { maskPhone } from '@/utils/masks'
+import { getFirstName } from '@/utils/formatters'
 
 export interface WhatsAppRecipient {
     name?: string
@@ -49,7 +50,7 @@ export default function SendWhatsAppModal({
 
     const pet = recipient.petName || 'seu pet'
     const service = recipient.serviceName || 'atendimento'
-    const tutor = recipient.name || 'Tutor'
+    const tutor = getFirstName(recipient.name)
     const date = recipient.scheduledDate || 'data agendada'
     const time = recipient.scheduledTime && recipient.scheduledTime !== 'entrada' ? ` às *${recipient.scheduledTime}*` : ''
     const priceStr = recipient.price ? recipient.price.toFixed(2).replace('.', ',') : '0,00'

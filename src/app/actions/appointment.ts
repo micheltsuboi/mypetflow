@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { getFirstName } from '@/utils/formatters'
 
 interface CreateAppointmentState {
     message: string
@@ -232,10 +233,13 @@ export async function createAppointment(prevState: CreateAppointmentState, formD
             }
 
             const serviceName = serviceAny.name || (isHospedagem ? 'Hospedagem' : isCreche ? 'Creche' : 'Atendimento')
-            const msg = `Olá! Confirmamos o agendamento de *${petData.name}* para *${serviceName}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
+            const tutorFirstName = getFirstName((petData as any)?.customers?.name)
+            const greeting = tutorFirstName && tutorFirstName !== 'Tutor' ? `Olá ${tutorFirstName}!` : 'Olá!'
+            const msg = `${greeting} Confirmamos o agendamento de *${petData.name}* para *${serviceName}* no dia *${formattedDate}* às *${formattedTime}*. Mal podemos esperar! 🐾`
             
             console.log('[createAppointment] Triggering WhatsApp...')
             await triggerNotification(profile.org_id, petData.customer_id, msg, 'pet-agendamento', {
+                tutorName: (petData as any)?.customers?.name,
                 petName: petData.name,
                 serviceName: serviceName,
                 service_name: serviceName, // Fallback for snake_case
@@ -565,9 +569,12 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
                     formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
                 }
 
-                const msg = `Olá! O horário de ${petName} foi atualizado para ${formattedDate} às ${formattedTime}.`
+                const tutorFirstName = getFirstName((oldAppt.pets as any)?.customers?.name || (oldAppt as any)?.customers?.name)
+                const greeting = tutorFirstName && tutorFirstName !== 'Tutor' ? `Olá ${tutorFirstName}!` : 'Olá!'
+                const msg = `${greeting} O horário de ${petName} foi atualizado para ${formattedDate} às ${formattedTime}.`
 
                 await triggerNotification(oldAppt.org_id, oldAppt.customer_id, msg, 'pet-reagendamento', {
+                    tutorName: (oldAppt.pets as any)?.customers?.name || (oldAppt as any)?.customers?.name,
                     petName,
                     serviceName,
                     formattedDate,
@@ -760,14 +767,18 @@ export async function triggerNotification(orgId: string, customerId: string, mes
         const supabase = await createClient()
         const { data: customer } = await supabase
             .from('customers')
-            .select('phone_1')
+            .select('phone_1, name')
             .eq('id', customerId)
             .single()
 
-        console.log(`[triggerNotification] Customer phone: ${customer?.phone_1}`)
+        console.log(`[triggerNotification] Customer phone: ${customer?.phone_1}, name: ${customer?.name}`)
 
         if (customer?.phone_1) {
-            const result = await sendWhatsAppMessage(orgId, customer.phone_1, message, path, extraData)
+            const mergedExtraData = {
+                tutorName: customer.name,
+                ...extraData
+            }
+            const result = await sendWhatsAppMessage(orgId, customer.phone_1, message, path, mergedExtraData)
             console.log(`[triggerNotification] sendWhatsAppMessage result:`, result)
         } else {
             console.warn(`[triggerNotification] No phone found for customer ${customerId}`)

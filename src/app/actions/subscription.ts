@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { getFirstName } from '@/utils/formatters'
 
 const DAYS_OF_WEEK_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
@@ -640,8 +641,9 @@ export async function sendSubscriptionDueDateReminders(orgId?: string) {
 
         const billingDay = plan?.billing_day || 10
         const price = sub.total_price || plan?.total_price || 0
+        const tutorFirstName = getFirstName(customer?.name)
         const message =
-            `⏰ Olá, *${customer?.name}*!\n\n` +
+            `⏰ Olá, *${tutorFirstName}*!\n\n` +
             `A mensalidade de *${pet?.name}* (*${plan?.name}*) vence no dia *${billingDay}*.\n\n` +
             `💳 Valor: *R$ ${Number(price).toFixed(2).replace('.', ',')}*\n\n` +
             `Entre em contato para realizar o pagamento e manter os agendamentos do próximo mês! 🐾`
