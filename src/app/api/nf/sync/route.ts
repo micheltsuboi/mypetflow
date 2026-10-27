@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { FocusNfeApi } from '@/lib/focusnfe'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
@@ -136,31 +137,24 @@ export async function GET(req: NextRequest) {
                         console.log(`[Sync] Phone: ${phone}, Pet: ${petName}`)
 
                         if (phone) {
-                            // Garantir que org seja um objeto, tratando se o Supabase retornar array
                             const orgData = nfExt.organizations;
                             const org = (Array.isArray(orgData) ? orgData[0] : orgData) || {};
+                            const orgId = orgIdBase || (nfExt as any).org_id || (org as any).id || '';
                             
-                            console.log(`[Sync] Triggering N8N for NF ${ref} to ${phone} (Integration: ${org.wa_integration_type || 'system'})`)
+                            console.log(`[Sync] Sending WhatsApp for NF ${ref} to ${phone} via direct Z-API router`)
                             
                             try {
-                                const n8nRes = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        phone,
-                                        pdfUrl,
-                                        petName,
-                                        valor: nfExt.valor_total,
-                                        ref: nfExt.referencia,
-                                        wa_api_url: org.wa_api_url,
-                                        wa_api_token: org.wa_api_token,
-                                        wa_client_token: org.wa_client_token,
-                                        wa_integration_type: org.wa_integration_type
-                                    })
-                                })
-                                console.log(`[Sync] N8N Response status: ${n8nRes.status}`)
+                                const valorStr = nfExt.valor_total ? Number(nfExt.valor_total).toFixed(2).replace('.', ',') : '0,00';
+                                const msg = `📄 *Nota Fiscal Disponível!*\n\nOlá! A Nota Fiscal referente ao atendimento de *${petName}* (Ref: ${ref}) no valor de *R$ ${valorStr}* está disponível.\n\n📎 Acesse o PDF da sua nota no link abaixo:\n${pdfUrl}\n\nQualquer dúvida, estamos à disposição! 🐾`;
+
+                                await sendWhatsAppMessage(orgId, phone, msg, 'send-nf-pdf-v1', {
+                                    petName,
+                                    valor: nfExt.valor_total,
+                                    ref: nfExt.referencia,
+                                    pdfUrl
+                                });
                             } catch (e) {
-                                console.error('[Sync] Error in fetch N8N:', e)
+                                console.error('[Sync] Error sending WhatsApp for NF:', e)
                             }
                         } else {
                             console.warn(`[Sync] WhatsApp phone not found for NF ${ref}`)

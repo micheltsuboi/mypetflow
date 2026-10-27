@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { getFirstName } from '@/utils/formatters'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 interface DisparoResponse {
   success: boolean
@@ -159,7 +160,8 @@ export async function iniciarDisparoMassa(messageTemplate: string): Promise<Disp
 
         return {
           phone: phone55,
-          message: customizedMessage
+          message: customizedMessage,
+          name: c.name
         }
       })
       .filter(item => item !== null)
@@ -168,7 +170,7 @@ export async function iniciarDisparoMassa(messageTemplate: string): Promise<Disp
       return { success: false, message: 'Nenhum cliente com telefone válido foi encontrado para envio.' }
     }
 
-    // 4. Chamar o N8N via HTTP Post
+    // 4. Envio de mensagens (prioriza Z-API direto sem dependência obrigatória do N8N)
     const N8N_BASE_URL = process.env.N8N_BASE_URL || 'http://72.62.107.69:5678'
     const n8nWebhookUrl = `${N8N_BASE_URL}/webhook/disparo-massa`
 
@@ -180,20 +182,40 @@ export async function iniciarDisparoMassa(messageTemplate: string): Promise<Disp
       recipients: recipients
     }
 
-    console.log(`[Disparo em Massa] Enviando ${recipients.length} destinatários para o N8N webhook...`)
+    let n8nTriggered = false
+    try {
+      console.log(`[Disparo em Massa] Tentando contingência N8N webhook...`)
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(2000)
+      })
+      if (response.ok) {
+        n8nTriggered = true
+        console.log(`[Disparo em Massa] Delegado ao N8N com sucesso.`)
+      }
+    } catch (n8nErr) {
+      console.warn(`[Disparo em Massa] N8N não respondeu. Executando envio direto via Z-API...`)
+    }
 
-    const response = await fetch(n8nWebhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-      const textError = await response.text()
-      console.error('[Disparo em Massa] Erro retornado pelo N8N:', textError)
-      return { success: false, message: `Erro ao iniciar automação no N8N (Status ${response.status}).` }
+    // Se o N8N não respondeu, faz o disparo direto via Z-API em segundo plano
+    if (!n8nTriggered) {
+      console.log(`[Disparo em Massa] Iniciando envio direto de ${recipients.length} mensagens via Z-API...`);
+      (async () => {
+        for (const item of recipients) {
+          try {
+            await sendWhatsAppMessage(profile.org_id, item.phone, item.message, 'disparo-massa', {
+              tutorName: item.name
+            })
+            // Pequeno delay de 800ms entre mensagens para segurança anti-bloqueio
+            await new Promise(r => setTimeout(r, 800))
+          } catch (itemErr) {
+            console.error(`[Disparo Direto] Erro para ${item.phone}:`, itemErr)
+          }
+        }
+        console.log(`[Disparo em Massa] Envio direto via Z-API concluído!`)
+      })().catch(console.error)
     }
 
     return { 

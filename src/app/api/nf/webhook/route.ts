@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 /**
  * Webhook para receber atualizações de status da Focus NFe.
@@ -131,35 +132,26 @@ export async function POST(req: NextRequest) {
                     }
 
                     if (phone) {
-                        // Garantir que org seja um objeto, tratando se o Supabase retornar array
                         const orgData = nf.organizations;
                         const org = (Array.isArray(orgData) ? orgData[0] : orgData) || {};
+                        const orgId = (nf as any).org_id || (org as any).id || '';
                         
-                        console.log(`[Webhook] Triggering WhatsApp for NF ${ref} to ${phone} (Integration: ${org.wa_integration_type || 'system'})`)
+                        console.log(`[Webhook] Sending WhatsApp for NF ${ref} to ${phone} via direct Z-API router`)
                         
                         try {
-                            const n8nRes = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    phone: phone,
-                                    pdfUrl: pdfUrl,
-                                    petName: petName,
-                                    valor: nf.valor_total,
-                                    ref: nf.referencia,
-                                    // Enviar credenciais do WhatsApp
-                                    wa_api_url: org.wa_api_url,
-                                    wa_api_token: org.wa_api_token,
-                                    wa_client_token: org.wa_client_token,
-                                    wa_integration_type: org.wa_integration_type
-                                })
-                            })
-                            console.log(`[Webhook] N8N Response status: ${n8nRes.status}`)
+                            const valorStr = nf.valor_total ? Number(nf.valor_total).toFixed(2).replace('.', ',') : '0,00';
+                            const msg = `📄 *Nota Fiscal Disponível!*\n\nOlá! A Nota Fiscal referente ao atendimento de *${petName}* (Ref: ${ref}) no valor de *R$ ${valorStr}* está disponível.\n\n📎 Acesse o PDF da sua nota no link abaixo:\n${pdfUrl}\n\nQualquer dúvida, estamos à disposição! 🐾`;
+
+                            await sendWhatsAppMessage(orgId, phone, msg, 'send-nf-pdf-v1', {
+                                petName,
+                                valor: nf.valor_total,
+                                ref,
+                                pdfUrl
+                            });
                         } catch (e) {
-                            console.error('[Webhook] Error triggering N8N:', e)
+                            console.error('[Webhook] Error sending WhatsApp for NF:', e)
                         }
-                    }
- else {
+                    } else {
                         console.log(`Telefone do tutor não encontrado para NF ${ref} (Origem: ${nf.origem_tipo})`)
                     }
                 }

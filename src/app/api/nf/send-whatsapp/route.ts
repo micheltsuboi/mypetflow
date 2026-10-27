@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 export async function POST(req: NextRequest) {
     try {
@@ -71,34 +72,28 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Telefone do tutor não encontrado para esta nota' }, { status: 400 })
         }
 
-        // 3. Disparar N8N
-        console.log(`Manual trigger: WhatsApp automation for NF ${referencia} to ${phone}`)
+        // 3. Enviar via Z-API direto (novo método independente do N8N)
+        console.log(`Manual trigger: WhatsApp sending for NF ${referencia} to ${phone}`)
         
         const orgData = nf.organizations;
         const org = (Array.isArray(orgData) ? orgData[0] : orgData) || {};
-        
-        const n8nResponse = await fetch('http://72.62.107.69:5678/webhook/send-nf-pdf-v1', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                phone: phone,
-                pdfUrl: nf.caminho_pdf,
-                petName: petName,
-                valor: nf.valor_total,
-                ref: nf.referencia,
-                // Enviar credenciais do WhatsApp
-                wa_api_url: org.wa_api_url,
-                wa_api_token: org.wa_api_token,
-                wa_client_token: org.wa_client_token,
-                wa_integration_type: org.wa_integration_type
-            })
-        })
+        const orgId = (nf as any).org_id || (org as any).id || '';
 
-        if (!n8nResponse.ok) {
-            throw new Error('Falha ao comunicar com servidor de automação (N8N)')
+        const valorStr = nf.valor_total ? Number(nf.valor_total).toFixed(2).replace('.', ',') : '0,00';
+        const msg = `📄 *Nota Fiscal Disponível!*\n\nOlá! A Nota Fiscal referente ao atendimento de *${petName}* (Ref: ${referencia}) no valor de *R$ ${valorStr}* está disponível.\n\n📎 Acesse o PDF da sua nota no link abaixo:\n${nf.caminho_pdf}\n\nQualquer dúvida, estamos à disposição! 🐾`;
+
+        const sendRes = await sendWhatsAppMessage(orgId, phone, msg, 'send-nf-pdf-v1', {
+            petName,
+            valor: nf.valor_total,
+            ref: referencia,
+            pdfUrl: nf.caminho_pdf
+        });
+
+        if (!sendRes.success) {
+            throw new Error(sendRes.error || 'Erro ao enviar WhatsApp')
         }
 
-        return NextResponse.json({ success: true, message: 'Comando de envio enviado com sucesso!' })
+        return NextResponse.json({ success: true, message: 'Nota fiscal enviada via WhatsApp com sucesso!' })
 
     } catch (error: any) {
         console.error('Send WhatsApp Error:', error)

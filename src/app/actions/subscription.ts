@@ -73,7 +73,7 @@ export async function createSubscriptionPlan(prevState: any, formData: FormData)
             package_id: package_data.id,
             service_id: item.service_id,
             quantity: item.quantity,
-            recurrence_type: item.recurrence_type
+            recurrence_type: (item as any).recurrence_type
         }))
         const { error: itemsError } = await supabase.from('package_items').insert(items)
         if (itemsError) return { message: itemsError.message, success: false }
@@ -141,7 +141,7 @@ export async function updateSubscriptionPlan(prevState: any, formData: FormData)
             package_id: id,
             service_id: item.service_id,
             quantity: item.quantity,
-            recurrence_type: item.recurrence_type
+            recurrence_type: (item as any).recurrence_type
         }))
         const { error: itemsError } = await supabase.from('package_items').insert(items)
         if (itemsError) return { message: itemsError.message, success: false }

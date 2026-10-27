@@ -1,7 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
+import { getFirstName } from '@/utils/formatters'
 
 // ==========================================
 // VACCINE CATALOG
@@ -468,4 +471,103 @@ export async function getAllPetVaccinations(filters?: { startDate?: string; endD
         return []
     }
 }
+
+/**
+ * Dispara lembretes de vacinação a vencer via Z-API sem depender de N8N.
+ * @param orgId ID da organização (opcional)
+ * @param daysAhead 7 para vencer em 7 dias, ou 0 para vencer hoje
+ */
+export async function sendVaccineReminders(orgId?: string, daysAhead: number = 7) {
+    try {
+        const supabase = await createAdminClient()
+
+        // Calcula a data alvo no fuso de São Paulo
+        const targetDate = new Date()
+        targetDate.setDate(targetDate.getDate() + daysAhead)
+        const dateStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }) // 'YYYY-MM-DD'
+
+        console.log(`[sendVaccineReminders] Buscando vacinas com vencimento em ${dateStr} (antecedência: ${daysAhead} dias)...`)
+
+        let query = supabase
+            .from('pet_vaccinations')
+            .select(`
+                id,
+                name,
+                expiry_date,
+                org_id,
+                pets (
+                    id,
+                    name,
+                    customers (
+                        id,
+                        name,
+                        phone_1,
+                        phone_2
+                    )
+                )
+            `)
+            .eq('expiry_date', dateStr)
+
+        if (orgId) {
+            query = query.eq('org_id', orgId)
+        }
+
+        const { data: vaccinations, error } = await query
+
+        if (error) {
+            console.error('[sendVaccineReminders] Erro na consulta:', error)
+            return { success: false, message: error.message, count: 0 }
+        }
+
+        if (!vaccinations || vaccinations.length === 0) {
+            return { success: true, message: `Nenhuma vacina encontrada para ${dateStr}.`, count: 0 }
+        }
+
+        let sent = 0
+        let skipped = 0
+
+        for (const pv of vaccinations) {
+            const customer = (pv.pets as any)?.customers
+            const phone = customer?.phone_1 || customer?.phone_2
+            if (!phone) {
+                skipped++
+                continue
+            }
+
+            const petName = (pv.pets as any)?.name || 'seu pet'
+            const tutorFirstName = getFirstName(customer?.name)
+            const [y, m, d] = dateStr.split('-')
+            const expDateFormatted = `${d}/${m}/${y}`
+
+            const whenText = daysAhead === 0 ? 'vence *hoje*' : `vence em *${expDateFormatted}*`
+            const message = `Olá, *${tutorFirstName}*! 🐾\n\nPassando para lembrar que a vacina *${pv.name}* do(a) *${petName}* ${whenText}.\n\nManter a imunização em dia é essencial para a proteção dele(a). Vamos agendar um horário para o reforço? 😊💉`
+
+            try {
+                await sendWhatsAppMessage(pv.org_id, phone, message, 'vaccine-reminder', {
+                    tutorName: customer?.name,
+                    petName,
+                    vaccineName: pv.name,
+                    expiryDate: expDateFormatted
+                })
+                sent++
+            } catch (err) {
+                console.error(`[sendVaccineReminders] Erro ao enviar para ${phone}:`, err)
+                skipped++
+            }
+        }
+
+        console.log(`[sendVaccineReminders] Finalizado: ${sent} enviados, ${skipped} pulados.`)
+        return {
+            success: true,
+            count: sent,
+            skipped,
+            total: vaccinations.length,
+            message: `${sent} lembrete(s) de vacina enviado(s) para a data ${dateStr}.`
+        }
+    } catch (error: any) {
+        console.error('[sendVaccineReminders] Erro global:', error)
+        return { success: false, message: error.message, count: 0 }
+    }
+}
+
 

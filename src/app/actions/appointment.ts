@@ -787,3 +787,116 @@ export async function triggerNotification(orgId: string, customerId: string, mes
         console.error('[triggerNotification] Global error:', err)
     }
 }
+
+/**
+ * Dispara lembretes de agendamento para o dia seguinte (véspera / 24h antes)
+ * Funciona 100% de forma independente do N8N através da Z-API.
+ */
+export async function sendAppointmentRemindersTomorrow(orgId?: string, targetDateStr?: string) {
+    const supabase = await createAdminClient()
+    
+    // Calcula o dia de amanhã no fuso de São Paulo
+    let dateStr = targetDateStr
+    if (!dateStr) {
+        const now = new Date()
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+        const formatter = new Intl.DateTimeFormat('en-CA', { 
+            timeZone: 'America/Sao_Paulo', 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit' 
+        })
+        dateStr = formatter.format(tomorrow) // 'YYYY-MM-DD'
+    }
+
+    const startOfDay = `${dateStr}T00:00:00-03:00`
+    const endOfDay = `${dateStr}T23:59:59-03:00`
+
+    console.log(`[sendAppointmentRemindersTomorrow] Buscando agendamentos para ${dateStr} (${startOfDay} até ${endOfDay})...`)
+
+    let query = supabase
+        .from('appointments')
+        .select(`
+            id,
+            scheduled_at,
+            check_in_date,
+            check_out_date,
+            status,
+            org_id,
+            pets (
+                id,
+                name,
+                customers ( id, name, phone_1, phone_2 )
+            ),
+            services (
+                id,
+                name,
+                service_categories ( name )
+            )
+        `)
+        .in('status', ['pending', 'confirmed'])
+        .gte('scheduled_at', startOfDay)
+        .lte('scheduled_at', endOfDay)
+
+    if (orgId) {
+        query = query.eq('org_id', orgId)
+    }
+
+    const { data: appointments, error } = await query
+
+    if (error) {
+        console.error('[sendAppointmentRemindersTomorrow] Erro na consulta:', error)
+        return { success: false, message: error.message, count: 0 }
+    }
+
+    if (!appointments || appointments.length === 0) {
+        console.log(`[sendAppointmentRemindersTomorrow] Nenhum agendamento encontrado para ${dateStr}.`)
+        return { success: true, message: `Nenhum agendamento encontrado para ${dateStr}.`, count: 0, total: 0 }
+    }
+
+    let sent = 0
+    let skipped = 0
+
+    for (const appt of appointments) {
+        const customer = (appt.pets as any)?.customers
+        const phone = customer?.phone_1 || customer?.phone_2
+        if (!phone) {
+            skipped++
+            continue
+        }
+
+        const petName = (appt.pets as any)?.name || 'seu pet'
+        const serviceName = (appt.services as any)?.name || 'atendimento'
+        const tutorFirstName = getFirstName(customer?.name)
+        const greeting = tutorFirstName && tutorFirstName !== 'Tutor' ? `Olá ${tutorFirstName}!` : 'Olá!'
+
+        const scheduledDate = new Date(appt.scheduled_at)
+        const formattedDate = scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' })
+        const formattedTime = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' })
+
+        const message = `🐾 *Lembrete de Agendamento!*\n\n${greeting} Passando para lembrar que amanhã, *${formattedDate}* às *${formattedTime}*, o(a) *${petName}* tem horário de *${serviceName}* agendado conosco.\n\nEstamos te esperando com muito carinho! Qualquer dúvida ou imprevisto, é só nos avisar por aqui. 📅✨`
+
+        try {
+            await sendWhatsAppMessage(appt.org_id, phone, message, 'appointment-reminder', {
+                tutorName: customer?.name,
+                petName,
+                serviceName,
+                formattedDate,
+                formattedTime
+            })
+            sent++
+        } catch (err) {
+            console.error(`[sendAppointmentRemindersTomorrow] Erro ao enviar para ${phone}:`, err)
+            skipped++
+        }
+    }
+
+    console.log(`[sendAppointmentRemindersTomorrow] Finalizado: ${sent} enviados, ${skipped} pulados de ${appointments.length} agendamentos.`)
+    return {
+        success: true,
+        count: sent,
+        skipped,
+        total: appointments.length,
+        message: `${sent} lembrete(s) de agendamento enviado(s) com sucesso para o dia ${dateStr}.`
+    }
+}

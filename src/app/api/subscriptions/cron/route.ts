@@ -24,13 +24,13 @@ export async function POST(req: NextRequest) {
 
         if (action === 'reminder') {
             const result = await sendSubscriptionDueDateReminders(orgId)
-            return NextResponse.json({ success: true, ...result })
+            return NextResponse.json({ ...result })
         }
 
         if (action === 'renew') {
             if (orgId) {
                 const result = await renewSubscriptionsForOrg(orgId)
-                return NextResponse.json({ success: true, ...result })
+                return NextResponse.json({ ...result })
             }
 
             // Run for ALL orgs that have active subscriptions

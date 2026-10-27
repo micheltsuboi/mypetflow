@@ -11,7 +11,8 @@ import {
     deleteAppointment,
     updateChecklist,
     updateAppointmentStatus,
-    updatePetPreferences
+    updatePetPreferences,
+    sendAppointmentRemindersTomorrow
 } from '@/app/actions/appointment'
 import { checkInAppointment, checkOutAppointment } from '@/app/actions/checkInOut'
 import {
@@ -240,6 +241,26 @@ function AgendaContent() {
 
     // Checklist State
     const [currentChecklist, setCurrentChecklist] = useState<any[]>([])
+
+    // Lembretes WhatsApp
+    const [isSendingReminders, setIsSendingReminders] = useState(false)
+
+    const handleSendTomorrowReminders = async () => {
+        if (!confirm('Deseja enviar lembretes automáticos de agendamento via WhatsApp para todos os clientes com horário agendado para amanhã?')) return
+        setIsSendingReminders(true)
+        try {
+            const res = await sendAppointmentRemindersTomorrow()
+            if (res.success) {
+                alert(res.message || 'Lembretes enviados com sucesso!')
+            } else {
+                alert('Aviso: ' + (res.message || 'Erro ao enviar lembretes'))
+            }
+        } catch (e: any) {
+            alert('Erro ao enviar lembretes: ' + e.message)
+        } finally {
+            setIsSendingReminders(false)
+        }
+    }
 
     // URL Params init
     useEffect(() => {
@@ -1116,9 +1137,18 @@ function AgendaContent() {
                                 return name ? [name] : []
                             }))).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-                        <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
-                            <button className={styles.actionButton} style={{ flex: 1 }} onClick={() => handleNewAppointment()}>+ Agendar</button>
-                            {(!isVet || isAdmin) && <button className={styles.secondaryButton} style={{ flex: 1 }} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
+                        <div style={{ display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap' }}>
+                            <button className={styles.actionButton} style={{ flex: 1, minWidth: '110px' }} onClick={() => handleNewAppointment()}>+ Agendar</button>
+                            {(!isVet || isAdmin) && <button className={styles.secondaryButton} style={{ flex: 1, minWidth: '90px' }} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
+                            <button 
+                                className={styles.secondaryButton} 
+                                style={{ flex: 1, minWidth: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }} 
+                                onClick={handleSendTomorrowReminders}
+                                disabled={isSendingReminders}
+                                title="Enviar lembretes via WhatsApp para os clientes com horário agendado para amanhã"
+                            >
+                                {isSendingReminders ? 'Enviando...' : '📢 Lembretes Amanhã'}
+                            </button>
                         </div>
                     </div>
                 </div>

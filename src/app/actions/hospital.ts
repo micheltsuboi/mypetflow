@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendWhatsAppMessage } from '@/lib/whatsapp'
 
 export async function getHospitalWards() {
     const supabase = await createClient()
@@ -614,15 +615,22 @@ export async function getAllAdmissionsHistory(searchTerm?: string) {
     return data || []
 }
 
-export async function sendMedicationAlert(phone: string, message: string) {
+export async function sendMedicationAlert(phone: string, message: string, orgId?: string) {
     try {
-        const webhookUrl = 'https://n8n.webhook.mazzetto.com.br/webhook/vet-alert-final-v5'
-        await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, message })
-        })
-        return { success: true }
+        let resolvedOrgId = orgId
+        if (!resolvedOrgId) {
+            const supabase = await createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('org_id').eq('id', user.id).single()
+                resolvedOrgId = profile?.org_id
+            }
+        }
+        if (resolvedOrgId) {
+            const res = await sendWhatsAppMessage(resolvedOrgId, phone, message, 'vet-medication-alert')
+            return { success: res.success }
+        }
+        return { success: false }
     } catch (error) {
         console.error('Error sending medication alert:', error)
         return { success: false }
