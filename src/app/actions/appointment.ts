@@ -854,10 +854,23 @@ export async function sendAppointmentRemindersTomorrow(orgId?: string, targetDat
         return { success: true, message: `Nenhum agendamento encontrado para ${dateStr}.`, count: 0, total: 0 }
     }
 
+    // Carrega organizações para checar notify_reminder_24h
+    const orgIds = [...new Set(appointments.map(a => a.org_id))]
+    const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, notify_reminder_24h')
+        .in('id', orgIds)
+    const orgMap = new Map((orgs || []).map(o => [o.id, o.notify_reminder_24h ?? true]))
+
     let sent = 0
     let skipped = 0
 
     for (const appt of appointments) {
+        // Se a organização desativou o lembrete de 24h nas configurações, pula
+        if (orgMap.get(appt.org_id) === false) {
+            skipped++
+            continue
+        }
         const customer = (appt.pets as any)?.customers
         const phone = customer?.phone_1 || customer?.phone_2
         if (!phone) {
