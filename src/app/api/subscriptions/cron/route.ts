@@ -61,5 +61,55 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-    return NextResponse.json({ message: 'Use POST to trigger subscription cron jobs.' })
+    const cronSecret = process.env.CRON_SECRET || process.env.N8N_WEBHOOK_SECRET
+    const secretQuery = req.nextUrl.searchParams.get('secret')
+    const authHeader = req.headers.get('authorization')
+
+    if (cronSecret && secretQuery !== cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    try {
+        const action = req.nextUrl.searchParams.get('action') || 'all' // 'reminder' | 'renew' | 'all'
+        const orgId = req.nextUrl.searchParams.get('org_id') || undefined
+
+        let renewResult: any = null
+        let reminderResult: any = null
+
+        if (action === 'renew' || action === 'all') {
+            if (orgId) {
+                renewResult = await renewSubscriptionsForOrg(orgId)
+            } else {
+                const adminSupabase = await createAdminClient()
+                const { data: orgs } = await adminSupabase
+                    .from('customer_packages')
+                    .select('org_id')
+                    .eq('is_subscription', true)
+                    .eq('is_active', true)
+                    .eq('paused', false)
+
+                const uniqueOrgIds = [...new Set((orgs || []).map(o => o.org_id))]
+                let totalRenewed = 0
+                for (const id of uniqueOrgIds) {
+                    const result = await renewSubscriptionsForOrg(id)
+                    totalRenewed += (result as any).count || 0
+                }
+                renewResult = { count: totalRenewed, orgs: uniqueOrgIds.length }
+            }
+        }
+
+        if (action === 'reminder' || action === 'all') {
+            reminderResult = await sendSubscriptionDueDateReminders(orgId)
+        }
+
+        return NextResponse.json({
+            success: true,
+            action,
+            renew: renewResult,
+            reminders: reminderResult
+        })
+    } catch (error: any) {
+        console.error('[Subscriptions Cron GET]', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 }

@@ -3,6 +3,14 @@
     {
       "path": "/api/appointments/cron",
       "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/vaccines/cron",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/subscriptions/cron",
+      "schedule": "0 12 * * *"
     }
   ]
 }

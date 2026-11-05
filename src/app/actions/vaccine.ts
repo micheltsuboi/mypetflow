@@ -489,7 +489,7 @@ export async function sendVaccineReminders(orgId?: string, daysAhead: number = 7
         console.log(`[sendVaccineReminders] Buscando vacinas com vencimento em ${dateStr} (antecedência: ${daysAhead} dias)...`)
 
         let query = supabase
-            .from('pet_vaccinations')
+            .from('pet_vaccines')
             .select(`
                 id,
                 name,
@@ -498,6 +498,7 @@ export async function sendVaccineReminders(orgId?: string, daysAhead: number = 7
                 pets (
                     id,
                     name,
+                    is_deceased,
                     customers (
                         id,
                         name,
@@ -523,18 +524,38 @@ export async function sendVaccineReminders(orgId?: string, daysAhead: number = 7
             return { success: true, message: `Nenhuma vacina encontrada para ${dateStr}.`, count: 0 }
         }
 
+        // Verifica configurações de notificação de cada organização
+        const orgIds = [...new Set(vaccinations.map(v => v.org_id))]
+        const { data: orgs } = await supabase
+            .from('organizations')
+            .select('id, notify_vaccine_reminder')
+            .in('id', orgIds)
+        const orgMap = new Map((orgs || []).map(o => [o.id, o.notify_vaccine_reminder ?? true]))
+
         let sent = 0
         let skipped = 0
 
         for (const pv of vaccinations) {
-            const customer = (pv.pets as any)?.customers
+            // Se a organização desativou lembretes de vacina, pula
+            if (orgMap.get(pv.org_id) === false) {
+                skipped++
+                continue
+            }
+
+            const pet = pv.pets as any
+            if (!pet || pet.is_deceased) {
+                skipped++
+                continue
+            }
+
+            const customer = pet?.customers
             const phone = customer?.phone_1 || customer?.phone_2
             if (!phone) {
                 skipped++
                 continue
             }
 
-            const petName = (pv.pets as any)?.name || 'seu pet'
+            const petName = pet?.name || 'seu pet'
             const tutorFirstName = getFirstName(customer?.name)
             const [y, m, d] = dateStr.split('-')
             const expDateFormatted = `${d}/${m}/${y}`

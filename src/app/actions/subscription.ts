@@ -630,8 +630,21 @@ export async function sendSubscriptionDueDateReminders(orgId?: string) {
 
     if (!subscriptions || subscriptions.length === 0) return { success: true, count: 0 }
 
+    // Verifica se a organização ativou notify_subscription_reminder
+    const orgIds = [...new Set(subscriptions.map(s => s.org_id))]
+    const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, notify_subscription_reminder')
+        .in('id', orgIds)
+    const orgMap = new Map((orgs || []).map(o => [o.id, o.notify_subscription_reminder ?? true]))
+
+    const todayDate = new Date()
+    const currentDay = todayDate.getDate()
+
     let sent = 0
     for (const sub of subscriptions) {
+        if (orgMap.get(sub.org_id) === false) continue
+
         const customer = (sub.customers as any)
         const pet = (sub.pets as any)
         const plan = (sub.service_packages as any)
@@ -640,6 +653,14 @@ export async function sendSubscriptionDueDateReminders(orgId?: string) {
         if (!phone) continue
 
         const billingDay = plan?.billing_day || 10
+
+        // Dispara lembrete com 2 dias de antecedência do vencimento ou no dia 8 por padrão
+        // Se billingDay for 10, dispara no dia 8 (ou no dia billingDay - 2)
+        const reminderDay = Math.max(1, billingDay - 2)
+        if (currentDay !== reminderDay && currentDay !== 8) {
+            continue
+        }
+
         const price = sub.total_price || plan?.total_price || 0
         const tutorFirstName = getFirstName(customer?.name)
         const message =
