@@ -131,7 +131,9 @@ export default function PetSearchSelect({
                                         {pet.species === 'cat' ? '🐱' : '🐶'}
                                     </div>
                                     <div className={styles.petInfo}>
-                                        <div className={styles.petName}>{pet.name}</div>
+                                        <div className={styles.petName}>
+                                            {pet.name} {pet.breed ? <span className={styles.petBreed}>• {pet.breed}</span> : ''}
+                                        </div>
                                         <div className={styles.tutorName}>
                                             Tutor: {pet.customers?.name} {pet.customers?.physical_file_number ? `(Ficha: ${pet.customers.physical_file_number})` : ''}
                                         </div>
@@ -152,7 +154,9 @@ export default function PetSearchSelect({
                         {selectedPet.species === 'cat' ? '🐱' : '🐶'}
                     </div>
                     <div className={styles.selectedPetInfo}>
-                        <div className={styles.selectedPetName}>{selectedPet.name}</div>
+                        <div className={styles.selectedPetName}>
+                            {selectedPet.name} {selectedPet.breed ? <span className={styles.petBreed}>• {selectedPet.breed}</span> : ''}
+                        </div>
                         <div className={styles.selectedTutorName}>
                             Tutor: {selectedPet.customers?.name} {selectedPet.customers?.physical_file_number ? `(Ficha: ${selectedPet.customers.physical_file_number})` : ''}
                         </div>

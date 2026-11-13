@@ -362,7 +362,7 @@ export async function searchPets(query: string) {
             `)
             .eq('customers.org_id', profile.org_id)
             .or(petNameFilters)
-            .limit(50)
+            .limit(100)
 
         if (resPets.error) {
             if (resPets.error.message.includes('is_deceased')) {
@@ -376,7 +376,7 @@ export async function searchPets(query: string) {
                     `)
                     .eq('customers.org_id', profile.org_id)
                     .or(petNameFilters)
-                    .limit(50)
+                    .limit(100)
                 if (fallbackPets.error) throw fallbackPets.error
                 petsCandidate = fallbackPets.data || []
             } else {
@@ -392,7 +392,7 @@ export async function searchPets(query: string) {
             .select('id')
             .eq('org_id', profile.org_id)
             .or(custFilters)
-            .limit(50)
+            .limit(100)
 
         if (resCust.error) throw resCust.error
         const customers = resCust.data || []
@@ -411,7 +411,7 @@ export async function searchPets(query: string) {
                     `)
                     .eq('customers.org_id', profile.org_id)
                     .in('customer_id', customerIds)
-                    .limit(50)
+                    .limit(100)
             } else {
                 resPetsByCust = await supabase
                     .from('pets')
@@ -421,7 +421,7 @@ export async function searchPets(query: string) {
                     `)
                     .eq('customers.org_id', profile.org_id)
                     .in('customer_id', customerIds)
-                    .limit(50)
+                    .limit(100)
             }
 
             if (resPetsByCust.error) throw resPetsByCust.error
@@ -458,8 +458,27 @@ export async function searchPets(query: string) {
             })
         })
 
-        // Retornamos no máximo 10 resultados para otimizar o dropdown do frontend
-        return { success: true, data: filtered.slice(0, 10) }
+        // Ordena por relevância:
+        // Pets cujo nome começa exatamente com o termo digitado aparecem primeiro, depois ordem alfabética por pet e tutor
+        const firstWord = normalizedWords[0] || ""
+        filtered.sort((a, b) => {
+            const aPet = normalizeStr(a.name)
+            const bPet = normalizeStr(b.name)
+            const aStarts = aPet.startsWith(firstWord)
+            const bStarts = bPet.startsWith(firstWord)
+            if (aStarts && !bStarts) return -1
+            if (!aStarts && bStarts) return 1
+
+            const petCompare = aPet.localeCompare(bPet)
+            if (petCompare !== 0) return petCompare
+
+            const aCust = normalizeStr(a.customers?.name || "")
+            const bCust = normalizeStr(b.customers?.name || "")
+            return aCust.localeCompare(bCust)
+        })
+
+        // Retornamos até 50 resultados para que o usuário veja todas as opções no scroll
+        return { success: true, data: filtered.slice(0, 50) }
 
     } catch (error: any) {
         console.error('Error searching pets:', error)

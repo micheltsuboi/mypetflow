@@ -58,7 +58,7 @@
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
     z-index: 100;
-    max-height: 250px;
+    max-height: 320px;
     overflow-y: auto;
 }
 
@@ -100,6 +100,15 @@
 .petName {
     font-weight: 600;
     color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.petBreed {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-muted, #94a3b8);
 }
 
 .tutorName {
