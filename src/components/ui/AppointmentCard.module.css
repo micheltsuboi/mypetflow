@@ -85,3 +85,28 @@
     background: var(--bg-secondary);
     border-color: var(--primary);
 }
+
+@media (max-width: 640px) {
+    .appointmentCard {
+        min-width: 250px;
+        max-width: calc(100vw - 80px);
+        padding: 1rem 0.75rem;
+        border-radius: 12px;
+    }
+
+    .petAvatar {
+        width: 38px;
+        height: 38px;
+        font-size: 1.2rem;
+        border-radius: 8px;
+    }
+
+    .petInfoMain {
+        gap: 0.6rem;
+    }
+
+    .petName {
+        font-size: 1.05rem;
+    }
+}
+

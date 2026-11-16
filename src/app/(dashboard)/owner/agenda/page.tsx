@@ -965,8 +965,13 @@ function AgendaContent() {
         const hours = Array.from({ length: 11 }, (_, i) => i + 8)
 
         return (
-            <div className={styles.weekGrid}>
-                <div className={styles.weekHeaderCell}>Hora</div>
+            <div className={styles.calendarContainer}>
+                <div className={styles.mobileScrollHint}>
+                    <span>👈 Deslize para os lados para navegar pela semana 👉</span>
+                </div>
+                <div className={styles.calendarScrollWrapper}>
+                    <div className={styles.weekGrid}>
+                        <div className={styles.weekHeaderCell}>Hora</div>
                 {weekDays.map(d => {
                     const dateStr = d.toISOString().split('T')[0]
                     const isToday = dateStr === todayStr
@@ -1053,6 +1058,8 @@ function AgendaContent() {
                         })}
                     </div>
                 ))}
+                    </div>
+                </div>
             </div>
         )
     }
@@ -1068,54 +1075,61 @@ function AgendaContent() {
         const days = Array.from({ length: daysInMonth }, (_, i) => i + 1)
 
         return (
-            <div className={styles.monthGrid}>
-                {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d} className={styles.monthHeader}>{d}</div>)}
-                {Array.from({ length: firstDay.getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
-                {days.map(day => {
-                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-                    const dayAppts = appointments.filter(a => {
-                        const isMultiday = !!(a.check_in_date && a.check_out_date)
-                        const apptDateStr = new Date(a.scheduled_at).toLocaleDateString('en-CA')
-                        const matchesDay = isMultiday
-                            ? (dateStr >= a.check_in_date! && dateStr <= a.check_out_date!)
-                            : apptDateStr === dateStr
+            <div className={styles.calendarContainer}>
+                <div className={styles.mobileScrollHint}>
+                    <span>👈 Deslize para os lados para ver todos os dias 👉</span>
+                </div>
+                <div className={styles.calendarScrollWrapper}>
+                    <div className={styles.monthGrid}>
+                        {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(d => <div key={d} className={styles.monthHeader}>{d}</div>)}
+                        {Array.from({ length: firstDay.getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
+                        {days.map(day => {
+                            const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
+                            const dayAppts = appointments.filter(a => {
+                                const isMultiday = !!(a.check_in_date && a.check_out_date)
+                                const apptDateStr = new Date(a.scheduled_at).toLocaleDateString('en-CA')
+                                const matchesDay = isMultiday
+                                    ? (dateStr >= a.check_in_date! && dateStr <= a.check_out_date!)
+                                    : apptDateStr === dateStr
 
-                        const serviceCategory = (a.services as any)?.service_categories
-                        const categoryName = Array.isArray(serviceCategory)
-                            ? serviceCategory[0]?.name
-                            : serviceCategory?.name
+                                const serviceCategory = (a.services as any)?.service_categories
+                                const categoryName = Array.isArray(serviceCategory)
+                                    ? serviceCategory[0]?.name
+                                    : serviceCategory?.name
 
-                        const matchesCategory = !categoryFilter || categoryName === categoryFilter
-                        const matchesSearch = !searchTerm ||
-                            a.pets?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            a.pets?.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                                const matchesCategory = !categoryFilter || categoryName === categoryFilter
+                                const matchesSearch = !searchTerm ||
+                                    a.pets?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    a.pets?.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase())
 
-                        return matchesDay && matchesCategory && matchesSearch
-                    })
-                    const isToday = dateStr === todayStr
-                    return (
-                        <div key={day} className={`${styles.monthCell} ${isToday ? styles.today : ''}`} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
-                            <div className={styles.monthDate}>{day}</div>
-                            {dayAppts.map((appt, idx) => {
-                                const serviceCategory = (appt.services as any)?.service_categories
-                                const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
-                                const petName = appt.pets?.name || 'Pet'
-                                const isPkg = appt.is_package || appt.package_credit_id
-                                const isSubSession = (appt as any).is_subscription_session
-                                return (
-                                    <div
-                                        key={appt.id}
-                                        className={styles.monthEventDot}
-                                        style={{ borderLeftColor: isPkg ? (isSubSession ? '#10b981' : '#8b5cf6') : categoryColor }}
-                                        title={`${isPkg ? (isSubSession ? '🔄 ' : '📦 ') : ''}${petName} - ${appt.services?.name}`}
-                                    >
-                                        {isPkg && <span style={{ marginRight: '2px', fontSize: '0.7em' }}>{isSubSession ? '🔄' : '📦'}</span>}{petName}
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    )
-                })}
+                                return matchesDay && matchesCategory && matchesSearch
+                            })
+                            const isToday = dateStr === todayStr
+                            return (
+                                <div key={day} className={`${styles.monthCell} ${isToday ? styles.today : ''}`} onClick={() => { setSelectedDate(dateStr); setViewMode('day') }}>
+                                    <div className={styles.monthDate}>{day}</div>
+                                    {dayAppts.map((appt, idx) => {
+                                        const serviceCategory = (appt.services as any)?.service_categories
+                                        const categoryColor = serviceCategory?.color || (Array.isArray(serviceCategory) ? serviceCategory[0]?.color : '#3B82F6')
+                                        const petName = appt.pets?.name || 'Pet'
+                                        const isPkg = appt.is_package || appt.package_credit_id
+                                        const isSubSession = (appt as any).is_subscription_session
+                                        return (
+                                            <div
+                                                key={appt.id}
+                                                className={styles.monthEventDot}
+                                                style={{ borderLeftColor: isPkg ? (isSubSession ? '#10b981' : '#8b5cf6') : categoryColor }}
+                                                title={`${isPkg ? (isSubSession ? '🔄 ' : '📦 ') : ''}${petName} - ${appt.services?.name}`}
+                                            >
+                                                {isPkg && <span style={{ marginRight: '2px', fontSize: '0.7em' }}>{isSubSession ? '🔄' : '📦'}</span>}{petName}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
             </div>
         )
     }
@@ -1124,7 +1138,7 @@ function AgendaContent() {
         <PlanGuard requiredModule="agenda">
             <div className={styles.container}>
                 <div className={styles.header}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div className={styles.titleWrapper}>
                         <h1 className={styles.title}>📅 Agenda</h1>
                         <PageHelpModal topic="agenda" />
                     </div>
@@ -1137,12 +1151,11 @@ function AgendaContent() {
                                 return name ? [name] : []
                             }))).map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
-                        <div style={{ display: 'flex', gap: '0.5rem', width: '100%', flexWrap: 'wrap' }}>
-                            <button className={styles.actionButton} style={{ flex: 1, minWidth: '110px' }} onClick={() => handleNewAppointment()}>+ Agendar</button>
-                            {(!isVet || isAdmin) && <button className={styles.secondaryButton} style={{ flex: 1, minWidth: '90px' }} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
+                        <div className={styles.actionButtonsRow}>
+                            <button className={styles.actionButton} onClick={() => handleNewAppointment()}>+ Agendar</button>
+                            {(!isVet || isAdmin) && <button className={styles.secondaryButton} onClick={() => setShowBlockModal(true)}>Bloquear</button>}
                             <button 
                                 className={styles.secondaryButton} 
-                                style={{ flex: 1, minWidth: '130px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }} 
                                 onClick={handleSendTomorrowReminders}
                                 disabled={isSendingReminders}
                                 title="Enviar lembretes via WhatsApp para os clientes com horário agendado para amanhã"

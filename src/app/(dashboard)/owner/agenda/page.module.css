@@ -4,7 +4,7 @@
 
 @media (max-width: 768px) {
     .container {
-        padding: 1rem;
+        padding: 0.75rem 0.5rem;
     }
 }
 
@@ -17,26 +17,10 @@
     gap: 1rem;
 }
 
-@media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .header div {
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .header button,
-    .header select {
-        width: 100%;
-    }
-}
-
-.headerLeft {
+.titleWrapper {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .actionGroup {
@@ -45,10 +29,52 @@
     align-items: center;
 }
 
+.actionButtonsRow {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .titleWrapper {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
     .actionGroup {
         flex-direction: column;
         align-items: stretch;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .actionButtonsRow {
+        width: 100%;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .actionButtonsRow button {
+        flex: 1;
+        min-width: 0 !important;
+        padding: 0.6rem 0.5rem;
+        font-size: 0.85rem;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .actionGroup select {
         width: 100%;
     }
 }
@@ -612,6 +638,7 @@
     justify-content: flex-start;
     background: rgba(0, 0, 0, 0.2);
     font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
 .hourContent {
@@ -621,6 +648,43 @@
     gap: 1rem;
     position: relative;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    min-width: 0;
+}
+
+.hourContent::-webkit-scrollbar {
+    height: 5px;
+}
+
+.hourContent::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+}
+
+.hourContent::-webkit-scrollbar-thumb {
+    background: rgba(140, 180, 201, 0.35);
+    border-radius: 3px;
+}
+
+@media (max-width: 640px) {
+    .hourRow {
+        min-height: 80px;
+    }
+
+    .hourLabel {
+        width: 48px;
+        padding: 0.5rem 0.2rem;
+        font-size: 0.75rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .hourContent {
+        padding: 0.4rem 0.25rem;
+        gap: 0.5rem;
+    }
 }
 
 /* Empty Slot Placeholders */
@@ -680,15 +744,77 @@
     font-size: 1.2rem;
 }
 
+/* Calendar Container & Scroll Wrapper */
+.calendarContainer {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.mobileScrollHint {
+    display: none;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: 0.35rem 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+    .mobileScrollHint {
+        display: flex;
+    }
+}
+
+.calendarScrollWrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.calendarScrollWrapper::-webkit-scrollbar {
+    height: 6px;
+}
+
+.calendarScrollWrapper::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.calendarScrollWrapper::-webkit-scrollbar-thumb {
+    background: rgba(140, 180, 201, 0.4);
+    border-radius: 4px;
+}
+
+.calendarScrollWrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
 /* Month View */
 .monthGrid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 1px;
     background: var(--border);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
+    min-width: 700px;
+}
+
+@media (min-width: 769px) {
+    .monthGrid {
+        min-width: 100%;
+        width: 100%;
+    }
 }
 
 .monthHeader {
@@ -699,6 +825,13 @@
     color: var(--text-secondary);
     font-size: 0.9rem;
     text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .monthHeader {
+        padding: 0.6rem 0.25rem;
+        font-size: 0.8rem;
+    }
 }
 
 .monthCell {
@@ -712,13 +845,18 @@
     transition: background 0.2s;
 }
 
+@media (max-width: 768px) {
+    .monthCell {
+        min-height: 80px;
+        padding: 0.35rem 0.25rem;
+    }
+}
+
 .monthCell:hover {
     background: var(--bg-tertiary);
 }
 
 .monthCell.today {
-    background: rgba(var(--primary-rgb), 0.05);
-    /* Assuming primary-rgb exists, otherwise use hardcoded */
     background: rgba(59, 130, 246, 0.05);
 }
 
@@ -765,11 +903,14 @@
     grid-template-columns: 60px repeat(7, 1fr);
     gap: 1px;
     background: var(--border);
-    border-radius: 8px;
-    /* Fixed: 12px might be too round for grid */
-    overflow: hidden;
-    overflow-x: auto;
-    border: 1px solid var(--border);
+    min-width: 720px;
+}
+
+@media (min-width: 769px) {
+    .weekGrid {
+        min-width: 100%;
+        width: 100%;
+    }
 }
 
 .weekHeaderCell {
@@ -778,8 +919,15 @@
     text-align: center;
     font-weight: 600;
     color: var(--text-secondary);
-    min-width: 100px;
+    min-width: 90px;
     font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .weekHeaderCell {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8rem;
+    }
 }
 
 .weekTimeCell {
@@ -1162,7 +1310,7 @@
 @media (max-width: 1024px) {
     .toolbar {
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
     }
 
     .viewToggle,
@@ -1170,6 +1318,40 @@
     .dateNav {
         width: 100%;
         justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .legend {
+        padding: 0.4rem 0.6rem;
+        gap: 0.75rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        white-space: nowrap;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .legend::-webkit-scrollbar {
+        display: none;
+    }
+
+    .legendItem {
+        flex-shrink: 0;
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .modal {
+        padding: 1.25rem;
+        max-height: 95vh;
+        width: 95%;
+        border-radius: 12px;
     }
 }
 
