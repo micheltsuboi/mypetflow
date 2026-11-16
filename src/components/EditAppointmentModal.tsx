@@ -36,12 +36,33 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
     const [selectedPetId, setSelectedPetId] = useState<string>('')
 
     // Form State
-    const [serviceId, setServiceId] = useState(appointment?.service_id || '')
+    const [serviceId, setServiceId] = useState(appointment?.service_id || (appointment as any)?.services?.id || '')
     const [date, setDate] = useState(appointment?.scheduled_at ? new Date(appointment.scheduled_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
     const [time, setTime] = useState(appointment?.scheduled_at ? new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5) : '12:00')
     const [checkInDate, setCheckInDate] = useState(appointment?.check_in_date ? appointment.check_in_date.split('T')[0] : (appointment?.scheduled_at ? appointment.scheduled_at.split('T')[0] : ''))
     const [checkOutDate, setCheckOutDate] = useState(appointment?.check_out_date ? appointment.check_out_date.split('T')[0] : '')
     const [notes, setNotes] = useState(appointment?.notes || '')
+
+    // Sincronizar campos quando o agendamento mudar
+    useEffect(() => {
+        if (appointment) {
+            const sid = appointment.service_id || (appointment as any)?.services?.id || ''
+            if (sid) setServiceId(sid)
+            if (appointment.scheduled_at) {
+                setDate(new Date(appointment.scheduled_at).toISOString().split('T')[0])
+                setTime(new Date(appointment.scheduled_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }).slice(0, 5))
+            }
+            if (appointment.check_in_date || appointment.scheduled_at) {
+                setCheckInDate(appointment.check_in_date ? appointment.check_in_date.split('T')[0] : (appointment.scheduled_at ? appointment.scheduled_at.split('T')[0] : ''))
+            }
+            if (appointment.check_out_date) {
+                setCheckOutDate(appointment.check_out_date.split('T')[0])
+            }
+            if (appointment.notes !== undefined) {
+                setNotes(appointment.notes || '')
+            }
+        }
+    }, [appointment])
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -56,7 +77,8 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                 .select('id, name, base_price, duration_minutes, service_categories(name)')
                 .eq('org_id', profile.org_id)
             
-            if (defaultCategory) {
+            // Só filtrar por defaultCategory se for um novo agendamento, para não sumir com o serviço original do agendamento sendo editado
+            if (defaultCategory && !appointment) {
                 query = query.eq('service_categories.name', defaultCategory)
             }
 
@@ -64,18 +86,24 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
 
             if (data) {
                 setServices(data)
-                if (!serviceId && data.length > 0) setServiceId(data[0].id)
+                const currentSid = appointment ? (appointment.service_id || (appointment as any)?.services?.id) : serviceId
+                if (currentSid) {
+                    setServiceId(currentSid)
+                } else if (!serviceId && data.length > 0) {
+                    setServiceId(data[0].id)
+                }
             }
         }
         fetchServices()
-    }, [defaultCategory])
+    }, [defaultCategory, appointment])
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
 
+        const effectiveServiceId = serviceId || appointment?.service_id || (appointment as any)?.services?.id || ''
         const formData = new FormData()
-        formData.append('serviceId', serviceId)
+        formData.append('serviceId', effectiveServiceId)
         formData.append('date', date)
         formData.append('time', time)
         formData.append('checkInDate', checkInDate)
@@ -174,11 +202,16 @@ export default function EditAppointmentModal({ appointment, defaultCategory, onC
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Serviço</label>
                             <select
-                                value={serviceId}
+                                value={serviceId || appointment?.service_id || (appointment as any)?.services?.id || ''}
                                 onChange={e => setServiceId(e.target.value)}
                                 style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                             >
-                                <option value="">Selecione um serviço</option>
+                                <option value="" disabled>Selecione um serviço</option>
+                                {appointment && (appointment.service_id || (appointment as any)?.services?.id) && !services.some(s => s.id === (appointment.service_id || (appointment as any)?.services?.id)) && (
+                                    <option value={appointment.service_id || (appointment as any)?.services?.id}>
+                                        {appointment.services?.name || 'Serviço Agendado'}
+                                    </option>
+                                )}
                                 {services.map(s => (
                                     <option key={s.id} value={s.id}>{s.name}</option>
                                 ))}

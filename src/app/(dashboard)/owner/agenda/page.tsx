@@ -360,7 +360,7 @@ function AgendaContent() {
                     actual_check_in, actual_check_out, check_in_date, check_out_date,
                     is_package, package_credit_id,
                     pets ( name, species, breed, perfume_allowed, accessories_allowed, special_care, is_adapted, customers ( name )),
-                    services ( name, duration_minutes, base_price, category_id, service_categories ( name, color, icon )),
+                    services ( id, name, duration_minutes, base_price, category_id, service_categories ( name, color, icon )),
                     package_sessions ( 
                         session_number, 
                         customer_package_id,
@@ -543,6 +543,16 @@ function AgendaContent() {
             alert(updateState.message)
         }
     }, [updateState, fetchData])
+
+    // Sincronizar o serviço selecionado sempre que abrir/trocar o agendamento em foco
+    useEffect(() => {
+        if (selectedAppointment) {
+            const sid = selectedAppointment.service_id || (selectedAppointment as any).services?.id || ''
+            if (sid) {
+                setSelectedServiceId(sid)
+            }
+        }
+    }, [selectedAppointment, isEditing])
 
     useEffect(() => {
         if (blockState.success) {
@@ -847,6 +857,7 @@ function AgendaContent() {
                 onWhatsAppAction={(a) => handleOpenWhatsAppModal(a)}
                 onEdit={(a) => {
                     setSelectedAppointment(a);
+                    setSelectedServiceId(a.service_id || (a as any).services?.id || '');
                     setIsEditing(true);
                     setShowDetailModal(true);
                 }}
@@ -1422,7 +1433,12 @@ function AgendaContent() {
                                         >
                                             💬 WhatsApp
                                         </button>
-                                        <button className={styles.editBtnSmall} onClick={() => setIsEditing(true)}>✏️ Editar</button>
+                                        <button className={styles.editBtnSmall} onClick={() => {
+                                            if (selectedAppointment) {
+                                                setSelectedServiceId(selectedAppointment.service_id || (selectedAppointment as any).services?.id || '');
+                                            }
+                                            setIsEditing(true);
+                                        }}>✏️ Editar</button>
                                         <button className={styles.deleteBtnSmall} onClick={() => handleDelete()}>🗑️ Cancelar</button>
                                     </div>
                                 )}
@@ -1494,10 +1510,15 @@ function AgendaContent() {
                                         <select 
                                             name="serviceId" 
                                             className={styles.select} 
-                                            value={selectedServiceId}
+                                            value={selectedServiceId || selectedAppointment.service_id || (selectedAppointment as any).services?.id || ''}
                                             onChange={(e) => setSelectedServiceId(e.target.value)}
                                             required
                                         >
+                                            {selectedAppointment && (selectedAppointment.service_id || (selectedAppointment as any).services?.id) && !services.some(s => s.id === (selectedAppointment.service_id || (selectedAppointment as any).services?.id)) && (
+                                                <option value={selectedAppointment.service_id || (selectedAppointment as any).services?.id}>
+                                                    {(selectedAppointment.services as any)?.name || 'Serviço Agendado'}
+                                                </option>
+                                            )}
                                             {services.map(s => <option key={s.id} value={s.id}>{s.name} - R$ {s.base_price.toFixed(2)}</option>)}
                                         </select>
                                     </div>

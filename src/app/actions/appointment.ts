@@ -487,14 +487,14 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
     const id = formData.get('id') as string
     const date = formData.get('date') as string
     const time = formData.get('time') as string
-    const serviceId = formData.get('serviceId') as string
+    let serviceId = formData.get('serviceId') as string
     const notes = formData.get('notes') as string
     const checkInDate = formData.get('checkInDate') as string
     const checkOutDate = formData.get('checkOutDate') as string
     const veterinarianId = formData.get('veterinarianId') as string || null
 
-    if (!id || !serviceId) {
-        return { message: 'ID e Serviço são obrigatórios.', success: false }
+    if (!id) {
+        return { message: 'ID do agendamento é obrigatório.', success: false }
     }
     
     // Validate either date/time OR checkIn/checkOut
@@ -511,16 +511,25 @@ export async function updateAppointment(prevState: CreateAppointmentState, formD
         }
     }
 
-    // 1. Fetch old appointment to check for changes
+    // 1. Fetch old appointment to check for changes and preserve service if missing
     const { data: oldAppt } = await supabase
         .from('appointments')
         .select(`
+            service_id,
             scheduled_at, check_in_date, check_out_date,
             pet_id, customer_id, org_id,
             pets (name), services (name, service_categories(name))
         `)
         .eq('id', id)
         .single()
+
+    if (!serviceId && oldAppt?.service_id) {
+        serviceId = oldAppt.service_id
+    }
+
+    if (!serviceId) {
+        return { message: 'Serviço é obrigatório.', success: false }
+    }
 
     const { error } = await supabase
         .from('appointments')
